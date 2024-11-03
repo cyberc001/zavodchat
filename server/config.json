@@ -1,0 +1,10 @@
+{
+	"listen_port": 1234,
+
+	"https_key": "server.key",
+	"https_cert": "server.crt",
+
+	"db_user": "postgres",
+	"db_password": "q1w2e3",
+	"db_name": "postgres"
+}

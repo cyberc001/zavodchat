@@ -1,0 +1,20 @@
+cmake_minimum_required(VERSION 3.0)
+project(zavodchat)
+
+file(GLOB_RECURSE src src/*.cpp src/*.h)
+
+add_executable(zavodchat ${src})
+
+# libraries
+find_library(PQXX_LIB pqxx)
+find_library(PQ_LIB pq)
+
+include(FindLibHttpServer)
+include(FindGnuTLS)
+
+target_include_directories(zavodchat PUBLIC 
+	"${CMAKE_CURRENT_SOURCE_DIR}/src")
+target_link_libraries(zavodchat PUBLIC
+	${PQXX_LIB} ${PQ_LIB} 
+	${LIBHTTPSERVER_LIBRARIES} GnuTLS::GnuTLS
+)
