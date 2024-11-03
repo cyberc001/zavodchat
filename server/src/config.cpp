@@ -34,6 +34,11 @@ config::config(std::ifstream& fd)
 	listen_port = cfg["listen_port"].get<unsigned>();
 	https_key = cfg["https_key"].get<std::string>();
 	https_cert = cfg["https_cert"].get<std::string>();
+
+	if(cfg["servers_owned_per_user"].type() != json::value_t::number_unsigned)
+		servers_owned_per_user = 10;
+	else
+		servers_owned_per_user = cfg["servers_owned_per_user"].get<unsigned>();
 }
 
 std::string config::get_conn_str() const

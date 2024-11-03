@@ -15,6 +15,9 @@ void db_init(std::string conn_str)
 		tx.exec("CREATE TABLE IF NOT EXISTS user_x_server( user_id INTEGER REFERENCES users NOT NULL, server_id INTEGER REFERENCES servers NOT NULL )");
 		tx.exec("CREATE TABLE IF NOT EXISTS channels( channel_id SERIAL PRIMARY KEY, server_id INTEGER REFERENCES servers NOT NULL, name VARCHAR(64) NOT NULL, type INTEGER NOT NULL )");
 		tx.exec("CREATE TABLE IF NOT EXISTS messages( message_id SERIAL PRIMARY KEY, channel_id INTEGER REFERENCES channels NOT NULL, author_id INTEGER REFERENCES users NOT NULL, sent TIMESTAMP WITH TIME ZONE NOT NULL, last_edited TIMESTAMP WITH TIME ZONE NOT NULL, text VARCHAR(2000) )");
+
+		tx.exec("CREATE INDEX IF NOT EXISTS servers_owners ON servers (owner_id)");
+
 		tx.commit();
 	}
 

@@ -4,6 +4,7 @@
 
 #include "config.h"
 #include "resource/auth.h"
+#include "resource/server.h"
 #include "db/conn_pool.h"
 #include "db/init.h"
 
@@ -28,11 +29,8 @@ int main()
 	std::cout << "Listeting on port " << cfg.listen_port << "\n";
 	auth_resource auth(pool);
 	ws.register_resource("/auth", &auth);
+	server_resource server(pool, auth);
+	server.owned_per_user = cfg.servers_owned_per_user;
+	ws.register_resource("/servers", &server);
 	ws.start(true);
-
-	/*pqxx::connection cx{cfg.get_conn_str()};
-	pqxx::work tx{cx};
-
-	tx.exec("CREATE TABLE test(name varchar(255));");
-	tx.commit();*/
 }
