@@ -11,7 +11,7 @@ public:
 	std::shared_ptr<http_response> render_GET(const http_request&);
 	std::shared_ptr<http_response> render_POST(const http_request&);
 
-	unsigned owned_per_user = 2;
+	unsigned owned_per_user = 10;
 private:
 	db_connection_pool& pool;
 	auth_resource& auth;

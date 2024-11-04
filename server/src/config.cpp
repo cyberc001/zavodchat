@@ -35,9 +35,9 @@ config::config(std::ifstream& fd)
 	https_key = cfg["https_key"].get<std::string>();
 	https_cert = cfg["https_cert"].get<std::string>();
 
-	if(cfg["servers_owned_per_user"].type() != json::value_t::number_unsigned)
-		servers_owned_per_user = 10;
-	else
+	if(cfg["min_password_length"].type() == json::value_t::number_unsigned)
+		min_password_length = cfg["min_password_length"].get<unsigned>();
+	if(cfg["servers_owned_per_user"].type() == json::value_t::number_unsigned)
 		servers_owned_per_user = cfg["servers_owned_per_user"].get<unsigned>();
 }
 

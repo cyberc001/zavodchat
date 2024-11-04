@@ -15,7 +15,8 @@ public:
 	unsigned listen_port;
 	std::string https_key, https_cert;
 
-	unsigned servers_owned_per_user;
+	unsigned min_password_length = 8;
+	unsigned servers_owned_per_user = 10;
 private:
 	std::string db_user, db_password, db_name;
 };

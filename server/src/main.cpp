@@ -29,6 +29,7 @@ int main()
 	std::cout << "Listeting on port " << cfg.listen_port << "\n";
 
 	auth_resource auth(pool);
+	auth.min_password_length = cfg.min_password_length;
 	ws.register_resource("/auth", &auth);
 
 	server_resource server(pool, auth);

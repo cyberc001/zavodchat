@@ -38,6 +38,9 @@ std::shared_ptr<http_response> auth_resource::render_PUT(const http_request& req
 			displayname = req.get_header("displayname"),
 			password = req.get_header("password");
 
+	if(password.size() < min_password_length)
+		return std::shared_ptr<http_response>(new string_response("Password is shorter than " + std::to_string(min_password_length) + " characters", 400));
+
 	db_connection conn = pool.hold();
 	pqxx::work tx{*conn};
 

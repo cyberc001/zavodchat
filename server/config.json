@@ -8,5 +8,6 @@
 	"db_password": "q1w2e3",
 	"db_name": "postgres",
 
+	"min_password_length": 8,
 	"servers_owned_per_user": 10
 }

@@ -36,7 +36,7 @@ std::shared_ptr<http_response> server_resource::render_POST(const http_request& 
 	pqxx::result r;
 	r = tx.exec_params("SELECT owner_id FROM servers WHERE owner_id = $1", user_id);
 	if(r.size() >= owned_per_user)
-		return std::shared_ptr<http_response>(new string_response("Too much servers owned by user", 403));
+		return std::shared_ptr<http_response>(new string_response("User owns more than " + std::to_string(owned_per_user) + " servers", 403));
 	
 	int server_id;
 	try{
