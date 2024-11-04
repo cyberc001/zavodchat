@@ -7,10 +7,10 @@ server_resource::server_resource(connection_pool& pool, auth_resource& auth): po
 
 std::shared_ptr<http_response> server_resource::render_POST(const http_request& req)
 {
-	std::string_view token_s = req.get_header("token"),
-			name = req.get_header("name");
+	std::string_view name = req.get_header("name");
 	session_token token;
-	PARSE_SESSION_TOKEN(token, std::string(token_s));
+	auto err = auth.parse_session_token(req, token);
+	if(err) return err;
 	int user_id = auth.sessions[token];
 
 	auto conn = pool.hold();

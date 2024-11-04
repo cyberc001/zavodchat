@@ -63,3 +63,14 @@ session_token auth_resource::generate_session_token()
 {
 	return rand_distribution(rand_gen);
 }
+std::shared_ptr<http_response> auth_resource::parse_session_token(const http_request& req, session_token& st)
+{
+	try{
+		st = std::stoull(std::string(req.get_header("token")));
+	} catch(std::invalid_argument& e){
+		return std::shared_ptr<http_response>(new string_response("Invalid token", 400));
+	}
+	if(sessions.find(st) == sessions.end())
+		return std::shared_ptr<http_response>(new string_response("Expired or invalid token", 401));
+	return std::shared_ptr<http_response>(nullptr);
+}
