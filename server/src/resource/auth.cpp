@@ -6,6 +6,10 @@ auth_resource::auth_resource(db_connection_pool& pool): pool{pool}
 {
 	rand_gen = std::mt19937{seed_gen()};
 	rand_distribution = std::uniform_int_distribution<session_token>{0, std::numeric_limits<session_token>::max()};
+
+	disallow_all();
+	set_allowing("POST", true);
+	set_allowing("PUT", true);
 }
 
 std::shared_ptr<http_response> auth_resource::render_POST(const http_request& req)

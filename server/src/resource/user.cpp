@@ -4,7 +4,10 @@
 #include <iostream>
 
 user_id_resource::user_id_resource(db_connection_pool& pool, auth_resource& auth) : pool{pool}, auth{auth}
-{}
+{
+	disallow_all();
+	set_allowing("GET", true);
+}
 
 std::shared_ptr<http_response> user_id_resource::render_GET(const http_request& req)
 {

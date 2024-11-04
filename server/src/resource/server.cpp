@@ -4,7 +4,11 @@
 #include <iostream>
 
 server_resource::server_resource(db_connection_pool& pool, auth_resource& auth): pool{pool}, auth{auth}
-{}
+{
+	disallow_all();
+	set_allowing("GET", true);
+	set_allowing("PUT", true);
+}
 
 std::shared_ptr<http_response> server_resource::render_GET(const http_request& req)
 {
@@ -22,7 +26,7 @@ std::shared_ptr<http_response> server_resource::render_GET(const http_request& r
 		res += r[i]["server_id"].as<int>();
 	return std::shared_ptr<http_response>(new string_response(res.dump(), 200));
 }
-std::shared_ptr<http_response> server_resource::render_POST(const http_request& req)
+std::shared_ptr<http_response> server_resource::render_PUT(const http_request& req)
 {
 	std::string_view name = req.get_header("name");
 	session_token token;
@@ -53,7 +57,11 @@ std::shared_ptr<http_response> server_resource::render_POST(const http_request& 
 
 
 server_id_resource::server_id_resource(db_connection_pool& pool, auth_resource& auth): pool{pool}, auth{auth}
-{}
+{
+	disallow_all();
+	set_allowing("GET", true);
+	set_allowing("DELETE", true);
+}
 
 std::shared_ptr<http_response> server_id_resource::render_GET(const http_request& req)
 {
