@@ -27,10 +27,14 @@ int main()
 								.https_mem_key(cfg.https_key)
 								.https_mem_cert(cfg.https_cert);
 	std::cout << "Listeting on port " << cfg.listen_port << "\n";
+
 	auth_resource auth(pool);
 	ws.register_resource("/auth", &auth);
 	server_resource server(pool, auth);
 	server.owned_per_user = cfg.servers_owned_per_user;
 	ws.register_resource("/servers", &server);
+	server_id_resource server_id(pool, auth);
+	ws.register_resource("/servers/{server_id}", &server_id);
+
 	ws.start(true);
 }
