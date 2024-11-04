@@ -20,7 +20,7 @@ int main()
 	}
 
 	db_init(cfg.get_conn_str());
-	connection_pool pool{cfg.get_conn_str()};
+	db_connection_pool pool{cfg.get_conn_str()};
 
 	httpserver::webserver ws = httpserver::create_webserver(cfg.listen_port)
 								.use_ssl()

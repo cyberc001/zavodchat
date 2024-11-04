@@ -2,7 +2,7 @@
 #include <iostream>
 #include <limits>
 
-auth_resource::auth_resource(connection_pool& pool): pool{pool}
+auth_resource::auth_resource(db_connection_pool& pool): pool{pool}
 {
 	rand_gen = std::mt19937{seed_gen()};
 	rand_distribution = std::uniform_int_distribution<session_token>{0, std::numeric_limits<session_token>::max()};
@@ -13,7 +13,7 @@ std::shared_ptr<http_response> auth_resource::render_POST(const http_request& re
 	std::string_view username = req.get_header("username"),
 			password = req.get_header("password");
 
-	auto conn = pool.hold();
+	db_connection conn = pool.hold();
 	pqxx::work tx{*conn};
 
 	pqxx::result r = tx.exec_params("SELECT user_id, username, password FROM auth WHERE username = $1", username);
@@ -24,7 +24,6 @@ std::shared_ptr<http_response> auth_resource::render_POST(const http_request& re
 
 	r = tx.exec_params("SELECT crypt($1, $2)", password, db_hash);
 	std::string password_hash = r[0][0].as<std::string>();
-	pool.release(conn);
 
 	if(db_hash != password_hash)
 		return std::shared_ptr<http_response>(new string_response("Invalid username or password", 404));
@@ -39,7 +38,7 @@ std::shared_ptr<http_response> auth_resource::render_PUT(const http_request& req
 			displayname = req.get_header("displayname"),
 			password = req.get_header("password");
 
-	auto conn = pool.hold();
+	db_connection conn = pool.hold();
 	pqxx::work tx{*conn};
 
 	pqxx::result r;

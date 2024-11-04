@@ -3,7 +3,7 @@
 
 #include <iostream>
 
-server_resource::server_resource(connection_pool& pool, auth_resource& auth): pool{pool}, auth{auth}
+server_resource::server_resource(db_connection_pool& pool, auth_resource& auth): pool{pool}, auth{auth}
 {}
 
 std::shared_ptr<http_response> server_resource::render_GET(const http_request& req)
@@ -13,7 +13,7 @@ std::shared_ptr<http_response> server_resource::render_GET(const http_request& r
 	if(err) return err;
 	int user_id = auth.sessions[token];
 
-	auto conn = pool.hold();
+	db_connection conn = pool.hold();
 	pqxx::work tx{*conn};
 
 	pqxx::result r = tx.exec_params("SELECT server_id FROM user_x_server WHERE user_id = $1", user_id);
@@ -30,7 +30,7 @@ std::shared_ptr<http_response> server_resource::render_POST(const http_request& 
 	if(err) return err;
 	int user_id = auth.sessions[token];
 
-	auto conn = pool.hold();
+	db_connection conn = pool.hold();
 	pqxx::work tx{*conn};
 
 	pqxx::result r;
@@ -52,7 +52,7 @@ std::shared_ptr<http_response> server_resource::render_POST(const http_request& 
 }
 
 
-server_id_resource::server_id_resource(connection_pool& pool, auth_resource& auth): pool{pool}, auth{auth}
+server_id_resource::server_id_resource(db_connection_pool& pool, auth_resource& auth): pool{pool}, auth{auth}
 {}
 
 std::shared_ptr<http_response> server_id_resource::render_GET(const http_request& req)
@@ -62,7 +62,7 @@ std::shared_ptr<http_response> server_id_resource::render_GET(const http_request
 	if(err) return err;
 	int user_id = auth.sessions[token];
 
-	auto conn = pool.hold();
+	db_connection conn = pool.hold();
 	pqxx::work tx{*conn};
 
 	int server_id;
@@ -88,7 +88,7 @@ std::shared_ptr<http_response> server_id_resource::render_DELETE(const http_requ
 	if(err) return err;
 	int user_id = auth.sessions[token];
 
-	auto conn = pool.hold();
+	db_connection conn = pool.hold();
 	pqxx::work tx{*conn};
 
 	int server_id;

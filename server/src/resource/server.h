@@ -7,20 +7,20 @@
 class server_resource : public http_resource
 {
 public:
-	server_resource(connection_pool& pool, auth_resource& auth);
+	server_resource(db_connection_pool& pool, auth_resource& auth);
 	std::shared_ptr<http_response> render_GET(const http_request&);
 	std::shared_ptr<http_response> render_POST(const http_request&);
 
 	unsigned owned_per_user = 2;
 private:
-	connection_pool& pool;
+	db_connection_pool& pool;
 	auth_resource& auth;
 };
 
 class server_id_resource : public http_resource
 {
 public:
-	server_id_resource(connection_pool& pool, auth_resource& auth);
+	server_id_resource(db_connection_pool& pool, auth_resource& auth);
 	std::shared_ptr<http_response> render_GET(const http_request&);
 	std::shared_ptr<http_response> render_DELETE(const http_request&);
 
@@ -29,7 +29,7 @@ public:
 	// Checks if server's owner_id == user_id. Returns nullptr if it's true
 	static std::shared_ptr<http_response> check_owner(int user_id, int server_id, pqxx::work&);
 private:
-	connection_pool& pool;
+	db_connection_pool& pool;
 	auth_resource& auth;
 };
 

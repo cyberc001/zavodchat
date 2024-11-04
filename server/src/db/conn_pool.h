@@ -7,12 +7,25 @@
 #include <mutex>
 #include <condition_variable>
 
-class connection_pool
+class db_connection_pool;
+
+class db_connection
 {
 public:
-	connection_pool(std::string conn_str, size_t conn_cnt = 10);
-	std::shared_ptr<pqxx::connection> hold();
-	void release(std::shared_ptr<pqxx::connection> conn);
+	db_connection(std::shared_ptr<pqxx::connection> conn, db_connection_pool& pool);
+	~db_connection();
+	pqxx::connection& operator*();
+private:
+	std::shared_ptr<pqxx::connection> conn;
+	db_connection_pool& pool;
+};
+
+class db_connection_pool
+{
+public:
+	db_connection_pool(std::string conn_str, size_t conn_cnt = 10);
+	db_connection hold();
+	void release(std::shared_ptr<pqxx::connection> conn); // to be used by connection class
 private:
 	std::queue<std::shared_ptr<pqxx::connection>> pool;
 	std::mutex q_mutex; std::condition_variable q_cond;
