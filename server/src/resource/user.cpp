@@ -1,5 +1,5 @@
 #include "resource/user.h"
-#include <nlohmann/json.hpp>
+#include "resource/utils.h"
 
 #include <iostream>
 
@@ -21,14 +21,8 @@ std::shared_ptr<http_response> user_id_resource::render_GET(const http_request& 
 	pqxx::result r = tx.exec_params("SELECT user_id, name, avatar, status FROM users WHERE user_id = $1", user_id);
 	if(!r.size())
 		return std::shared_ptr<http_response>(new string_response("User with this ID doesn't exist", 404));
-	nlohmann::json res = {
-				{"id", r[0]["user_id"].as<int>()},
-				{"name", r[0]["name"].as<std::string>()},
-				{"status", r[0]["status"].as<int>()}
-	};
-	if(!r[0]["avatar"].is_null())
-		res += {"avatar", r[0]["avatar"].as<std::string>()};
-	return std::shared_ptr<http_response>(new string_response(res.dump(), 200));
+
+	return std::shared_ptr<http_response>(new string_response(resource_utils::user_json_from_row(r[0]).dump(), 200));
 }
 
 std::shared_ptr<http_response> user_id_resource::parse_id(const http_request& req, pqxx::work& tx, int& user_id)

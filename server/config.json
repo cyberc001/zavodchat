@@ -9,5 +9,6 @@
 	"db_name": "postgres",
 
 	"min_password_length": 8,
-	"servers_owned_per_user": 10
+	"servers_owned_per_user": 10,
+	"server_users_max_get_count": 50
 }

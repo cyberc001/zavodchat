@@ -39,6 +39,8 @@ config::config(std::ifstream& fd)
 		min_password_length = cfg["min_password_length"].get<unsigned>();
 	if(cfg["servers_owned_per_user"].type() == json::value_t::number_unsigned)
 		servers_owned_per_user = cfg["servers_owned_per_user"].get<unsigned>();
+	if(cfg["server_users_max_get_count"].type() == json::value_t::number_unsigned)
+		server_users_max_get_count = cfg["server_users_max_get_count"].get<unsigned>();
 }
 
 std::string config::get_conn_str() const

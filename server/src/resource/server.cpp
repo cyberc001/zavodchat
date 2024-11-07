@@ -1,4 +1,5 @@
 #include "resource/server.h"
+#include "resource/utils.h"
 #include <nlohmann/json.hpp>
 
 #include <iostream>
@@ -68,7 +69,7 @@ std::shared_ptr<http_response> server_id_resource::render_GET(const http_request
 	int user_id, server_id;
 	db_connection conn = pool.hold();
 	pqxx::work tx{*conn};
-	auto err = parse_id(req, auth, tx, user_id, server_id);
+	auto err = resource_utils::parse_server_id(req, auth, tx, user_id, server_id);
 	if(err) return err;
 
 	pqxx::result r = tx.exec_params("SELECT name, avatar FROM servers WHERE server_id = $1", server_id);
@@ -88,41 +89,13 @@ std::shared_ptr<http_response> server_id_resource::render_DELETE(const http_requ
 	int user_id, server_id;
 	db_connection conn = pool.hold();
 	pqxx::work tx{*conn};
-	auto err = parse_id(req, auth, tx, user_id, server_id);
+	auto err = resource_utils::parse_server_id(req, auth, tx, user_id, server_id);
 	if(err) return err;
 
-	err = check_owner(user_id, server_id, tx);
+	err = resource_utils::check_server_owner(user_id, server_id, tx);
 	if(err) return err;
 
 	tx.exec_params("DELETE FROM servers WHERE server_id = $1", server_id);
 	tx.commit();
 	return std::shared_ptr<http_response>(new string_response("Deleted", 200));
-}
-
-std::shared_ptr<http_response> server_id_resource::parse_id(const http_request& req, int user_id, pqxx::work& tx, int& server_id)
-{
-	try{
-		server_id = std::stoi(std::string(req.get_arg("server_id")));
-	} catch(std::invalid_argument& e){
-		return std::shared_ptr<http_response>(new string_response("Invalid server ID", 400));
-	}
-	pqxx::result r = tx.exec_params("SELECT user_id FROM user_x_server WHERE user_id = $1 AND server_id = $2", user_id, server_id);
-	if(!r.size())
-		return std::shared_ptr<http_response>(new string_response("User is not a member of the server", 403));
-	return nullptr;
-}
-std::shared_ptr<http_response> server_id_resource::parse_id(const http_request& req, auth_resource& auth, pqxx::work& tx, int& user_id, int& server_id)
-{
-	session_token token;
-	auto err = auth.parse_session_token(req, token);
-	if(err) return err;
-	user_id = auth.sessions[token];
-	return parse_id(req, user_id, tx, server_id);
-}
-std::shared_ptr<http_response> server_id_resource::check_owner(int user_id, int server_id, pqxx::work& tx)
-{
-	pqxx::result r = tx.exec_params("SELECT owner_id FROM servers WHERE server_id = $1", server_id);
-	if(r[0]["owner_id"].as<int>() != user_id)
-		return std::shared_ptr<http_response>(new string_response("User is not the owner of the server", 403));
-	return nullptr;
 }
