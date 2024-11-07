@@ -65,16 +65,10 @@ server_id_resource::server_id_resource(db_connection_pool& pool, auth_resource& 
 
 std::shared_ptr<http_response> server_id_resource::render_GET(const http_request& req)
 {
-	session_token token;
-	auto err = auth.parse_session_token(req, token);
-	if(err) return err;
-	int user_id = auth.sessions[token];
-
+	int user_id, server_id;
 	db_connection conn = pool.hold();
 	pqxx::work tx{*conn};
-
-	int server_id;
-	err = parse_id(req, user_id, tx, server_id);
+	auto err = parse_id(req, auth, tx, user_id, server_id);
 	if(err) return err;
 
 	pqxx::result r = tx.exec_params("SELECT name, avatar FROM servers WHERE server_id = $1", server_id);
@@ -91,16 +85,10 @@ std::shared_ptr<http_response> server_id_resource::render_GET(const http_request
 }
 std::shared_ptr<http_response> server_id_resource::render_DELETE(const http_request& req)
 {
-	session_token token;
-	auto err = auth.parse_session_token(req, token);
-	if(err) return err;
-	int user_id = auth.sessions[token];
-
+	int user_id, server_id;
 	db_connection conn = pool.hold();
 	pqxx::work tx{*conn};
-
-	int server_id;
-	err = parse_id(req, user_id, tx, server_id);
+	auto err = parse_id(req, auth, tx, user_id, server_id);
 	if(err) return err;
 
 	err = check_owner(user_id, server_id, tx);
@@ -122,6 +110,14 @@ std::shared_ptr<http_response> server_id_resource::parse_id(const http_request& 
 	if(!r.size())
 		return std::shared_ptr<http_response>(new string_response("User is not a member of the server", 403));
 	return nullptr;
+}
+std::shared_ptr<http_response> server_id_resource::parse_id(const http_request& req, auth_resource& auth, pqxx::work& tx, int& user_id, int& server_id)
+{
+	session_token token;
+	auto err = auth.parse_session_token(req, token);
+	if(err) return err;
+	user_id = auth.sessions[token];
+	return parse_id(req, user_id, tx, server_id);
 }
 std::shared_ptr<http_response> server_id_resource::check_owner(int user_id, int server_id, pqxx::work& tx)
 {

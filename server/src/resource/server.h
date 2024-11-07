@@ -26,6 +26,8 @@ public:
 
 	// Checks if the server is accessible to the user. Returns nullptr if there wasn't an error
 	static std::shared_ptr<http_response> parse_id(const http_request&, int user_id, pqxx::work&, int& server_id);
+	// Same as above, but derives user_id from supplied token
+	static std::shared_ptr<http_response> parse_id(const http_request&, auth_resource& auth, pqxx::work&, int& user_id, int& server_id);
 	// Checks if server's owner_id == user_id. Returns nullptr if it's true
 	static std::shared_ptr<http_response> check_owner(int user_id, int server_id, pqxx::work&);
 private:
