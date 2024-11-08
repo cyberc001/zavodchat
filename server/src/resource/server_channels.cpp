@@ -16,7 +16,7 @@ std::shared_ptr<http_response> server_channels_resource::render_GET(const http_r
 	auto err = resource_utils::parse_server_id(req, auth, tx, user_id, server_id);
 	if(err) return err;
 
-	nlohmann::json res;
+	nlohmann::json res = nlohmann::json::array();
 	pqxx::result r = tx.exec_params("SELECT channel_id, name, type FROM channels WHERE server_id = $1", server_id);
 	for(size_t i = 0; i < r.size(); ++i)
 		res += resource_utils::channel_json_from_row(r[i]);

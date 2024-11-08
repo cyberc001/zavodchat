@@ -21,7 +21,7 @@ std::shared_ptr<http_response> server_resource::render_GET(const http_request& r
 	db_connection conn = pool.hold();
 	pqxx::work tx{*conn};
 
-	nlohmann::json res;
+	nlohmann::json res = nlohmann::json::array();
 	try{
 	pqxx::result r = tx.exec_params("SELECT server_id, name, avatar FROM user_x_server NATURAL JOIN servers WHERE user_id = $1", user_id);
 	for(size_t i = 0; i < r.size(); ++i)
