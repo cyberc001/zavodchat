@@ -21,6 +21,8 @@ public:
 
 	/* JSON */
 	static nlohmann::json user_json_from_row(const pqxx::row&& r);
+	static nlohmann::json server_json_from_row(const pqxx::row&& r);
+	static nlohmann::json server_json_from_row(const pqxx::row&& r, pqxx::work&); // also retreives channel and user count
 	static nlohmann::json channel_json_from_row(const pqxx::row&& r);
 };
 

@@ -78,6 +78,27 @@ nlohmann::json resource_utils::user_json_from_row(const pqxx::row&& r)
 		res += {"avatar", r["avatar"].as<std::string>()};
 	return res;
 }
+nlohmann::json resource_utils::server_json_from_row(const pqxx::row&& r)
+{
+	nlohmann::json res = {{"id", r["server_id"].as<int>()},
+				{"name", r["name"].as<std::string>()}};
+	if(!r["avatar"].is_null())
+		res += {"avatar", r["avatar"].as<std::string>()};
+	return res;
+}
+nlohmann::json resource_utils::server_json_from_row(const pqxx::row&& r, pqxx::work& tx)
+{
+	nlohmann::json res = {{"id", r["server_id"].as<int>()},
+				{"name", r["name"].as<std::string>()}};
+	if(!r["avatar"].is_null())
+		res += {"avatar", r["avatar"].as<std::string>()};
+
+	pqxx::result pr = tx.exec_params("SELECT server_id FROM channels WHERE server_id = $1", res["id"].get<int>());
+	res += {"channel_count", pr.size()};
+	pr = tx.exec_params("SELECT server_id FROM user_x_server WHERE server_id = $1", res["id"].get<int>());
+	res += {"user_count", pr.size()};
+	return res;
+}
 nlohmann::json resource_utils::channel_json_from_row(const pqxx::row&& r)
 {
 	return {

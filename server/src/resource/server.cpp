@@ -21,10 +21,14 @@ std::shared_ptr<http_response> server_resource::render_GET(const http_request& r
 	db_connection conn = pool.hold();
 	pqxx::work tx{*conn};
 
-	pqxx::result r = tx.exec_params("SELECT server_id FROM user_x_server WHERE user_id = $1", user_id);
 	nlohmann::json res;
+	try{
+	pqxx::result r = tx.exec_params("SELECT server_id, name, avatar FROM user_x_server NATURAL JOIN servers WHERE user_id = $1", user_id);
 	for(size_t i = 0; i < r.size(); ++i)
-		res += r[i]["server_id"].as<int>();
+		res += resource_utils::server_json_from_row(r[i]);
+	} catch(std::exception& e){
+		std::cout << e.what() << "\n";
+	}
 	return std::shared_ptr<http_response>(new string_response(res.dump(), 200));
 }
 std::shared_ptr<http_response> server_resource::render_PUT(const http_request& req)
@@ -72,17 +76,8 @@ std::shared_ptr<http_response> server_id_resource::render_GET(const http_request
 	auto err = resource_utils::parse_server_id(req, auth, tx, user_id, server_id);
 	if(err) return err;
 
-	pqxx::result r = tx.exec_params("SELECT name, avatar FROM servers WHERE server_id = $1", server_id);
-	nlohmann::json res = {{"name", r[0]["name"].as<std::string>()}};
-	if(!r[0]["avatar"].is_null())
-		res += {"avatar", r[0]["avatar"].as<std::string>()};
-
-	r = tx.exec_params("SELECT server_id FROM channels WHERE server_id = $1", server_id);
-	res += {"channel_count", r.size()};
-	r = tx.exec_params("SELECT server_id FROM user_x_server WHERE server_id = $1", server_id);
-	res += {"user_count", r.size()};
-
-	return std::shared_ptr<http_response>(new string_response(res.dump(), 200));
+	pqxx::result r = tx.exec_params("SELECT server_id, name, avatar FROM servers WHERE server_id = $1", server_id);
+	return std::shared_ptr<http_response>(new string_response(resource_utils::server_json_from_row(r[0], tx).dump(), 200));
 }
 std::shared_ptr<http_response> server_id_resource::render_DELETE(const http_request& req)
 {
