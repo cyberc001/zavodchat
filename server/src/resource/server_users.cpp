@@ -4,7 +4,10 @@
 #include <iostream>
 
 server_users_resource::server_users_resource(db_connection_pool& pool, auth_resource& auth) : pool{pool}, auth{auth}
-{}
+{
+	disallow_all();
+	set_allowing("GET", true);
+}
 
 std::shared_ptr<http_response> server_users_resource::render_GET(const http_request& req)
 {
@@ -22,13 +25,9 @@ std::shared_ptr<http_response> server_users_resource::render_GET(const http_requ
 	if(err) return err;
 
 	nlohmann::json res;
-	try{
 	pqxx::result r = tx.exec_params("SELECT user_id, name, avatar, status FROM user_x_server NATURAL JOIN users WHERE server_id = $1 LIMIT $2 OFFSET $3", server_id, count, start);
 	for(size_t i = 0; i < r.size(); ++i)
 		res += resource_utils::user_json_from_row(r[i]);
-	}catch(std::exception& e){
-		std::cout << e.what() << "\n";
-	}
 
 	return std::shared_ptr<http_response>(new string_response(res.dump(), 200));
 }

@@ -4,8 +4,6 @@
 #include "db/conn_pool.h"
 #include "resource/auth.h"
 
-#include "resource/server.h"
-
 class server_users_resource : public http_resource
 {
 public:

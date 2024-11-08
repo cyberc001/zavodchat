@@ -37,8 +37,12 @@ config::config(std::ifstream& fd)
 
 	if(cfg["min_password_length"].type() == json::value_t::number_unsigned)
 		min_password_length = cfg["min_password_length"].get<unsigned>();
+
 	if(cfg["servers_owned_per_user"].type() == json::value_t::number_unsigned)
 		servers_owned_per_user = cfg["servers_owned_per_user"].get<unsigned>();
+	if(cfg["max_channels_per_server"].type() == json::value_t::number_unsigned)
+		max_channels_per_server = cfg["max_channels_per_server"].get<unsigned>();
+
 	if(cfg["server_users_max_get_count"].type() == json::value_t::number_unsigned)
 		server_users_max_get_count = cfg["server_users_max_get_count"].get<unsigned>();
 }

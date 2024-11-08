@@ -21,6 +21,7 @@ public:
 
 	/* JSON */
 	static nlohmann::json user_json_from_row(const pqxx::row&& r);
+	static nlohmann::json channel_json_from_row(const pqxx::row&& r);
 };
 
 #endif

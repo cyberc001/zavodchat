@@ -78,3 +78,11 @@ nlohmann::json resource_utils::user_json_from_row(const pqxx::row&& r)
 		res += {"avatar", r["avatar"].as<std::string>()};
 	return res;
 }
+nlohmann::json resource_utils::channel_json_from_row(const pqxx::row&& r)
+{
+	return {
+		{"id", r["channel_id"].as<int>()},
+		{"name", r["name"].as<std::string>()},
+		{"type", r["type"].as<int>()}
+	};
+}
