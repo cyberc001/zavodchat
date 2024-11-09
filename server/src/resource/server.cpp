@@ -77,7 +77,7 @@ std::shared_ptr<http_response> server_id_resource::render_GET(const http_request
 	if(err) return err;
 
 	pqxx::result r = tx.exec_params("SELECT server_id, name, avatar FROM servers WHERE server_id = $1", server_id);
-	return std::shared_ptr<http_response>(new string_response(resource_utils::server_json_from_row(r[0], tx).dump(), 200));
+	return std::shared_ptr<http_response>(new string_response(resource_utils::server_json_from_row(r[0]).dump(), 200));
 }
 std::shared_ptr<http_response> server_id_resource::render_DELETE(const http_request& req)
 {

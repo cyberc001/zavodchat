@@ -115,9 +115,7 @@ body: JSON-объект с информацией о севрере.
 ```
 {
 	"name": "zona bikini",
-	"avatar": "123.12.53.45/avatar_453912.png",
-	"channel_count": 4,
-	"user_count": 10
+	"avatar": "123.12.53.45/avatar_453912.png"
 }
 ```
 **DELETE:**
@@ -240,25 +238,6 @@ body: JSON-объект с информацией о канале.
 *response 200:*
 
 Канал успешно удалён.
-
-## /servers/$id/channels/$id/messages/count
-
-**GET:**
-
-Получить количество сообщений в канале.
-
-*headers:*
-* token: uint64_t
-
-*response 200:*
-
-body: `<Количество сообщений>`
-
-*response 403:*
-
-Канал не является текстовым.
-
-body: `<причина ошибки>`
 
 ## /servers/$id/channels/$id/messages
 
