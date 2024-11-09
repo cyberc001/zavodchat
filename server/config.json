@@ -13,5 +13,6 @@
 	"servers_owned_per_user": 10,
 	"max_channels_per_server": 50,
 
-	"server_users_max_get_count": 50
+	"server_users_max_get_count": 50,
+	"channel_messages_max_get_count": 50
 }

@@ -109,3 +109,13 @@ nlohmann::json resource_utils::channel_json_from_row(const pqxx::row&& r)
 		{"type", r["type"].as<int>()}
 	};
 }
+nlohmann::json resource_utils::message_json_from_row(const pqxx::row&& r)
+{
+	return {
+		{"id", r["message_id"].as<int>()},
+		{"author_id", r["author_id"].as<int>()},
+		{"sent", r["sent"].as<std::string>()},
+		{"edited", r["last_edited"].as<std::string>()},
+		{"text", r["text"].as<std::string>()}
+	};
+}

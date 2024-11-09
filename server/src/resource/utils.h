@@ -4,6 +4,11 @@
 #include "resource/auth.h"
 #include <nlohmann/json.hpp>
 
+enum order_type {
+	ORDER_DESC,
+	ORDER_ASC
+};
+
 class resource_utils
 {
 public:
@@ -25,6 +30,7 @@ public:
 	static nlohmann::json user_json_from_row(const pqxx::row&& r);
 	static nlohmann::json server_json_from_row(const pqxx::row&& r);
 	static nlohmann::json channel_json_from_row(const pqxx::row&& r);
+	static nlohmann::json message_json_from_row(const pqxx::row&& r);
 };
 
 #endif

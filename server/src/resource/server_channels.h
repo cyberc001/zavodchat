@@ -9,7 +9,6 @@ enum channel_type {
 	CHANNEL_VOICE
 };
 
-
 class server_channel_resource : public http_resource
 {
 public:

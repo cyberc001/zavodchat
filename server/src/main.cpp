@@ -8,6 +8,7 @@
 #include "resource/user.h"
 #include "resource/server_users.h"
 #include "resource/server_channels.h"
+#include "resource/channel_messages.h"
 #include "db/init.h"
 
 int main()
@@ -43,11 +44,16 @@ int main()
 	server_users_resource server_users(pool, auth);
 	server_users.max_get_count = cfg.server_users_max_get_count;
 	ws.register_resource("/servers/{server_id}/users", &server_users);
+
 	server_channel_resource server_channels(pool, auth);
 	server_channels.max_per_server = cfg.max_channels_per_server;
 	ws.register_resource("/servers/{server_id}/channels", &server_channels);
 	server_channel_id_resource server_channel_id(pool, auth);
 	ws.register_resource("/servers/{server_id}/channels/{channel_id}", &server_channel_id);
+
+	channel_messages_resource channel_messages(pool, auth);
+	channel_messages.max_get_count = cfg.channel_messages_max_get_count;
+	ws.register_resource("/servers/{server_id}/channels/{channel_id}/messages", &channel_messages);
 
 	user_id_resource user_id(pool, auth);
 	ws.register_resource("/users/{user_id}", &user_id);

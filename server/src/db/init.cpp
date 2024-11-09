@@ -19,6 +19,8 @@ void db_init(std::string conn_str)
 		tx.exec("CREATE INDEX IF NOT EXISTS server_x_user ON user_x_server (server_id)");
 		tx.exec("CREATE INDEX IF NOT EXISTS servers_owners ON servers (owner_id)");
 		tx.exec("CREATE INDEX IF NOT EXISTS channels_servers ON channels (server_id)");
+		tx.exec("CREATE INDEX IF NOT EXISTS messages_channels ON messages (channel_id)");
+		tx.exec("CREATE INDEX IF NOT EXISTS messages_authors ON messages (author_id)");
 
 		tx.commit();
 	}

@@ -21,6 +21,7 @@ public:
 	unsigned max_channels_per_server = 50;
 
 	unsigned server_users_max_get_count = 50;
+	unsigned channel_messages_max_get_count = 50;
 private:
 	std::string db_user, db_password, db_name;
 };

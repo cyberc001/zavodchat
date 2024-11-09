@@ -45,6 +45,8 @@ config::config(std::ifstream& fd)
 
 	if(cfg["server_users_max_get_count"].type() == json::value_t::number_unsigned)
 		server_users_max_get_count = cfg["server_users_max_get_count"].get<unsigned>();
+	if(cfg["channel_messages_max_get_count"].type() == json::value_t::number_unsigned)
+		channel_messages_max_get_count = cfg["channel_messages_max_get_count"].get<unsigned>();
 }
 
 std::string config::get_conn_str() const
