@@ -1,14 +1,14 @@
 #include "resource/server_channels.h"
 #include "resource/utils.h"
 
-server_channels_resource::server_channels_resource(db_connection_pool& pool, auth_resource& auth): pool{pool}, auth{auth}
+server_channel_resource::server_channel_resource(db_connection_pool& pool, auth_resource& auth): pool{pool}, auth{auth}
 {
 	disallow_all();
 	set_allowing("GET", true);
 	set_allowing("PUT", true);
 }
 
-std::shared_ptr<http_response> server_channels_resource::render_GET(const http_request& req)
+std::shared_ptr<http_response> server_channel_resource::render_GET(const http_request& req)
 {
 	int user_id, server_id;
 	db_connection conn = pool.hold();
@@ -23,7 +23,7 @@ std::shared_ptr<http_response> server_channels_resource::render_GET(const http_r
 
 	return std::shared_ptr<http_response>(new string_response(res.dump(), 200));
 }
-std::shared_ptr<http_response> server_channels_resource::render_PUT(const http_request& req)
+std::shared_ptr<http_response> server_channel_resource::render_PUT(const http_request& req)
 {
 	std::string name = std::string(req.get_header("name"));
 	int type;
@@ -55,4 +55,36 @@ std::shared_ptr<http_response> server_channels_resource::render_PUT(const http_r
 	tx.commit();
 
 	return std::shared_ptr<http_response>(new string_response(std::to_string(channel_id), 200));
+}
+
+server_channel_id_resource::server_channel_id_resource(db_connection_pool& pool, auth_resource& auth): pool{pool}, auth{auth}
+{
+	disallow_all();
+	set_allowing("GET", true);
+	set_allowing("POST", true);
+	set_allowing("DELETE", true);
+}
+std::shared_ptr<http_response> server_channel_id_resource::render_GET(const http_request& req)
+{
+	int user_id, server_id;
+	db_connection conn = pool.hold();
+	pqxx::work tx{*conn};
+	auto err = resource_utils::parse_server_id(req, auth, tx, user_id, server_id);
+	if(err) return err;
+
+	int channel_id;
+	err = resource_utils::parse_channel_id(req, channel_id);
+	if(err) return err;
+	pqxx::result r = tx.exec_params("SELECT channel_id, name, type FROM channels WHERE channel_id = $1", channel_id);
+	if(!r.size())
+		return std::shared_ptr<http_response>(new string_response("Channel doesn't exist", 404));
+	return std::shared_ptr<http_response>(new string_response(resource_utils::channel_json_from_row(r[0]).dump(), 200));
+}
+std::shared_ptr<http_response> server_channel_id_resource::render_POST(const http_request& req)
+{
+	return nullptr;
+}
+std::shared_ptr<http_response> server_channel_id_resource::render_DELETE(const http_request& req)
+{
+	return nullptr;
 }
