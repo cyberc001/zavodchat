@@ -1,5 +1,5 @@
 ## Test user:
-username: `user`
+username: `test`
 password: `qwe123`
 
 ## Creating certificates:

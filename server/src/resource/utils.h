@@ -18,8 +18,8 @@ public:
 	static std::shared_ptr<http_response> parse_server_id(const http_request&, auth_resource& auth, pqxx::work&, int& user_id, int& server_id);
 	// Checks if server's owner_id == user_id. Returns nullptr if it's true
 	static std::shared_ptr<http_response> check_server_owner(int user_id, int server_id, pqxx::work&);
-	static std::shared_ptr<http_response> parse_channel_id(const http_request&, pqxx::work&, int& channel_id); // checks if channel exists
-	static std::shared_ptr<http_response> parse_channel_id(const http_request&, int& channel_id);
+	// Checks if channel is in the server
+	static std::shared_ptr<http_response> parse_channel_id(const http_request&, int server_id, pqxx::work&, int& channel_id);
 
 	/* JSON */
 	static nlohmann::json user_json_from_row(const pqxx::row&& r);

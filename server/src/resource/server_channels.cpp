@@ -74,11 +74,9 @@ std::shared_ptr<http_response> server_channel_id_resource::render_GET(const http
 	if(err) return err;
 
 	int channel_id;
-	err = resource_utils::parse_channel_id(req, channel_id);
+	err = resource_utils::parse_channel_id(req, server_id, tx, channel_id);
 	if(err) return err;
 	pqxx::result r = tx.exec_params("SELECT channel_id, name, type FROM channels WHERE channel_id = $1", channel_id);
-	if(!r.size())
-		return std::shared_ptr<http_response>(new string_response("Channel doesn't exist", 404));
 	return std::shared_ptr<http_response>(new string_response(resource_utils::channel_json_from_row(r[0]).dump(), 200));
 }
 std::shared_ptr<http_response> server_channel_id_resource::render_POST(const http_request& req)
@@ -93,7 +91,7 @@ std::shared_ptr<http_response> server_channel_id_resource::render_POST(const htt
 	if(err) return err;
 
 	int channel_id;
-	err = resource_utils::parse_channel_id(req, tx, channel_id);
+	err = resource_utils::parse_channel_id(req, server_id, tx, channel_id);
 	if(err) return err;
 
 	auto hdrs = req.get_headers();
@@ -118,5 +116,20 @@ std::shared_ptr<http_response> server_channel_id_resource::render_POST(const htt
 }
 std::shared_ptr<http_response> server_channel_id_resource::render_DELETE(const http_request& req)
 {
-	return nullptr;
+	int user_id, server_id;
+	db_connection conn = pool.hold();
+	pqxx::work tx{*conn};
+	auto err = resource_utils::parse_server_id(req, auth, tx, user_id, server_id);
+	if(err) return err;
+
+	err = resource_utils::check_server_owner(user_id, server_id, tx);
+	if(err) return err;
+
+	int channel_id;
+	err = resource_utils::parse_channel_id(req, server_id, tx, channel_id);
+	if(err) return err;
+
+	tx.exec_params("DELETE FROM channels WHERE channel_id = $1", channel_id);
+	tx.commit();
+	return std::shared_ptr<http_response>(new string_response("Delete", 200));
 }
