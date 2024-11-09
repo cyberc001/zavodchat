@@ -18,6 +18,7 @@ std::shared_ptr<http_response> server_channel_resource::render_GET(const http_re
 
 	nlohmann::json res = nlohmann::json::array();
 	pqxx::result r = tx.exec_params("SELECT channel_id, name, type FROM channels WHERE server_id = $1", server_id);
+
 	for(size_t i = 0; i < r.size(); ++i)
 		res += resource_utils::channel_json_from_row(r[i]);
 
@@ -82,7 +83,38 @@ std::shared_ptr<http_response> server_channel_id_resource::render_GET(const http
 }
 std::shared_ptr<http_response> server_channel_id_resource::render_POST(const http_request& req)
 {
-	return nullptr;
+	int user_id, server_id;
+	db_connection conn = pool.hold();
+	pqxx::work tx{*conn};
+	auto err = resource_utils::parse_server_id(req, auth, tx, user_id, server_id);
+	if(err) return err;
+
+	err = resource_utils::check_server_owner(user_id, server_id, tx);
+	if(err) return err;
+
+	int channel_id;
+	err = resource_utils::parse_channel_id(req, tx, channel_id);
+	if(err) return err;
+
+	auto hdrs = req.get_headers();
+	if(hdrs.find("name") != hdrs.end()){
+		std::string name = std::string(req.get_header("name"));
+		try{
+			tx.exec_params("UPDATE channels SET name = $1 WHERE channel_id = $2", name, channel_id);
+		} catch(pqxx::data_exception& e){
+			return std::shared_ptr<http_response>(new string_response("Channel name is too long", 400));
+		}
+	}
+	if(hdrs.find("type") != hdrs.end()){
+		int type;
+		auto err = resource_utils::parse_index(req, "type", type);
+		if(err) return err;
+		if(type != CHANNEL_TEXT && type != CHANNEL_VOICE)
+			return std::shared_ptr<http_response>(new string_response("Unknown channel type", 400));
+		tx.exec_params("UPDATE channels SET type = $1 WHERE channel_id = $2", type, channel_id);
+	}
+	tx.commit();
+	return std::shared_ptr<http_response>(new string_response("Changed", 200));
 }
 std::shared_ptr<http_response> server_channel_id_resource::render_DELETE(const http_request& req)
 {

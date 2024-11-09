@@ -74,6 +74,16 @@ std::shared_ptr<http_response> resource_utils::parse_channel_id(const http_reque
 	return std::shared_ptr<http_response>(nullptr);
 }
 
+std::shared_ptr<http_response> resource_utils::parse_channel_id(const http_request& req, pqxx::work& tx, int& channel_id)
+{
+	auto err = parse_channel_id(req, channel_id);
+	if(err) return err;
+	pqxx::result r = tx.exec_params("SELECT channel_id FROM channels WHERE channel_id = $1", channel_id);
+	if(!r.size())
+		return std::shared_ptr<http_response>(new string_response("Channel doesn't exist", 404));
+	return std::shared_ptr<http_response>(nullptr);
+}
+
 
 /* JSON */
 
