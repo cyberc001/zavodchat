@@ -7,6 +7,7 @@ channel_messages_resource::channel_messages_resource(db_connection_pool& pool, a
 {
 	disallow_all();
 	set_allowing("GET", true);
+	set_allowing("PUT", true);
 }
 
 std::shared_ptr<http_response> channel_messages_resource::render_GET(const http_request& req)
@@ -45,6 +46,31 @@ std::shared_ptr<http_response> channel_messages_resource::render_GET(const http_
 	for(size_t i = 0; i < r.size(); ++i)
 		res += resource_utils::message_json_from_row(r[i]);
 	return std::shared_ptr<http_response>(new string_response(res.dump(), 200));
+}
+std::shared_ptr<http_response> channel_messages_resource::render_PUT(const http_request& req)
+{
+	std::string text = std::string(req.get_header("text"));
+
+	int user_id, server_id;
+	db_connection conn = pool.hold();
+	pqxx::work tx{*conn};
+	auto err = resource_utils::parse_server_id(req, auth, tx, user_id, server_id);
+	if(err) return err;
+
+	int channel_id;
+	err = resource_utils::parse_channel_id(req, server_id, tx, channel_id);
+	if(err) return err;
+
+	int message_id;
+	try{
+		pqxx::result r = tx.exec_params("INSERT INTO messages(channel_id, author_id, sent, last_edited, text) VALUES($1, $2, now(), now(), $3) RETURNING message_id", channel_id, user_id, text);
+		message_id = r[0]["message_id"].as<int>();
+	} catch(pqxx::data_exception& e){
+		return std::shared_ptr<http_response>(new string_response("Message is too long", 400));
+	}
+	tx.commit();
+
+	return std::shared_ptr<http_response>(new string_response(std::to_string(message_id), 200));
 }
 
 

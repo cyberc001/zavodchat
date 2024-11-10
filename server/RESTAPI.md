@@ -268,6 +268,18 @@ body: JSON-массив из объектов - информации о кажд
 
 body: `<причина ошибки>`
 
+**PUT:**
+
+Отправить сообщение в канал.
+
+*headers:*
+* token: uint64_t
+* text: string
+
+*response 200:*
+
+body: `ID созданного сообщения`
+
 ## /servers/$id/channels/$id/messages/$id
 
 **GET:**
