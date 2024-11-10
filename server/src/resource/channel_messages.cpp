@@ -52,6 +52,7 @@ channel_message_id_resource::channel_message_id_resource(db_connection_pool& poo
 {
 	disallow_all();
 	set_allowing("GET", true);
+	set_allowing("POST", true);
 }
 
 std::shared_ptr<http_response> channel_message_id_resource::render_GET(const http_request& req)
@@ -74,4 +75,34 @@ std::shared_ptr<http_response> channel_message_id_resource::render_GET(const htt
 	nlohmann::json res = resource_utils::message_json_from_row(r[0]);
 	return std::shared_ptr<http_response>(new string_response(res.dump(), 200));
 }
+std::shared_ptr<http_response> channel_message_id_resource::render_POST(const http_request& req)
+{
+	std::string text = std::string(req.get_header("text"));
 
+	int user_id, server_id;
+	db_connection conn = pool.hold();
+	pqxx::work tx{*conn};
+	auto err = resource_utils::parse_server_id(req, auth, tx, user_id, server_id);
+	if(err) return err;
+
+	int channel_id;
+	err = resource_utils::parse_channel_id(req, server_id, tx, channel_id);
+	if(err) return err;
+
+	int message_id;
+	err = resource_utils::parse_message_id(req, channel_id, tx, message_id);
+	if(err) return err;
+
+	pqxx::result r = tx.exec_params("SELECT author_id FROM messages WHERE message_id = $1", message_id);
+	if(r[0]["author_id"].as<int>() != user_id)
+		return std::shared_ptr<http_response>(new string_response("User is not the author of the mssage", 403));
+
+	try{
+		tx.exec_params("UPDATE messages SET text = $1, last_edited = now() WHERE message_id = $2", text, message_id);
+	} catch(pqxx::data_exception& e){
+		return std::shared_ptr<http_response>(new string_response("Message is too long", 400));
+	}
+	tx.commit();
+
+	return std::shared_ptr<http_response>(new string_response("Changed", 200));
+}
