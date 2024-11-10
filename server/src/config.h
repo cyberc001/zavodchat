@@ -15,6 +15,7 @@ public:
 	unsigned listen_port;
 	std::string https_key, https_cert;
 
+	unsigned min_username_length = 2;
 	unsigned min_password_length = 8;
 
 	unsigned servers_owned_per_user = 10;

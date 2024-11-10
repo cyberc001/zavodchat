@@ -21,6 +21,7 @@ public:
 	std::shared_ptr<http_response> parse_session_token(const http_request&, session_token& st); // returns nullptr if there was no error parsing token
 	std::unordered_map<session_token, int> sessions; // maps session tokens to user_id in table users
 
+	unsigned min_username_length = 2;
 	unsigned min_password_length = 8;
 private:
 	db_connection_pool& pool;

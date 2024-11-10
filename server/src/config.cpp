@@ -35,6 +35,8 @@ config::config(std::ifstream& fd)
 	https_key = cfg["https_key"].get<std::string>();
 	https_cert = cfg["https_cert"].get<std::string>();
 
+	if(cfg["min_username_length"].type() == json::value_t::number_unsigned)
+		min_username_length = cfg["min_username_length"].get<unsigned>();
 	if(cfg["min_password_length"].type() == json::value_t::number_unsigned)
 		min_password_length = cfg["min_password_length"].get<unsigned>();
 
