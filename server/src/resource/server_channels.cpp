@@ -131,5 +131,5 @@ std::shared_ptr<http_response> server_channel_id_resource::render_DELETE(const h
 
 	tx.exec_params("DELETE FROM channels WHERE channel_id = $1", channel_id);
 	tx.commit();
-	return std::shared_ptr<http_response>(new string_response("Delete", 200));
+	return std::shared_ptr<http_response>(new string_response("Deleted", 200));
 }
