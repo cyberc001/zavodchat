@@ -14,8 +14,9 @@ class auth_resource : public http_resource
 {
 public:
 	auth_resource(db_connection_pool& pool);
-	std::shared_ptr<http_response> render_POST(const http_request&);
+	std::shared_ptr<http_response> render_GET(const http_request&);
 	std::shared_ptr<http_response> render_PUT(const http_request&);
+	std::shared_ptr<http_response> render_POST(const http_request&);
 
 	session_token generate_session_token();
 	std::shared_ptr<http_response> parse_session_token(const http_request&, session_token& st); // returns nullptr if there was no error parsing token
