@@ -25,6 +25,8 @@ public:
 	static std::shared_ptr<http_response> check_server_owner(int user_id, int server_id, pqxx::work&);
 	// Checks if channel is in the server
 	static std::shared_ptr<http_response> parse_channel_id(const http_request&, int server_id, pqxx::work&, int& channel_id);
+	// Checks if message is in the channel
+	static std::shared_ptr<http_response> parse_message_id(const http_request&, int channel_id, pqxx::work&, int& message_id);
 
 	/* JSON */
 	static nlohmann::json user_json_from_row(const pqxx::row&& r);

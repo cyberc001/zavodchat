@@ -54,6 +54,8 @@ int main()
 	channel_messages_resource channel_messages(pool, auth);
 	channel_messages.max_get_count = cfg.channel_messages_max_get_count;
 	ws.register_resource("/servers/{server_id}/channels/{channel_id}/messages", &channel_messages);
+	channel_message_id_resource channel_message_id(pool, auth);
+	ws.register_resource("/servers/{server_id}/channels/{channel_id}/messages/{message_id}", &channel_message_id);
 
 	user_id_resource user_id(pool, auth);
 	ws.register_resource("/users/{user_id}", &user_id);

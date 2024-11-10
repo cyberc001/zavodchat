@@ -46,3 +46,32 @@ std::shared_ptr<http_response> channel_messages_resource::render_GET(const http_
 		res += resource_utils::message_json_from_row(r[i]);
 	return std::shared_ptr<http_response>(new string_response(res.dump(), 200));
 }
+
+
+channel_message_id_resource::channel_message_id_resource(db_connection_pool& pool, auth_resource& auth) : pool{pool}, auth{auth}
+{
+	disallow_all();
+	set_allowing("GET", true);
+}
+
+std::shared_ptr<http_response> channel_message_id_resource::render_GET(const http_request& req)
+{
+	int user_id, server_id;
+	db_connection conn = pool.hold();
+	pqxx::work tx{*conn};
+	auto err = resource_utils::parse_server_id(req, auth, tx, user_id, server_id);
+	if(err) return err;
+
+	int channel_id;
+	err = resource_utils::parse_channel_id(req, server_id, tx, channel_id);
+	if(err) return err;
+
+	int message_id;
+	err = resource_utils::parse_message_id(req, channel_id, tx, message_id);
+	if(err) return err;
+
+	pqxx::result r = tx.exec_params("SELECT message_id, author_id, sent, last_edited, text FROM messages WHERE message_id = $1", message_id);
+	nlohmann::json res = resource_utils::message_json_from_row(r[0]);
+	return std::shared_ptr<http_response>(new string_response(res.dump(), 200));
+}
+

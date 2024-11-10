@@ -69,13 +69,28 @@ std::shared_ptr<http_response> resource_utils::parse_channel_id(const http_reque
 	try{
 		channel_id = std::stoi(std::string(req.get_arg("channel_id")));
 	} catch(std::invalid_argument& e){
-		return std::shared_ptr<http_response>(new string_response("Invalid server ID", 400));
+		return std::shared_ptr<http_response>(new string_response("Invalid channel ID", 400));
 	}
 	pqxx::result r = tx.exec_params("SELECT server_id FROM channels WHERE channel_id = $1", channel_id);
 	if(!r.size())
-		return std::shared_ptr<http_response>(new string_response("Channel doesn't exist", 404));
+		return std::shared_ptr<http_response>(new string_response("Channel does not exist", 404));
 	if(r[0]["server_id"].as<int>() != server_id)
 		return std::shared_ptr<http_response>(new string_response("Channel does not belong to the server", 403));
+	return std::shared_ptr<http_response>(nullptr);
+}
+
+std::shared_ptr<http_response> resource_utils::parse_message_id(const http_request& req, int channel_id, pqxx::work& tx, int& message_id)
+{
+	try{
+		message_id = std::stoi(std::string(req.get_arg("message_id")));
+	} catch(std::invalid_argument& e){
+		return std::shared_ptr<http_response>(new string_response("Invalid message ID", 400));
+	}
+	pqxx::result r = tx.exec_params("SELECT channel_id FROM messages WHERE message_id = $1", message_id);
+	if(!r.size())
+		return std::shared_ptr<http_response>(new string_response("Message does not exist", 404));
+	if(r[0]["channel_id"].as<int>() != channel_id)
+		return std::shared_ptr<http_response>(new string_response("Message does not belong to the channel", 403));
 	return std::shared_ptr<http_response>(nullptr);
 }
 
