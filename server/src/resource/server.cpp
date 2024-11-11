@@ -13,13 +13,12 @@ server_resource::server_resource(db_connection_pool& pool, auth_resource& auth):
 
 std::shared_ptr<http_response> server_resource::render_GET(const http_request& req)
 {
-	session_token token;
-	auto err = auth.parse_session_token(req, token);
-	if(err) return err;
-	int user_id = auth.sessions[token];
-
 	db_connection conn = pool.hold();
 	pqxx::work tx{*conn};
+
+	int user_id;
+	auto err = auth.parse_session_token(req, tx, user_id);
+	if(err) return err;
 
 	nlohmann::json res = nlohmann::json::array();
 	try{
@@ -34,13 +33,13 @@ std::shared_ptr<http_response> server_resource::render_GET(const http_request& r
 std::shared_ptr<http_response> server_resource::render_PUT(const http_request& req)
 {
 	std::string_view name = req.get_header("name");
-	session_token token;
-	auto err = auth.parse_session_token(req, token);
-	if(err) return err;
-	int user_id = auth.sessions[token];
 
 	db_connection conn = pool.hold();
 	pqxx::work tx{*conn};
+
+	int user_id;
+	auto err = auth.parse_session_token(req, tx, user_id);
+	if(err) return err;
 
 	pqxx::result r;
 	r = tx.exec_params("SELECT owner_id FROM servers WHERE owner_id = $1", user_id);

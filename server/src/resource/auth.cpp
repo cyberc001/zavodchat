@@ -1,11 +1,11 @@
 #include "auth.h"
 #include <iostream>
 #include <limits>
+#include <resource/utils.h>
 
 auth_resource::auth_resource(db_connection_pool& pool): pool{pool}
 {
-	rand_gen = std::mt19937{seed_gen()};
-	rand_distribution = std::uniform_int_distribution<session_token>{0, std::numeric_limits<session_token>::max()};
+	session_time_thr = std::thread(auth_resource::session_time_func, std::ref(*this));
 
 	disallow_all();
 	set_allowing("GET", true);
@@ -33,9 +33,8 @@ std::shared_ptr<http_response> auth_resource::render_GET(const http_request& req
 	if(db_hash != password_hash)
 		return std::shared_ptr<http_response>(new string_response("Invalid username or password", 404));
 
-	session_token st = generate_session_token();
-	sessions[st] = user_id;
-	return std::shared_ptr<http_response>(new string_response(std::to_string(st), 200));
+	session_token token = create_session(user_id, tx);
+	return std::shared_ptr<http_response>(new string_response(token, 200));
 }
 std::shared_ptr<http_response> auth_resource::render_PUT(const http_request& req)
 {
@@ -69,13 +68,12 @@ std::shared_ptr<http_response> auth_resource::render_PUT(const http_request& req
 }
 std::shared_ptr<http_response> auth_resource::render_POST(const http_request& req)
 {
-	session_token token;
-	auto err = parse_session_token(req, token);
-	if(err) return err;
-	int user_id = sessions[token];
-
 	db_connection conn = pool.hold();
 	pqxx::work tx{*conn};
+
+	int user_id;
+	auto err = parse_session_token(req, tx, user_id);
+	if(err) return err;
 
 	auto hdrs = req.get_headers();
 	if(hdrs.find("username") != hdrs.end()){
@@ -116,18 +114,34 @@ std::shared_ptr<http_response> auth_resource::render_POST(const http_request& re
 	return std::shared_ptr<http_response>(new string_response("Changed", 200));
 }
 
-session_token auth_resource::generate_session_token()
+std::shared_ptr<http_response> auth_resource::parse_session_token(const http_request& req, pqxx::work& tx, int& user_id)
 {
-	return rand_distribution(rand_gen);
-}
-std::shared_ptr<http_response> auth_resource::parse_session_token(const http_request& req, session_token& st)
-{
-	try{
-		st = std::stoull(std::string(req.get_header("token")));
-	} catch(std::invalid_argument& e){
-		return std::shared_ptr<http_response>(new string_response("Invalid token", 400));
-	}
-	if(sessions.find(st) == sessions.end())
+	pqxx::result r = tx.exec_params("SELECT user_id FROM sessions WHERE token = $1", req.get_header("token"));
+	if(!r.size())
 		return std::shared_ptr<http_response>(new string_response("Expired or invalid token", 401));
+	user_id = r[0]["user_id"].as<int>();
 	return std::shared_ptr<http_response>(nullptr);
+}
+
+session_token auth_resource::create_session(int user_id, pqxx::work& tx)
+{
+	pqxx::result r = tx.exec_params("SELECT user_id FROM sessions WHERE user_id = $1", user_id);
+	if(r.size()){
+		r = tx.exec_params("UPDATE sessions SET token = gen_random_uuid(), expiration_time = now() + ($1 * interval '1 second') WHERE user_id = $2 RETURNING token", session_lifetime, user_id);
+	} else{
+		r = tx.exec_params("INSERT INTO sessions(token, user_id, expiration_time) VALUES(gen_random_uuid(), $1, now() + ($2 * interval '1 second')) RETURNING token", user_id, session_lifetime);
+	}
+	tx.commit();
+	return r[0]["token"].as<session_token>();
+}
+
+void auth_resource::session_time_func(auth_resource& inst)
+{
+	for(;;){
+		db_connection conn = inst.pool.hold();
+		pqxx::work tx{*conn};
+		tx.exec_params("DELETE FROM sessions WHERE expiration_time < now()");
+		tx.commit();
+		std::this_thread::sleep_for(std::chrono::seconds(inst.session_removal_period));
+	}
 }

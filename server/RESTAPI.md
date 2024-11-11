@@ -19,7 +19,7 @@
 
 Авторизация прошла успешно.
 
-body: `<временный токен>`
+body: `<UUID токена>`
 
 *response 404:*
 
@@ -86,7 +86,7 @@ body: JSON-объект с информацией о пользователе.
 Получить список серверов, в которых состоит пользователь.
 
 *headers:*
-* token: uint64_t
+* token: string
 
 *response 200:*
 
@@ -99,7 +99,7 @@ body: JSON-массив из объектов - информации о кажд
 Создать сервер
 
 *headers:*
-* token: uint64_t
+* token: string
 * name: string<br>
 Имя сервера
 	
@@ -120,7 +120,7 @@ body: `<причина ошибки>`
 Получить информацию о сервере
 
 *headers:*
-* token: uint64_t
+* token: string
 
 *response 200:*
 
@@ -136,7 +136,7 @@ body: JSON-объект с информацией о севрере.
 Удалить сервер
 
 *headers:*
-* token: uint64_t
+* token: string
 	
 *response 200:*
 
@@ -150,7 +150,7 @@ body: JSON-объект с информацией о севрере.
 Получить список пользователей в определённом диапазоне индексов.
 
 *headers:*
-* token: uint64_t
+* token: string
 * start: int<br>
 Индекс, с которого начинается получение пользователей.
 * count: int<br>
@@ -175,7 +175,7 @@ body: `<причина ошибки>`
 Получить список каналов
 
 *headers:*
-* token: uint64_t
+* token: string
 
 *response 200:*
 
@@ -188,7 +188,7 @@ body: JSON-массив из объектов - информации о кажд
 Создать канал
 
 *headers:*
-* token: uint64_t
+* token: string
 * name: string<br>
 Имя канала
 * type: int<br>
@@ -211,7 +211,7 @@ body: `<причина ошибки>`
 Получить информацию о канале
 
 *headers:*
-* token: uint64_t
+* token: string
 
 *response 200:*
 
@@ -231,7 +231,7 @@ body: JSON-объект с информацией о канале.
 Изменить параметры канала
 
 *headers:*
-* token: uint64_t
+* token: string
 * name: ?string<br>
 Имя канала
 * type: ?int<br>
@@ -246,7 +246,7 @@ body: JSON-объект с информацией о канале.
 Удалить канал
 
 *headers:*
-* token: uint64_t
+* token: string
 
 *response 200:*
 
@@ -259,7 +259,7 @@ body: JSON-объект с информацией о канале.
 Получить сообщения в определённом диапазоне индексов.
 
 *headers:*
-* token: uint64_t
+* token: string
 * start: int<br>
 Индекс, с которого начинается получение сообщений.
 * count: int<br>
@@ -285,7 +285,7 @@ body: `<причина ошибки>`
 Отправить сообщение в канал.
 
 *headers:*
-* token: uint64_t
+* token: string
 * text: string
 
 *response 200:*
@@ -299,7 +299,7 @@ body: `ID созданного сообщения`
 Получить информацию о сообщении с определённым ID.
 
 *headers:*
-* token: uint64_t
+* token: string
 
 *response 200:*
 
@@ -321,7 +321,7 @@ body: JSON-объект с информацией о сообщении.
 Отредактировать текст сообщения с определённым ID.
 
 *headers:*
-* token: uint64_t
+* token: string
 * text: string
 
 *response 200:*
@@ -337,7 +337,7 @@ body: JSON-объект с информацией о сообщении.
 Удалить сообщение с определённым ID.
 
 *headers:*
-* token: uint64_t
+* token: string
 
 *response 200:*
 

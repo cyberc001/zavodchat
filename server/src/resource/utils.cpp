@@ -1,5 +1,11 @@
 #include "resource/utils.h"
 
+time_t resource_utils::time_now()
+{
+	auto now = std::chrono::system_clock::now();
+	return std::chrono::system_clock::to_time_t(now);
+}
+
 /* Parsing */
 
 std::shared_ptr<http_response> resource_utils::parse_index(const http_request& req, std::string header_name, int& index)
@@ -50,10 +56,8 @@ std::shared_ptr<http_response> resource_utils::parse_server_id(const http_reques
 }
 std::shared_ptr<http_response> resource_utils::parse_server_id(const http_request& req, auth_resource& auth, pqxx::work& tx, int& user_id, int& server_id)
 {
-	session_token token;
-	auto err = auth.parse_session_token(req, token);
+	auto err = auth.parse_session_token(req, tx, user_id);
 	if(err) return err;
-	user_id = auth.sessions[token];
 	return parse_server_id(req, user_id, tx, server_id);
 }
 std::shared_ptr<http_response> resource_utils::check_server_owner(int user_id, int server_id, pqxx::work& tx)

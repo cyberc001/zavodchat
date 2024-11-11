@@ -34,6 +34,8 @@ int main()
 	auth_resource auth(pool);
 	auth.min_username_length = cfg.min_username_length;
 	auth.min_password_length = cfg.min_password_length;
+	auth.session_lifetime = cfg.session_lifetime;
+	auth.session_removal_period = cfg.session_removal_period;
 	ws.register_resource("/auth", &auth);
 
 	server_resource server(pool, auth);

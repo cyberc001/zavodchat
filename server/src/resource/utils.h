@@ -12,6 +12,8 @@ enum order_type {
 class resource_utils
 {
 public:
+	time_t time_now();
+
 	/* Parsing */
 	// Returns an error if the parameter cannot be parsed as int or violates bounds
 	static std::shared_ptr<http_response> parse_index(const http_request&, std::string header_name, int& index);
