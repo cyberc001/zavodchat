@@ -39,36 +39,36 @@ int main()
 	auth.session_removal_period = cfg.session_removal_period;
 	ws.register_resource("/auth", &auth);
 
-	server_resource server(pool, auth);
+	server_resource server(pool);
 	server.owned_per_user = cfg.servers_owned_per_user;
 	ws.register_resource("/servers", &server);
-	server_id_resource server_id(pool, auth);
+	server_id_resource server_id(pool);
 	ws.register_resource("/servers/{server_id}", &server_id);
 
-	server_users_resource server_users(pool, auth);
+	server_users_resource server_users(pool);
 	server_users.max_get_count = cfg.server_users_max_get_count;
 	ws.register_resource("/servers/{server_id}/users", &server_users);
 
-	server_channel_resource server_channels(pool, auth);
+	server_channel_resource server_channels(pool);
 	server_channels.max_per_server = cfg.max_channels_per_server;
 	ws.register_resource("/servers/{server_id}/channels", &server_channels);
-	server_channel_id_resource server_channel_id(pool, auth);
+	server_channel_id_resource server_channel_id(pool);
 	ws.register_resource("/servers/{server_id}/channels/{channel_id}", &server_channel_id);
 
-	channel_messages_resource channel_messages(pool, auth);
+	channel_messages_resource channel_messages(pool);
 	channel_messages.max_get_count = cfg.channel_messages_max_get_count;
 	ws.register_resource("/servers/{server_id}/channels/{channel_id}/messages", &channel_messages);
-	channel_message_id_resource channel_message_id(pool, auth);
+	channel_message_id_resource channel_message_id(pool);
 	ws.register_resource("/servers/{server_id}/channels/{channel_id}/messages/{message_id}", &channel_message_id);
 
-	server_invites_resource server_invites(pool, auth);
+	server_invites_resource server_invites(pool);
 	ws.register_resource("/server_invites/{invite_id}", &server_invites);
-	server_id_invites_resource server_id_invites(pool, auth);
+	server_id_invites_resource server_id_invites(pool);
 	ws.register_resource("/servers/{server_id}/invites", &server_id_invites);
-	server_invite_id_resource server_invite_id(pool, auth);
+	server_invite_id_resource server_invite_id(pool);
 	ws.register_resource("/servers/{server_id}/invites/{invite_id}", &server_invite_id);
 
-	user_id_resource user_id(pool, auth);
+	user_id_resource user_id(pool);
 	ws.register_resource("/users/{user_id}", &user_id);
 
 	ws.start(true);

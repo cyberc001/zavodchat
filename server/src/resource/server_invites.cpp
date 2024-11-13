@@ -1,7 +1,7 @@
 #include "resource/server_invites.h"
 #include "resource/utils.h"
 
-server_invites_resource::server_invites_resource(db_connection_pool& pool, auth_resource& auth): pool{pool}, auth{auth}
+server_invites_resource::server_invites_resource(db_connection_pool& pool): pool{pool}
 {
 	invite_time_thr = std::thread(server_invites_resource::invite_time_func, std::ref(*this));
 
@@ -15,7 +15,7 @@ std::shared_ptr<http_response> server_invites_resource::render_GET(const http_re
 	pqxx::work tx{*conn};
 
 	int user_id;
-	auto err = auth.parse_session_token(req, tx, user_id);
+	auto err = resource_utils::parse_session_token(req, tx, user_id);
 	if(err) return err;
 
 	std::string invite_id;
@@ -48,7 +48,7 @@ void server_invites_resource::invite_time_func(server_invites_resource& inst)
 	}
 }
 
-server_id_invites_resource::server_id_invites_resource(db_connection_pool& pool, auth_resource& auth): pool{pool}, auth{auth}
+server_id_invites_resource::server_id_invites_resource(db_connection_pool& pool): pool{pool}
 {
 	disallow_all();
 	set_allowing("GET", true);
@@ -60,7 +60,7 @@ std::shared_ptr<http_response> server_id_invites_resource::render_GET(const http
 	int user_id, server_id;
 	db_connection conn = pool.hold();
 	pqxx::work tx{*conn};
-	auto err = resource_utils::parse_server_id(req, auth, tx, user_id, server_id);
+	auto err = resource_utils::parse_server_id(req, tx, user_id, server_id);
 	if(err) return err;
 
 	err = resource_utils::check_server_owner(user_id, server_id, tx);
@@ -79,7 +79,7 @@ std::shared_ptr<http_response> server_id_invites_resource::render_PUT(const http
 	int user_id, server_id;
 	db_connection conn = pool.hold();
 	pqxx::work tx{*conn};
-	auto err = resource_utils::parse_server_id(req, auth, tx, user_id, server_id);
+	auto err = resource_utils::parse_server_id(req, tx, user_id, server_id);
 	if(err) return err;
 
 	err = resource_utils::check_server_owner(user_id, server_id, tx);
@@ -105,7 +105,7 @@ std::shared_ptr<http_response> server_id_invites_resource::render_PUT(const http
 }
 
 
-server_invite_id_resource::server_invite_id_resource(db_connection_pool& pool, auth_resource& auth): pool{pool}, auth{auth}
+server_invite_id_resource::server_invite_id_resource(db_connection_pool& pool): pool{pool}
 {
 	disallow_all();
 	set_allowing("GET", true);
@@ -118,7 +118,7 @@ std::shared_ptr<http_response> server_invite_id_resource::render_GET(const http_
 	int user_id, server_id;
 	db_connection conn = pool.hold();
 	pqxx::work tx{*conn};
-	auto err = resource_utils::parse_server_id(req, auth, tx, user_id, server_id);
+	auto err = resource_utils::parse_server_id(req, tx, user_id, server_id);
 	if(err) return err;
 
 	err = resource_utils::check_server_owner(user_id, server_id, tx);
@@ -136,7 +136,7 @@ std::shared_ptr<http_response> server_invite_id_resource::render_POST(const http
 	int user_id, server_id;
 	db_connection conn = pool.hold();
 	pqxx::work tx{*conn};
-	auto err = resource_utils::parse_server_id(req, auth, tx, user_id, server_id);
+	auto err = resource_utils::parse_server_id(req, tx, user_id, server_id);
 	if(err) return err;
 
 	err = resource_utils::check_server_owner(user_id, server_id, tx);
@@ -167,7 +167,7 @@ std::shared_ptr<http_response> server_invite_id_resource::render_DELETE(const ht
 	int user_id, server_id;
 	db_connection conn = pool.hold();
 	pqxx::work tx{*conn};
-	auto err = resource_utils::parse_server_id(req, auth, tx, user_id, server_id);
+	auto err = resource_utils::parse_server_id(req, tx, user_id, server_id);
 	if(err) return err;
 
 	err = resource_utils::check_server_owner(user_id, server_id, tx);

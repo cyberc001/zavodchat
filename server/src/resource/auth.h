@@ -18,8 +18,6 @@ public:
 	std::shared_ptr<http_response> render_PUT(const http_request&);
 	std::shared_ptr<http_response> render_POST(const http_request&);
 
-	std::shared_ptr<http_response> parse_session_token(const http_request&, pqxx::work& tx, int& user_id);
-
 	session_token create_session(int user_id, pqxx::work& tx); // ensures that there are no duplicates
 
 	// in seconds

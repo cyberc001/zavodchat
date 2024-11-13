@@ -42,6 +42,15 @@ std::shared_ptr<http_response> resource_utils::parse_index(const http_request& r
 	return std::shared_ptr<http_response>(nullptr);
 }
 
+std::shared_ptr<http_response> resource_utils::parse_session_token(const http_request& req, pqxx::work& tx, int& user_id)
+{
+	pqxx::result r = tx.exec_params("SELECT user_id FROM sessions WHERE token = $1 AND expiration_time > now()", req.get_header("token"));
+	if(!r.size())
+		return std::shared_ptr<http_response>(new string_response("Expired or invalid token", 401));
+	user_id = r[0]["user_id"].as<int>();
+	return std::shared_ptr<http_response>(nullptr);
+}
+
 std::shared_ptr<http_response> resource_utils::parse_server_id(const http_request& req, int user_id, pqxx::work& tx, int& server_id)
 {
 	try{
@@ -54,9 +63,9 @@ std::shared_ptr<http_response> resource_utils::parse_server_id(const http_reques
 		return std::shared_ptr<http_response>(new string_response("User is not a member of the server", 403));
 	return nullptr;
 }
-std::shared_ptr<http_response> resource_utils::parse_server_id(const http_request& req, auth_resource& auth, pqxx::work& tx, int& user_id, int& server_id)
+std::shared_ptr<http_response> resource_utils::parse_server_id(const http_request& req, pqxx::work& tx, int& user_id, int& server_id)
 {
-	auto err = auth.parse_session_token(req, tx, user_id);
+	auto err = parse_session_token(req, tx, user_id);
 	if(err) return err;
 	return parse_server_id(req, user_id, tx, server_id);
 }

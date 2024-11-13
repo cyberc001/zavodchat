@@ -3,7 +3,7 @@
 
 #include <iostream>
 
-channel_messages_resource::channel_messages_resource(db_connection_pool& pool, auth_resource& auth) : pool{pool}, auth{auth}
+channel_messages_resource::channel_messages_resource(db_connection_pool& pool) : pool{pool}
 {
 	disallow_all();
 	set_allowing("GET", true);
@@ -15,7 +15,7 @@ std::shared_ptr<http_response> channel_messages_resource::render_GET(const http_
 	int user_id, server_id;
 	db_connection conn = pool.hold();
 	pqxx::work tx{*conn};
-	auto err = resource_utils::parse_server_id(req, auth, tx, user_id, server_id);
+	auto err = resource_utils::parse_server_id(req, tx, user_id, server_id);
 	if(err) return err;
 
 	int channel_id;
@@ -54,7 +54,7 @@ std::shared_ptr<http_response> channel_messages_resource::render_PUT(const http_
 	int user_id, server_id;
 	db_connection conn = pool.hold();
 	pqxx::work tx{*conn};
-	auto err = resource_utils::parse_server_id(req, auth, tx, user_id, server_id);
+	auto err = resource_utils::parse_server_id(req, tx, user_id, server_id);
 	if(err) return err;
 
 	int channel_id;
@@ -74,7 +74,7 @@ std::shared_ptr<http_response> channel_messages_resource::render_PUT(const http_
 }
 
 
-channel_message_id_resource::channel_message_id_resource(db_connection_pool& pool, auth_resource& auth) : pool{pool}, auth{auth}
+channel_message_id_resource::channel_message_id_resource(db_connection_pool& pool) : pool{pool}
 {
 	disallow_all();
 	set_allowing("GET", true);
@@ -87,7 +87,7 @@ std::shared_ptr<http_response> channel_message_id_resource::render_GET(const htt
 	int user_id, server_id;
 	db_connection conn = pool.hold();
 	pqxx::work tx{*conn};
-	auto err = resource_utils::parse_server_id(req, auth, tx, user_id, server_id);
+	auto err = resource_utils::parse_server_id(req, tx, user_id, server_id);
 	if(err) return err;
 
 	int channel_id;
@@ -109,7 +109,7 @@ std::shared_ptr<http_response> channel_message_id_resource::render_POST(const ht
 	int user_id, server_id;
 	db_connection conn = pool.hold();
 	pqxx::work tx{*conn};
-	auto err = resource_utils::parse_server_id(req, auth, tx, user_id, server_id);
+	auto err = resource_utils::parse_server_id(req, tx, user_id, server_id);
 	if(err) return err;
 
 	int channel_id;
@@ -138,7 +138,7 @@ std::shared_ptr<http_response> channel_message_id_resource::render_DELETE(const 
 	int user_id, server_id;
 	db_connection conn = pool.hold();
 	pqxx::work tx{*conn};
-	auto err = resource_utils::parse_server_id(req, auth, tx, user_id, server_id);
+	auto err = resource_utils::parse_server_id(req, tx, user_id, server_id);
 	if(err) return err;
 
 	int channel_id;

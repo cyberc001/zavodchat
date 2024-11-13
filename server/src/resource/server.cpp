@@ -4,7 +4,7 @@
 
 #include <iostream>
 
-server_resource::server_resource(db_connection_pool& pool, auth_resource& auth): pool{pool}, auth{auth}
+server_resource::server_resource(db_connection_pool& pool): pool{pool}
 {
 	disallow_all();
 	set_allowing("GET", true);
@@ -17,7 +17,7 @@ std::shared_ptr<http_response> server_resource::render_GET(const http_request& r
 	pqxx::work tx{*conn};
 
 	int user_id;
-	auto err = auth.parse_session_token(req, tx, user_id);
+	auto err = resource_utils::parse_session_token(req, tx, user_id);
 	if(err) return err;
 
 	nlohmann::json res = nlohmann::json::array();
@@ -38,7 +38,7 @@ std::shared_ptr<http_response> server_resource::render_PUT(const http_request& r
 	pqxx::work tx{*conn};
 
 	int user_id;
-	auto err = auth.parse_session_token(req, tx, user_id);
+	auto err = resource_utils::parse_session_token(req, tx, user_id);
 	if(err) return err;
 
 	pqxx::result r;
@@ -60,7 +60,7 @@ std::shared_ptr<http_response> server_resource::render_PUT(const http_request& r
 }
 
 
-server_id_resource::server_id_resource(db_connection_pool& pool, auth_resource& auth): pool{pool}, auth{auth}
+server_id_resource::server_id_resource(db_connection_pool& pool): pool{pool}
 {
 	disallow_all();
 	set_allowing("GET", true);
@@ -72,7 +72,7 @@ std::shared_ptr<http_response> server_id_resource::render_GET(const http_request
 	int user_id, server_id;
 	db_connection conn = pool.hold();
 	pqxx::work tx{*conn};
-	auto err = resource_utils::parse_server_id(req, auth, tx, user_id, server_id);
+	auto err = resource_utils::parse_server_id(req, tx, user_id, server_id);
 	if(err) return err;
 
 	pqxx::result r = tx.exec_params("SELECT server_id, name, avatar FROM servers WHERE server_id = $1", server_id);
@@ -83,7 +83,7 @@ std::shared_ptr<http_response> server_id_resource::render_DELETE(const http_requ
 	int user_id, server_id;
 	db_connection conn = pool.hold();
 	pqxx::work tx{*conn};
-	auto err = resource_utils::parse_server_id(req, auth, tx, user_id, server_id);
+	auto err = resource_utils::parse_server_id(req, tx, user_id, server_id);
 	if(err) return err;
 
 	err = resource_utils::check_server_owner(user_id, server_id, tx);

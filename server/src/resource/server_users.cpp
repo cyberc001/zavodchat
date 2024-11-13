@@ -3,7 +3,7 @@
 
 #include <iostream>
 
-server_users_resource::server_users_resource(db_connection_pool& pool, auth_resource& auth) : pool{pool}, auth{auth}
+server_users_resource::server_users_resource(db_connection_pool& pool) : pool{pool}
 {
 	disallow_all();
 	set_allowing("GET", true);
@@ -14,7 +14,7 @@ std::shared_ptr<http_response> server_users_resource::render_GET(const http_requ
 	int user_id, server_id;
 	db_connection conn = pool.hold();
 	pqxx::work tx{*conn};
-	auto err = resource_utils::parse_server_id(req, auth, tx, user_id, server_id);
+	auto err = resource_utils::parse_server_id(req, tx, user_id, server_id);
 	if(err) return err;
 
 	int start;

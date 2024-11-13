@@ -72,7 +72,7 @@ std::shared_ptr<http_response> auth_resource::render_POST(const http_request& re
 	pqxx::work tx{*conn};
 
 	int user_id;
-	auto err = parse_session_token(req, tx, user_id);
+	auto err = resource_utils::parse_session_token(req, tx, user_id);
 	if(err) return err;
 
 	auto hdrs = req.get_headers();
@@ -112,15 +112,6 @@ std::shared_ptr<http_response> auth_resource::render_POST(const http_request& re
 
 	tx.commit();
 	return std::shared_ptr<http_response>(new string_response("Changed", 200));
-}
-
-std::shared_ptr<http_response> auth_resource::parse_session_token(const http_request& req, pqxx::work& tx, int& user_id)
-{
-	pqxx::result r = tx.exec_params("SELECT user_id FROM sessions WHERE token = $1", req.get_header("token"));
-	if(!r.size())
-		return std::shared_ptr<http_response>(new string_response("Expired or invalid token", 401));
-	user_id = r[0]["user_id"].as<int>();
-	return std::shared_ptr<http_response>(nullptr);
 }
 
 session_token auth_resource::create_session(int user_id, pqxx::work& tx)
