@@ -76,10 +76,8 @@ std::shared_ptr<http_response> resource_utils::parse_channel_id(const http_reque
 		return std::shared_ptr<http_response>(new string_response("Invalid channel ID", 400));
 	}
 	pqxx::result r = tx.exec_params("SELECT server_id FROM channels WHERE channel_id = $1", channel_id);
-	if(!r.size())
+	if(!r.size() || r[0]["server_id"].as<int>() != server_id)
 		return std::shared_ptr<http_response>(new string_response("Channel does not exist", 404));
-	if(r[0]["server_id"].as<int>() != server_id)
-		return std::shared_ptr<http_response>(new string_response("Channel does not belong to the server", 403));
 	return std::shared_ptr<http_response>(nullptr);
 }
 
@@ -91,10 +89,35 @@ std::shared_ptr<http_response> resource_utils::parse_message_id(const http_reque
 		return std::shared_ptr<http_response>(new string_response("Invalid message ID", 400));
 	}
 	pqxx::result r = tx.exec_params("SELECT channel_id FROM messages WHERE message_id = $1", message_id);
-	if(!r.size())
+	if(!r.size() || r[0]["channel_id"].as<int>() != channel_id)
 		return std::shared_ptr<http_response>(new string_response("Message does not exist", 404));
-	if(r[0]["channel_id"].as<int>() != channel_id)
-		return std::shared_ptr<http_response>(new string_response("Message does not belong to the channel", 403));
+	return std::shared_ptr<http_response>(nullptr);
+}
+
+std::shared_ptr<http_response> resource_utils::parse_invite_id(const http_request& req, pqxx::work& tx, std::string& invite_id)
+{
+	invite_id = std::string(req.get_arg("invite_id"));
+	pqxx::result r;
+	try{
+		r = tx.exec_params("SELECT server_id FROM server_invites WHERE invite_id = $1", invite_id);
+	} catch(pqxx::data_exception& e){
+		return std::shared_ptr<http_response>(new string_response("Invalid UUID '" + invite_id + "'", 400));
+	}
+	if(!r.size())
+		return std::shared_ptr<http_response>(new string_response("Server does not have this invite", 404));
+	return std::shared_ptr<http_response>(nullptr);
+}
+std::shared_ptr<http_response> resource_utils::parse_invite_id(const http_request& req, int server_id, pqxx::work& tx, std::string& invite_id)
+{
+	invite_id = std::string(req.get_arg("invite_id"));
+	pqxx::result r;
+	try{
+		r = tx.exec_params("SELECT server_id FROM server_invites WHERE invite_id = $1", invite_id);
+	} catch(pqxx::data_exception& e){
+		return std::shared_ptr<http_response>(new string_response("Invalid UUID '" + invite_id + "'", 400));
+	}
+	if(!r.size() || r[0]["server_id"].as<int>() != server_id)
+		return std::shared_ptr<http_response>(new string_response("Server does not have this invite", 404));
 	return std::shared_ptr<http_response>(nullptr);
 }
 
@@ -136,5 +159,13 @@ nlohmann::json resource_utils::message_json_from_row(const pqxx::row&& r)
 		{"sent", r["sent"].as<std::string>()},
 		{"edited", r["last_edited"].as<std::string>()},
 		{"text", r["text"].as<std::string>()}
+	};
+}
+nlohmann::json resource_utils::invite_json_from_row(const pqxx::row&& r)
+{
+	return {
+		{"id", r["invite_id"].as<std::string>()},
+		{"server_id", r["server_id"].as<int>()},
+		{"expires", r["expiration_time"].is_null() ? "never" : r["expiration_time"].as<std::string>()}
 	};
 }

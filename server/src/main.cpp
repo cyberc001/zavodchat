@@ -9,6 +9,7 @@
 #include "resource/server_users.h"
 #include "resource/server_channels.h"
 #include "resource/channel_messages.h"
+#include "resource/server_invites.h"
 #include "db/init.h"
 
 int main()
@@ -59,6 +60,13 @@ int main()
 	ws.register_resource("/servers/{server_id}/channels/{channel_id}/messages", &channel_messages);
 	channel_message_id_resource channel_message_id(pool, auth);
 	ws.register_resource("/servers/{server_id}/channels/{channel_id}/messages/{message_id}", &channel_message_id);
+
+	server_invites_resource server_invites(pool, auth);
+	ws.register_resource("/server_invites/{invite_id}", &server_invites);
+	server_id_invites_resource server_id_invites(pool, auth);
+	ws.register_resource("/servers/{server_id}/invites", &server_id_invites);
+	server_invite_id_resource server_invite_id(pool, auth);
+	ws.register_resource("/servers/{server_id}/invites/{invite_id}", &server_invite_id);
 
 	user_id_resource user_id(pool, auth);
 	ws.register_resource("/users/{user_id}", &user_id);

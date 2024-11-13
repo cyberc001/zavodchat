@@ -42,8 +42,11 @@ config::config(std::ifstream& fd)
 
 	if(cfg["session_lifetime"].is_number_unsigned())
 		session_lifetime = cfg["session_lifetime"].get<size_t>();
+
 	if(cfg["session_removal_period"].is_number_unsigned())
 		session_removal_period = cfg["session_removal_period"].get<size_t>();
+	if(cfg["invite_removal_period"].is_number_unsigned())
+		invite_removal_period = cfg["invite_removal_period"].get<size_t>();
 
 	if(cfg["servers_owned_per_user"].is_number_unsigned())
 		servers_owned_per_user = cfg["servers_owned_per_user"].get<unsigned>();

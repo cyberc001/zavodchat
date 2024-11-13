@@ -2,9 +2,7 @@
 #define RESOURCE_AUTH_H
 
 #include "db/conn_pool.h"
-#include <unordered_map>
 #include <thread>
-#include <random>
 
 #include <httpserver.hpp>
 using namespace httpserver;
@@ -25,8 +23,8 @@ public:
 	session_token create_session(int user_id, pqxx::work& tx); // ensures that there are no duplicates
 
 	// in seconds
-	size_t session_lifetime = 30;
-	size_t session_removal_period = 1;
+	size_t session_lifetime = 1800;
+	size_t session_removal_period = 3600;
 	
 	unsigned min_username_length = 2;
 	unsigned min_password_length = 8;

@@ -12,7 +12,9 @@
 	"min_password_length": 8,
 
 	"session_lifetime": 1800,
+
 	"session_removal_period": 3600,
+	"invite_removal_period": 3600,
 
 	"servers_owned_per_user": 10,
 	"max_channels_per_server": 50,
