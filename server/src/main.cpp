@@ -48,6 +48,8 @@ int main()
 	server_users_resource server_users(pool);
 	server_users.max_get_count = cfg.server_users_max_get_count;
 	ws.register_resource("/servers/{server_id}/users", &server_users);
+	server_user_id_resource server_user_id(pool);
+	ws.register_resource("/servers/{server_id}/users/{server_user_id}", &server_user_id);
 
 	server_channel_resource server_channels(pool);
 	server_channels.max_per_server = cfg.max_channels_per_server;

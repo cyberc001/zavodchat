@@ -31,3 +31,32 @@ std::shared_ptr<http_response> server_users_resource::render_GET(const http_requ
 
 	return std::shared_ptr<http_response>(new string_response(res.dump(), 200));
 }
+
+server_user_id_resource::server_user_id_resource(db_connection_pool& pool) : pool{pool}
+{
+	disallow_all();
+	set_allowing("DELETE", true);
+}
+
+std::shared_ptr<http_response> server_user_id_resource::render_DELETE(const http_request& req)
+{
+	int user_id, server_id;
+	db_connection conn = pool.hold();
+	pqxx::work tx{*conn};
+	auto err = resource_utils::parse_server_id(req, tx, user_id, server_id);
+	if(err) return err;
+
+	err = resource_utils::check_server_owner(user_id, server_id, tx);
+	if(err) return err;
+
+	int server_user_id;
+	err = resource_utils::parse_server_user_id(req, server_id, tx, server_user_id);
+	if(err) return err;
+
+	if(user_id == server_user_id) // !!!also an established owner of the server
+		return std::shared_ptr<http_response>(new string_response("Owner cannot kick himself", 403));
+
+	tx.exec_params("DELETE FROM user_x_server WHERE user_id = $1 AND server_id = $2", server_user_id, server_id);
+	tx.commit();
+	return std::shared_ptr<http_response>(new string_response("Kicked", 200));
+}

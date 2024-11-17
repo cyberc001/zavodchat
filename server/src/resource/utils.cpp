@@ -69,6 +69,21 @@ std::shared_ptr<http_response> resource_utils::parse_server_id(const http_reques
 	if(err) return err;
 	return parse_server_id(req, user_id, tx, server_id);
 }
+
+std::shared_ptr<http_response> resource_utils::parse_server_user_id(const http_request& req, int server_id, pqxx::work& tx, int& server_user_id)
+{
+	try{
+		server_user_id = std::stoi(std::string(req.get_arg("server_user_id")));
+	} catch(std::invalid_argument& e){
+		return std::shared_ptr<http_response>(new string_response("Invalid server user ID", 400));
+	}
+	pqxx::result r = tx.exec_params("SELECT user_id FROM user_x_server WHERE user_id = $1 AND server_id = $2", server_user_id, server_id);
+	if(!r.size())
+		return std::shared_ptr<http_response>(new string_response("User is not a member of the server", 404));
+	return nullptr;
+}
+
+
 std::shared_ptr<http_response> resource_utils::check_server_owner(int user_id, int server_id, pqxx::work& tx)
 {
 	pqxx::result r = tx.exec_params("SELECT owner_id FROM servers WHERE server_id = $1", server_id);
