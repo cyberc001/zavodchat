@@ -133,6 +133,6 @@ void auth_resource::session_time_func(auth_resource& inst)
 		pqxx::work tx{*conn};
 		tx.exec_params("DELETE FROM sessions WHERE expiration_time < now()");
 		tx.commit();
-		std::this_thread::sleep_for(std::chrono::seconds(inst.session_removal_period));
+		std::this_thread::sleep_for(std::chrono::seconds(inst.cleanup_period));
 	}
 }

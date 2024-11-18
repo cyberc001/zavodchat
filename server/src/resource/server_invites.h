@@ -15,8 +15,7 @@ public:
 
 	std::shared_ptr<http_response> render_GET(const http_request&);
 
-	// in seconds
-	size_t invite_removal_period = 3600;
+	size_t cleanup_period = 3600;
 private:
 	db_connection_pool& pool;
 

@@ -20,14 +20,12 @@ public:
 
 	size_t session_lifetime = 1800;
 
-	size_t session_removal_period = 3600;
-	size_t invite_removal_period = 3600;
+	size_t cleanup_period = 3600;
+	unsigned max_get_count = 50;
 
 	unsigned servers_owned_per_user = 10;
 	unsigned max_channels_per_server = 50;
 
-	unsigned server_users_max_get_count = 50;
-	unsigned channel_messages_max_get_count = 50;
 private:
 	std::string db_user, db_password, db_name;
 };

@@ -28,5 +28,4 @@ private:
 	db_connection_pool& pool;
 };
 
-
 #endif

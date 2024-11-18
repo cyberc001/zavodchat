@@ -1,5 +1,7 @@
 #include "resource/utils.h"
 
+#include <iostream>
+
 time_t resource_utils::time_now()
 {
 	auto now = std::chrono::system_clock::now();
@@ -44,12 +46,28 @@ std::shared_ptr<http_response> resource_utils::parse_index(const http_request& r
 
 std::shared_ptr<http_response> resource_utils::parse_session_token(const http_request& req, pqxx::work& tx, int& user_id)
 {
-	pqxx::result r = tx.exec_params("SELECT user_id FROM sessions WHERE token = $1 AND expiration_time > now()", req.get_header("token"));
+	pqxx::result r;
+	try{
+		r = tx.exec_params("SELECT user_id FROM sessions WHERE token = $1 AND expiration_time > now()", req.get_header("token"));
+	} catch(pqxx::data_exception& e){
+		return std::shared_ptr<http_response>(new string_response("Invalid token", 400));
+	}
 	if(!r.size())
 		return std::shared_ptr<http_response>(new string_response("Expired or invalid token", 401));
 	user_id = r[0]["user_id"].as<int>();
 	return std::shared_ptr<http_response>(nullptr);
 }
+
+std::shared_ptr<http_response> resource_utils::parse_timestamp(const http_request& req, std::string header_name, std::string& ts)
+{
+	ts = std::string(req.get_header(header_name));
+	if(!ts.size())
+		return std::shared_ptr<http_response>(new string_response("Empty '" + header_name + "'", 400));
+	if(ts == "never")
+		ts = "";
+	return nullptr;
+}
+
 
 std::shared_ptr<http_response> resource_utils::parse_server_id(const http_request& req, int user_id, pqxx::work& tx, int& server_id)
 {
@@ -80,6 +98,19 @@ std::shared_ptr<http_response> resource_utils::parse_server_user_id(const http_r
 	pqxx::result r = tx.exec_params("SELECT user_id FROM user_x_server WHERE user_id = $1 AND server_id = $2", server_user_id, server_id);
 	if(!r.size())
 		return std::shared_ptr<http_response>(new string_response("User is not a member of the server", 404));
+	return nullptr;
+}
+
+std::shared_ptr<http_response> resource_utils::parse_server_ban_id(const http_request& req, int server_id, pqxx::work& tx, int& server_ban_id)
+{
+	try{
+		server_ban_id = std::stoi(std::string(req.get_arg("server_ban_id")));
+	} catch(std::invalid_argument& e){
+		return std::shared_ptr<http_response>(new string_response("Invalid server ban ID", 400));
+	}
+	pqxx::result r = tx.exec_params("SELECT ban_id FROM server_bans WHERE user_id = $1 AND server_id = $2", server_ban_id, server_id);
+	if(!r.size())
+		return std::shared_ptr<http_response>(new string_response("User is not banned on the server", 404));
 	return nullptr;
 }
 

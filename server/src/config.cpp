@@ -43,20 +43,15 @@ config::config(std::ifstream& fd)
 	if(cfg["session_lifetime"].is_number_unsigned())
 		session_lifetime = cfg["session_lifetime"].get<size_t>();
 
-	if(cfg["session_removal_period"].is_number_unsigned())
-		session_removal_period = cfg["session_removal_period"].get<size_t>();
-	if(cfg["invite_removal_period"].is_number_unsigned())
-		invite_removal_period = cfg["invite_removal_period"].get<size_t>();
+	if(cfg["cleanup_period"].is_number_unsigned())
+		cleanup_period = cfg["cleanup_period"].get<size_t>();
+	if(cfg["max_get_count"].is_number_unsigned())
+		max_get_count = cfg["max_get_count"].get<unsigned>();
 
 	if(cfg["servers_owned_per_user"].is_number_unsigned())
 		servers_owned_per_user = cfg["servers_owned_per_user"].get<unsigned>();
 	if(cfg["max_channels_per_server"].is_number_unsigned())
 		max_channels_per_server = cfg["max_channels_per_server"].get<unsigned>();
-
-	if(cfg["server_users_max_get_count"].is_number_unsigned())
-		server_users_max_get_count = cfg["server_users_max_get_count"].get<unsigned>();
-	if(cfg["channel_messages_max_get_count"].is_number_unsigned())
-		channel_messages_max_get_count = cfg["channel_messages_max_get_count"].get<unsigned>();
 }
 
 std::string config::get_conn_str() const

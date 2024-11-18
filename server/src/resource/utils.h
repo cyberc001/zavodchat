@@ -24,6 +24,7 @@ public:
 	static std::shared_ptr<http_response> parse_index(const http_request&, std::string header_name, int& index, int lower_bound, int upper_bound);
 
 	static std::shared_ptr<http_response> parse_session_token(const http_request&, pqxx::work& tx, int& user_id);
+	static std::shared_ptr<http_response> parse_timestamp(const http_request&, std::string header_name, std::string& ts);
 
 	// Checks if the server is accessible to the user. Returns nullptr if there wasn't an error
 	static std::shared_ptr<http_response> parse_server_id(const http_request&, int user_id, pqxx::work&, int& server_id);
@@ -31,6 +32,8 @@ public:
 	static std::shared_ptr<http_response> parse_server_id(const http_request&, pqxx::work&, int& user_id, int& server_id);
 
 	static std::shared_ptr<http_response> parse_server_user_id(const http_request&, int server_id, pqxx::work&, int& server_user_id);
+
+	static std::shared_ptr<http_response> parse_server_ban_id(const http_request&, int server_id, pqxx::work&, int& server_ban_id);
 
 	// Checks if server's owner_id == user_id. Returns nullptr if it's true
 	static std::shared_ptr<http_response> check_server_owner(int user_id, int server_id, pqxx::work&);

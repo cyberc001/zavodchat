@@ -10,6 +10,7 @@
 #include "resource/server_channels.h"
 #include "resource/channel_messages.h"
 #include "resource/server_invites.h"
+#include "resource/server_bans.h"
 #include "db/init.h"
 
 int main()
@@ -36,7 +37,7 @@ int main()
 	auth.min_username_length = cfg.min_username_length;
 	auth.min_password_length = cfg.min_password_length;
 	auth.session_lifetime = cfg.session_lifetime;
-	auth.session_removal_period = cfg.session_removal_period;
+	auth.cleanup_period = cfg.cleanup_period;
 	ws.register_resource("/auth", &auth);
 
 	server_resource server(pool);
@@ -46,7 +47,7 @@ int main()
 	ws.register_resource("/servers/{server_id}", &server_id);
 
 	server_users_resource server_users(pool);
-	server_users.max_get_count = cfg.server_users_max_get_count;
+	server_users.max_get_count = cfg.max_get_count;
 	ws.register_resource("/servers/{server_id}/users", &server_users);
 	server_user_id_resource server_user_id(pool);
 	ws.register_resource("/servers/{server_id}/users/{server_user_id}", &server_user_id);
@@ -58,17 +59,25 @@ int main()
 	ws.register_resource("/servers/{server_id}/channels/{channel_id}", &server_channel_id);
 
 	channel_messages_resource channel_messages(pool);
-	channel_messages.max_get_count = cfg.channel_messages_max_get_count;
+	channel_messages.max_get_count = cfg.max_get_count;
 	ws.register_resource("/servers/{server_id}/channels/{channel_id}/messages", &channel_messages);
 	channel_message_id_resource channel_message_id(pool);
 	ws.register_resource("/servers/{server_id}/channels/{channel_id}/messages/{message_id}", &channel_message_id);
 
 	server_invites_resource server_invites(pool);
+	server_invites.cleanup_period = cfg.cleanup_period;
 	ws.register_resource("/server_invites/{invite_id}", &server_invites);
 	server_id_invites_resource server_id_invites(pool);
 	ws.register_resource("/servers/{server_id}/invites", &server_id_invites);
 	server_invite_id_resource server_invite_id(pool);
 	ws.register_resource("/servers/{server_id}/invites/{invite_id}", &server_invite_id);
+
+	server_bans_resource server_bans(pool);
+	server_bans.max_get_count = cfg.max_get_count;
+	server_bans.cleanup_period = cfg.cleanup_period;
+	ws.register_resource("/servers/{server_id}/bans", &server_bans);
+	server_ban_id_resource server_ban_id(pool);
+	ws.register_resource("/servers/{server_id}/bans/{server_ban_id}", &server_ban_id);
 
 	user_id_resource user_id(pool);
 	ws.register_resource("/users/{user_id}", &user_id);

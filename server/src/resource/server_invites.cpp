@@ -30,6 +30,9 @@ std::shared_ptr<http_response> server_invites_resource::render_GET(const http_re
 	r = tx.exec_params("SELECT user_id FROM user_x_server WHERE user_id = $1 AND server_id = $2", user_id, server_id);
 	if(r.size())
 		return std::shared_ptr<http_response>(new string_response("Already joined", 202));
+	r = tx.exec_params("SELECT user_id FROM server_bans WHERE user_id = $1 AND server_id = $2", user_id, server_id);
+	if(r.size())
+		return std::shared_ptr<http_response>(new string_response("User is banned", 403));
 
 	tx.exec_params("INSERT INTO user_x_server(user_id, server_id) VALUES($1, $2)", user_id, server_id);
 	tx.commit();
@@ -44,9 +47,10 @@ void server_invites_resource::invite_time_func(server_invites_resource& inst)
 		pqxx::work tx{*conn};
 		tx.exec_params("DELETE FROM server_invites WHERE expiration_time IS NOT NULL AND expiration_time < now()");
 		tx.commit();
-		std::this_thread::sleep_for(std::chrono::seconds(inst.invite_removal_period));
+		std::this_thread::sleep_for(std::chrono::seconds(inst.cleanup_period));
 	}
 }
+
 
 server_id_invites_resource::server_id_invites_resource(db_connection_pool& pool): pool{pool}
 {
@@ -89,18 +93,16 @@ std::shared_ptr<http_response> server_id_invites_resource::render_PUT(const http
 	if(r.size() >= max_per_server)
 		return std::shared_ptr<http_response>(new string_response("Server has more than " + std::to_string(max_per_server) + " invites", 403));
 
-	std::string expires = std::string(req.get_header("expires"));
-	if(!expires.size())
-		return std::shared_ptr<http_response>(new string_response("Empty expiration time", 400));
-	if(expires == "never")
-		expires = "";
+	std::string expires;
+	err = resource_utils::parse_timestamp(req, "expires", expires);
+	if(err) return err;
 	try{
 		r = tx.exec_params("INSERT INTO server_invites(invite_id, server_id, expiration_time) VALUES(gen_random_uuid(), $1, $2) RETURNING invite_id", server_id, expires.size() ? expires.c_str() : nullptr);
-		tx.commit();
 	} catch(pqxx::data_exception& e){
 		return std::shared_ptr<http_response>(new string_response("Invalid date/time format", 400));
 	}
-	
+	tx.commit();
+
 	return std::shared_ptr<http_response>(new string_response(r[0]["invite_id"].as<std::string>(), 200));
 }
 
@@ -145,7 +147,6 @@ std::shared_ptr<http_response> server_invite_id_resource::render_POST(const http
 	std::string invite_id;
 	err = resource_utils::parse_invite_id(req, server_id, tx, invite_id);
 	if(err) return err;
-
 
 	auto hdrs = req.get_headers();
 	if(hdrs.find("expires") != hdrs.end()){

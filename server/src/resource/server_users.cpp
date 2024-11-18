@@ -1,8 +1,6 @@
 #include "resource/server_users.h"
 #include "resource/utils.h"
 
-#include <iostream>
-
 server_users_resource::server_users_resource(db_connection_pool& pool) : pool{pool}
 {
 	disallow_all();
@@ -54,7 +52,7 @@ std::shared_ptr<http_response> server_user_id_resource::render_DELETE(const http
 	if(err) return err;
 
 	if(user_id == server_user_id) // !!!also an established owner of the server
-		return std::shared_ptr<http_response>(new string_response("Owner cannot kick himself", 403));
+		return std::shared_ptr<http_response>(new string_response("Owner cannot kick themselves", 403));
 
 	tx.exec_params("DELETE FROM user_x_server WHERE user_id = $1 AND server_id = $2", server_user_id, server_id);
 	tx.commit();
