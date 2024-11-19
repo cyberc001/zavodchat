@@ -1,4 +1,6 @@
 cmake_minimum_required(VERSION 3.0)
+list(APPEND CMAKE_MODULE_PATH "/usr/local/share/cmake/Modules/")
+
 project(zavodchat)
 
 file(GLOB_RECURSE src src/*.cpp src/*.h)

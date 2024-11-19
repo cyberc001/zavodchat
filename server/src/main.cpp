@@ -24,6 +24,7 @@ int main()
 		return -1;
 	}
 
+	db_connect(cfg.get_conn_str());
 	db_init(cfg.get_conn_str());
 	db_connection_pool pool{cfg.get_conn_str()};
 

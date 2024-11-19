@@ -27,6 +27,7 @@ public:
 	unsigned max_channels_per_server = 50;
 
 private:
+	std::string db_host; unsigned db_port;
 	std::string db_user, db_password, db_name;
 };
 

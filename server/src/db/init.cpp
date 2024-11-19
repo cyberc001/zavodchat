@@ -1,5 +1,20 @@
 #include "init.h"
 #include <pqxx/pqxx>
+#include <iostream>
+#include <chrono>
+#include <thread>
+
+void db_connect(std::string conn_str)
+{
+start:
+	try{
+		pqxx::connection conn{conn_str};
+	} catch(pqxx::broken_connection& e){
+		std::cout << e.what() << "\nRetrying to connect...\n";
+		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+		goto start;
+	}
+}
 
 void db_init(std::string conn_str)
 {
