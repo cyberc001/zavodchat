@@ -23,7 +23,7 @@ std::shared_ptr<http_response> server_users_resource::render_GET(const http_requ
 	if(err) return err;
 
 	nlohmann::json res = nlohmann::json::array();
-	pqxx::result r = tx.exec_params("SELECT user_id, name, avatar, status FROM user_x_server NATURAL JOIN users WHERE server_id = $1 LIMIT $2 OFFSET $3", server_id, count, start);
+	pqxx::result r = tx.exec("SELECT user_id, name, avatar, status FROM user_x_server NATURAL JOIN users WHERE server_id = $1 LIMIT $2 OFFSET $3", pqxx::params(server_id, count, start));
 	for(size_t i = 0; i < r.size(); ++i)
 		res += resource_utils::user_json_from_row(r[i]);
 
@@ -54,7 +54,7 @@ std::shared_ptr<http_response> server_user_id_resource::render_DELETE(const http
 	if(user_id == server_user_id) // !!!also an established owner of the server
 		return std::shared_ptr<http_response>(new string_response("Owner cannot kick themselves", 403));
 
-	tx.exec_params("DELETE FROM user_x_server WHERE user_id = $1 AND server_id = $2", server_user_id, server_id);
+	tx.exec("DELETE FROM user_x_server WHERE user_id = $1 AND server_id = $2", pqxx::params(server_user_id, server_id));
 	tx.commit();
 	return std::shared_ptr<http_response>(new string_response("Kicked", 200));
 }

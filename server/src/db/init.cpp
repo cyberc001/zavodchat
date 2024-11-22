@@ -56,7 +56,7 @@ void db_init(std::string conn_str)
 		pqxx::work tx{conn};
 		pqxx::result r = tx.exec("INSERT INTO users(name, status) VALUES('test', 0) RETURNING user_id");
 		try{
-			tx.exec_params("INSERT INTO auth(username, password, user_id) VALUES('test', crypt('qwe123', gen_salt('bf')), $1)", r[0]["user_id"].as<int>());
+			tx.exec("INSERT INTO auth(username, password, user_id) VALUES('test', crypt('qwe123', gen_salt('bf')), $1)", pqxx::params(r[0]["user_id"].as<int>()));
 			tx.commit();
 		} catch(const pqxx::unique_violation& e){}
 	}

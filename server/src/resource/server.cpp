@@ -22,7 +22,7 @@ std::shared_ptr<http_response> server_resource::render_GET(const http_request& r
 
 	nlohmann::json res = nlohmann::json::array();
 	try{
-	pqxx::result r = tx.exec_params("SELECT server_id, name, avatar FROM user_x_server NATURAL JOIN servers WHERE user_id = $1", user_id);
+	pqxx::result r = tx.exec("SELECT server_id, name, avatar FROM user_x_server NATURAL JOIN servers WHERE user_id = $1", pqxx::params(user_id));
 	for(size_t i = 0; i < r.size(); ++i)
 		res += resource_utils::server_json_from_row(r[i]);
 	} catch(std::exception& e){
@@ -42,15 +42,15 @@ std::shared_ptr<http_response> server_resource::render_PUT(const http_request& r
 	if(err) return err;
 
 	pqxx::result r;
-	r = tx.exec_params("SELECT owner_id FROM servers WHERE owner_id = $1", user_id);
+	r = tx.exec("SELECT owner_id FROM servers WHERE owner_id = $1", pqxx::params(user_id));
 	if(r.size() >= owned_per_user)
 		return std::shared_ptr<http_response>(new string_response("User owns more than " + std::to_string(owned_per_user) + " servers", 403));
 	
 	int server_id;
 	try{
-		r = tx.exec_params("INSERT INTO servers(name, owner_id) VALUES($1, $2) RETURNING server_id", name, user_id);
+		r = tx.exec("INSERT INTO servers(name, owner_id) VALUES($1, $2) RETURNING server_id", pqxx::params(name, user_id));
 		server_id = r[0]["server_id"].as<int>();
-		tx.exec_params("INSERT INTO user_x_server(user_id, server_id) VALUES($1, $2)", user_id, server_id);
+		tx.exec("INSERT INTO user_x_server(user_id, server_id) VALUES($1, $2)", pqxx::params(user_id, server_id));
 	} catch(pqxx::data_exception& e){
 		return std::shared_ptr<http_response>(new string_response("Server name is too long", 400));
 	}
@@ -75,7 +75,7 @@ std::shared_ptr<http_response> server_id_resource::render_GET(const http_request
 	auto err = resource_utils::parse_server_id(req, tx, user_id, server_id);
 	if(err) return err;
 
-	pqxx::result r = tx.exec_params("SELECT server_id, name, avatar FROM servers WHERE server_id = $1", server_id);
+	pqxx::result r = tx.exec("SELECT server_id, name, avatar FROM servers WHERE server_id = $1", pqxx::params(server_id));
 	return std::shared_ptr<http_response>(new string_response(resource_utils::server_json_from_row(r[0]).dump(), 200));
 }
 std::shared_ptr<http_response> server_id_resource::render_DELETE(const http_request& req)
@@ -89,7 +89,7 @@ std::shared_ptr<http_response> server_id_resource::render_DELETE(const http_requ
 	err = resource_utils::check_server_owner(user_id, server_id, tx);
 	if(err) return err;
 
-	tx.exec_params("DELETE FROM servers WHERE server_id = $1", server_id);
+	tx.exec("DELETE FROM servers WHERE server_id = $1", pqxx::params(server_id));
 	tx.commit();
 	return std::shared_ptr<http_response>(new string_response("Deleted", 200));
 }

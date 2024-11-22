@@ -22,19 +22,19 @@ std::shared_ptr<http_response> server_invites_resource::render_GET(const http_re
 	err = resource_utils::parse_invite_id(req, tx, invite_id);
 	if(err) return err;
 
-	pqxx::result r = tx.exec_params("SELECT invite_id, server_id, expiration_time FROM server_invites WHERE invite_id = $1 AND expiration_time IS NULL OR expiration_time > now()", invite_id);
+	pqxx::result r = tx.exec("SELECT invite_id, server_id, expiration_time FROM server_invites WHERE invite_id = $1 AND expiration_time IS NULL OR expiration_time > now()", pqxx::params(invite_id));
 	if(!r.size())
 		return std::shared_ptr<http_response>(new string_response("Invite has expired", 403));
 	int server_id = r[0]["server_id"].as<int>();
 
-	r = tx.exec_params("SELECT user_id FROM user_x_server WHERE user_id = $1 AND server_id = $2", user_id, server_id);
+	r = tx.exec("SELECT user_id FROM user_x_server WHERE user_id = $1 AND server_id = $2", pqxx::params(user_id, server_id));
 	if(r.size())
 		return std::shared_ptr<http_response>(new string_response("Already joined", 202));
-	r = tx.exec_params("SELECT user_id FROM server_bans WHERE user_id = $1 AND server_id = $2", user_id, server_id);
+	r = tx.exec("SELECT user_id FROM server_bans WHERE user_id = $1 AND server_id = $2", pqxx::params(user_id, server_id));
 	if(r.size())
 		return std::shared_ptr<http_response>(new string_response("User is banned", 403));
 
-	tx.exec_params("INSERT INTO user_x_server(user_id, server_id) VALUES($1, $2)", user_id, server_id);
+	tx.exec("INSERT INTO user_x_server(user_id, server_id) VALUES($1, $2)", pqxx::params(user_id, server_id));
 	tx.commit();
 	
 	return std::shared_ptr<http_response>(new string_response("Joined", 200));
@@ -45,7 +45,7 @@ void server_invites_resource::invite_time_func(server_invites_resource& inst)
 	for(;;){
 		db_connection conn = inst.pool.hold();
 		pqxx::work tx{*conn};
-		tx.exec_params("DELETE FROM server_invites WHERE expiration_time IS NOT NULL AND expiration_time < now()");
+		tx.exec("DELETE FROM server_invites WHERE expiration_time IS NOT NULL AND expiration_time < now()");
 		tx.commit();
 		std::this_thread::sleep_for(std::chrono::seconds(inst.cleanup_period));
 	}
@@ -71,7 +71,7 @@ std::shared_ptr<http_response> server_id_invites_resource::render_GET(const http
 	if(err) return err;
 	
 	nlohmann::json res = nlohmann::json::array();
-	pqxx::result r = tx.exec_params("SELECT invite_id, server_id, expiration_time FROM server_invites WHERE server_id = $1", server_id);
+	pqxx::result r = tx.exec("SELECT invite_id, server_id, expiration_time FROM server_invites WHERE server_id = $1", pqxx::params(server_id));
 
 	for(size_t i = 0; i < r.size(); ++i)
 		res += resource_utils::invite_json_from_row(r[i]);
@@ -89,7 +89,7 @@ std::shared_ptr<http_response> server_id_invites_resource::render_PUT(const http
 	err = resource_utils::check_server_owner(user_id, server_id, tx);
 	if(err) return err;
 	
-	pqxx::result r = tx.exec_params("SELECT server_id FROM server_invites WHERE server_id = $1", server_id);
+	pqxx::result r = tx.exec("SELECT server_id FROM server_invites WHERE server_id = $1", pqxx::params(server_id));
 	if(r.size() >= max_per_server)
 		return std::shared_ptr<http_response>(new string_response("Server has more than " + std::to_string(max_per_server) + " invites", 403));
 
@@ -97,7 +97,7 @@ std::shared_ptr<http_response> server_id_invites_resource::render_PUT(const http
 	err = resource_utils::parse_timestamp(req, "expires", expires);
 	if(err) return err;
 	try{
-		r = tx.exec_params("INSERT INTO server_invites(invite_id, server_id, expiration_time) VALUES(gen_random_uuid(), $1, $2) RETURNING invite_id", server_id, expires.size() ? expires.c_str() : nullptr);
+		r = tx.exec("INSERT INTO server_invites(invite_id, server_id, expiration_time) VALUES(gen_random_uuid(), $1, $2) RETURNING invite_id", pqxx::params(server_id, expires.size() ? expires.c_str() : nullptr));
 	} catch(pqxx::data_exception& e){
 		return std::shared_ptr<http_response>(new string_response("Invalid date/time format", 400));
 	}
@@ -130,7 +130,7 @@ std::shared_ptr<http_response> server_invite_id_resource::render_GET(const http_
 	err = resource_utils::parse_invite_id(req, server_id, tx, invite_id);
 	if(err) return err;
 	
-	pqxx::result r = tx.exec_params("SELECT invite_id, server_id, expiration_time FROM server_invites WHERE invite_id = $1", invite_id);
+	pqxx::result r = tx.exec("SELECT invite_id, server_id, expiration_time FROM server_invites WHERE invite_id = $1", pqxx::params(invite_id));
 	return std::shared_ptr<http_response>(new string_response(resource_utils::invite_json_from_row(r[0]).dump(), 200));
 }
 std::shared_ptr<http_response> server_invite_id_resource::render_POST(const http_request& req)
@@ -154,7 +154,7 @@ std::shared_ptr<http_response> server_invite_id_resource::render_POST(const http
 		if(expires == "never")
 			expires = "";
 		try{
-			tx.exec_params("UPDATE server_invites SET expiration_time = $1 WHERE invite_id = $2", expires.size() ? expires.c_str() : nullptr, invite_id);
+			tx.exec("UPDATE server_invites SET expiration_time = $1 WHERE invite_id = $2", pqxx::params(expires.size() ? expires.c_str() : nullptr, invite_id));
 		} catch(pqxx::data_exception& e){
 			return std::shared_ptr<http_response>(new string_response("Invalid date/time format", 400));
 		}
@@ -178,7 +178,7 @@ std::shared_ptr<http_response> server_invite_id_resource::render_DELETE(const ht
 	err = resource_utils::parse_invite_id(req, server_id, tx, invite_id);
 	if(err) return err;
 
-	tx.exec_params("DELETE FROM server_invites WHERE invite_id = $1", invite_id);
+	tx.exec("DELETE FROM server_invites WHERE invite_id = $1", pqxx::params(invite_id));
 	tx.commit();
 	return std::shared_ptr<http_response>(new string_response("Deleted", 200));
 }

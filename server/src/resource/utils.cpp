@@ -48,7 +48,7 @@ std::shared_ptr<http_response> resource_utils::parse_session_token(const http_re
 {
 	pqxx::result r;
 	try{
-		r = tx.exec_params("SELECT user_id FROM sessions WHERE token = $1 AND expiration_time > now()", req.get_header("token"));
+		r = tx.exec("SELECT user_id FROM sessions WHERE token = $1 AND expiration_time > now()", pqxx::params(req.get_header("token")));
 	} catch(pqxx::data_exception& e){
 		return std::shared_ptr<http_response>(new string_response("Invalid token", 400));
 	}
@@ -76,7 +76,7 @@ std::shared_ptr<http_response> resource_utils::parse_server_id(const http_reques
 	} catch(std::invalid_argument& e){
 		return std::shared_ptr<http_response>(new string_response("Invalid server ID", 400));
 	}
-	pqxx::result r = tx.exec_params("SELECT user_id FROM user_x_server WHERE user_id = $1 AND server_id = $2", user_id, server_id);
+	pqxx::result r = tx.exec("SELECT user_id FROM user_x_server WHERE user_id = $1 AND server_id = $2", pqxx::params(user_id, server_id));
 	if(!r.size())
 		return std::shared_ptr<http_response>(new string_response("User is not a member of the server", 403));
 	return nullptr;
@@ -95,7 +95,7 @@ std::shared_ptr<http_response> resource_utils::parse_server_user_id(const http_r
 	} catch(std::invalid_argument& e){
 		return std::shared_ptr<http_response>(new string_response("Invalid server user ID", 400));
 	}
-	pqxx::result r = tx.exec_params("SELECT user_id FROM user_x_server WHERE user_id = $1 AND server_id = $2", server_user_id, server_id);
+	pqxx::result r = tx.exec("SELECT user_id FROM user_x_server WHERE user_id = $1 AND server_id = $2", pqxx::params(server_user_id, server_id));
 	if(!r.size())
 		return std::shared_ptr<http_response>(new string_response("User is not a member of the server", 404));
 	return nullptr;
@@ -108,7 +108,7 @@ std::shared_ptr<http_response> resource_utils::parse_server_ban_id(const http_re
 	} catch(std::invalid_argument& e){
 		return std::shared_ptr<http_response>(new string_response("Invalid server ban ID", 400));
 	}
-	pqxx::result r = tx.exec_params("SELECT ban_id FROM server_bans WHERE user_id = $1 AND server_id = $2", server_ban_id, server_id);
+	pqxx::result r = tx.exec("SELECT ban_id FROM server_bans WHERE user_id = $1 AND server_id = $2", pqxx::params(server_ban_id, server_id));
 	if(!r.size())
 		return std::shared_ptr<http_response>(new string_response("User is not banned on the server", 404));
 	return nullptr;
@@ -117,7 +117,7 @@ std::shared_ptr<http_response> resource_utils::parse_server_ban_id(const http_re
 
 std::shared_ptr<http_response> resource_utils::check_server_owner(int user_id, int server_id, pqxx::work& tx)
 {
-	pqxx::result r = tx.exec_params("SELECT owner_id FROM servers WHERE server_id = $1", server_id);
+	pqxx::result r = tx.exec("SELECT owner_id FROM servers WHERE server_id = $1", pqxx::params(server_id));
 	if(r[0]["owner_id"].as<int>() != user_id)
 		return std::shared_ptr<http_response>(new string_response("User is not the owner of the server", 403));
 	return nullptr;
@@ -130,7 +130,7 @@ std::shared_ptr<http_response> resource_utils::parse_channel_id(const http_reque
 	} catch(std::invalid_argument& e){
 		return std::shared_ptr<http_response>(new string_response("Invalid channel ID", 400));
 	}
-	pqxx::result r = tx.exec_params("SELECT server_id FROM channels WHERE channel_id = $1", channel_id);
+	pqxx::result r = tx.exec("SELECT server_id FROM channels WHERE channel_id = $1", pqxx::params(channel_id));
 	if(!r.size() || r[0]["server_id"].as<int>() != server_id)
 		return std::shared_ptr<http_response>(new string_response("Channel does not exist", 404));
 	return std::shared_ptr<http_response>(nullptr);
@@ -143,7 +143,7 @@ std::shared_ptr<http_response> resource_utils::parse_message_id(const http_reque
 	} catch(std::invalid_argument& e){
 		return std::shared_ptr<http_response>(new string_response("Invalid message ID", 400));
 	}
-	pqxx::result r = tx.exec_params("SELECT channel_id FROM messages WHERE message_id = $1", message_id);
+	pqxx::result r = tx.exec("SELECT channel_id FROM messages WHERE message_id = $1", pqxx::params(message_id));
 	if(!r.size() || r[0]["channel_id"].as<int>() != channel_id)
 		return std::shared_ptr<http_response>(new string_response("Message does not exist", 404));
 	return std::shared_ptr<http_response>(nullptr);
@@ -154,7 +154,7 @@ std::shared_ptr<http_response> resource_utils::parse_invite_id(const http_reques
 	invite_id = std::string(req.get_arg("invite_id"));
 	pqxx::result r;
 	try{
-		r = tx.exec_params("SELECT server_id FROM server_invites WHERE invite_id = $1", invite_id);
+		r = tx.exec("SELECT server_id FROM server_invites WHERE invite_id = $1", pqxx::params(invite_id));
 	} catch(pqxx::data_exception& e){
 		return std::shared_ptr<http_response>(new string_response("Invalid UUID '" + invite_id + "'", 400));
 	}
@@ -167,7 +167,7 @@ std::shared_ptr<http_response> resource_utils::parse_invite_id(const http_reques
 	invite_id = std::string(req.get_arg("invite_id"));
 	pqxx::result r;
 	try{
-		r = tx.exec_params("SELECT server_id FROM server_invites WHERE invite_id = $1", invite_id);
+		r = tx.exec("SELECT server_id FROM server_invites WHERE invite_id = $1", pqxx::params(invite_id));
 	} catch(pqxx::data_exception& e){
 		return std::shared_ptr<http_response>(new string_response("Invalid UUID '" + invite_id + "'", 400));
 	}

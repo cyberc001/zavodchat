@@ -42,7 +42,7 @@ std::shared_ptr<http_response> channel_messages_resource::render_GET(const http_
 	}
 
 	nlohmann::json res = nlohmann::json::array();
-	pqxx::result r = tx.exec_params("SELECT message_id, author_id, sent, last_edited, text FROM messages WHERE channel_id = $1 ORDER BY sent " + order + " LIMIT $2 OFFSET $3", channel_id, count, start);
+	pqxx::result r = tx.exec("SELECT message_id, author_id, sent, last_edited, text FROM messages WHERE channel_id = $1 ORDER BY sent " + order + " LIMIT $2 OFFSET $3", pqxx::params(channel_id, count, start));
 	for(size_t i = 0; i < r.size(); ++i)
 		res += resource_utils::message_json_from_row(r[i]);
 	return std::shared_ptr<http_response>(new string_response(res.dump(), 200));
@@ -63,7 +63,7 @@ std::shared_ptr<http_response> channel_messages_resource::render_PUT(const http_
 
 	int message_id;
 	try{
-		pqxx::result r = tx.exec_params("INSERT INTO messages(channel_id, author_id, sent, last_edited, text) VALUES($1, $2, now(), now(), $3) RETURNING message_id", channel_id, user_id, text);
+		pqxx::result r = tx.exec("INSERT INTO messages(channel_id, author_id, sent, last_edited, text) VALUES($1, $2, now(), now(), $3) RETURNING message_id", pqxx::params(channel_id, user_id, text));
 		message_id = r[0]["message_id"].as<int>();
 	} catch(pqxx::data_exception& e){
 		return std::shared_ptr<http_response>(new string_response("Message is too long", 400));
@@ -98,7 +98,7 @@ std::shared_ptr<http_response> channel_message_id_resource::render_GET(const htt
 	err = resource_utils::parse_message_id(req, channel_id, tx, message_id);
 	if(err) return err;
 
-	pqxx::result r = tx.exec_params("SELECT message_id, author_id, sent, last_edited, text FROM messages WHERE message_id = $1", message_id);
+	pqxx::result r = tx.exec("SELECT message_id, author_id, sent, last_edited, text FROM messages WHERE message_id = $1", pqxx::params(message_id));
 	nlohmann::json res = resource_utils::message_json_from_row(r[0]);
 	return std::shared_ptr<http_response>(new string_response(res.dump(), 200));
 }
@@ -120,12 +120,12 @@ std::shared_ptr<http_response> channel_message_id_resource::render_POST(const ht
 	err = resource_utils::parse_message_id(req, channel_id, tx, message_id);
 	if(err) return err;
 
-	pqxx::result r = tx.exec_params("SELECT author_id FROM messages WHERE message_id = $1", message_id);
+	pqxx::result r = tx.exec("SELECT author_id FROM messages WHERE message_id = $1", pqxx::params(message_id));
 	if(r[0]["author_id"].as<int>() != user_id)
 		return std::shared_ptr<http_response>(new string_response("User is not the author of the mssage", 403));
 
 	try{
-		tx.exec_params("UPDATE messages SET text = $1, last_edited = now() WHERE message_id = $2", text, message_id);
+		tx.exec("UPDATE messages SET text = $1, last_edited = now() WHERE message_id = $2", pqxx::params(text, message_id));
 	} catch(pqxx::data_exception& e){
 		return std::shared_ptr<http_response>(new string_response("Message is too long", 400));
 	}
@@ -149,14 +149,14 @@ std::shared_ptr<http_response> channel_message_id_resource::render_DELETE(const 
 	err = resource_utils::parse_message_id(req, channel_id, tx, message_id);
 	if(err) return err;
 
-	pqxx::result r = tx.exec_params("SELECT author_id FROM messages WHERE message_id = $1", message_id);
+	pqxx::result r = tx.exec("SELECT author_id FROM messages WHERE message_id = $1", pqxx::params(message_id));
 	if(r[0]["author_id"].as<int>() != user_id){ // not an author, but still can be the owner
-		r = tx.exec_params("SELECT owner_id FROM servers WHERE server_id = $1", server_id);
+		r = tx.exec("SELECT owner_id FROM servers WHERE server_id = $1", pqxx::params(server_id));
 		if(r[0]["owner_id"].as<int>() != user_id)
 			return std::shared_ptr<http_response>(new string_response("User is neither the author nor the owner", 403));
 	}
 
-	tx.exec_params("DELETE FROM messages WHERE message_id = $1", message_id);
+	tx.exec("DELETE FROM messages WHERE message_id = $1", pqxx::params(message_id));
 	tx.commit();
 
 	return std::shared_ptr<http_response>(new string_response("Deleted", 200));
