@@ -12,7 +12,7 @@ public:
 
 	std::string get_conn_str() const;
 
-	unsigned listen_port;
+	unsigned listen_port = 443;
 	std::string https_key, https_cert;
 
 	unsigned min_username_length = 2;
@@ -27,7 +27,7 @@ public:
 	unsigned max_channels_per_server = 50;
 
 private:
-	std::string db_host; unsigned db_port;
+	std::string db_host; unsigned db_port = 5432;
 	std::string db_user, db_password, db_name;
 };
 

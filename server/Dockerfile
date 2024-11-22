@@ -12,9 +12,9 @@ RUN git clone https://github.com/jtv/libpqxx.git /3rdparty/pqxx
 RUN cd /3rdparty/pqxx; cmake . -DBUILD_SHARED_LIBS=on; make; make install
 
 COPY *.crt *.csr *.key /build/
-COPY config.json /build/
 COPY CMakeLists.txt /build/
 COPY ./src /build/src
+COPY config.json /build/
 
 WORKDIR /build
 RUN cmake .

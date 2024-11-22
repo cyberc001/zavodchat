@@ -1,5 +1,5 @@
 {
-	"listen_port": 1234,
+	"listen_port": 443,
 
 	"https_key": "server.key",
 	"https_cert": "server.crt",

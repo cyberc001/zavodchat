@@ -20,3 +20,5 @@ services:
     build:
       context: ./server
       dockerfile: Dockerfile
+    ports:
+      - 443:443
