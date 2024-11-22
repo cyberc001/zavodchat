@@ -11,14 +11,14 @@ RUN cd /3rdparty/libhttpserver; ./bootstrap; mkdir build; cd build; ../configure
 RUN git clone https://github.com/jtv/libpqxx.git /3rdparty/pqxx
 RUN cd /3rdparty/pqxx; cmake . -DBUILD_SHARED_LIBS=on; make; make install
 
-COPY . /build
-RUN rm /build/CMakeCache.txt; exit 0
-RUN rm -rf /build/CMakeFiles/; exit 0
-RUN rm /build/zavodchat; exit 0
+COPY *.crt *.csr *.key /build/
+COPY config.json /build/
+COPY CMakeLists.txt /build/
+COPY ./src /build/src
 
 WORKDIR /build
 RUN cmake .
-RUN make
+RUN make -j 4
 
 ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
 WORKDIR /build
