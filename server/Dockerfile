@@ -1,15 +1,18 @@
 FROM ubuntu:24.04
 
 RUN apt-get update
-RUN apt-get install -y build-essential cmake autotools-dev automake libtool pkg-config git libmicrohttpd-dev libgnutls28-dev libpq-dev nlohmann-json3-dev
+RUN apt-get install -y build-essential cmake autotools-dev automake libtool pkg-config git zlib1g-dev libmicrohttpd-dev libgnutls28-dev libpq-dev nlohmann-json3-dev
 
 RUN mkdir /3rdparty
 
 RUN git clone https://github.com/etr/libhttpserver.git /3rdparty/libhttpserver
-RUN cd /3rdparty/libhttpserver; ./bootstrap; mkdir build; cd build; ../configure; make; make install
+RUN cd /3rdparty/libhttpserver; ./bootstrap; mkdir build; cd build; ../configure; make -j 4; make install
 
 RUN git clone https://github.com/jtv/libpqxx.git /3rdparty/pqxx
-RUN cd /3rdparty/pqxx; cmake . -DBUILD_SHARED_LIBS=on; make; make install
+RUN cd /3rdparty/pqxx; cmake . -DBUILD_SHARED_LIBS=on; make -j 4; make install
+
+RUN git clone https://github.com/machinezone/IXWebSocket.git /3rdparty/ixws
+RUN cd /3rdparty/ixws; cmake .; make -j 4; make install
 
 COPY *.crt *.csr *.key /build/
 COPY CMakeLists.txt /build/

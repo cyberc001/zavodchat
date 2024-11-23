@@ -13,6 +13,8 @@
 #include "resource/server_bans.h"
 #include "db/init.h"
 
+#include <ixwebsocket/IXWebSocketServer.h>
+
 int main()
 {
 	std::ifstream fd{"config.json"};
