@@ -32,7 +32,7 @@ std::shared_ptr<http_response> server_resource::render_GET(const http_request& r
 }
 std::shared_ptr<http_response> server_resource::render_PUT(const http_request& req)
 {
-	std::string_view name = req.get_header("name");
+	std::string_view name = req.get_arg("name");
 
 	db_connection conn = pool.hold();
 	pqxx::work tx{*conn};

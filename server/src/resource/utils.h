@@ -19,12 +19,12 @@ public:
 
 	/* Parsing */
 	// Returns an error if the parameter cannot be parsed as int or violates bounds
-	static std::shared_ptr<http_response> parse_index(const http_request&, std::string header_name, int& index);
-	static std::shared_ptr<http_response> parse_index(const http_request&, std::string header_name, int& index, int lower_bound);
-	static std::shared_ptr<http_response> parse_index(const http_request&, std::string header_name, int& index, int lower_bound, int upper_bound);
+	static std::shared_ptr<http_response> parse_index(const http_request&, std::string arg_name, int& index);
+	static std::shared_ptr<http_response> parse_index(const http_request&, std::string arg_name, int& index, int lower_bound);
+	static std::shared_ptr<http_response> parse_index(const http_request&, std::string arg_name, int& index, int lower_bound, int upper_bound);
 
 	static std::shared_ptr<http_response> parse_session_token(const http_request&, pqxx::work& tx, int& user_id);
-	static std::shared_ptr<http_response> parse_timestamp(const http_request&, std::string header_name, std::string& ts);
+	static std::shared_ptr<http_response> parse_timestamp(const http_request&, std::string arg_name, std::string& ts);
 
 	// Checks if the server is accessible to the user. Returns nullptr if there wasn't an error
 	static std::shared_ptr<http_response> parse_server_id(const http_request&, int user_id, pqxx::work&, int& server_id);

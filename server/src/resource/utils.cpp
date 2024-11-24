@@ -10,36 +10,36 @@ time_t resource_utils::time_now()
 
 /* Parsing */
 
-std::shared_ptr<http_response> resource_utils::parse_index(const http_request& req, std::string header_name, int& index)
+std::shared_ptr<http_response> resource_utils::parse_index(const http_request& req, std::string arg_name, int& index)
 {
 	try{
-		index = std::stoi(std::string(req.get_header(header_name)));
+		index = std::stoi(std::string(req.get_arg(arg_name)));
 	} catch(std::invalid_argument& e){
-		return std::shared_ptr<http_response>(new string_response("Couldn't parse '" + header_name + "', got: " + std::string(req.get_header(header_name)), 400));
+		return std::shared_ptr<http_response>(new string_response("Couldn't parse '" + arg_name + "', got: " + std::string(req.get_arg(arg_name)), 400));
 	}
 
 	return std::shared_ptr<http_response>(nullptr);
 }
-std::shared_ptr<http_response> resource_utils::parse_index(const http_request& req, std::string header_name, int& index, int lower_bound)
+std::shared_ptr<http_response> resource_utils::parse_index(const http_request& req, std::string arg_name, int& index, int lower_bound)
 {
-	auto err = parse_index(req, header_name, index);
+	auto err = parse_index(req, arg_name, index);
 	if(err) return err;
 
 	if(index < lower_bound)
-		return std::shared_ptr<http_response>(new string_response(header_name + " is invalid: " + std::to_string(index) + " is below " + std::to_string(lower_bound), 403));
+		return std::shared_ptr<http_response>(new string_response(arg_name + " is invalid: " + std::to_string(index) + " is below " + std::to_string(lower_bound), 403));
 
 	return std::shared_ptr<http_response>(nullptr);
 }
 
-std::shared_ptr<http_response> resource_utils::parse_index(const http_request& req, std::string header_name, int& index, int lower_bound, int upper_bound)
+std::shared_ptr<http_response> resource_utils::parse_index(const http_request& req, std::string arg_name, int& index, int lower_bound, int upper_bound)
 {
-	auto err = parse_index(req, header_name, index);
+	auto err = parse_index(req, arg_name, index);
 	if(err) return err;
 
 	if(index < lower_bound)
-		return std::shared_ptr<http_response>(new string_response(header_name + " is invalid: " + std::to_string(index) + " is below " + std::to_string(lower_bound), 403));
+		return std::shared_ptr<http_response>(new string_response(arg_name + " is invalid: " + std::to_string(index) + " is below " + std::to_string(lower_bound), 403));
 	if(index > upper_bound)
-		return std::shared_ptr<http_response>(new string_response(header_name + " is invalid: " + std::to_string(index) + " is above " + std::to_string(upper_bound), 403));
+		return std::shared_ptr<http_response>(new string_response(arg_name + " is invalid: " + std::to_string(index) + " is above " + std::to_string(upper_bound), 403));
 
 	return std::shared_ptr<http_response>(nullptr);
 }
@@ -48,7 +48,7 @@ std::shared_ptr<http_response> resource_utils::parse_session_token(const http_re
 {
 	pqxx::result r;
 	try{
-		r = tx.exec("SELECT user_id FROM sessions WHERE token = $1 AND expiration_time > now()", pqxx::params(req.get_header("token")));
+		r = tx.exec("SELECT user_id FROM sessions WHERE token = $1 AND expiration_time > now()", pqxx::params(std::string(req.get_arg("token"))));
 	} catch(pqxx::data_exception& e){
 		return std::shared_ptr<http_response>(new string_response("Invalid token", 400));
 	}
@@ -58,11 +58,11 @@ std::shared_ptr<http_response> resource_utils::parse_session_token(const http_re
 	return std::shared_ptr<http_response>(nullptr);
 }
 
-std::shared_ptr<http_response> resource_utils::parse_timestamp(const http_request& req, std::string header_name, std::string& ts)
+std::shared_ptr<http_response> resource_utils::parse_timestamp(const http_request& req, std::string arg_name, std::string& ts)
 {
-	ts = std::string(req.get_header(header_name));
+	ts = std::string(req.get_arg(arg_name));
 	if(!ts.size())
-		return std::shared_ptr<http_response>(new string_response("Empty '" + header_name + "'", 400));
+		return std::shared_ptr<http_response>(new string_response("Empty '" + arg_name + "'", 400));
 	if(ts == "never")
 		ts = "";
 	return nullptr;

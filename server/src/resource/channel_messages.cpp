@@ -30,8 +30,8 @@ std::shared_ptr<http_response> channel_messages_resource::render_GET(const http_
 	if(err) return err;
 
 	std::string order = "DESC";
-	auto hdrs = req.get_headers();
-	if(hdrs.find("order") != hdrs.end()){
+	auto args = req.get_args();
+	if(args.find(std::string_view("order")) != args.end()){
 		int int_order;
 		auto err = resource_utils::parse_index(req, "order", int_order);
 		if(err) return err;
@@ -49,7 +49,7 @@ std::shared_ptr<http_response> channel_messages_resource::render_GET(const http_
 }
 std::shared_ptr<http_response> channel_messages_resource::render_PUT(const http_request& req)
 {
-	std::string text = std::string(req.get_header("text"));
+	std::string text = std::string(req.get_arg("text"));
 
 	int user_id, server_id;
 	db_connection conn = pool.hold();
@@ -104,7 +104,7 @@ std::shared_ptr<http_response> channel_message_id_resource::render_GET(const htt
 }
 std::shared_ptr<http_response> channel_message_id_resource::render_POST(const http_request& req)
 {
-	std::string text = std::string(req.get_header("text"));
+	std::string text = std::string(req.get_arg("text"));
 
 	int user_id, server_id;
 	db_connection conn = pool.hold();

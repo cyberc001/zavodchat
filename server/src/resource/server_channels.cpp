@@ -26,7 +26,7 @@ std::shared_ptr<http_response> server_channel_resource::render_GET(const http_re
 }
 std::shared_ptr<http_response> server_channel_resource::render_PUT(const http_request& req)
 {
-	std::string name = std::string(req.get_header("name"));
+	std::string name = std::string(req.get_arg("name"));
 	int type;
 	auto err = resource_utils::parse_index(req, "type", type);
 	if(err) return err;
@@ -94,16 +94,16 @@ std::shared_ptr<http_response> server_channel_id_resource::render_POST(const htt
 	err = resource_utils::parse_channel_id(req, server_id, tx, channel_id);
 	if(err) return err;
 
-	auto hdrs = req.get_headers();
-	if(hdrs.find("name") != hdrs.end()){
-		std::string name = std::string(req.get_header("name"));
+	auto args = req.get_args();
+	if(args.find(std::string_view("name")) != args.end()){
+		std::string name = std::string(req.get_arg("name"));
 		try{
 			tx.exec("UPDATE channels SET name = $1 WHERE channel_id = $2", pqxx::params(name, channel_id));
 		} catch(pqxx::data_exception& e){
 			return std::shared_ptr<http_response>(new string_response("Channel name is too long", 400));
 		}
 	}
-	if(hdrs.find("type") != hdrs.end()){
+	if(args.find(std::string_view("type")) != args.end()){
 		int type;
 		auto err = resource_utils::parse_index(req, "type", type);
 		if(err) return err;

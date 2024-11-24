@@ -148,9 +148,9 @@ std::shared_ptr<http_response> server_invite_id_resource::render_POST(const http
 	err = resource_utils::parse_invite_id(req, server_id, tx, invite_id);
 	if(err) return err;
 
-	auto hdrs = req.get_headers();
-	if(hdrs.find("expires") != hdrs.end()){
-		std::string expires = std::string(req.get_header("expires"));
+	auto args = req.get_args();
+	if(args.find(std::string_view("expires")) != args.end()){
+		std::string expires = std::string(req.get_arg("expires"));
 		if(expires == "never")
 			expires = "";
 		try{
