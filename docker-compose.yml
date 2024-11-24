@@ -12,6 +12,8 @@ services:
         tmpfs:
           size: 134217728 # 128Mb
     environment:
+      POSTGRES_USER: zavodchat
+      POSTGRES_DB: zavodchat
       POSTGRES_PASSWORD: q1w2e3
     ports:
       - 5433:5432
