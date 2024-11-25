@@ -3,6 +3,7 @@
 #include <iostream>
 
 #include "config.h"
+
 #include "resource/auth.h"
 #include "resource/server.h"
 #include "resource/user.h"
@@ -11,9 +12,10 @@
 #include "resource/channel_messages.h"
 #include "resource/server_invites.h"
 #include "resource/server_bans.h"
+
 #include "db/init.h"
 
-#include <ixwebsocket/IXWebSocketServer.h>
+#include "socket/server.h"
 
 int main()
 {
@@ -30,11 +32,10 @@ int main()
 	db_init(cfg.get_conn_str());
 	db_connection_pool pool{cfg.get_conn_str()};
 
-	httpserver::webserver ws = httpserver::create_webserver(cfg.listen_port)
+	httpserver::webserver ws = httpserver::create_webserver(cfg.https_port)
 								.use_ssl()
 								.https_mem_key(cfg.https_key)
 								.https_mem_cert(cfg.https_cert);
-	std::cout << "Listeting on port " << cfg.listen_port << "\n";
 
 	auth_resource auth(pool);
 	auth.min_username_length = cfg.min_username_length;
@@ -85,5 +86,7 @@ int main()
 	user_id_resource user_id(pool);
 	ws.register_resource("/users/{user_id}", &user_id);
 
-	ws.start(true);
+	ws.start(false);
+	socket_server(cfg.https_key, cfg.https_cert, 
+			cfg.ws_port, pool);
 }

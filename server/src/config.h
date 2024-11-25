@@ -12,7 +12,8 @@ public:
 
 	std::string get_conn_str() const;
 
-	unsigned listen_port = 443;
+	unsigned https_port = 443, ws_port = 444;
+
 	std::string https_key, https_cert;
 
 	unsigned min_username_length = 2;

@@ -36,8 +36,11 @@ config::config(std::ifstream& fd)
 	db_password = cfg["db_password"].get<std::string>();
 	db_name = cfg["db_name"].get<std::string>();
 
-	if(cfg["listen_port"].is_number_unsigned())
-		listen_port = cfg["listen_port"].get<unsigned>();
+	if(cfg["https_port"].is_number_unsigned())
+		https_port = cfg["https_port"].get<unsigned>();
+	if(cfg["ws_port"].is_number_unsigned())
+		ws_port = cfg["ws_port"].get<unsigned>();
+
 	https_key = cfg["https_key"].get<std::string>();
 	https_cert = cfg["https_cert"].get<std::string>();
 

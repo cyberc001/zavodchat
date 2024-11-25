@@ -1,5 +1,6 @@
 {
-	"listen_port": 443,
+	"https_port": 443,
+	"ws_port": 444,
 
 	"https_key": "server.key",
 	"https_cert": "server.crt",
