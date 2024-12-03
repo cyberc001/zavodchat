@@ -17,11 +17,19 @@ class socket_event
 	std::string dump();
 };
 
+class socket_connection : public ix::ConnectionState
+{
+public:
+	int user_id = -1;
+};
+
 class socket_server
 {
 public:
 	socket_server(std::string https_key, std::string https_cert, int port,
 				db_connection_pool& pool);
+
+	static std::unordered_map<std::string, std::string> parse_query(std::string uri);
 
 	void send_to_server(int server_id, socket_event event);
 	void send_to_channel(int channel_id, socket_event event);

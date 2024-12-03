@@ -20,23 +20,64 @@ socket_server::socket_server(std::string https_key, std::string https_cert, int 
 	tls_opt.tls = true;
 	srv.setTLSOptions(tls_opt);
 
-	srv.setOnClientMessageCallback([&pool](std::shared_ptr<ix::ConnectionState> conn, ix::WebSocket& sock, const ix::WebSocketMessagePtr& msg){
+	srv.setConnectionStateFactory([&](){
+		return std::make_shared<socket_connection>();
+	});
+
+	srv.setOnClientMessageCallback([&](std::shared_ptr<ix::ConnectionState> _conn, ix::WebSocket& sock, const ix::WebSocketMessagePtr& msg){
+		socket_connection& conn = dynamic_cast<socket_connection&>(*_conn);
 		if(msg->type == ix::WebSocketMessageType::Open){
-			// parse token
-			std::cerr << conn->getRemoteIp();
+			auto query = parse_query(msg->openInfo.uri);
+			db_connection db_conn = pool.hold();
+			pqxx::work tx{*db_conn};
+			pqxx::result r;
+			try{
+				r = tx.exec("SELECT user_id FROM sessions WHERE token = $1 AND expiration_time > now()", pqxx::params(query["token"]));
+			} catch(pqxx::data_exception& e){
+				sock.close(ix::WebSocketCloseConstants::kNormalClosureCode, "Invalid token");
+				return;
+			}
+			if(!r.size()){
+				sock.close(ix::WebSocketCloseConstants::kNormalClosureCode, "Invalid or expired token");
+				return;
+			}
+			conn.user_id = r[0]["user_id"].as<int>();
 
-			// insert user socket into relevant maps
-			db_connection conn = pool.hold();
-			pqxx::work tx{*conn};
-
-			//pqxx::result r = tx.exec("SELECT server_id, name, avatar FROM user_x_server NATURAL JOIN servers WHERE user_id = $1", pqxx::params(user_id));
+			
 		}
 	});
 
 	auto res = srv.listen();
 	srv.start();
+	std::cerr << "Listening for WSS on port " << port << "...\n";
 	srv.wait();
 }
+
+std::unordered_map<std::string, std::string> socket_server::parse_query(std::string uri)
+{
+	std::unordered_map<std::string, std::string> res;
+	size_t i = 0, ln = uri.length();
+	for(; i < ln; ++i)
+		if(uri[i] == '?')
+			break;
+	if(i == ln)
+		return res;
+
+	for(++i; i < ln; ++i){
+		size_t begin = i;
+		for(; i < ln; ++i)
+			if(uri[i] == '&')
+				break;
+		if(i > begin){
+			std::string query = uri.substr(begin, i - begin);
+			size_t eq_i = query.find_first_of('=');
+			if(eq_i != std::string::npos)
+				res[query.substr(0, eq_i)] = query.substr(eq_i + 1);
+		}
+	}
+	return res;
+}
+
 
 void socket_server::send_to_server(int server_id, socket_event event)
 {

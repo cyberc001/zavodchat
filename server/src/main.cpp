@@ -24,7 +24,7 @@ int main()
 	try {
 		cfg = config{fd};
 	} catch(std::logic_error& e) {
-		std::cout << "Error parsing config: " << e.what() << "\n";
+		std::cerr << "Error parsing config: " << e.what() << "\n";
 		return -1;
 	}
 
@@ -87,6 +87,7 @@ int main()
 	ws.register_resource("/users/{user_id}", &user_id);
 
 	ws.start(false);
+	std::cerr << "Listening for HTTPS on port " << cfg.https_port << "...\n";
 	socket_server(cfg.https_key, cfg.https_cert, 
 			cfg.ws_port, pool);
 }
