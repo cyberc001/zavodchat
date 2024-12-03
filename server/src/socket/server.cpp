@@ -24,27 +24,35 @@ socket_server::socket_server(std::string https_key, std::string https_cert, int 
 		return std::make_shared<socket_connection>();
 	});
 
-	srv.setOnClientMessageCallback([&](std::shared_ptr<ix::ConnectionState> _conn, ix::WebSocket& sock, const ix::WebSocketMessagePtr& msg){
+	srv.setOnConnectionCallback([&](std::weak_ptr<ix::WebSocket> sock, std::shared_ptr<ix::ConnectionState> _conn){
 		socket_connection& conn = dynamic_cast<socket_connection&>(*_conn);
-		if(msg->type == ix::WebSocketMessageType::Open){
-			auto query = parse_query(msg->openInfo.uri);
-			db_connection db_conn = pool.hold();
-			pqxx::work tx{*db_conn};
-			pqxx::result r;
-			try{
-				r = tx.exec("SELECT user_id FROM sessions WHERE token = $1 AND expiration_time > now()", pqxx::params(query["token"]));
-			} catch(pqxx::data_exception& e){
-				sock.close(ix::WebSocketCloseConstants::kNormalClosureCode, "Invalid token");
-				return;
-			}
-			if(!r.size()){
-				sock.close(ix::WebSocketCloseConstants::kNormalClosureCode, "Invalid or expired token");
-				return;
-			}
-			conn.user_id = r[0]["user_id"].as<int>();
+		conn.sock = sock;
 
-			
-		}
+		sock.lock()->setOnMessageCallback([&](const ix::WebSocketMessagePtr& msg){
+			if(msg->type == ix::WebSocketMessageType::Open){
+				auto query = parse_query(msg->openInfo.uri);
+				db_connection db_conn = pool.hold();
+				pqxx::work tx{*db_conn};
+				pqxx::result r;
+				try{
+					r = tx.exec("SELECT user_id FROM sessions WHERE token = $1 AND expiration_time > now()", pqxx::params(query["token"]));
+				} catch(pqxx::data_exception& e){
+					conn.sock.lock()->close(ix::WebSocketCloseConstants::kNormalClosureCode, "Invalid token");
+					return;
+				}
+				if(!r.size()){
+					conn.sock.lock()->close(ix::WebSocketCloseConstants::kNormalClosureCode, "Invalid or expired token");
+					return;
+				}
+				conn.user_id = r[0]["user_id"].as<int>();
+
+				std::unique_lock lock(connections_mutex);
+				connections[conn.user_id] = conn.sock;
+			} else if(msg->type == ix::WebSocketMessageType::Close){
+				std::unique_lock lock(connections_mutex);
+				connections.erase(conn.user_id);
+			}
+		});
 	});
 
 	auto res = srv.listen();
@@ -78,16 +86,35 @@ std::unordered_map<std::string, std::string> socket_server::parse_query(std::str
 	return res;
 }
 
+void socket_server::send_to_server(int server_id, pqxx::work& tx, socket_event event)
+{
+	std::string dumped = event.dump();
+	pqxx::result r = tx.exec("SELECT user_id FROM user_x_server WHERE server_id = $1", pqxx::params(server_id));
 
-void socket_server::send_to_server(int server_id, socket_event event)
-{
-	/*std::string dumped = event.dump();
-	for(auto it = server_users.find(server_id); it != server_users.end(); ++it)
-		it->second.sendUtf8Text(dumped);*/
+	std::shared_lock lock(connections_mutex);
+	for(size_t i = 0; i < r.size(); ++i){
+		int user_id = r[i]["user_id"].as<int>();
+		if(connections.find(user_id) != connections.end()){
+			std::shared_ptr<ix::WebSocket> sock = connections[user_id].lock();
+			if(sock)
+				sock->send(dumped);
+		}
+	}
 }
-void socket_server::send_to_channel(int channel_id, socket_event event)
+void socket_server::send_to_channel(int channel_id, pqxx::work& tx, socket_event event)
 {
-	/*std::string dumped = event.dump();
-	for(auto it = channel_users.find(channel_id); it != channel_users.end(); ++it)
-		it->second.sendUtf8Text(dumped);*/
+	std::string dumped = event.dump();
+	pqxx::result r = tx.exec("SELECT server_id FROM channels WHERE channel_id = $1", pqxx::params(channel_id));
+	int server_id = r[0]["server_id"].as<int>();
+	r = tx.exec("SELECT user_id FROM user_x_server WHERE server_id = $1", pqxx::params(server_id));
+
+	std::shared_lock lock(connections_mutex);
+	for(size_t i = 0; i < r.size(); ++i){
+		int user_id = r[i]["user_id"].as<int>();
+		if(connections.find(user_id) != connections.end()){
+			std::shared_ptr<ix::WebSocket> sock = connections[user_id].lock();
+			if(sock)
+				sock->send(dumped);
+		}
+	}
 }

@@ -7,6 +7,8 @@ file(GLOB_RECURSE src src/*.cpp src/*.h)
 
 add_executable(zavodchat ${src})
 
+add_compile_options(-fsanitize=thread -fsanitize=address)
+
 # libraries
 find_library(PQXX_LIB pqxx)
 find_library(PQ_LIB pq)
