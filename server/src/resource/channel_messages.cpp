@@ -3,7 +3,7 @@
 
 #include <iostream>
 
-channel_messages_resource::channel_messages_resource(db_connection_pool& pool) : pool{pool}
+channel_messages_resource::channel_messages_resource(db_connection_pool& pool, socket_server& sserv) : pool{pool}, sserv{sserv}
 {
 	disallow_all();
 	set_allowing("GET", true);
@@ -62,19 +62,24 @@ std::shared_ptr<http_response> channel_messages_resource::render_PUT(const http_
 	if(err) return err;
 
 	int message_id;
+	socket_event ev;
 	try{
-		pqxx::result r = tx.exec("INSERT INTO messages(channel_id, author_id, sent, last_edited, text) VALUES($1, $2, now(), now(), $3) RETURNING message_id", pqxx::params(channel_id, user_id, text));
-		message_id = r[0]["message_id"].as<int>();
+		pqxx::result r = tx.exec("INSERT INTO messages(channel_id, author_id, sent, last_edited, text) VALUES($1, $2, now(), now(), $3) RETURNING message_id, author_id, sent, last_edited, text, channel_id", pqxx::params(channel_id, user_id, text));
+		ev.data = resource_utils::message_json_from_row(r[0]);
 	} catch(pqxx::data_exception& e){
 		return std::shared_ptr<http_response>(new string_response("Message is too long", 400));
 	}
 	tx.commit();
+	ev.data["channel_id"] = channel_id;
+	ev.data["server_id"] = server_id;
+	ev.name = "message_created";
+	sserv.send_to_channel(channel_id, tx, ev);
 
 	return std::shared_ptr<http_response>(new string_response(std::to_string(message_id), 200));
 }
 
 
-channel_message_id_resource::channel_message_id_resource(db_connection_pool& pool) : pool{pool}
+channel_message_id_resource::channel_message_id_resource(db_connection_pool& pool, socket_server& sserv) : pool{pool}, sserv{sserv}
 {
 	disallow_all();
 	set_allowing("GET", true);

@@ -54,10 +54,13 @@ socket_server::socket_server(std::string https_key, std::string https_cert, int 
 			}
 		});
 	});
+}
 
+void socket_server::listen()
+{
 	auto res = srv.listen();
 	srv.start();
-	std::cerr << "Listening for WSS on port " << port << "...\n";
+	std::cerr << "Listening for WSS on port " << srv.getPort() << "...\n";
 	srv.wait();
 }
 

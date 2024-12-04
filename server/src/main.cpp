@@ -36,6 +36,7 @@ int main()
 								.use_ssl()
 								.https_mem_key(cfg.https_key)
 								.https_mem_cert(cfg.https_cert);
+	socket_server sserv(cfg.https_key, cfg.https_cert, cfg.ws_port, pool);
 
 	auth_resource auth(pool);
 	auth.min_username_length = cfg.min_username_length;
@@ -62,10 +63,10 @@ int main()
 	server_channel_id_resource server_channel_id(pool);
 	ws.register_resource("/servers/{server_id}/channels/{channel_id}", &server_channel_id);
 
-	channel_messages_resource channel_messages(pool);
+	channel_messages_resource channel_messages(pool, sserv);
 	channel_messages.max_get_count = cfg.max_get_count;
 	ws.register_resource("/servers/{server_id}/channels/{channel_id}/messages", &channel_messages);
-	channel_message_id_resource channel_message_id(pool);
+	channel_message_id_resource channel_message_id(pool, sserv);
 	ws.register_resource("/servers/{server_id}/channels/{channel_id}/messages/{message_id}", &channel_message_id);
 
 	server_invites_resource server_invites(pool);
@@ -88,6 +89,5 @@ int main()
 
 	ws.start(false);
 	std::cerr << "Listening for HTTPS on port " << cfg.https_port << "...\n";
-	socket_server(cfg.https_key, cfg.https_cert, 
-			cfg.ws_port, pool);
+	sserv.listen();
 }

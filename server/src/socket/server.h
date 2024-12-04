@@ -30,6 +30,7 @@ class socket_server
 public:
 	socket_server(std::string https_key, std::string https_cert, int port,
 				db_connection_pool& pool);
+	void listen();
 
 	static std::unordered_map<std::string, std::string> parse_query(std::string uri);
 
