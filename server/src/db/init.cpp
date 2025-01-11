@@ -10,7 +10,7 @@ start:
 	try{
 		pqxx::connection conn{conn_str};
 	} catch(pqxx::broken_connection& e){
-		std::cout << e.what() << "\nRetrying to connect...\n";
+		std::cerr << e.what() << "\nRetrying to connect...\n";
 		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 		goto start;
 	}
@@ -51,13 +51,74 @@ void db_init(std::string conn_str)
 		tx.commit();
 	}
 
-	// Create a test user
+	// Create 2 test users
+	bool created_user1 = true, created_user2 = true;
 	{
-		pqxx::work tx{conn};
-		pqxx::result r = tx.exec("INSERT INTO users(name, status) VALUES('test', 0) RETURNING user_id");
 		try{
+			pqxx::work tx{conn};
+			pqxx::result r = tx.exec("INSERT INTO users(name, status) VALUES('test', 0) RETURNING user_id");
 			tx.exec("INSERT INTO auth(username, password, user_id) VALUES('test', crypt('qwe123', gen_salt('bf')), $1)", pqxx::params(r[0]["user_id"].as<int>()));
 			tx.commit();
-		} catch(const pqxx::unique_violation& e){}
+		} catch(const pqxx::unique_violation& e){ created_user1 = false; }
+		try{
+			pqxx::work tx{conn};
+			pqxx::result r = tx.exec("INSERT INTO users(name, status) VALUES('test2', 0) RETURNING user_id");
+			tx.exec("INSERT INTO auth(username, password, user_id) VALUES('test2', crypt('qwe123', gen_salt('bf')), $1)", pqxx::params(r[0]["user_id"].as<int>()));
+			tx.commit();
+		} catch(const pqxx::unique_violation& e){ created_user2 = false; }
+	}
+	if(!created_user1 && !created_user2)
+		return;
+	// Create 2 test servers
+	{
+		pqxx::work tx{conn};
+
+		pqxx::result r = tx.exec("SELECT user_id FROM users WHERE name = 'test'");
+		if(!r.size()){
+			std::cerr << "Failed to create test server: user 'test' doesn't exist" << std::endl;
+			return;
+		}
+		int user_id_1 = r[0]["user_id"].as<int>();
+		r = tx.exec("INSERT INTO servers(name, owner_id) VALUES('server_test', $1) RETURNING server_id", pqxx::params(user_id_1));
+		int server_id_1 = r[0]["server_id"].as<int>();
+
+		r = tx.exec("SELECT user_id FROM users WHERE name = 'test2'");
+		if(!r.size()){
+			std::cerr << "Failed to create test server: user 'test2' doesn't exist" << std::endl;
+			return;
+		}
+		int user_id_2 = r[0]["user_id"].as<int>();
+		r = tx.exec("INSERT INTO servers(name, owner_id) VALUES('server_test2', $1) RETURNING server_id", pqxx::params(user_id_2));
+		int server_id_2 = r[0]["server_id"].as<int>();
+
+		tx.exec("INSERT INTO user_x_server(user_id, server_id) VALUES($1, $2)", pqxx::params(user_id_1, server_id_1));
+		tx.exec("INSERT INTO user_x_server(user_id, server_id) VALUES($1, $2)", pqxx::params(user_id_1, server_id_2));
+		tx.exec("INSERT INTO user_x_server(user_id, server_id) VALUES($1, $2)", pqxx::params(user_id_2, server_id_1));
+		tx.exec("INSERT INTO user_x_server(user_id, server_id) VALUES($1, $2)", pqxx::params(user_id_2, server_id_2));
+		tx.commit();
+	}
+	// Create 2 text channels in each test server
+	{
+		pqxx::work tx{conn};
+
+		pqxx::result r = tx.exec("SELECT server_id FROM servers WHERE name = 'server_test'");
+		if(!r.size()){
+			std::cerr << "Failed to create test channel: server 'server_test' doesn't exist" << std::endl;
+			return;
+		}
+		int server_id = r[0]["server_id"].as<int>();
+		tx.exec("INSERT INTO channels(server_id, name, type) VALUES($1, 'channel_test', 0)", pqxx::params(server_id));
+		tx.exec("INSERT INTO channels(server_id, name, type) VALUES($1, 'channel_test2', 0)", pqxx::params(server_id));
+
+		r = tx.exec("SELECT server_id FROM servers WHERE name = 'server_test2'");
+		if(!r.size()){
+			std::cerr << "Failed to create test channel: server 'server_test2' doesn't exist" << std::endl;
+			return;
+		}
+		server_id = r[0]["server_id"].as<int>();
+		tx.exec("INSERT INTO channels(server_id, name, type) VALUES($1, 'channel_test', 0)", pqxx::params(server_id));
+		tx.exec("INSERT INTO channels(server_id, name, type) VALUES($1, 'channel_test2', 0)", pqxx::params(server_id));
+
+		tx.commit();
 	}
 }
