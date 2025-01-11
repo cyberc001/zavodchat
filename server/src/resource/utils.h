@@ -48,10 +48,16 @@ public:
 	static std::shared_ptr<http_response> parse_invite_id(const http_request&, pqxx::work&, std::string& invite_id);
 
 	/* JSON */
+	static void json_set_ids(nlohmann::json& data, int server_id);
+	static void json_set_ids(nlohmann::json& data, int server_id, int channel_id);
+
 	static nlohmann::json user_json_from_row(const pqxx::row&& r);
 	static nlohmann::json server_json_from_row(const pqxx::row&& r);
 	static nlohmann::json channel_json_from_row(const pqxx::row&& r);
+
 	static nlohmann::json message_json_from_row(const pqxx::row&& r);
+	static nlohmann::json message_update_json_from_row(const pqxx::row&& r);
+
 	static nlohmann::json invite_json_from_row(const pqxx::row&& r);
 };
 

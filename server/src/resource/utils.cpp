@@ -178,6 +178,16 @@ std::shared_ptr<http_response> resource_utils::parse_invite_id(const http_reques
 
 /* JSON */
 
+void resource_utils::json_set_ids(nlohmann::json& data, int server_id)
+{
+	data["server_id"] = server_id;
+}
+void resource_utils::json_set_ids(nlohmann::json& data, int server_id, int channel_id)
+{
+	data["server_id"] = server_id;
+	data["channel_id"] = channel_id;
+}
+
 nlohmann::json resource_utils::user_json_from_row(const pqxx::row&& r)
 {
 	nlohmann::json res = {
@@ -206,6 +216,8 @@ nlohmann::json resource_utils::channel_json_from_row(const pqxx::row&& r)
 		{"type", r["type"].as<int>()}
 	};
 }
+
+
 nlohmann::json resource_utils::message_json_from_row(const pqxx::row&& r)
 {
 	return {
@@ -216,6 +228,15 @@ nlohmann::json resource_utils::message_json_from_row(const pqxx::row&& r)
 		{"text", r["text"].as<std::string>()}
 	};
 }
+nlohmann::json resource_utils::message_update_json_from_row(const pqxx::row&& r)
+{
+	return {
+		{"id", r["message_id"].as<int>()},
+		{"edited", r["last_edited"].as<std::string>()},
+		{"text", r["text"].as<std::string>()}
+	};
+}
+
 nlohmann::json resource_utils::invite_json_from_row(const pqxx::row&& r)
 {
 	return {

@@ -70,8 +70,7 @@ std::shared_ptr<http_response> channel_messages_resource::render_PUT(const http_
 		return std::shared_ptr<http_response>(new string_response("Message is too long", 400));
 	}
 	tx.commit();
-	ev.data["channel_id"] = channel_id;
-	ev.data["server_id"] = server_id;
+	resource_utils::json_set_ids(ev.data, server_id, channel_id);
 	ev.name = "message_created";
 	sserv.send_to_channel(channel_id, tx, ev);
 
@@ -129,12 +128,17 @@ std::shared_ptr<http_response> channel_message_id_resource::render_POST(const ht
 	if(r[0]["author_id"].as<int>() != user_id)
 		return std::shared_ptr<http_response>(new string_response("User is not the author of the mssage", 403));
 
+	socket_event ev;
 	try{
-		tx.exec("UPDATE messages SET text = $1, last_edited = now() WHERE message_id = $2", pqxx::params(text, message_id));
+		r = tx.exec("UPDATE messages SET text = $1, last_edited = now() WHERE message_id = $2 RETURNING message_id, last_edited, text, channel_id", pqxx::params(text, message_id));
+		ev.data = resource_utils::message_update_json_from_row(r[0]);
 	} catch(pqxx::data_exception& e){
 		return std::shared_ptr<http_response>(new string_response("Message is too long", 400));
 	}
 	tx.commit();
+	resource_utils::json_set_ids(ev.data, server_id, channel_id);
+	ev.name = "message_edited";
+	sserv.send_to_channel(channel_id, tx, ev);
 
 	return std::shared_ptr<http_response>(new string_response("Changed", 200));
 }
@@ -163,6 +167,11 @@ std::shared_ptr<http_response> channel_message_id_resource::render_DELETE(const 
 
 	tx.exec("DELETE FROM messages WHERE message_id = $1", pqxx::params(message_id));
 	tx.commit();
+	socket_event ev;
+	ev.data["message_id"] = message_id;
+	resource_utils::json_set_ids(ev.data, server_id, channel_id);
+	ev.name = "message_deleted";
+	sserv.send_to_channel(channel_id, tx, ev);
 
 	return std::shared_ptr<http_response>(new string_response("Deleted", 200));
 }

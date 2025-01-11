@@ -28,3 +28,42 @@
 	},
 	"name": "message_created"
 }
+```
+
+## message_edited
+
+В канале, к которому имеет доступ пользователь, было отредактировано существующее сообщение.
+
+Пример:
+
+```js
+{
+	"data":
+	{
+		"channel_id": 1,
+		"edited": "2025-01-11 01:05:03.080518+00",
+		"id": 6,
+		"server_id": 1,
+		"text": "you_are_good_people"
+	},
+	"name": "message_edited"
+}
+```
+
+## message_deleted
+
+В канале, к которому имеет доступ пользователь, было удалено существующее сообщение.
+
+Пример:
+
+```js
+{
+	"data":
+	{
+		"channel_id": 1,
+		"message_id": 8,
+		"server_id": 1
+	},
+	"name":"message_deleted"
+}
+```
