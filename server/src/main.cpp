@@ -48,7 +48,7 @@ int main()
 	server_resource server(pool);
 	server.owned_per_user = cfg.servers_owned_per_user;
 	ws.register_resource("/servers", &server);
-	server_id_resource server_id(pool);
+	server_id_resource server_id(pool, sserv);
 	ws.register_resource("/servers/{server_id}", &server_id);
 
 	server_users_resource server_users(pool);

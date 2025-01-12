@@ -2,8 +2,10 @@
 #define RESOURCE_CHANNEL_MESSAGES_H
 
 #include "db/conn_pool.h"
-#include "resource/auth.h"
 #include "socket/server.h"
+
+#include <httpserver.hpp>
+using namespace httpserver;
 
 class channel_messages_resource : public http_resource
 {

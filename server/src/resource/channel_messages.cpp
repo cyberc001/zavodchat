@@ -168,6 +168,7 @@ std::shared_ptr<http_response> channel_message_id_resource::render_DELETE(const 
 
 	tx.exec("DELETE FROM messages WHERE message_id = $1", pqxx::params(message_id));
 	tx.commit();
+
 	socket_event ev;
 	ev.data["id"] = message_id;
 	resource_utils::json_set_ids(ev.data, server_id, channel_id);

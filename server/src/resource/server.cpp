@@ -2,8 +2,6 @@
 #include "resource/utils.h"
 #include <nlohmann/json.hpp>
 
-#include <iostream>
-
 server_resource::server_resource(db_connection_pool& pool): pool{pool}
 {
 	disallow_all();
@@ -21,13 +19,9 @@ std::shared_ptr<http_response> server_resource::render_GET(const http_request& r
 	if(err) return err;
 
 	nlohmann::json res = nlohmann::json::array();
-	try{
 	pqxx::result r = tx.exec("SELECT server_id, name, avatar FROM user_x_server NATURAL JOIN servers WHERE user_id = $1", pqxx::params(user_id));
 	for(size_t i = 0; i < r.size(); ++i)
 		res += resource_utils::server_json_from_row(r[i]);
-	} catch(std::exception& e){
-		std::cout << e.what() << "\n";
-	}
 	return std::shared_ptr<http_response>(new string_response(res.dump(), 200));
 }
 std::shared_ptr<http_response> server_resource::render_PUT(const http_request& req)
@@ -60,7 +54,7 @@ std::shared_ptr<http_response> server_resource::render_PUT(const http_request& r
 }
 
 
-server_id_resource::server_id_resource(db_connection_pool& pool): pool{pool}
+server_id_resource::server_id_resource(db_connection_pool& pool, socket_server& sserv): pool{pool}, sserv{sserv}
 {
 	disallow_all();
 	set_allowing("GET", true);
@@ -89,7 +83,13 @@ std::shared_ptr<http_response> server_id_resource::render_DELETE(const http_requ
 	err = resource_utils::check_server_owner(user_id, server_id, tx);
 	if(err) return err;
 
+	socket_event ev;
+	ev.data["id"] = server_id;
+	ev.name = "server_deleted";
+	sserv.send_to_server(server_id, tx, ev);
+
 	tx.exec("DELETE FROM servers WHERE server_id = $1", pqxx::params(server_id));
 	tx.commit();
+
 	return std::shared_ptr<http_response>(new string_response("Deleted", 200));
 }
