@@ -58,6 +58,7 @@ server_id_resource::server_id_resource(db_connection_pool& pool, socket_server& 
 {
 	disallow_all();
 	set_allowing("GET", true);
+	set_allowing("POST", true);
 	set_allowing("DELETE", true);
 }
 
@@ -71,6 +72,57 @@ std::shared_ptr<http_response> server_id_resource::render_GET(const http_request
 
 	pqxx::result r = tx.exec("SELECT server_id, name, avatar FROM servers WHERE server_id = $1", pqxx::params(server_id));
 	return std::shared_ptr<http_response>(new string_response(resource_utils::server_json_from_row(r[0]).dump(), 200));
+}
+std::shared_ptr<http_response> server_id_resource::render_POST(const http_request& req)
+{
+	int user_id, server_id;
+	db_connection conn = pool.hold();
+	pqxx::work tx{*conn};
+	auto err = resource_utils::parse_server_id(req, tx, user_id, server_id);
+	if(err) return err;
+
+	err = resource_utils::check_server_owner(user_id, server_id, tx);
+	if(err) return err;
+
+	bool updated = false;
+	auto args = req.get_args();
+	if(args.find(std::string_view("name")) != args.end()){
+		std::string name = std::string(req.get_arg("name"));
+		try{
+			tx.exec("UPDATE servers SET name = $1 WHERE server_id = $2", pqxx::params(name, server_id));
+		} catch(pqxx::data_exception& e){
+			return std::shared_ptr<http_response>(new string_response("Server name is too long", 400));
+		}
+		updated = true;
+	}
+	if(args.find(std::string_view("owner_id")) != args.end()){
+		int new_owner_id;
+		err = resource_utils::parse_index(req, "owner_id", new_owner_id);
+		if(err) return err;
+
+		if(new_owner_id == user_id)
+			return std::shared_ptr<http_response>(new string_response("User is already an owner", 202));
+
+		err = resource_utils::check_server_member(new_owner_id, server_id, tx);
+		if(err) return err;
+		tx.exec("UPDATE servers SET owner_id = $1 WHERE server_id = $2", pqxx::params(new_owner_id, server_id));
+
+		socket_event ev;
+		ev.data["id"] = server_id;
+		ev.name = "got_server_owner";
+		sserv.send_to_user(new_owner_id, tx, ev);
+	}
+	tx.commit();
+
+	if(updated){
+		socket_event ev;
+		pqxx::result r = tx.exec("SELECT server_id, name, avatar FROM servers WHERE server_id = $1", pqxx::params(server_id));
+		ev.data = resource_utils::server_json_from_row(r[0]);
+		ev.name = "server_edited";
+		sserv.send_to_server(server_id, tx, ev);
+	}
+
+	return std::shared_ptr<http_response>(new string_response("Changed", 200));
 }
 std::shared_ptr<http_response> server_id_resource::render_DELETE(const http_request& req)
 {

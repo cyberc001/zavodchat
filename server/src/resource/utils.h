@@ -17,7 +17,10 @@ class resource_utils
 public:
 	time_t time_now();
 
-	/* Parsing */
+	/* Parsing methods
+	 * They return nullptr in case of no error.
+	 * */
+
 	// Returns an error if the parameter cannot be parsed as int or violates bounds
 	static std::shared_ptr<http_response> parse_index(const http_request&, std::string arg_name, int& index);
 	static std::shared_ptr<http_response> parse_index(const http_request&, std::string arg_name, int& index, int lower_bound);
@@ -26,7 +29,7 @@ public:
 	static std::shared_ptr<http_response> parse_session_token(const http_request&, pqxx::work& tx, int& user_id);
 	static std::shared_ptr<http_response> parse_timestamp(const http_request&, std::string arg_name, std::string& ts);
 
-	// Checks if the server is accessible to the user. Returns nullptr if there wasn't an error
+	// Checks if the server is accessible to the user.
 	static std::shared_ptr<http_response> parse_server_id(const http_request&, int user_id, pqxx::work&, int& server_id);
 	// Same as above, but derives user_id from supplied token
 	static std::shared_ptr<http_response> parse_server_id(const http_request&, pqxx::work&, int& user_id, int& server_id);
@@ -35,8 +38,10 @@ public:
 
 	static std::shared_ptr<http_response> parse_server_ban_id(const http_request&, int server_id, pqxx::work&, int& server_ban_id);
 
-	// Checks if server's owner_id == user_id. Returns nullptr if it's true
+	// Checks if server's owner_id == user_id.
 	static std::shared_ptr<http_response> check_server_owner(int user_id, int server_id, pqxx::work&);
+	// Separate check for user being a member of a server. Used when user is not the one that puts a request.
+	static std::shared_ptr<http_response> check_server_member(int user_id, int server_id, pqxx::work&);
 
 	// Checks if channel is in the server
 	static std::shared_ptr<http_response> parse_channel_id(const http_request&, int server_id, pqxx::work&, int& channel_id);

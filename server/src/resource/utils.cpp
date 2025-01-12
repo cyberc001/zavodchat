@@ -122,6 +122,13 @@ std::shared_ptr<http_response> resource_utils::check_server_owner(int user_id, i
 		return std::shared_ptr<http_response>(new string_response("User is not the owner of the server", 403));
 	return nullptr;
 }
+std::shared_ptr<http_response> resource_utils::check_server_member(int user_id, int server_id, pqxx::work& tx)
+{
+	pqxx::result r = tx.exec("SELECT user_id FROM user_x_server WHERE user_id = $1 AND server_id = $2", pqxx::params(user_id, server_id));
+	if(!r.size())
+		return std::shared_ptr<http_response>(new string_response("User with ID " + std::to_string(user_id) + " is not a member of the server", 403));
+	return nullptr;
+}
 
 std::shared_ptr<http_response> resource_utils::parse_channel_id(const http_request& req, int server_id, pqxx::work& tx, int& channel_id)
 {

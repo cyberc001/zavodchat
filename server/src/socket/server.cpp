@@ -121,3 +121,14 @@ void socket_server::send_to_channel(int channel_id, pqxx::work& tx, socket_event
 		}
 	}
 }
+void socket_server::send_to_user(int user_id, pqxx::work& tx, socket_event event)
+{
+	std::string dumped = event.dump();
+
+	std::shared_lock lock(connections_mutex);
+	if(connections.find(user_id) != connections.end()){
+		std::shared_ptr<ix::WebSocket> sock = connections[user_id].lock();
+		if(sock)
+			sock->send(dumped);
+	}
+}

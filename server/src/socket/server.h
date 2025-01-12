@@ -36,6 +36,7 @@ public:
 
 	void send_to_server(int server_id, pqxx::work& tx, socket_event event);
 	void send_to_channel(int channel_id, pqxx::work& tx, socket_event event);
+	void send_to_user(int user_id, pqxx::work& tx, socket_event event);
 private:
 	ix::WebSocketServer srv;
 	db_connection_pool& pool;
