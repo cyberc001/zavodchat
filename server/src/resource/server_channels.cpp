@@ -1,7 +1,7 @@
 #include "resource/server_channels.h"
 #include "resource/utils.h"
 
-server_channel_resource::server_channel_resource(db_connection_pool& pool): pool{pool}
+server_channel_resource::server_channel_resource(db_connection_pool& pool, socket_server& sserv): pool{pool}, sserv{sserv}
 {
 	disallow_all();
 	set_allowing("GET", true);
@@ -47,18 +47,24 @@ std::shared_ptr<http_response> server_channel_resource::render_PUT(const http_re
 		return std::shared_ptr<http_response>(new string_response("Server has more than " + std::to_string(max_per_server) + " channels", 403));
 
 	int channel_id;
+	socket_event ev;
 	try{
-		r = tx.exec("INSERT INTO channels(server_id, name, type) VALUES($1, $2, $3) RETURNING channel_id", pqxx::params(server_id, name, type));
+		r = tx.exec("INSERT INTO channels(server_id, name, type) VALUES($1, $2, $3) RETURNING channel_id, name, type", pqxx::params(server_id, name, type));
 		channel_id = r[0]["channel_id"].as<int>();
+		ev.data = resource_utils::channel_json_from_row(r[0]);
 	} catch(pqxx::data_exception& e){
 		return std::shared_ptr<http_response>(new string_response("Channel name is too long", 400));
 	}
 	tx.commit();
 
+	resource_utils::json_set_ids(ev.data, server_id);
+	ev.name = "channel_created";
+	sserv.send_to_server(server_id, tx, ev);
+
 	return std::shared_ptr<http_response>(new string_response(std::to_string(channel_id), 200));
 }
 
-server_channel_id_resource::server_channel_id_resource(db_connection_pool& pool): pool{pool}
+server_channel_id_resource::server_channel_id_resource(db_connection_pool& pool, socket_server& sserv): pool{pool}, sserv{sserv}
 {
 	disallow_all();
 	set_allowing("GET", true);
@@ -94,6 +100,7 @@ std::shared_ptr<http_response> server_channel_id_resource::render_POST(const htt
 	err = resource_utils::parse_channel_id(req, server_id, tx, channel_id);
 	if(err) return err;
 
+	bool updated = false;
 	auto args = req.get_args();
 	if(args.find(std::string_view("name")) != args.end()){
 		std::string name = std::string(req.get_arg("name"));
@@ -102,6 +109,7 @@ std::shared_ptr<http_response> server_channel_id_resource::render_POST(const htt
 		} catch(pqxx::data_exception& e){
 			return std::shared_ptr<http_response>(new string_response("Channel name is too long", 400));
 		}
+		updated = true;
 	}
 	if(args.find(std::string_view("type")) != args.end()){
 		int type;
@@ -110,8 +118,19 @@ std::shared_ptr<http_response> server_channel_id_resource::render_POST(const htt
 		if(type != CHANNEL_TEXT && type != CHANNEL_VOICE)
 			return std::shared_ptr<http_response>(new string_response("Unknown channel type", 400));
 		tx.exec("UPDATE channels SET type = $1 WHERE channel_id = $2", pqxx::params(type, channel_id));
+		updated = true;
 	}
 	tx.commit();
+
+	if(updated){
+		socket_event ev;
+		pqxx::result r = tx.exec("SELECT channel_id, name, type FROM channels WHERE channel_id = $1", pqxx::params(channel_id));
+		ev.data = resource_utils::channel_json_from_row(r[0]);
+		resource_utils::json_set_ids(ev.data, server_id);
+		ev.name = "channel_edited";
+		sserv.send_to_server(server_id, tx, ev);
+	}
+
 	return std::shared_ptr<http_response>(new string_response("Changed", 200));
 }
 std::shared_ptr<http_response> server_channel_id_resource::render_DELETE(const http_request& req)
@@ -131,5 +150,12 @@ std::shared_ptr<http_response> server_channel_id_resource::render_DELETE(const h
 
 	tx.exec("DELETE FROM channels WHERE channel_id = $1", pqxx::params(channel_id));
 	tx.commit();
+
+	socket_event ev;
+	ev.data["id"] = channel_id;
+	resource_utils::json_set_ids(ev.data, server_id);
+	ev.name = "channel_deleted";
+	sserv.send_to_server(server_id, tx, ev);
+
 	return std::shared_ptr<http_response>(new string_response("Deleted", 200));
 }

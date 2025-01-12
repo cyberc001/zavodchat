@@ -1,8 +1,6 @@
 #include "resource/channel_messages.h"
 #include "resource/utils.h"
 
-#include <iostream>
-
 channel_messages_resource::channel_messages_resource(db_connection_pool& pool, socket_server& sserv) : pool{pool}, sserv{sserv}
 {
 	disallow_all();
@@ -65,11 +63,13 @@ std::shared_ptr<http_response> channel_messages_resource::render_PUT(const http_
 	socket_event ev;
 	try{
 		pqxx::result r = tx.exec("INSERT INTO messages(channel_id, author_id, sent, last_edited, text) VALUES($1, $2, now(), now(), $3) RETURNING message_id, author_id, sent, last_edited, text, channel_id", pqxx::params(channel_id, user_id, text));
+		message_id = r[0]["message_id"].as<int>();
 		ev.data = resource_utils::message_json_from_row(r[0]);
 	} catch(pqxx::data_exception& e){
 		return std::shared_ptr<http_response>(new string_response("Message is too long", 400));
 	}
 	tx.commit();
+
 	resource_utils::json_set_ids(ev.data, server_id, channel_id);
 	ev.name = "message_created";
 	sserv.send_to_channel(channel_id, tx, ev);
@@ -136,6 +136,7 @@ std::shared_ptr<http_response> channel_message_id_resource::render_POST(const ht
 		return std::shared_ptr<http_response>(new string_response("Message is too long", 400));
 	}
 	tx.commit();
+
 	resource_utils::json_set_ids(ev.data, server_id, channel_id);
 	ev.name = "message_edited";
 	sserv.send_to_channel(channel_id, tx, ev);
@@ -168,7 +169,7 @@ std::shared_ptr<http_response> channel_message_id_resource::render_DELETE(const 
 	tx.exec("DELETE FROM messages WHERE message_id = $1", pqxx::params(message_id));
 	tx.commit();
 	socket_event ev;
-	ev.data["message_id"] = message_id;
+	ev.data["id"] = message_id;
 	resource_utils::json_set_ids(ev.data, server_id, channel_id);
 	ev.name = "message_deleted";
 	sserv.send_to_channel(channel_id, tx, ev);
