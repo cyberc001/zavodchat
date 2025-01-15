@@ -2,7 +2,7 @@
 #define RESOURCE_SERVER_CHANNELS_H
 
 #include "db/conn_pool.h"
-#include "socket/server.h"
+#include "socket/main_server.h"
 #include <httpserver.hpp>
 using namespace httpserver;
 
@@ -14,7 +14,7 @@ enum channel_type {
 class server_channel_resource : public http_resource
 {
 public:
-	server_channel_resource(db_connection_pool& pool, socket_server& sserv);
+	server_channel_resource(db_connection_pool& pool, socket_main_server& sserv);
 
 	std::shared_ptr<http_response> render_GET(const http_request&);
 	std::shared_ptr<http_response> render_PUT(const http_request&);
@@ -23,20 +23,20 @@ public:
 
 private:
 	db_connection_pool& pool;
-	socket_server& sserv;
+	socket_main_server& sserv;
 };
 
 class server_channel_id_resource : public http_resource
 {
 public:
-	server_channel_id_resource(db_connection_pool& pool, socket_server& sserv);
+	server_channel_id_resource(db_connection_pool& pool, socket_main_server& sserv);
 
 	std::shared_ptr<http_response> render_GET(const http_request&);
 	std::shared_ptr<http_response> render_POST(const http_request&);
 	std::shared_ptr<http_response> render_DELETE(const http_request&);
 private:
 	db_connection_pool& pool;
-	socket_server& sserv;
+	socket_main_server& sserv;
 };
 
 #endif

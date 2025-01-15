@@ -2,7 +2,6 @@
 #define SOCKET_SERVER_H
 
 #include <unordered_map>
-#include <shared_mutex>
 
 #include <nlohmann/json.hpp>
 #include <ixwebsocket/IXWebSocketServer.h>
@@ -33,16 +32,9 @@ public:
 	void listen();
 
 	static std::unordered_map<std::string, std::string> parse_query(std::string uri);
-
-	void send_to_server(int server_id, pqxx::work& tx, socket_event event);
-	void send_to_channel(int channel_id, pqxx::work& tx, socket_event event);
-	void send_to_user(int user_id, pqxx::work& tx, socket_event event);
-private:
+protected:
 	ix::WebSocketServer srv;
 	db_connection_pool& pool;
-
-	std::shared_mutex connections_mutex;
-	std::unordered_map<int, std::weak_ptr<ix::WebSocket>> connections;
 };
 
 #endif

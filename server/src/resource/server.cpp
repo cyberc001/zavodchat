@@ -54,7 +54,7 @@ std::shared_ptr<http_response> server_resource::render_PUT(const http_request& r
 }
 
 
-server_id_resource::server_id_resource(db_connection_pool& pool, socket_server& sserv): pool{pool}, sserv{sserv}
+server_id_resource::server_id_resource(db_connection_pool& pool, socket_main_server& sserv): pool{pool}, sserv{sserv}
 {
 	disallow_all();
 	set_allowing("GET", true);

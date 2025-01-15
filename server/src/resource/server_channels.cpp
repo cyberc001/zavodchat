@@ -1,7 +1,7 @@
 #include "resource/server_channels.h"
 #include "resource/utils.h"
 
-server_channel_resource::server_channel_resource(db_connection_pool& pool, socket_server& sserv): pool{pool}, sserv{sserv}
+server_channel_resource::server_channel_resource(db_connection_pool& pool, socket_main_server& sserv): pool{pool}, sserv{sserv}
 {
 	disallow_all();
 	set_allowing("GET", true);
@@ -64,7 +64,7 @@ std::shared_ptr<http_response> server_channel_resource::render_PUT(const http_re
 	return std::shared_ptr<http_response>(new string_response(std::to_string(channel_id), 200));
 }
 
-server_channel_id_resource::server_channel_id_resource(db_connection_pool& pool, socket_server& sserv): pool{pool}, sserv{sserv}
+server_channel_id_resource::server_channel_id_resource(db_connection_pool& pool, socket_main_server& sserv): pool{pool}, sserv{sserv}
 {
 	disallow_all();
 	set_allowing("GET", true);

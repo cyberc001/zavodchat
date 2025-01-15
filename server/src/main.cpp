@@ -15,7 +15,7 @@
 
 #include "db/init.h"
 
-#include "socket/server.h"
+#include "socket/main_server.h"
 
 int main()
 {
@@ -36,7 +36,7 @@ int main()
 								.use_ssl()
 								.https_mem_key(cfg.https_key)
 								.https_mem_cert(cfg.https_cert);
-	socket_server sserv(cfg.https_key, cfg.https_cert, cfg.ws_port, pool);
+	socket_main_server sserv(cfg.https_key, cfg.https_cert, cfg.ws_port, pool);
 
 	auth_resource auth(pool);
 	auth.min_username_length = cfg.min_username_length;
