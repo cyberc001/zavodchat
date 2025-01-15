@@ -13,6 +13,8 @@ socket_main_server::socket_main_server(std::string https_key, std::string https_
 				db_connection db_conn = pool.hold();
 				pqxx::work tx{*db_conn};
 				pqxx::result r;
+
+				// check auth token
 				try{
 					r = tx.exec("SELECT user_id FROM sessions WHERE token = $1 AND expiration_time > now()", pqxx::params(query["token"]));
 				} catch(pqxx::data_exception& e){

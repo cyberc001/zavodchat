@@ -16,6 +16,7 @@
 #include "db/init.h"
 
 #include "socket/main_server.h"
+#include "socket/vc_server.h"
 
 int main()
 {
@@ -37,6 +38,7 @@ int main()
 								.https_mem_key(cfg.https_key)
 								.https_mem_cert(cfg.https_cert);
 	socket_main_server sserv(cfg.https_key, cfg.https_cert, cfg.ws_port, pool);
+	socket_vc_server vcserv(cfg.https_key, cfg.https_cert, cfg.ws_vc_port, pool);
 
 	auth_resource auth(pool);
 	auth.min_username_length = cfg.min_username_length;
@@ -89,5 +91,6 @@ int main()
 
 	ws.start(false);
 	std::cerr << "Listening for HTTPS on port " << cfg.https_port << "...\n";
-	sserv.listen();
+	sserv.listen(false);
+	vcserv.listen(true);
 }

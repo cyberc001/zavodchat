@@ -108,7 +108,7 @@ void db_init(std::string conn_str)
 		}
 		int server_id = r[0]["server_id"].as<int>();
 		tx.exec("INSERT INTO channels(server_id, name, type) VALUES($1, 'channel_test', 0)", pqxx::params(server_id));
-		tx.exec("INSERT INTO channels(server_id, name, type) VALUES($1, 'channel_test2', 0)", pqxx::params(server_id));
+		tx.exec("INSERT INTO channels(server_id, name, type) VALUES($1, 'channel_test_vc', 1)", pqxx::params(server_id));
 
 		r = tx.exec("SELECT server_id FROM servers WHERE name = 'server_test2'");
 		if(!r.size()){
@@ -116,8 +116,8 @@ void db_init(std::string conn_str)
 			return;
 		}
 		server_id = r[0]["server_id"].as<int>();
-		tx.exec("INSERT INTO channels(server_id, name, type) VALUES($1, 'channel_test', 0)", pqxx::params(server_id));
 		tx.exec("INSERT INTO channels(server_id, name, type) VALUES($1, 'channel_test2', 0)", pqxx::params(server_id));
+		tx.exec("INSERT INTO channels(server_id, name, type) VALUES($1, 'channel_test2_vc', 1)", pqxx::params(server_id));
 
 		tx.commit();
 	}

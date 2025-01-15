@@ -25,12 +25,13 @@ socket_server::socket_server(std::string https_key, std::string https_cert, int 
 	});
 }
 
-void socket_server::listen()
+void socket_server::listen(bool wait)
 {
 	auto res = srv.listen();
 	srv.start();
 	std::cerr << "Listening for WSS on port " << srv.getPort() << "...\n";
-	srv.wait();
+	if(wait)
+		srv.wait();
 }
 
 std::unordered_map<std::string, std::string> socket_server::parse_query(std::string uri)

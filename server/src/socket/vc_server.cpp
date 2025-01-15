@@ -1,0 +1,83 @@
+#include "socket/vc_server.h"
+#include "resource/server_channels.h"
+#include "resource/utils.h"
+
+#include <iostream>
+
+socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert, int port,
+				db_connection_pool& pool): socket_server(https_key, https_cert, port, pool)
+{
+	srv.setConnectionStateFactory([&](){
+		return std::make_shared<socket_vc_connection>();
+	});
+
+	srv.setOnConnectionCallback([&](std::weak_ptr<ix::WebSocket> sock, std::shared_ptr<ix::ConnectionState> _conn){
+		socket_vc_connection& conn = dynamic_cast<socket_vc_connection&>(*_conn);
+		conn.sock = sock;
+
+		sock.lock()->setOnMessageCallback([&](const ix::WebSocketMessagePtr& msg){
+			if(msg->type == ix::WebSocketMessageType::Open){
+				auto query = parse_query(msg->openInfo.uri);
+				db_connection db_conn = pool.hold();
+				pqxx::work tx{*db_conn};
+				pqxx::result r;
+
+				// check auth token
+				try{
+					r = tx.exec("SELECT user_id FROM sessions WHERE token = $1 AND expiration_time > now()", pqxx::params(query["token"]));
+				} catch(pqxx::data_exception& e){
+					conn.sock.lock()->close(ix::WebSocketCloseConstants::kNormalClosureCode, "Invalid token");
+					return;
+				}
+				if(!r.size()){
+					conn.sock.lock()->close(ix::WebSocketCloseConstants::kNormalClosureCode, "Invalid or expired token");
+					return;
+				}
+				conn.user_id = r[0]["user_id"].as<int>();
+
+				// check voice channel
+				try{
+					conn.channel_id = std::stol(query["channel"]);
+				} catch(std::invalid_argument& e){
+					conn.sock.lock()->close(ix::WebSocketCloseConstants::kNormalClosureCode, "Couldn't parse channel ID, got '" + query["channel"] + "'");
+					return;
+				}
+				r = tx.exec("SELECT type, server_id, channel_id FROM channels WHERE channel_id = $1", pqxx::params(conn.channel_id));
+				if(!r.size()){
+					conn.sock.lock()->close(ix::WebSocketCloseConstants::kNormalClosureCode, "User has no access to the channel or it doesn't exist");
+					return;
+				}
+				int ch_type = r[0]["type"].as<int>(),
+				    server_id = r[0]["server_id"].as<int>();
+				if(resource_utils::check_server_member(conn.user_id, server_id, tx)){
+					conn.sock.lock()->close(ix::WebSocketCloseConstants::kNormalClosureCode, "User has no access to the channel or it doesn't exist");
+					return;
+				}
+				if(ch_type != CHANNEL_VOICE){
+					conn.sock.lock()->close(ix::WebSocketCloseConstants::kNormalClosureCode, "Isn't a voice channel");
+					return;
+				}
+
+				std::unique_lock lock(connections_mutex);
+				connections[conn.channel_id][conn.user_id] = conn.sock;
+			} else if(msg->type == ix::WebSocketMessageType::Close){
+				std::unique_lock lock(connections_mutex);
+				connections.erase(conn.user_id);
+			}
+		});
+	});
+}
+
+void socket_vc_server::send_to_channel(int channel_id, pqxx::work& tx, socket_event event)
+{
+	std::string dumped = event.dump();
+
+	std::shared_lock lock(connections_mutex);
+	const auto& channel_users = connections[channel_id];
+	for(auto it = channel_users.begin(); it != channel_users.end(); ++it){
+		std::shared_ptr<ix::WebSocket> sock = it->second.lock();
+		if(sock)
+			sock->send(dumped);
+	}
+}
+
