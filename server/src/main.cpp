@@ -62,7 +62,7 @@ int main()
 	server_channel_resource server_channels(pool, sserv);
 	server_channels.max_per_server = cfg.max_channels_per_server;
 	ws.register_resource("/servers/{server_id}/channels", &server_channels);
-	server_channel_id_resource server_channel_id(pool, sserv);
+	server_channel_id_resource server_channel_id(pool, sserv, vcserv);
 	ws.register_resource("/servers/{server_id}/channels/{channel_id}", &server_channel_id);
 
 	channel_messages_resource channel_messages(pool, sserv);

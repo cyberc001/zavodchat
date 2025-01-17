@@ -17,6 +17,8 @@ public:
 				db_connection_pool& pool);
 
 	void send_to_channel(int channel_id, pqxx::work& tx, socket_event event); // only sends event to users currently connected to voice channel
+	
+	void get_channel_users(int channel_id, std::vector<int>& users); // get users connected to voice channel
 private:
 	std::shared_mutex connections_mutex;
 	// channel_id -> user_id -> socket

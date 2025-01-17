@@ -64,7 +64,7 @@ std::shared_ptr<http_response> server_channel_resource::render_PUT(const http_re
 	return std::shared_ptr<http_response>(new string_response(std::to_string(channel_id), 200));
 }
 
-server_channel_id_resource::server_channel_id_resource(db_connection_pool& pool, socket_main_server& sserv): pool{pool}, sserv{sserv}
+server_channel_id_resource::server_channel_id_resource(db_connection_pool& pool, socket_main_server& sserv, socket_vc_server& vcserv): pool{pool}, sserv{sserv}, vcserv{vcserv}
 {
 	disallow_all();
 	set_allowing("GET", true);
@@ -83,7 +83,17 @@ std::shared_ptr<http_response> server_channel_id_resource::render_GET(const http
 	err = resource_utils::parse_channel_id(req, server_id, tx, channel_id);
 	if(err) return err;
 	pqxx::result r = tx.exec("SELECT channel_id, name, type FROM channels WHERE channel_id = $1", pqxx::params(channel_id));
-	return std::shared_ptr<http_response>(new string_response(resource_utils::channel_json_from_row(r[0]).dump(), 200));
+	nlohmann::json channel_json = resource_utils::channel_json_from_row(r[0]);
+
+	if(channel_json["type"] == CHANNEL_VOICE){ // send users currently speaking in channel
+		std::vector<int> users;
+		vcserv.get_channel_users(channel_id, users);
+		channel_json["vc_users"] = nlohmann::json::array();
+		for(auto it = users.begin(); it != users.end(); ++it)
+			channel_json["vc_users"] += *it;
+	}
+
+	return std::shared_ptr<http_response>(new string_response(channel_json.dump(), 200));
 }
 std::shared_ptr<http_response> server_channel_id_resource::render_POST(const http_request& req)
 {

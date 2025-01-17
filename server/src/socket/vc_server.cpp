@@ -59,10 +59,16 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 				}
 
 				std::unique_lock lock(connections_mutex);
+				if(connections[conn.channel_id].find(conn.user_id) != connections[conn.channel_id].end()){
+					conn.sock.lock()->close(ix::WebSocketCloseConstants::kNormalClosureCode, "User is already connected");
+					return;
+				}
 				connections[conn.channel_id][conn.user_id] = conn.sock;
 			} else if(msg->type == ix::WebSocketMessageType::Close){
-				std::unique_lock lock(connections_mutex);
-				connections.erase(conn.user_id);
+				if(msg->closeInfo.reason != "User is already connected"){
+					std::unique_lock lock(connections_mutex);
+					connections[conn.channel_id].erase(conn.user_id);
+				}
 			}
 		});
 	});
@@ -81,3 +87,10 @@ void socket_vc_server::send_to_channel(int channel_id, pqxx::work& tx, socket_ev
 	}
 }
 
+void socket_vc_server::get_channel_users(int channel_id, std::vector<int>& users)
+{
+	std::shared_lock lock(connections_mutex);
+	const auto& channel_users = connections[channel_id];
+	for(auto it = channel_users.begin(); it != channel_users.end(); ++it)
+		users.push_back(it->first);
+}
