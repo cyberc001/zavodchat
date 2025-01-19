@@ -5,7 +5,7 @@
 #include <iostream>
 
 socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert, int port,
-				db_connection_pool& pool): socket_server(https_key, https_cert, port, pool)
+				db_connection_pool& pool, socket_main_server& sserv): socket_server(https_key, https_cert, port, pool), sserv{sserv}
 {
 	srv.setConnectionStateFactory([&](){
 		return std::make_shared<socket_vc_connection>();
@@ -47,9 +47,9 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 					conn.sock.lock()->close(ix::WebSocketCloseConstants::kNormalClosureCode, "User has no access to the channel or it doesn't exist");
 					return;
 				}
-				int ch_type = r[0]["type"].as<int>(),
-				    server_id = r[0]["server_id"].as<int>();
-				if(resource_utils::check_server_member(conn.user_id, server_id, tx)){
+				conn.server_id = r[0]["server_id"].as<int>();
+				int ch_type = r[0]["type"].as<int>();
+				if(resource_utils::check_server_member(conn.user_id, conn.server_id, tx)){
 					conn.sock.lock()->close(ix::WebSocketCloseConstants::kNormalClosureCode, "User has no access to the channel or it doesn't exist");
 					return;
 				}
@@ -64,10 +64,26 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 					return;
 				}
 				connections[conn.channel_id][conn.user_id] = conn.sock;
+
+				socket_event ev;
+				resource_utils::json_set_ids(ev.data, conn.server_id, conn.channel_id);
+				ev.data["id"] = conn.user_id;
+				ev.name = "user_joined_vc";
+				sserv.send_to_channel(conn.channel_id, tx, ev);
+
 			} else if(msg->type == ix::WebSocketMessageType::Close){
 				if(msg->closeInfo.reason != "User is already connected"){
 					std::unique_lock lock(connections_mutex);
 					connections[conn.channel_id].erase(conn.user_id);
+
+					db_connection db_conn = pool.hold();
+					pqxx::work tx{*db_conn};
+
+					socket_event ev;
+					resource_utils::json_set_ids(ev.data, conn.server_id, conn.channel_id);
+					ev.data["id"] = conn.user_id;
+					ev.name = "user_left_vc";
+					sserv.send_to_channel(conn.channel_id, tx, ev);
 				}
 			}
 		});

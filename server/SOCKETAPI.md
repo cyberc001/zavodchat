@@ -215,6 +215,40 @@ wscat -nc 'wss://localhost:445?token=17d58d53-014e-4787-80c2-6518924d8d92&channe
 }
 ```
 
+### user_joined_vc
+
+Пользователь присоединился к голосовому каналу.
+
+Пример:
+```js
+{
+	"data":
+	{
+		"channel_id": 2,
+		"id": 2,
+		"server_id": 1
+	},
+	"name": "user_joined_vc"
+}
+```
+
+### user_left_vc
+
+Пользователь вышел из голосового канала.
+
+Пример:
+```js
+{
+	"data":
+	{
+		"channel_id": 2,
+		"id": 2,
+		"server_id": 1
+	},
+	"name": "user_left_vc"
+}
+```
+
 ## Пользователь
 
 ### got_server_owner
