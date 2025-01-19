@@ -97,13 +97,13 @@ void db_init(std::string conn_str)
 		tx.exec("INSERT INTO user_x_server(user_id, server_id) VALUES($1, $2)", pqxx::params(user_id_2, server_id_2));
 		tx.commit();
 	}
-	// Create 2 text channels in each test server
+	// Create a text channel and a voice channel in each test server
 	{
 		pqxx::work tx{conn};
 
 		pqxx::result r = tx.exec("SELECT server_id FROM servers WHERE name = 'server_test'");
 		if(!r.size()){
-			std::cerr << "Failed to create test channel: server 'server_test' doesn't exist" << std::endl;
+			std::cerr << "Failed to create test channels: server 'server_test' doesn't exist" << std::endl;
 			return;
 		}
 		int server_id = r[0]["server_id"].as<int>();
@@ -112,12 +112,34 @@ void db_init(std::string conn_str)
 
 		r = tx.exec("SELECT server_id FROM servers WHERE name = 'server_test2'");
 		if(!r.size()){
-			std::cerr << "Failed to create test channel: server 'server_test2' doesn't exist" << std::endl;
+			std::cerr << "Failed to create test channels: server 'server_test2' doesn't exist" << std::endl;
 			return;
 		}
 		server_id = r[0]["server_id"].as<int>();
 		tx.exec("INSERT INTO channels(server_id, name, type) VALUES($1, 'channel_test2', 0)", pqxx::params(server_id));
 		tx.exec("INSERT INTO channels(server_id, name, type) VALUES($1, 'channel_test2_vc', 1)", pqxx::params(server_id));
+
+		tx.commit();
+	}
+	// Create 2 invites in each server
+	{
+		pqxx::work tx{conn};
+
+		pqxx::result r = tx.exec("SELECT server_id FROM servers WHERE name = 'server_test'");
+		if(!r.size()){
+			std::cerr << "Failed to create test invite: server 'server_test' doesn't exist" << std::endl;
+			return;
+		}
+		int server_id = r[0]["server_id"].as<int>();
+		tx.exec("INSERT INTO server_invites(invite_id, server_id, expiration_time) VALUES(gen_random_uuid(), $1, $2)", pqxx::params(server_id, nullptr));
+
+		r = tx.exec("SELECT server_id FROM servers WHERE name = 'server_test2'");
+		if(!r.size()){
+			std::cerr << "Failed to create test invite: server 'server_test2' doesn't exist" << std::endl;
+			return;
+		}
+		server_id = r[0]["server_id"].as<int>();
+		tx.exec("INSERT INTO server_invites(invite_id, server_id, expiration_time) VALUES(gen_random_uuid(), $1, $2)", pqxx::params(server_id, nullptr));
 
 		tx.commit();
 	}
