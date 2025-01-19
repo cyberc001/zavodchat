@@ -1,7 +1,7 @@
 #include "resource/server_invites.h"
 #include "resource/utils.h"
 
-server_invites_resource::server_invites_resource(db_connection_pool& pool): pool{pool}
+server_invites_resource::server_invites_resource(db_connection_pool& pool, socket_main_server& sserv): pool{pool}, sserv{sserv}
 {
 	invite_time_thr = std::thread(server_invites_resource::invite_time_func, std::ref(*this));
 
@@ -36,6 +36,12 @@ std::shared_ptr<http_response> server_invites_resource::render_GET(const http_re
 
 	tx.exec("INSERT INTO user_x_server(user_id, server_id) VALUES($1, $2)", pqxx::params(user_id, server_id));
 	tx.commit();
+
+	socket_event ev;
+	resource_utils::json_set_ids(ev.data, server_id);
+	ev.data["id"] = user_id;
+	ev.name = "user_joined";
+	sserv.send_to_server(server_id, tx, ev);
 	
 	return std::shared_ptr<http_response>(new string_response("Joined", 200));
 }

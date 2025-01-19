@@ -1,7 +1,7 @@
 #include "resource/server_bans.h"
 #include "resource/utils.h"
 
-server_bans_resource::server_bans_resource(db_connection_pool& pool) : pool{pool}
+server_bans_resource::server_bans_resource(db_connection_pool& pool, socket_main_server& sserv) : pool{pool}, sserv{sserv}
 {
 	ban_time_thr = std::thread(server_bans_resource::ban_time_func, std::ref(*this));
 
@@ -65,6 +65,14 @@ std::shared_ptr<http_response> server_bans_resource::render_PUT(const http_reque
 	} catch(pqxx::data_exception& e){
 		return std::shared_ptr<http_response>(new string_response("Invalid date/time format", 400));
 	}
+
+	socket_event ev;
+	resource_utils::json_set_ids(ev.data, server_id);
+	ev.data["id"] = user_id;
+	ev.name = "user_left";
+	sserv.send_to_server(server_id, tx, ev);
+
+	// delete user from server
 	tx.exec("DELETE FROM user_x_server WHERE user_id = $1 AND server_id = $2", pqxx::params(ban_user_id, server_id));
 	tx.commit();
 

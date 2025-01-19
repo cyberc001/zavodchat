@@ -56,7 +56,7 @@ int main()
 	server_users_resource server_users(pool);
 	server_users.max_get_count = cfg.max_get_count;
 	ws.register_resource("/servers/{server_id}/users", &server_users);
-	server_user_id_resource server_user_id(pool);
+	server_user_id_resource server_user_id(pool, sserv);
 	ws.register_resource("/servers/{server_id}/users/{server_user_id}", &server_user_id);
 
 	server_channel_resource server_channels(pool, sserv);
@@ -71,7 +71,7 @@ int main()
 	channel_message_id_resource channel_message_id(pool, sserv);
 	ws.register_resource("/servers/{server_id}/channels/{channel_id}/messages/{message_id}", &channel_message_id);
 
-	server_invites_resource server_invites(pool);
+	server_invites_resource server_invites(pool, sserv);
 	server_invites.cleanup_period = cfg.cleanup_period;
 	ws.register_resource("/server_invites/{invite_id}", &server_invites);
 	server_id_invites_resource server_id_invites(pool);
@@ -79,7 +79,7 @@ int main()
 	server_invite_id_resource server_invite_id(pool);
 	ws.register_resource("/servers/{server_id}/invites/{invite_id}", &server_invite_id);
 
-	server_bans_resource server_bans(pool);
+	server_bans_resource server_bans(pool, sserv);
 	server_bans.max_get_count = cfg.max_get_count;
 	server_bans.cleanup_period = cfg.cleanup_period;
 	ws.register_resource("/servers/{server_id}/bans", &server_bans);

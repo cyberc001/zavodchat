@@ -108,7 +108,7 @@ std::shared_ptr<http_response> resource_utils::parse_server_ban_id(const http_re
 	} catch(std::invalid_argument& e){
 		return std::shared_ptr<http_response>(new string_response("Invalid server ban ID", 400));
 	}
-	pqxx::result r = tx.exec("SELECT ban_id FROM server_bans WHERE user_id = $1 AND server_id = $2", pqxx::params(server_ban_id, server_id));
+	pqxx::result r = tx.exec("SELECT user_id FROM server_bans WHERE user_id = $1 AND server_id = $2", pqxx::params(server_ban_id, server_id));
 	if(!r.size())
 		return std::shared_ptr<http_response>(new string_response("User is not banned on the server", 404));
 	return nullptr;

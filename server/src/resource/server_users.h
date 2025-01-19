@@ -2,6 +2,7 @@
 #define RESOURCE_SERVER_USERS_H
 
 #include "db/conn_pool.h"
+#include "socket/main_server.h"
 
 #include <httpserver.hpp>
 using namespace httpserver;
@@ -21,11 +22,12 @@ private:
 class server_user_id_resource : public http_resource
 {
 public:
-	server_user_id_resource(db_connection_pool& pool);
+	server_user_id_resource(db_connection_pool& pool, socket_main_server& sserv);
 
 	std::shared_ptr<http_response> render_DELETE(const http_request&);
 private:
 	db_connection_pool& pool;
+	socket_main_server& sserv;
 };
 
 #endif

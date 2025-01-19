@@ -2,6 +2,7 @@
 #define RESOURCE_SERVER_INVITES_H
 
 #include "db/conn_pool.h"
+#include "socket/main_server.h"
 #include <thread>
 
 #include <httpserver.hpp>
@@ -11,13 +12,14 @@ using namespace httpserver;
 class server_invites_resource : public http_resource
 {
 public:
-	server_invites_resource(db_connection_pool& pool);
+	server_invites_resource(db_connection_pool& pool, socket_main_server& sserv);
 
-	std::shared_ptr<http_response> render_GET(const http_request&);
+	std::shared_ptr<http_response> render_GET(const http_request&); // user calls this method to join the server
 
 	size_t cleanup_period = 3600;
 private:
 	db_connection_pool& pool;
+	socket_main_server& sserv;
 
 	std::thread invite_time_thr;
 	static void invite_time_func(server_invites_resource& inst);
