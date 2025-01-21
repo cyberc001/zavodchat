@@ -23,7 +23,7 @@ std::shared_ptr<http_response> auth_resource::render_GET(const http_request& req
 
 	pqxx::result r = tx.exec("SELECT user_id, username, password FROM auth WHERE username = $1", pqxx::params(username));
 	if(r.size() != 1)
-		return std::shared_ptr<http_response>(new string_response("Invalid username or password", 404));
+		return create_response::string("Invalid username or password", 404);
 	std::string db_hash = r[0]["password"].as<std::string>();
 	int user_id = r[0]["user_id"].as<int>();
 
@@ -31,10 +31,10 @@ std::shared_ptr<http_response> auth_resource::render_GET(const http_request& req
 	std::string password_hash = r[0][0].as<std::string>();
 
 	if(db_hash != password_hash)
-		return std::shared_ptr<http_response>(new string_response("Invalid username or password", 404));
+		return create_response::string("Invalid username or password", 404);
 
 	session_token token = create_session(user_id, tx);
-	return std::shared_ptr<http_response>(new string_response(token, 200));
+	return create_response::string(token, 200);
 }
 std::shared_ptr<http_response> auth_resource::render_PUT(const http_request& req)
 {
@@ -43,9 +43,9 @@ std::shared_ptr<http_response> auth_resource::render_PUT(const http_request& req
 			password = req.get_arg("password");
 
 	if(username.size() < min_username_length)
-		return std::shared_ptr<http_response>(new string_response("Username is shorter than " + std::to_string(min_username_length) + " characters", 400));
+		return create_response::string("Username is shorter than " + std::to_string(min_username_length) + " characters", 400);
 	if(password.size() < min_password_length)
-		return std::shared_ptr<http_response>(new string_response("Password is shorter than " + std::to_string(min_password_length) + " characters", 400));
+		return create_response::string("Password is shorter than " + std::to_string(min_password_length) + " characters", 400);
 
 	db_connection conn = pool.hold();
 	pqxx::work tx{*conn};
@@ -54,17 +54,17 @@ std::shared_ptr<http_response> auth_resource::render_PUT(const http_request& req
 	try{
 		r = tx.exec("INSERT INTO users(name, status) VALUES($1, 0) RETURNING user_id", pqxx::params(displayname));
 	} catch(const pqxx::unique_violation& e){
-		return std::shared_ptr<http_response>(new string_response("Displayname already exists", 403));
+		return create_response::string("Displayname already exists", 403);
 	}
 
 	try{
 		tx.exec("INSERT INTO auth(username, password, user_id) VALUES($1, crypt($2, gen_salt('bf')), $3)", pqxx::params(username, password, r[0]["user_id"].as<int>()));
 	} catch(const pqxx::unique_violation& e){
-		return std::shared_ptr<http_response>(new string_response("Username already exists", 403));
+		return create_response::string("Username already exists", 403);
 	}
 
 	tx.commit();
-	return std::shared_ptr<http_response>(new string_response("Registered", 200));
+	return create_response::string("Registered", 200);
 }
 std::shared_ptr<http_response> auth_resource::render_POST(const http_request& req)
 {
@@ -79,24 +79,24 @@ std::shared_ptr<http_response> auth_resource::render_POST(const http_request& re
 	if(args.find(std::string_view("username")) != args.end()){
 		std::string username = std::string(req.get_arg("username"));
 		if(username.size() < min_username_length)
-			return std::shared_ptr<http_response>(new string_response("Username is shorter than " + std::to_string(min_username_length) + " characters", 400));
+			return create_response::string("Username is shorter than " + std::to_string(min_username_length) + " characters", 400);
 		try{
 			tx.exec("UPDATE auth SET username = $1 WHERE user_id = $2", pqxx::params(username, user_id));
 		} catch(pqxx::data_exception& e){
-			return std::shared_ptr<http_response>(new string_response("Username is too long", 400));
+			return create_response::string("Username is too long", 400);
 		} catch(const pqxx::unique_violation& e){
-			return std::shared_ptr<http_response>(new string_response("Username already exists", 403));
+			return create_response::string("Username already exists", 403);
 		}
 	}
 	if(args.find(std::string_view("password")) != args.end()){
 		std::string password = std::string(req.get_arg("password"));
 		if(password.size() < min_password_length)
-			return std::shared_ptr<http_response>(new string_response("Password is shorter than " + std::to_string(min_password_length) + " characters", 400));
+			return create_response::string("Password is shorter than " + std::to_string(min_password_length) + " characters", 400);
 
 		try{
 			tx.exec("UPDATE auth SET password = crypt($1, gen_salt('bf')) WHERE user_id = $2", pqxx::params(password, user_id));
 		} catch(pqxx::data_exception& e){
-			return std::shared_ptr<http_response>(new string_response("Password is too long", 400));
+			return create_response::string("Password is too long", 400);
 		}
 	}
 	if(args.find(std::string_view("displayname")) != args.end()){
@@ -104,14 +104,14 @@ std::shared_ptr<http_response> auth_resource::render_POST(const http_request& re
 		try{
 			tx.exec("UPDATE auth SET displayname = $1 WHERE user_id = $2", pqxx::params(displayname, user_id));
 		} catch(pqxx::data_exception& e){
-			return std::shared_ptr<http_response>(new string_response("Displayname is too long", 400));
+			return create_response::string("Displayname is too long", 400);
 		} catch(const pqxx::unique_violation& e){
-			return std::shared_ptr<http_response>(new string_response("Displayname already exists", 403));
+			return create_response::string("Displayname already exists", 403);
 		}
 	}
 
 	tx.commit();
-	return std::shared_ptr<http_response>(new string_response("Changed", 200));
+	return create_response::string("Changed", 200);
 }
 
 session_token auth_resource::create_session(int user_id, pqxx::work& tx)

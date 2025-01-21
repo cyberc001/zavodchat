@@ -33,7 +33,7 @@ std::shared_ptr<http_response> server_bans_resource::render_GET(const http_reque
 	for(size_t i = 0; i < r.size(); ++i)
 		res += resource_utils::user_json_from_row(r[i]);
 
-	return std::shared_ptr<http_response>(new string_response(res.dump(), 200));
+	return create_response::string(res.dump(), 200);
 }
 std::shared_ptr<http_response> server_bans_resource::render_PUT(const http_request& req)
 {
@@ -50,11 +50,11 @@ std::shared_ptr<http_response> server_bans_resource::render_PUT(const http_reque
 	err = resource_utils::parse_index(req, "ban_user_id", ban_user_id);
 	if(err) return err;
 	if(user_id == ban_user_id) // !!!also an established owner of the server
-		return std::shared_ptr<http_response>(new string_response("Owner cannot ban themselves", 403));
+		return create_response::string("Owner cannot ban themselves", 403);
 
 	pqxx::result r = tx.exec("SELECT user_id FROM server_bans WHERE user_id = $1 AND server_id = $2", pqxx::params(ban_user_id, server_id));
 	if(r.size())
-		return std::shared_ptr<http_response>(new string_response("Already banned", 202));
+		return create_response::string("Already banned", 202);
 
 	std::string expires;
 	err = resource_utils::parse_timestamp(req, "expires", expires);
@@ -63,7 +63,7 @@ std::shared_ptr<http_response> server_bans_resource::render_PUT(const http_reque
 	try{
 		tx.exec("INSERT INTO server_bans(user_id, server_id, expiration_time) VALUES ($1, $2, $3)", pqxx::params(ban_user_id, server_id, expires.size() ? expires.c_str() : nullptr));
 	} catch(pqxx::data_exception& e){
-		return std::shared_ptr<http_response>(new string_response("Invalid date/time format", 400));
+		return create_response::string("Invalid date/time format", 400);
 	}
 
 	socket_event ev;
@@ -76,7 +76,7 @@ std::shared_ptr<http_response> server_bans_resource::render_PUT(const http_reque
 	tx.exec("DELETE FROM user_x_server WHERE user_id = $1 AND server_id = $2", pqxx::params(ban_user_id, server_id));
 	tx.commit();
 
-	return std::shared_ptr<http_response>(new string_response("Banned", 200));
+	return create_response::string("Banned", 200);
 }
 
 void server_bans_resource::ban_time_func(server_bans_resource& inst)
@@ -121,12 +121,12 @@ std::shared_ptr<http_response> server_ban_id_resource::render_POST(const http_re
 		try{
 			tx.exec("UPDATE server_bans SET expiration_time = $1 WHERE user_id = $2", pqxx::params(expires.size() ? expires.c_str() : nullptr, server_ban_id));
 		} catch(pqxx::data_exception& e){
-			return std::shared_ptr<http_response>(new string_response("Invalid date/time format", 400));
+			return create_response::string("Invalid date/time format", 400);
 		}
 	}
 	tx.commit();
 
-	return std::shared_ptr<http_response>(new string_response("Unbanned", 200));
+	return create_response::string("Unbanned", 200);
 }
 
 std::shared_ptr<http_response> server_ban_id_resource::render_DELETE(const http_request& req)
@@ -146,5 +146,5 @@ std::shared_ptr<http_response> server_ban_id_resource::render_DELETE(const http_
 
 	tx.exec("DELETE FROM server_bans WHERE user_id = $1 AND server_id = $2", pqxx::params(server_ban_id, server_id));
 	tx.commit();
-	return std::shared_ptr<http_response>(new string_response("Unbanned", 200));
+	return create_response::string("Unbanned", 200);
 }

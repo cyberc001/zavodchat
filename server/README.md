@@ -5,10 +5,8 @@ username: `test2` password: `qwe123`
 
 ## Creating certificates:
 ```bash
-$ openssl genrsa -des3 -passout pass:x -out server.pass.key 2048
-$ openssl rsa -passin pass:x -in server.pass.key -out server.key
-$ openssl req -new -key server.key -out server.csr
-$ openssl x509 -req -days 365 -in server.csr -signkey server.key -out server.crt
+openssl genrsa -out server.key 3072
+openssl req -new -x509 -key server.key -sha256 -out server.pem -days 730
 ```
 
 ## cURL:

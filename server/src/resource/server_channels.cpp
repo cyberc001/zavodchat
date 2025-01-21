@@ -22,7 +22,7 @@ std::shared_ptr<http_response> server_channel_resource::render_GET(const http_re
 	for(size_t i = 0; i < r.size(); ++i)
 		res += resource_utils::channel_json_from_row(r[i]);
 
-	return std::shared_ptr<http_response>(new string_response(res.dump(), 200));
+	return create_response::string(res.dump(), 200);
 }
 std::shared_ptr<http_response> server_channel_resource::render_PUT(const http_request& req)
 {
@@ -31,7 +31,7 @@ std::shared_ptr<http_response> server_channel_resource::render_PUT(const http_re
 	auto err = resource_utils::parse_index(req, "type", type);
 	if(err) return err;
 	if(type != CHANNEL_TEXT && type != CHANNEL_VOICE)
-		return std::shared_ptr<http_response>(new string_response("Unknown channel type", 400));
+		return create_response::string("Unknown channel type", 400);
 
 	int user_id, server_id;
 	db_connection conn = pool.hold();
@@ -44,7 +44,7 @@ std::shared_ptr<http_response> server_channel_resource::render_PUT(const http_re
 
 	pqxx::result r = tx.exec("SELECT channel_id, name, type FROM channels WHERE server_id = $1", pqxx::params(server_id));
 	if(r.size() >= max_per_server)
-		return std::shared_ptr<http_response>(new string_response("Server has more than " + std::to_string(max_per_server) + " channels", 403));
+		return create_response::string("Server has more than " + std::to_string(max_per_server) + " channels", 403);
 
 	int channel_id;
 	socket_event ev;
@@ -53,7 +53,7 @@ std::shared_ptr<http_response> server_channel_resource::render_PUT(const http_re
 		channel_id = r[0]["channel_id"].as<int>();
 		ev.data = resource_utils::channel_json_from_row(r[0]);
 	} catch(pqxx::data_exception& e){
-		return std::shared_ptr<http_response>(new string_response("Channel name is too long", 400));
+		return create_response::string("Channel name is too long", 400);
 	}
 	tx.commit();
 
@@ -61,7 +61,7 @@ std::shared_ptr<http_response> server_channel_resource::render_PUT(const http_re
 	ev.name = "channel_created";
 	sserv.send_to_server(server_id, tx, ev);
 
-	return std::shared_ptr<http_response>(new string_response(std::to_string(channel_id), 200));
+	return create_response::string(std::to_string(channel_id), 200);
 }
 
 server_channel_id_resource::server_channel_id_resource(db_connection_pool& pool, socket_main_server& sserv, socket_vc_server& vcserv): pool{pool}, sserv{sserv}, vcserv{vcserv}
@@ -93,7 +93,7 @@ std::shared_ptr<http_response> server_channel_id_resource::render_GET(const http
 			channel_json["vc_users"] += *it;
 	}
 
-	return std::shared_ptr<http_response>(new string_response(channel_json.dump(), 200));
+	return create_response::string(channel_json.dump(), 200);
 }
 std::shared_ptr<http_response> server_channel_id_resource::render_POST(const http_request& req)
 {
@@ -117,7 +117,7 @@ std::shared_ptr<http_response> server_channel_id_resource::render_POST(const htt
 		try{
 			tx.exec("UPDATE channels SET name = $1 WHERE channel_id = $2", pqxx::params(name, channel_id));
 		} catch(pqxx::data_exception& e){
-			return std::shared_ptr<http_response>(new string_response("Channel name is too long", 400));
+			return create_response::string("Channel name is too long", 400);
 		}
 		updated = true;
 	}
@@ -125,7 +125,7 @@ std::shared_ptr<http_response> server_channel_id_resource::render_POST(const htt
 		int type;
 		if(err) return err;
 		if(type != CHANNEL_TEXT && type != CHANNEL_VOICE)
-			return std::shared_ptr<http_response>(new string_response("Unknown channel type", 400));
+			return create_response::string("Unknown channel type", 400);
 		tx.exec("UPDATE channels SET type = $1 WHERE channel_id = $2", pqxx::params(type, channel_id));
 		updated = true;
 	}
@@ -140,7 +140,7 @@ std::shared_ptr<http_response> server_channel_id_resource::render_POST(const htt
 		sserv.send_to_server(server_id, tx, ev);
 	}
 
-	return std::shared_ptr<http_response>(new string_response("Changed", 200));
+	return create_response::string("Changed", 200);
 }
 std::shared_ptr<http_response> server_channel_id_resource::render_DELETE(const http_request& req)
 {
@@ -166,5 +166,5 @@ std::shared_ptr<http_response> server_channel_id_resource::render_DELETE(const h
 	ev.name = "channel_deleted";
 	sserv.send_to_server(server_id, tx, ev);
 
-	return std::shared_ptr<http_response>(new string_response("Deleted", 200));
+	return create_response::string("Deleted", 200);
 }

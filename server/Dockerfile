@@ -14,7 +14,7 @@ RUN cd /3rdparty/pqxx; cmake . -DBUILD_SHARED_LIBS=on; make -j 4; make install
 RUN git clone https://github.com/machinezone/IXWebSocket.git /3rdparty/ixws
 RUN cd /3rdparty/ixws; cmake -DUSE_TLS=1 .; make -j 4; make install
 
-COPY *.crt *.csr *.key /build/
+COPY *.key *.pem /build/
 COPY CMakeLists.txt /build/
 COPY ./src /build/src
 COPY config.json /build/

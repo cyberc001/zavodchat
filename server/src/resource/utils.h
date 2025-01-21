@@ -7,6 +7,14 @@
 #include <httpserver.hpp>
 using namespace httpserver;
 
+class create_response
+{
+public:
+	static std::shared_ptr<http_response> string(std::string str, int code);
+private:
+	static void add_cors(http_response* res);
+};
+
 enum order_type {
 	ORDER_DESC,
 	ORDER_ASC

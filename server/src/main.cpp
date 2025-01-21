@@ -5,6 +5,7 @@
 #include "config.h"
 
 #include "resource/auth.h"
+#include "resource/clock.h"
 #include "resource/server.h"
 #include "resource/user.h"
 #include "resource/server_users.h"
@@ -46,6 +47,9 @@ int main()
 	auth.session_lifetime = cfg.session_lifetime;
 	auth.cleanup_period = cfg.cleanup_period;
 	ws.register_resource("/auth", &auth);
+
+	clock_resource clock;
+	ws.register_resource("/clock", &clock);
 
 	server_resource server(pool);
 	server.owned_per_user = cfg.servers_owned_per_user;

@@ -4,7 +4,7 @@
 	"ws_vc_port": 445,
 
 	"https_key": "server.key",
-	"https_cert": "server.crt",
+	"https_cert": "server.pem",
 
 	"db_host": "zavodchat-db-1",
 	"db_port": 5432,

@@ -27,7 +27,7 @@ std::shared_ptr<http_response> server_users_resource::render_GET(const http_requ
 	for(size_t i = 0; i < r.size(); ++i)
 		res += resource_utils::user_json_from_row(r[i]);
 
-	return std::shared_ptr<http_response>(new string_response(res.dump(), 200));
+	return create_response::string(res.dump(), 200);
 }
 
 server_user_id_resource::server_user_id_resource(db_connection_pool& pool, socket_main_server& sserv) : pool{pool}, sserv{sserv}
@@ -52,7 +52,7 @@ std::shared_ptr<http_response> server_user_id_resource::render_DELETE(const http
 	if(err) return err;
 
 	if(user_id == server_user_id) // !!!also an established owner of the server
-		return std::shared_ptr<http_response>(new string_response("Owner cannot kick themselves", 403));
+		return create_response::string("Owner cannot kick themselves", 403);
 
 	socket_event ev;
 	resource_utils::json_set_ids(ev.data, server_id);
@@ -63,5 +63,5 @@ std::shared_ptr<http_response> server_user_id_resource::render_DELETE(const http
 	tx.exec("DELETE FROM user_x_server WHERE user_id = $1 AND server_id = $2", pqxx::params(server_user_id, server_id));
 	tx.commit();
 
-	return std::shared_ptr<http_response>(new string_response("Kicked", 200));
+	return create_response::string("Kicked", 200);
 }
