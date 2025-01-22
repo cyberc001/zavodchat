@@ -2,5 +2,24 @@
 <script src="https://code.jquery.com/jquery-3.6.3.min.js"></script>
 </head>
 <body>
-<script type="text/javascript" src="client.js"></script>
+	<div>
+		auth token: <a id="label_token"></a><br>
+		<input type="button" value="login as test" onclick="login('test', 'qwe123')" style="margin-bottom: 3px"/>
+		<br>
+		<input type="button" value="login as test2" onclick="login('test2', 'qwe123')"/>
+	</div>
+
+	login: <a id="label_login"></a><br>
+	<div id="server_panel" style="margin-top: 10px">
+	</div>
+
+	server: <a id="label_server"></a><br>
+	<div id="channel_panel" style="margin-top: 10px">		
+	</div>
+
+	channel: <a id="label_channel"></a><br>
+	<div id="message_panel" style="margin-top: 10px">		
+	</div>
+
+	<script type="text/javascript" src="client.js"></script>
 </body>
