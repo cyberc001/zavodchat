@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.0)
 list(APPEND CMAKE_MODULE_PATH "/usr/local/share/cmake/Modules/")
+list(APPEND CMAKE_MODULE_PATH "/usr/local/lib/cmake/LibDataChannel/")
 
 project(zavodchat)
 
@@ -18,6 +19,7 @@ include(FindLibHttpServer)
 include(FindGnuTLS)
 include(FindOpenSSL)
 include(FindZLIB)
+include(LibDataChannelConfig)
 
 target_include_directories(zavodchat PUBLIC 
 	"${CMAKE_CURRENT_SOURCE_DIR}/src")
@@ -25,4 +27,5 @@ target_link_libraries(zavodchat PUBLIC
 	${PQXX_LIB} ${PQ_LIB} 
 	${LIBHTTPSERVER_LIBRARIES} GnuTLS::GnuTLS
 	${IXWEBSOCKET_LIBRARY} ZLIB::ZLIB OpenSSL::SSL
+	LibDataChannel::LibDataChannel
 )

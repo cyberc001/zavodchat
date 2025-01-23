@@ -14,6 +14,9 @@ RUN cd /3rdparty/pqxx; cmake . -DBUILD_SHARED_LIBS=on; make -j 4; make install
 RUN git clone https://github.com/machinezone/IXWebSocket.git /3rdparty/ixws
 RUN cd /3rdparty/ixws; cmake -DUSE_TLS=1 .; make -j 4; make install
 
+RUN git clone https://github.com/paullouisageneau/libdatachannel.git /3rdparty/libdatachannel
+RUN cd /3rdparty/libdatachannel; git submodule update --init --recursive --depth 1; cmake -B build -DUSE_GNUTLS=1 -DUSE_NICE=0 -DCMAKE_BUILD_TYPE=Debug; cd build; make -j 4; make install
+
 COPY *.key *.pem /build/
 COPY CMakeLists.txt /build/
 COPY ./src /build/src
