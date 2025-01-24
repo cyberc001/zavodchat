@@ -5,7 +5,7 @@
 #include <iostream>
 
 socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert, int port,
-				db_connection_pool& pool, socket_main_server& sserv): socket_server(https_key, https_cert, port, pool), sserv{sserv}
+				db_connection_pool& pool, socket_main_server& sserv): socket_server(https_key, https_cert, port, pool), sserv{sserv}, rneng(rndev()), rndist(1, (uint32_t)-1)
 {
 	srv.setConnectionStateFactory([&](){
 		return std::make_shared<socket_vc_connection>();
@@ -22,6 +22,7 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 				pqxx::work tx{*db_conn};
 				pqxx::result r;
 
+				/**** check validity ****/
 				// check auth token
 				try{
 					r = tx.exec("SELECT user_id FROM sessions WHERE token = $1 AND expiration_time > now()", pqxx::params(query["token"]));
@@ -58,6 +59,29 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 					return;
 				}
 
+				/**** connect RTC ****/
+				conn.rtc_conn = std::make_shared<rtc::PeerConnection>();
+
+				conn.rtc_conn->onGatheringStateChange([&conn](rtc::PeerConnection::GatheringState state){
+					if(state == rtc::PeerConnection::GatheringState::Complete){
+						auto desc = conn.rtc_conn->localDescription();
+						nlohmann::json offer = {
+							{"type", desc->typeString()},
+							{"sdp", std::string(desc.value())}
+						};
+						conn.sock.lock()->send(offer.dump());
+					}
+				});
+
+				const rtc::SSRC ssrc = rndist(rneng);
+				rtc::Description::Audio desc("voice", rtc::Description::Direction::SendRecv);
+				desc.addOpusCodec(RTC_PAYLOAD_TYPE_VOICE);
+				desc.addSSRC(ssrc, "voice");
+				conn.track_voice = conn.rtc_conn->addTrack(desc);
+				conn.rtc_conn->setLocalDescription();
+
+				/**** add to connections map ****/
+				/*
 				std::unique_lock lock(connections_mutex);
 				if(connections[conn.channel_id].find(conn.user_id) != connections[conn.channel_id].end()){
 					conn.sock.lock()->close(ix::WebSocketCloseConstants::kNormalClosureCode, "User is already connected");
@@ -69,22 +93,28 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 				resource_utils::json_set_ids(ev.data, conn.server_id, conn.channel_id);
 				ev.data["id"] = conn.user_id;
 				ev.name = "user_joined_vc";
-				sserv.send_to_channel(conn.channel_id, tx, ev);
-
+				sserv.send_to_channel(conn.channel_id, tx, ev);*/
 			} else if(msg->type == ix::WebSocketMessageType::Close){
 				if(msg->closeInfo.reason != "User is already connected"){
-					std::unique_lock lock(connections_mutex);
-					connections[conn.channel_id].erase(conn.user_id);
+					if(conn.channel_id > 0){
+						std::unique_lock lock(connections_mutex);
+						connections[conn.channel_id].erase(conn.user_id);
 
-					db_connection db_conn = pool.hold();
-					pqxx::work tx{*db_conn};
+						db_connection db_conn = pool.hold();
+						pqxx::work tx{*db_conn};
 
-					socket_event ev;
-					resource_utils::json_set_ids(ev.data, conn.server_id, conn.channel_id);
-					ev.data["id"] = conn.user_id;
-					ev.name = "user_left_vc";
-					sserv.send_to_channel(conn.channel_id, tx, ev);
+						socket_event ev;
+						resource_utils::json_set_ids(ev.data, conn.server_id, conn.channel_id);
+						ev.data["id"] = conn.user_id;
+						ev.name = "user_left_vc";
+						sserv.send_to_channel(conn.channel_id, tx, ev);
+					}
 				}
+			} else if(msg->type == ix::WebSocketMessageType::Message){
+				nlohmann::json j = nlohmann::json::parse(msg->str);
+				rtc::Description answer(j["sdp"].get<std::string>(), j["type"].get<std::string>());
+				conn.rtc_conn->setRemoteDescription(answer);
+				std::cerr << "successful answer from client" << std::endl;
 			}
 		});
 	});

@@ -80,7 +80,22 @@ function join_vc(channel_id) {
 		if(ev.reason != "by_user")
 			alert("vc socket closed: " + ev.reason)
 	}
-	vc_sock.onmessage = function(ev) {
-		console.log(ev)
+	vc_sock.onmessage = async function(ev) {
+		const offer = JSON.parse(ev.data)
+		const rtc_conn = new RTCPeerConnection({
+			bundlePolicy: 'max-bundle'
+		});
+
+		rtc_conn.ontrack = (ev) => {
+			console.log("track event", ev);
+		};
+
+		console.log("setting to offer ", offer);
+		await rtc_conn.setRemoteDescription(offer);
+		const answer = rtc_conn.createAnswer().then(function(result){
+			console.log(result);
+			vc_sock.send(JSON.stringify(result));
+		});
+		await rtc_conn.setLocalDescription(answer);
 	}
 }
