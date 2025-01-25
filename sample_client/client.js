@@ -2,7 +2,6 @@
 var auth_token
 
 // запросы
-
 function login(username, password) {
 	$.get(`https://localhost/auth?username=${username}&password=${password}`)
 		.fail(function(jqxhr, _status, _error) { alert(jqxhr.responseText) })
@@ -65,8 +64,8 @@ function get_messages(server_id, channel_id) {
 
 
 // сокеты
-
 var vc_sock
+var vc_debug
 
 function join_vc(channel_id) {
 	if(vc_sock)
@@ -84,18 +83,31 @@ function join_vc(channel_id) {
 		const offer = JSON.parse(ev.data)
 		const rtc_conn = new RTCPeerConnection({
 			bundlePolicy: 'max-bundle'
-		});
+		})
 
 		rtc_conn.ontrack = (ev) => {
 			console.log("track event", ev);
-		};
+		}
 
-		console.log("setting to offer ", offer);
-		await rtc_conn.setRemoteDescription(offer);
-		const answer = rtc_conn.createAnswer().then(function(result){
-			console.log(result);
-			vc_sock.send(JSON.stringify(result));
-		});
-		await rtc_conn.setLocalDescription(answer);
+		rtc_conn.onicegatheringstatechange = (state) => {
+			if(rtc_conn.iceGatheringState === "complete"){
+				const answer = rtc_conn.localDescription
+				console.log("sending answer:")
+				console.log(answer)
+				vc_sock.send(JSON.stringify(answer))
+			}
+		}
+
+		console.log("setting to offer ", offer)
+		await rtc_conn.setRemoteDescription(offer)
+
+		const media = await navigator.mediaDevices.getUserMedia({audio: true})
+		media.getTracks().forEach(track => {rtc_conn.addTrack(track, media); console.log("added track", track)})
+		console.log("attached media to\n", rtc_conn)
+
+		const answer = await rtc_conn.createAnswer()
+		await rtc_conn.setLocalDescription(answer)
+
+		vc_debug = rtc_conn
 	}
 }

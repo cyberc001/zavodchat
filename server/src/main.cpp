@@ -18,8 +18,43 @@
 #include "socket/main_server.h"
 #include "socket/vc_server.h"
 
+void socket_test()
+{
+	struct sockaddr_in si_me, si_other;
+	int s, i; int recv_len;
+	socklen_t slen = sizeof(si_other);
+	char buf[512];
+	if ((s=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1){
+		std::cerr << "error opening test socket" << std::endl;
+		return;
+	}
+	memset((char *) &si_me, 0, sizeof(si_me));
+	si_me.sin_family = AF_INET;
+	si_me.sin_port = htons(50000);
+	si_me.sin_addr.s_addr = htonl(INADDR_ANY);
+
+	if( bind(s , (struct sockaddr*)&si_me, sizeof(si_me) ) == -1){
+		std::cerr << "error binding test socket" << std::endl;
+		return;
+	}
+
+	std::cerr << "listeting........." << std::endl;
+	while(1){
+		if ((recv_len = recvfrom(s, buf, 512, 0, (struct sockaddr *) &si_other, &slen)) == -1){
+			std::cerr << "error receiving on test socket" << std::endl;
+			return;
+		}
+		std::cerr << "received packet" << std::endl;
+		//printf("Received packet from %s:%d\n", inet_ntoa(si_other.sin_addr), ntohs(si_other.sin_port));
+		//printf("Data: %s\n" , buf);
+		sendto(s, buf, recv_len, 0, (struct sockaddr*) &si_other, slen);
+	}
+}
+
 int main()
 {
+	//socket_test();
+
 	std::ifstream fd{"config.json"};
 	config cfg;
 	try {

@@ -7,6 +7,8 @@
 socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert, int port,
 				db_connection_pool& pool, socket_main_server& sserv): socket_server(https_key, https_cert, port, pool), sserv{sserv}, rneng(rndev()), rndist(1, (uint32_t)-1)
 {
+	rtc::InitLogger(rtc::LogLevel::Debug); // TODO move
+	
 	srv.setConnectionStateFactory([&](){
 		return std::make_shared<socket_vc_connection>();
 	});
@@ -60,7 +62,11 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 				}
 
 				/**** connect RTC ****/
-				conn.rtc_conn = std::make_shared<rtc::PeerConnection>();
+				auto conf = rtc::Configuration();
+				conf.portRangeBegin = 50000;
+				conf.portRangeEnd = 50000;
+				conf.bindAddress = "0.0.0.0";
+				conn.rtc_conn = std::make_shared<rtc::PeerConnection>(conf);
 
 				conn.rtc_conn->onGatheringStateChange([&conn](rtc::PeerConnection::GatheringState state){
 					if(state == rtc::PeerConnection::GatheringState::Complete){
@@ -74,10 +80,17 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 				});
 
 				const rtc::SSRC ssrc = rndist(rneng);
-				rtc::Description::Audio desc("voice", rtc::Description::Direction::SendRecv);
+				rtc::Description::Audio desc("audio", rtc::Description::Direction::SendRecv);
 				desc.addOpusCodec(RTC_PAYLOAD_TYPE_VOICE);
-				desc.addSSRC(ssrc, "voice");
+				desc.addSSRC(ssrc, "audio");
+
 				conn.track_voice = conn.rtc_conn->addTrack(desc);
+				auto session = std::make_shared<rtc::RtcpReceivingSession>();
+				conn.track_voice->setMediaHandler(session);
+				conn.track_voice->onMessage([&conn](rtc::binary message) {
+					std::cerr << "received frame " << message.size() << std::endl;
+				}, nullptr);
+
 				conn.rtc_conn->setLocalDescription();
 
 				/**** add to connections map ****/
@@ -114,7 +127,7 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 				nlohmann::json j = nlohmann::json::parse(msg->str);
 				rtc::Description answer(j["sdp"].get<std::string>(), j["type"].get<std::string>());
 				conn.rtc_conn->setRemoteDescription(answer);
-				std::cerr << "successful answer from client" << std::endl;
+				std::cerr << "got answer from client:" << std::endl << j << std::endl;
 			}
 		});
 	});
