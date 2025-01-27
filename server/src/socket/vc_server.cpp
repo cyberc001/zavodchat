@@ -83,20 +83,22 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 				});
 
 				const rtc::SSRC ssrc = rndist(rneng);
-				rtc::Description::Audio desc("audio", rtc::Description::Direction::SendRecv);
+				rtc::Description::Audio desc("audio", rtc::Description::Direction::RecvOnly);
 				desc.addOpusCodec(RTC_PAYLOAD_TYPE_VOICE);
 				desc.addSSRC(ssrc, "audio");
 
 				conn.track_voice = conn.rtc_conn->addTrack(desc);
 				auto session = std::make_shared<rtc::RtcpReceivingSession>();
 				conn.track_voice->setMediaHandler(session);
+
+
 				conn.track_voice->onMessage([&conn](rtc::binary message) {
-					std::cerr << "received frame " << message.size() << std::endl;
+					std::cerr << "received frame " << std::hex << (unsigned)message[0] << ' ' << (unsigned)message[1] << ' ' << (unsigned)message[2] << ' ' << (unsigned)message[3] << std::endl;
 				}, nullptr);
 
 				conn.rtc_conn->setLocalDescription();
 
-				/**** add to connections map ****/
+				/**** add to connections map when onStateChange == connected ****/
 				/*
 				std::unique_lock lock(connections_mutex);
 				if(connections[conn.channel_id].find(conn.user_id) != connections[conn.channel_id].end()){
