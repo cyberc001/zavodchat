@@ -22,13 +22,16 @@ class socket_vc_server: public socket_server
 {
 public:
 	socket_vc_server(std::string https_key, std::string https_cert, int port,
-				db_connection_pool& pool, socket_main_server& sserv);
+				db_connection_pool& pool, socket_main_server& sserv,
+				int rtc_port);
 
 	void send_to_channel(int channel_id, pqxx::work& tx, socket_event event); // only sends event to users currently connected to voice channel
 	
 	void get_channel_users(int channel_id, std::vector<int>& users); // get users connected to voice channel
 private:
 	socket_main_server& sserv;
+	int rtc_port;
+	std::string rtc_cert, rtc_key;
 
 	// for generating SSRC
 	std::random_device rndev;

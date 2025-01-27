@@ -42,6 +42,8 @@ config::config(std::ifstream& fd)
 		ws_port = cfg["ws_port"].get<unsigned>();
 	if(cfg["ws_vc_port"].is_number_unsigned())
 		ws_vc_port = cfg["ws_vc_port"].get<unsigned>();
+	if(cfg["rtc_port"].is_number_unsigned())
+		rtc_port = cfg["rtc_port"].get<unsigned>();
 
 	https_key = cfg["https_key"].get<std::string>();
 	https_cert = cfg["https_cert"].get<std::string>();

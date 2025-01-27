@@ -5,9 +5,10 @@
 #include <iostream>
 
 socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert, int port,
-				db_connection_pool& pool, socket_main_server& sserv): socket_server(https_key, https_cert, port, pool), sserv{sserv}, rneng(rndev()), rndist(1, (uint32_t)-1)
+				db_connection_pool& pool, socket_main_server& sserv,
+				int rtc_port): socket_server(https_key, https_cert, port, pool), sserv{sserv}, rneng(rndev()), rndist(1, (uint32_t)-1), rtc_port{rtc_port}, rtc_cert{https_cert}, rtc_key{https_key}
 {
-	rtc::InitLogger(rtc::LogLevel::Debug); // TODO move
+	rtc::InitLogger(rtc::LogLevel::Debug);
 	
 	srv.setConnectionStateFactory([&](){
 		return std::make_shared<socket_vc_connection>();
@@ -63,9 +64,11 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 
 				/**** connect RTC ****/
 				auto conf = rtc::Configuration();
-				conf.portRangeBegin = 50000;
-				conf.portRangeEnd = 50000;
+				conf.portRangeBegin = conf.portRangeEnd = rtc_port;
+				conf.enableIceUdpMux = true;
 				conf.bindAddress = "0.0.0.0";
+				conf.certificatePemFile = rtc_cert;
+				conf.keyPemFile = rtc_key;
 				conn.rtc_conn = std::make_shared<rtc::PeerConnection>(conf);
 
 				conn.rtc_conn->onGatheringStateChange([&conn](rtc::PeerConnection::GatheringState state){

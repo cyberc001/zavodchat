@@ -2,6 +2,7 @@
 	"https_port": 443,
 	"ws_port": 444,
 	"ws_vc_port": 445,
+	"rtc_port": 446,
 
 	"https_key": "server.key",
 	"https_cert": "server.pem",
