@@ -86,15 +86,18 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 				rtc::Description::Audio desc("audio", rtc::Description::Direction::RecvOnly);
 				desc.addOpusCodec(RTC_PAYLOAD_TYPE_VOICE);
 				desc.addSSRC(ssrc, "audio");
-
 				conn.track_voice = conn.rtc_conn->addTrack(desc);
+
+				auto rtp_conf = std::make_shared<rtc::RtpPacketizationConfig>(ssrc, "audio", RTC_PAYLOAD_TYPE_VOICE, rtc::OpusRtpPacketizer::DefaultClockRate);
+
+				auto depack = std::make_shared<rtc::OpusRtpDepacketizer>();
 				auto session = std::make_shared<rtc::RtcpReceivingSession>();
-				conn.track_voice->setMediaHandler(session);
+				depack->addToChain(session);
+				conn.track_voice->setMediaHandler(depack);
 
-
-				conn.track_voice->onMessage([&conn](rtc::binary message) {
-					std::cerr << "received frame " << std::hex << (unsigned)message[0] << ' ' << (unsigned)message[1] << ' ' << (unsigned)message[2] << ' ' << (unsigned)message[3] << std::endl;
-				}, nullptr);
+				conn.track_voice->onFrame([&conn](rtc::binary message, rtc::FrameInfo frame) {
+					std::cerr << "received frame, payload type=" << std::dec << (unsigned)frame.payloadType << ' ' << std::hex << (unsigned)message[0] << ' ' << (unsigned)message[1] << ' ' << (unsigned)message[2] << ' ' << (unsigned)message[3] << std::endl;
+				});
 
 				conn.rtc_conn->setLocalDescription();
 
