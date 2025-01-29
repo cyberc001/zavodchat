@@ -21,6 +21,10 @@ include(FindOpenSSL)
 include(FindZLIB)
 include(LibDataChannelConfig)
 
+find_package(PkgConfig REQUIRED)
+pkg_search_module(gstreamer REQUIRED IMPORTED_TARGET gstreamer-1.0)
+pkg_search_module(gstreamer-rtp REQUIRED IMPORTED_TARGET gstreamer-rtp-1.0)
+
 target_include_directories(zavodchat PUBLIC 
 	"${CMAKE_CURRENT_SOURCE_DIR}/src")
 target_link_libraries(zavodchat PUBLIC
@@ -28,4 +32,6 @@ target_link_libraries(zavodchat PUBLIC
 	${LIBHTTPSERVER_LIBRARIES} GnuTLS::GnuTLS
 	${IXWEBSOCKET_LIBRARY} ZLIB::ZLIB OpenSSL::SSL
 	LibDataChannel::LibDataChannel
+	PkgConfig::gstreamer
+	PkgConfig::gstreamer-rtp
 )
