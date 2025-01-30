@@ -7,6 +7,7 @@
 #include <shared_mutex>
 #include <random>
 
+// TODO create destructor
 class socket_vc_connection : public socket_connection
 {
 public:
@@ -15,6 +16,9 @@ public:
 
 	std::shared_ptr<rtc::PeerConnection> rtc_conn;
 	std::shared_ptr<rtc::Track> track_voice;
+
+	GstElement* opuspay = nullptr;
+	GstPad* muxer_sink = nullptr;
 };
 class socket_vc_channel
 {

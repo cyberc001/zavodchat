@@ -7,13 +7,50 @@
 void socket_vc_channel::add_user(int user_id, std::shared_ptr<socket_vc_connection> conn)
 {
 	connections[user_id] = conn;
+	// TODO change to create pipeline if >1 users are present
+	// TODO create better logging
 	if(!pipeline){
+		std::string pipeline_name = "vc_pipeline_" + conn->channel_id;
+		pipeline = gst_pipeline_new(pipeline_name.c_str());
+		if(!pipeline){
+			std::cerr << "Cannot create pipeline for voice channel " << conn->channel_id << std::endl;
+			return;
+		}
+		muxer = gst_element_factory_make("rtpmux", "muxer");
+		if(!muxer){
+			std::cerr << "Cannot create muxer for voice channel " << conn->channel_id << std::endl;
+			return;
+		}
+		gst_bin_add(GST_BIN(pipeline), muxer);
+	}
+
+	if(!conn->opuspay){
+		std::string opuspay_name = "opus_payload_" + user_id;
+		conn->opuspay = gst_element_factory_make("rtpopuspay", opuspay_name.c_str());
+		if(!conn->opuspay){
+			std::cerr << "Cannot create OPUS payload for voice channel " << conn->channel_id << ", user " << user_id << std::endl;
+			return;
+		}
+		gst_bin_add(GST_BIN(pipeline), conn->opuspay);
+
+		conn->muxer_sink = gst_element_request_pad_simple(muxer, "sink_%u");
+		if(!conn->muxer_sink){
+			std::cerr << "Cannot request RTPMux sink for voice channel " << conn->channel_id << ", user " << user_id << std::endl;
+			return;
+		}
+
+		GstPad* opuspay_src = gst_element_get_static_pad(conn->opuspay, "src");
+		if(gst_pad_link(opuspay_src, conn->muxer_sink))
+			std::cerr << "Cannot link OpusPayload src to RTPMux sink for voice channel " << conn->channel_id << ", user " << user_id << std::endl;
 	}
 }
 void socket_vc_channel::remove_user(int user_id)
 {
 	connections.erase(user_id);
-	if(!connections.size()){
+	if(!connections.size() && pipeline){
+		gst_object_unref(muxer);
+		gst_object_unref(pipeline);
+		pipeline = nullptr;
 	}
 }
 bool socket_vc_channel::has_user(int user_id) const { return connections.find(user_id) != connections.end(); }
