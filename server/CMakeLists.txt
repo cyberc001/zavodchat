@@ -24,6 +24,8 @@ include(LibDataChannelConfig)
 find_package(PkgConfig REQUIRED)
 pkg_search_module(gstreamer REQUIRED IMPORTED_TARGET gstreamer-1.0)
 pkg_search_module(gstreamer-rtp REQUIRED IMPORTED_TARGET gstreamer-rtp-1.0)
+pkg_search_module(gstreamer-app REQUIRED IMPORTED_TARGET gstreamer-app-1.0)
+
 
 target_include_directories(zavodchat PUBLIC 
 	"${CMAKE_CURRENT_SOURCE_DIR}/src")
@@ -34,4 +36,5 @@ target_link_libraries(zavodchat PUBLIC
 	LibDataChannel::LibDataChannel
 	PkgConfig::gstreamer
 	PkgConfig::gstreamer-rtp
+	PkgConfig::gstreamer-app
 )
