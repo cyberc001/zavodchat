@@ -2,6 +2,7 @@
 #include "resource/server_channels.h"
 #include "resource/utils.h"
 #include <gst/app/gstappsrc.h>
+#include <gst/app/gstappsink.h>
 
 #include <iostream>
 
@@ -33,7 +34,23 @@ void gst_main_loop()
 
 GstFlowReturn vc_appsink_new_sample_callback(GstElement* appsink, gpointer udata)
 {
-	std::cerr << "new sample!\n";
+	GstSample* smpl = gst_app_sink_pull_sample(GST_APP_SINK(appsink));
+	if(!smpl){
+		std::cerr << "Couldn't pull sample on 'new-sample' event'" << std::endl;
+		return GST_FLOW_ERROR;
+	}
+	GstBuffer* buf = gst_sample_get_buffer(smpl);
+	GstMapInfo mapped_mem;
+	if(gst_buffer_map(buf, &mapped_mem, GST_MAP_READ)){
+		std::cerr << std::hex;
+		for(size_t i = 0; i < 8; ++i)
+			std::cerr << (unsigned)mapped_mem.data[i] << ' ';
+		std::cerr << std::endl;
+	}
+
+	//std::cerr << "buff size " << gst_buffer_get_size(buf) << std::endl;
+
+	gst_sample_unref(smpl);
 	return GST_FLOW_OK;
 }
 
@@ -44,10 +61,14 @@ void socket_vc_connection::close(GstElement* pipeline)
 
 	gst_object_unref(muxer_sink);
 
-	if(pipeline)
+	if(pipeline){
 		gst_bin_remove(GST_BIN(pipeline), opuspay);
-	else
+		gst_bin_remove(GST_BIN(pipeline), appsrc);
+	}
+	else{
 		gst_object_unref(opuspay);
+		gst_object_unref(appsrc);
+	}
 }
 
 void socket_vc_channel::add_user(int user_id, std::shared_ptr<socket_vc_connection> conn)
@@ -85,6 +106,7 @@ void socket_vc_channel::add_user(int user_id, std::shared_ptr<socket_vc_connecti
 			std::cerr << "Cannot link muxer to appsink for voice channel " << conn->channel_id << std::endl;
 			return;
 		}
+		g_object_set(appsink, "emit-signals", 1, NULL);
 		g_signal_connect(appsink, "new-sample", G_CALLBACK(vc_appsink_new_sample_callback), nullptr);
 
 		GstStateChangeReturn state_err = gst_element_set_state(pipeline, GST_STATE_PLAYING);
@@ -261,11 +283,11 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 					GstFlowReturn flow;
 					g_signal_emit_by_name(conn.appsrc, "push-buffer", buf, &flow);
 
-					auto& chan = channels[conn.channel_id];
-					GstState state, pending;
-					//gst_element_get_state(chan.muxer, &state, &pending, GST_CLOCK_TIME_NONE);
-					//std::cerr << "muxer state " << state << " " << pending << std::endl;
+					//guint64 cur_bytes;
+					//g_object_get(conn.appsrc, "current-level-bytes", &cur_bytes, NULL);
+					//std::cerr << "buffered bytes " << cur_bytes << std::endl;
 
+					auto& chan = channels[conn.channel_id];
 	 				//std::cerr << "received frame, payload type=" << std::dec << (unsigned)frame.payloadType << ' ' << std::hex << (unsigned)message[0] << ' ' << (unsigned)message[1] << ' ' << (unsigned)message[2] << ' ' << (unsigned)message[3] << std::endl;
 				});
 
