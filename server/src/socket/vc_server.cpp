@@ -34,6 +34,8 @@ void gst_main_loop()
 
 GstFlowReturn vc_appsink_new_sample_callback(GstElement* appsink, gpointer udata)
 {
+	socket_vc_connection* conn = reinterpret_cast<socket_vc_connection*>(udata);
+
 	GstSample* smpl = gst_app_sink_pull_sample(GST_APP_SINK(appsink));
 	if(!smpl){
 		std::cerr << "Couldn't pull sample on 'new-sample' event'" << std::endl;
@@ -42,13 +44,14 @@ GstFlowReturn vc_appsink_new_sample_callback(GstElement* appsink, gpointer udata
 	GstBuffer* buf = gst_sample_get_buffer(smpl);
 	GstMapInfo mapped_mem;
 	if(gst_buffer_map(buf, &mapped_mem, GST_MAP_READ)){
+		conn->track_voice->send(reinterpret_cast<const std::byte*>(mapped_mem.data), mapped_mem.size);
+
 		std::cerr << std::hex;
 		for(size_t i = 0; i < 8; ++i)
 			std::cerr << (unsigned)mapped_mem.data[i] << ' ';
 		std::cerr << std::endl;
 	}
 
-	//std::cerr << "buff size " << gst_buffer_get_size(buf) << std::endl;
 
 	gst_sample_unref(smpl);
 	return GST_FLOW_OK;
@@ -56,19 +59,15 @@ GstFlowReturn vc_appsink_new_sample_callback(GstElement* appsink, gpointer udata
 
 void socket_vc_connection::close(GstElement* pipeline)
 {
-	if(!opuspay)
+	if(!appsrc)
 		return;
 
 	gst_object_unref(muxer_sink);
 
-	if(pipeline){
-		gst_bin_remove(GST_BIN(pipeline), opuspay);
+	if(pipeline)
 		gst_bin_remove(GST_BIN(pipeline), appsrc);
-	}
-	else{
-		gst_object_unref(opuspay);
+	else
 		gst_object_unref(appsrc);
-	}
 }
 
 void socket_vc_channel::add_user(int user_id, std::shared_ptr<socket_vc_connection> conn)
@@ -107,7 +106,7 @@ void socket_vc_channel::add_user(int user_id, std::shared_ptr<socket_vc_connecti
 			return;
 		}
 		g_object_set(appsink, "emit-signals", 1, NULL);
-		g_signal_connect(appsink, "new-sample", G_CALLBACK(vc_appsink_new_sample_callback), nullptr);
+		g_signal_connect(appsink, "new-sample", G_CALLBACK(vc_appsink_new_sample_callback), conn.get());
 
 		GstStateChangeReturn state_err = gst_element_set_state(pipeline, GST_STATE_PLAYING);
 		if(state_err == GST_STATE_CHANGE_FAILURE){
@@ -123,23 +122,9 @@ void socket_vc_channel::add_user(int user_id, std::shared_ptr<socket_vc_connecti
 			std::cerr << "Cannot create appsrc for voice channel " << conn->channel_id << ", user " << user_id << std::endl;
 			return;
 		}
-		GstCaps* appsrc_caps = gst_caps_new_simple("audio/x-opus",
-								"channel-mapping-family", G_TYPE_INT, 0,
-								NULL);
+		GstCaps* appsrc_caps = gst_caps_new_empty_simple("application/x-rtp");
 		gst_app_src_set_caps(GST_APP_SRC(conn->appsrc), appsrc_caps);
 		gst_bin_add(GST_BIN(pipeline), conn->appsrc);
-
-		std::string opuspay_name = "opus_payload_" + std::to_string(user_id);
-		conn->opuspay = gst_element_factory_make("rtpopuspay", opuspay_name.c_str());
-		if(!conn->opuspay){
-			std::cerr << "Cannot create OPUS payload for voice channel " << conn->channel_id << ", user " << user_id << std::endl;
-			return;
-		}
-		gst_bin_add(GST_BIN(pipeline), conn->opuspay);
-		if(!gst_element_link(conn->appsrc, conn->opuspay)){
-			std::cerr << "Cannot link appsrc to OPUS Payload for voice channel " << conn->channel_id << ", user " << user_id << std::endl;
-			return;
-		}
 
 		conn->muxer_sink = gst_element_request_pad_simple(muxer, "sink_%u");
 		if(!conn->muxer_sink){
@@ -147,12 +132,11 @@ void socket_vc_channel::add_user(int user_id, std::shared_ptr<socket_vc_connecti
 			return;
 		}
 
-		GstPad* opuspay_src = gst_element_get_static_pad(conn->opuspay, "src");
-		if(gst_pad_link(opuspay_src, conn->muxer_sink))
-			std::cerr << "Cannot link OPUS Payload src to RTPMux sink for voice channel " << conn->channel_id << ", user " << user_id << std::endl;
+		GstPad* appsrc_src = gst_element_get_static_pad(conn->appsrc, "src");
+		if(gst_pad_link(appsrc_src, conn->muxer_sink))
+			std::cerr << "Cannot link appsrc src to RTPMux sink for voice channel " << conn->channel_id << ", user " << user_id << std::endl;
 
 		gst_element_set_state(conn->appsrc, GST_STATE_PLAYING);
-		gst_element_set_state(conn->opuspay, GST_STATE_PLAYING);
 	}
 }
 void socket_vc_channel::remove_user(int user_id)
@@ -265,31 +249,34 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 				});
 
 				const rtc::SSRC ssrc = rndist(rneng);
-				rtc::Description::Audio desc("audio", rtc::Description::Direction::RecvOnly);
+				rtc::Description::Audio desc("audio", rtc::Description::Direction::SendRecv);
 				desc.addOpusCodec(RTC_PAYLOAD_TYPE_VOICE);
 				desc.addSSRC(ssrc, "audio");
 				conn.track_voice = conn.rtc_conn->addTrack(desc);
 
 				auto rtp_conf = std::make_shared<rtc::RtpPacketizationConfig>(ssrc, "audio", RTC_PAYLOAD_TYPE_VOICE, rtc::OpusRtpPacketizer::DefaultClockRate);
-
-				auto depack = std::make_shared<rtc::OpusRtpDepacketizer>();
-				auto session = std::make_shared<rtc::RtcpReceivingSession>();
-				depack->addToChain(session);
-				conn.track_voice->setMediaHandler(depack);
+				//auto depack = std::make_shared<rtc::OpusRtpDepacketizer>();
+				auto session_recv = std::make_shared<rtc::RtcpReceivingSession>();
+				auto session_send = std::make_shared<rtc::RtcpSrReporter>(rtp_conf);
+				session_recv->addToChain(session_send);
+				conn.track_voice->setMediaHandler(session_recv);
 
 				//TODO change & to &conn (for debugging)
-				conn.track_voice->onFrame([&](rtc::binary message, rtc::FrameInfo frame) {
+				conn.track_voice->onMessage([&](rtc::binary message) {
+					std::cerr << "got frame";
+					for(size_t i = 0; i < 8; ++i) std::cerr << ' ' << std::hex << (unsigned)message[i];
+					std::cerr << std::endl;
 					GstBuffer* buf = gst_buffer_new_memdup(message.data(), message.size());
 					GstFlowReturn flow;
 					g_signal_emit_by_name(conn.appsrc, "push-buffer", buf, &flow);
 
-					//guint64 cur_bytes;
-					//g_object_get(conn.appsrc, "current-level-bytes", &cur_bytes, NULL);
-					//std::cerr << "buffered bytes " << cur_bytes << std::endl;
+					/*auto& chan = channels[conn.channel_id];
+					guint cur_seq;
+					g_object_get(chan.muxer, "seqnum", &cur_seq, NULL);
+					std::cerr << "seqnum " << cur_seq << std::endl;*/
 
-					auto& chan = channels[conn.channel_id];
-	 				//std::cerr << "received frame, payload type=" << std::dec << (unsigned)frame.payloadType << ' ' << std::hex << (unsigned)message[0] << ' ' << (unsigned)message[1] << ' ' << (unsigned)message[2] << ' ' << (unsigned)message[3] << std::endl;
-				});
+	 				//std::cerr << "received ts " << frame.timestamp << std::endl;
+				}, nullptr);
 
 				conn.rtc_conn->setLocalDescription();
 

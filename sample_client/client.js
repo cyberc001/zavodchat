@@ -86,7 +86,10 @@ function join_vc(channel_id) {
 		})
 
 		rtc_conn.ontrack = (ev) => {
-			console.log("track event", ev);
+			console.log("track event", ev)
+			const vc_audio = $("#vc_audio")[0]
+			vc_audio.srcObject = ev.streams[0]
+			vc_audio.play()
 		}
 
 		rtc_conn.onicegatheringstatechange = (state) => {

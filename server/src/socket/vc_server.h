@@ -19,7 +19,6 @@ public:
 	std::shared_ptr<rtc::Track> track_voice;
 
 	GstElement* appsrc = nullptr;
-	GstElement* opuspay = nullptr;
 	GstPad* muxer_sink = nullptr;
 };
 class socket_vc_channel
