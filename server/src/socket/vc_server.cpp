@@ -183,17 +183,6 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 						conn.sock.lock()->close(ix::WebSocketCloseConstants::kNormalClosureCode, "Invalid or expired token");
 						return;
 					}
-					conn.user_id = r[0]["user_id"].as<int>();
-
-					// check if user isn't already connected
-					{
-						std::unique_lock lock(channels_mutex);
-						if(channels[conn.channel_id].has_user(conn.user_id)){
-							conn.sock.lock()->close(ix::WebSocketCloseConstants::kNormalClosureCode, "User is already connected");
-							return;
-						}
-					}
-
 					// check voice channel
 					try{
 						conn.channel_id = std::stol(query["channel"]);
@@ -201,6 +190,9 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 						conn.sock.lock()->close(ix::WebSocketCloseConstants::kNormalClosureCode, "Couldn't parse channel ID, got '" + query["channel"] + "'");
 						return;
 					}
+					conn.user_id = r[0]["user_id"].as<int>();
+
+					// check channel type
 					r = tx.exec("SELECT type, server_id, channel_id FROM channels WHERE channel_id = $1", pqxx::params(conn.channel_id));
 					if(!r.size()){
 						conn.sock.lock()->close(ix::WebSocketCloseConstants::kNormalClosureCode, "User has no access to the channel or it doesn't exist");
@@ -215,6 +207,15 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 					if(ch_type != CHANNEL_VOICE){
 						conn.sock.lock()->close(ix::WebSocketCloseConstants::kNormalClosureCode, "Isn't a voice channel");
 						return;
+					}
+
+					// check if user isn't already connected
+					{
+						std::unique_lock lock(channels_mutex);
+						if(channels[conn.channel_id].has_user(conn.user_id)){
+							conn.sock.lock()->close(ix::WebSocketCloseConstants::kNormalClosureCode, "User is already connected");
+							return;
+						}
 					}
 				}
 
@@ -245,7 +246,6 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 				conn.track_voice = conn.rtc_conn->addTrack(desc);
 
 				auto rtp_conf = std::make_shared<rtc::RtpPacketizationConfig>(ssrc, "audio", RTC_PAYLOAD_TYPE_VOICE, rtc::OpusRtpPacketizer::DefaultClockRate);
-				//auto depack = std::make_shared<rtc::OpusRtpDepacketizer>();
 				auto session_recv = std::make_shared<rtc::RtcpReceivingSession>();
 				auto session_send = std::make_shared<rtc::RtcpSrReporter>(rtp_conf);
 				session_recv->addToChain(session_send);
