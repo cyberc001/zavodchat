@@ -9,17 +9,12 @@
 // TODO delete
 void cb_message (GstBus* bus, GstMessage* msg, void* data)
 {
-	std::cerr << "Message " << GST_MESSAGE_TYPE(msg) << " from " << GST_MESSAGE_SRC_NAME(msg) << std::endl;
 	switch(GST_MESSAGE_TYPE(msg)){
-		case GST_MESSAGE_STATE_CHANGED:
-			GstState olds, news, pends;
-			gst_message_parse_state_changed(msg, &olds, &news, &pends);
-			std::cerr << "Changed state to " << olds << " " << news << " " << pends << std::endl;
-			break;
 		case GST_MESSAGE_ERROR:
 			GError* err;
 			gchar* debug_info;
 			gst_message_parse_error(msg, &err, &debug_info);
+			std::cerr << "Message " << GST_MESSAGE_TYPE(msg) << " from " << GST_MESSAGE_SRC_NAME(msg) << std::endl;
 			std::cerr << "Error " << err->message << std::endl;
 			std::cerr << "Debug information " << debug_info << std::endl;
 			break;
@@ -43,15 +38,8 @@ GstFlowReturn vc_appsink_new_sample_callback(GstElement* appsink, gpointer udata
 	}
 	GstBuffer* buf = gst_sample_get_buffer(smpl);
 	GstMapInfo mapped_mem;
-	if(gst_buffer_map(buf, &mapped_mem, GST_MAP_READ)){
+	if(gst_buffer_map(buf, &mapped_mem, GST_MAP_READ))
 		conn->track_voice->send(reinterpret_cast<const std::byte*>(mapped_mem.data), mapped_mem.size);
-
-		std::cerr << std::hex;
-		for(size_t i = 0; i < 8; ++i)
-			std::cerr << (unsigned)mapped_mem.data[i] << ' ';
-		std::cerr << std::endl;
-	}
-
 
 	gst_sample_unref(smpl);
 	return GST_FLOW_OK;
@@ -64,6 +52,7 @@ void socket_vc_connection::close(GstElement* pipeline)
 
 	gst_object_unref(muxer_sink);
 
+	gst_element_set_state(appsrc, GST_STATE_NULL);
 	if(pipeline)
 		gst_bin_remove(GST_BIN(pipeline), appsrc);
 	else
@@ -146,6 +135,7 @@ void socket_vc_channel::remove_user(int user_id)
 		connections.erase(user_id);
 	}
 	if(!connections.size() && pipeline){
+		gst_element_set_state(pipeline, GST_STATE_NULL);
 		gst_object_unref(pipeline);
 		pipeline = nullptr;
 	}
@@ -261,21 +251,10 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 				session_recv->addToChain(session_send);
 				conn.track_voice->setMediaHandler(session_recv);
 
-				//TODO change & to &conn (for debugging)
-				conn.track_voice->onMessage([&](rtc::binary message) {
-					std::cerr << "got frame";
-					for(size_t i = 0; i < 8; ++i) std::cerr << ' ' << std::hex << (unsigned)message[i];
-					std::cerr << std::endl;
+				conn.track_voice->onMessage([&conn](rtc::binary message) {
 					GstBuffer* buf = gst_buffer_new_memdup(message.data(), message.size());
 					GstFlowReturn flow;
 					g_signal_emit_by_name(conn.appsrc, "push-buffer", buf, &flow);
-
-					/*auto& chan = channels[conn.channel_id];
-					guint cur_seq;
-					g_object_get(chan.muxer, "seqnum", &cur_seq, NULL);
-					std::cerr << "seqnum " << cur_seq << std::endl;*/
-
-	 				//std::cerr << "received ts " << frame.timestamp << std::endl;
 				}, nullptr);
 
 				conn.rtc_conn->setLocalDescription();
