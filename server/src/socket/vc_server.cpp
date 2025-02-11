@@ -29,7 +29,7 @@ void gst_main_loop()
 
 GstFlowReturn vc_appsink_new_sample_callback(GstElement* appsink, gpointer udata)
 {
-	socket_vc_connection* conn = reinterpret_cast<socket_vc_connection*>(udata);
+	socket_vc_channel* chan = reinterpret_cast<socket_vc_channel*>(udata); // TODO change to something else, maybe pointer to vc server
 
 	GstSample* smpl = gst_app_sink_pull_sample(GST_APP_SINK(appsink));
 	if(!smpl){
@@ -38,8 +38,19 @@ GstFlowReturn vc_appsink_new_sample_callback(GstElement* appsink, gpointer udata
 	}
 	GstBuffer* buf = gst_sample_get_buffer(smpl);
 	GstMapInfo mapped_mem;
-	if(gst_buffer_map(buf, &mapped_mem, GST_MAP_READ))
-		conn->track_voice->send(reinterpret_cast<const std::byte*>(mapped_mem.data), mapped_mem.size);
+	if(gst_buffer_map(buf, &mapped_mem, GST_MAP_READ)){
+		std::cerr << std::hex;
+		for(size_t i = 8; i < 12; ++i) std::cerr << (unsigned)mapped_mem.data[i] << ' ';
+		std::cerr << std::endl;
+
+		//uint32_t ssrc = *(reinterpret_cast<uint32_t*>(mapped_mem.data + 4));
+		//std::cerr << "ssrc " << ssrc << std::endl;
+
+		for(auto it = chan->connections_begin(); it != chan->connections_end(); ++it){
+			std::shared_ptr<socket_vc_connection> conn = it->second.lock();
+			conn->track_voice->send(reinterpret_cast<const std::byte*>(mapped_mem.data), mapped_mem.size);
+		}
+	}
 
 	gst_sample_unref(smpl);
 	return GST_FLOW_OK;
@@ -95,7 +106,7 @@ void socket_vc_channel::add_user(int user_id, std::shared_ptr<socket_vc_connecti
 			return;
 		}
 		g_object_set(appsink, "emit-signals", 1, NULL);
-		g_signal_connect(appsink, "new-sample", G_CALLBACK(vc_appsink_new_sample_callback), conn.get());
+		g_signal_connect(appsink, "new-sample", G_CALLBACK(vc_appsink_new_sample_callback), this);
 
 		GstStateChangeReturn state_err = gst_element_set_state(pipeline, GST_STATE_PLAYING);
 		if(state_err == GST_STATE_CHANGE_FAILURE){
@@ -251,10 +262,18 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 				session_recv->addToChain(session_send);
 				conn.track_voice->setMediaHandler(session_recv);
 
-				conn.track_voice->onMessage([&conn](rtc::binary message) {
-					GstBuffer* buf = gst_buffer_new_memdup(message.data(), message.size());
+				conn.track_voice->onMessage([&, _conn](rtc::binary message) {
+					auto& chan = channels[conn.channel_id];
+					auto recv_conn = std::dynamic_pointer_cast<socket_vc_connection>(_conn);
+					for(auto it = chan.connections_begin(); it != chan.connections_end(); ++it){
+						std::shared_ptr<socket_vc_connection> conn = it->second.lock();
+						if(conn->user_id == recv_conn->user_id)
+							continue;
+						conn->track_voice->send(message.data(), message.size());
+					}
+					/*GstBuffer* buf = gst_buffer_new_memdup(message.data(), message.size());
 					GstFlowReturn flow;
-					g_signal_emit_by_name(conn.appsrc, "push-buffer", buf, &flow);
+					g_signal_emit_by_name(conn.appsrc, "push-buffer", buf, &flow);*/
 				}, nullptr);
 
 				conn.rtc_conn->setLocalDescription();

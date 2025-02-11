@@ -31,9 +31,8 @@ public:
 	std::unordered_map<int, std::weak_ptr<socket_vc_connection>>::const_iterator connections_begin() const;
 	std::unordered_map<int, std::weak_ptr<socket_vc_connection>>::const_iterator connections_end() const;
 
-//TODO uncomment
-//private:
-	std::unordered_map<int, std::weak_ptr<socket_vc_connection>> connections;
+private:
+	std::unordered_map<int, std::weak_ptr<socket_vc_connection>> connections; // wrap in mutex
 	GstElement* pipeline = nullptr;
 	GstElement* muxer = nullptr;
 	GstElement* appsink = nullptr;
@@ -51,6 +50,8 @@ public:
 	void send_to_channel(int channel_id, pqxx::work& tx, socket_event event); // only sends event to users currently connected to voice channel
 	
 	void get_channel_users(int channel_id, std::vector<int>& users); // get users connected to voice channel
+
+	std::unordered_map<int, socket_vc_channel> channels;
 private:
 	db_connection_pool& pool;
 	socket_main_server& sserv;
@@ -64,7 +65,6 @@ private:
 	std::uniform_int_distribution<std::mt19937::result_type> rndist;
 
 	std::shared_mutex channels_mutex;
-	std::unordered_map<int, socket_vc_channel> channels;
 };
 
 #endif

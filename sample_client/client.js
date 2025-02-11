@@ -1,9 +1,11 @@
+var hostname = "192.168.0.11"
+
 // токены и прочие данные хранятся в локальных переменных
 var auth_token
 
 // запросы
 function login(username, password) {
-	$.get(`https://localhost/auth?username=${username}&password=${password}`)
+	$.get(`https://${hostname}/auth?username=${username}&password=${password}`)
 		.fail(function(jqxhr, _status, _error) { alert(jqxhr.responseText) })
 		.done(function(data) {
 			auth_token = data
@@ -15,7 +17,7 @@ function login(username, password) {
 }
 
 function get_servers() {
-	$.get(`https://localhost/servers?token=${auth_token}`)
+	$.get(`https://${hostname}/servers?token=${auth_token}`)
 		.fail(function(jqxhr, _status, _error) { alert(jqxhr.responseText) })	
 		.done(function(data) {
 			data = JSON.parse(data)
@@ -30,7 +32,7 @@ function get_servers() {
 }
 
 function get_channels(server_id) {
-	$.get(`https://localhost/servers/${server_id}/channels?token=${auth_token}`)
+	$.get(`https://${hostname}/servers/${server_id}/channels?token=${auth_token}`)
 		.fail(function(jqxhr, _status, _error) { alert(jqxhr.responseText) })	
 		.done(function(data) {
 			data = JSON.parse(data)
@@ -48,7 +50,7 @@ function get_channels(server_id) {
 }
 
 function get_messages(server_id, channel_id) {
-	$.get(`https://localhost/servers/${server_id}/channels/${channel_id}/messages?token=${auth_token}&start=0&count=50`)
+	$.get(`https://${hostname}/servers/${server_id}/channels/${channel_id}/messages?token=${auth_token}&start=0&count=50`)
 		.fail(function(jqxhr, _status, _error) { alert(jqxhr.responseText) })
 		.done(function(data) {
 			data = JSON.parse(data)
@@ -71,7 +73,7 @@ function join_vc(channel_id) {
 	if(vc_sock)
 		vc_sock.close(1000, "by_user");
 
-	vc_sock = new WebSocket(`wss://localhost:445?token=${auth_token}&channel=${channel_id}`)
+	vc_sock = new WebSocket(`wss://${hostname}:445?token=${auth_token}&channel=${channel_id}`)
 	vc_sock.onopen = function(ev) {
 		alert("connected to vc")
 	}
