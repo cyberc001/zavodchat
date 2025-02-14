@@ -1,7 +1,7 @@
 FROM ubuntu:24.04
 
 RUN apt-get update
-RUN apt-get install -y build-essential cmake autotools-dev automake libtool pkg-config git zlib1g-dev libssl-dev libmicrohttpd-dev libgnutls28-dev libpq-dev nlohmann-json3-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libgstreamer-plugins-bad1.0-dev gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly gstreamer1.0-libav
+RUN apt-get install -y build-essential cmake autotools-dev automake libtool pkg-config git zlib1g-dev libssl-dev libmicrohttpd-dev libgnutls28-dev libpq-dev nlohmann-json3-dev
 
 RUN mkdir /3rdparty
 

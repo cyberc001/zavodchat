@@ -3,24 +3,17 @@
 
 #include "socket/main_server.h"
 #include "rtc/rtc.hpp"
-#include <gst/gst.h>
 #include <shared_mutex>
 #include <random>
 
 class socket_vc_connection : public socket_connection
 {
 public:
-	void close(GstElement* pipeline); // to be called from socket_vc_channel::remove_user()
-
 	int server_id = -1;
 	int channel_id = -1;
 
 	std::shared_ptr<rtc::PeerConnection> rtc_conn;
 	std::shared_ptr<rtc::Track> track_voice;
-	std::shared_ptr<rtc::Track> track_voice2;
-
-	GstElement* appsrc = nullptr;
-	GstPad* muxer_sink = nullptr;
 };
 class socket_vc_channel
 {
@@ -34,9 +27,6 @@ public:
 
 private:
 	std::unordered_map<int, std::weak_ptr<socket_vc_connection>> connections; // wrap in mutex
-	GstElement* pipeline = nullptr;
-	GstElement* muxer = nullptr;
-	GstElement* appsink = nullptr;
 };
 
 #define RTC_PAYLOAD_TYPE_VOICE 96
@@ -56,7 +46,6 @@ public:
 private:
 	db_connection_pool& pool;
 	socket_main_server& sserv;
-	std::thread gst_thr;
 	int rtc_port;
 	std::string rtc_cert, rtc_key;
 

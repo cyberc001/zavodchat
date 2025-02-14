@@ -43,8 +43,6 @@ int main()
 	socket_vc_server vcserv(cfg.https_key, cfg.https_cert, cfg.ws_vc_port,
 					pool, sserv, cfg.rtc_port);
 
-	std::cerr << "main.cpp rtc_port " << cfg.rtc_port << std::endl;
-
 	auth_resource auth(pool);
 	auth.min_username_length = cfg.min_username_length;
 	auth.min_password_length = cfg.min_password_length;
