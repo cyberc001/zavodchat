@@ -17,6 +17,7 @@ public:
 
 	std::shared_ptr<rtc::PeerConnection> rtc_conn;
 	std::shared_ptr<rtc::Track> track_voice;
+	std::shared_ptr<rtc::Track> track_voice2;
 
 	GstElement* appsrc = nullptr;
 	GstPad* muxer_sink = nullptr;

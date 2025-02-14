@@ -157,7 +157,7 @@ std::unordered_map<int, std::weak_ptr<socket_vc_connection>>::const_iterator soc
 
 socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert, int port,
 				db_connection_pool& pool, socket_main_server& sserv,
-				int rtc_port): socket_server(https_key, https_cert, port, pool), pool{pool}, sserv{sserv}, rneng(rndev()), rndist(1, (uint32_t)-1), rtc_port{rtc_port}, rtc_cert{https_cert}, rtc_key{https_key}
+				int _rtc_port): socket_server(https_key, https_cert, port, pool), pool{pool}, sserv{sserv}, rneng(rndev()), rndist(1, (uint32_t)-1), rtc_port{_rtc_port}, rtc_cert{https_cert}, rtc_key{https_key}
 {
 	// TODO maybe initialization should be moved, but only one socket_vc_server instance is needed anyway
 	rtc::InitLogger(rtc::LogLevel::Debug);
@@ -242,6 +242,13 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 				conn.rtc_conn->onGatheringStateChange([&conn](rtc::PeerConnection::GatheringState state){
 					if(state == rtc::PeerConnection::GatheringState::Complete){
 						auto desc = conn.rtc_conn->localDescription();
+						// change candidates IPs to specified public IPs
+						std::vector<rtc::Candidate> candidates = desc.value().extractCandidates();
+						for(auto it = candidates.begin(); it != candidates.end(); ++it) // TODO maybe check if there is only one candidate
+							it->changeAddress("192.168.0.11");
+						desc.value().addCandidates(candidates);
+						desc.value().endCandidates();
+
 						nlohmann::json offer = {
 							{"type", desc->typeString()},
 							{"sdp", std::string(desc.value())}

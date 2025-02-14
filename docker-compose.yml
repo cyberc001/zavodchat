@@ -23,8 +23,7 @@ services:
       context: ./server
       dockerfile: Dockerfile
     ports:
-      - 443:443
-      - 444:444
-      - 445:445
-      - 50000:50000/udp
-#      - 49152-65535:49152-65535/udP
+      - 443:443 # HTTPS 
+      - 444:444 # Main socket
+      - 445:445 # VC socket
+      - 50000:50000/udp # WebRTC

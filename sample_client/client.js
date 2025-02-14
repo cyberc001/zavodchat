@@ -107,6 +107,7 @@ function join_vc(channel_id) {
 		await rtc_conn.setRemoteDescription(offer)
 
 		const media = await navigator.mediaDevices.getUserMedia({audio: true})
+		console.log("tracks", await navigator.mediaDevices.enumerateDevices())
 		media.getTracks().forEach(track => {rtc_conn.addTrack(track, media); console.log("added track", track)})
 		console.log("attached media to\n", rtc_conn)
 
