@@ -12,7 +12,10 @@ public:
 
 	std::string get_conn_str() const;
 
-	unsigned https_port = 443, ws_port = 444, ws_vc_port = 445, rtc_port = 50000;
+	unsigned https_port = 443, ws_port = 444, ws_vc_port = 445;
+	
+	std::string rtc_addr = "127.0.0.1";
+	unsigned rtc_port = 50000;
 
 	std::string https_key, https_cert;
 

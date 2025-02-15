@@ -42,6 +42,9 @@ config::config(std::ifstream& fd)
 		ws_port = cfg["ws_port"].get<unsigned>();
 	if(cfg["ws_vc_port"].is_number_unsigned())
 		ws_vc_port = cfg["ws_vc_port"].get<unsigned>();
+
+	if(cfg["rtc_addr"].is_string())
+		rtc_addr = cfg["rtc_addr"].get<std::string>();
 	if(cfg["rtc_port"].is_number_unsigned())
 		rtc_port = cfg["rtc_port"].get<unsigned>();
 

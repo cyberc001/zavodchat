@@ -2,7 +2,9 @@
 	"https_port": 443,
 	"ws_port": 444,
 	"ws_vc_port": 445,
-	"rtc_port": 50000, 
+
+	"rtc_addr": "127.0.0.1",
+	"rtc_port": 50000,
 
 	"https_key": "server.key",
 	"https_cert": "server.pem",

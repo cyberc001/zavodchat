@@ -36,7 +36,7 @@ class socket_vc_server: public socket_server
 public:
 	socket_vc_server(std::string https_key, std::string https_cert, int port,
 				db_connection_pool& pool, socket_main_server& sserv,
-				int rtc_port);
+				std::string rtc_addr, int rtc_port);
 
 	void send_to_channel(int channel_id, pqxx::work& tx, socket_event event); // only sends event to users currently connected to voice channel
 	
@@ -46,6 +46,8 @@ public:
 private:
 	db_connection_pool& pool;
 	socket_main_server& sserv;
+
+	std::string rtc_addr;
 	int rtc_port;
 	std::string rtc_cert, rtc_key;
 
