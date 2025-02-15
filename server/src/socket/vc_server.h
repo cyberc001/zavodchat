@@ -18,15 +18,19 @@ public:
 class socket_vc_channel
 {
 public:
+	// these functions use connections_mutex:
 	void add_user(int user_id, std::shared_ptr<socket_vc_connection> conn);
 	void remove_user(int user_id);
-	bool has_user(int user_id) const;
+	bool has_user(int user_id);
+	//
 
+	// connections_mutex 
 	std::unordered_map<int, std::weak_ptr<socket_vc_connection>>::const_iterator connections_begin() const;
 	std::unordered_map<int, std::weak_ptr<socket_vc_connection>>::const_iterator connections_end() const;
 
+	std::shared_mutex connections_mutex;
 private:
-	std::unordered_map<int, std::weak_ptr<socket_vc_connection>> connections; // wrap in mutex
+	std::unordered_map<int, std::weak_ptr<socket_vc_connection>> connections;
 };
 
 #define RTC_PAYLOAD_TYPE_VOICE 96

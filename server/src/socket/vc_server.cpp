@@ -6,13 +6,19 @@
 
 void socket_vc_channel::add_user(int user_id, std::shared_ptr<socket_vc_connection> conn)
 {
+	std::unique_lock lock(connections_mutex);
 	connections[user_id] = conn;
 }
 void socket_vc_channel::remove_user(int user_id)
 {
+	std::unique_lock lock(connections_mutex);
 	connections.erase(user_id);
 }
-bool socket_vc_channel::has_user(int user_id) const { return connections.find(user_id) != connections.end(); }
+bool socket_vc_channel::has_user(int user_id)
+{
+	std::unique_lock lock(connections_mutex);
+	return connections.find(user_id) != connections.end();
+}
 std::unordered_map<int, std::weak_ptr<socket_vc_connection>>::const_iterator socket_vc_channel::connections_begin() const { return connections.cbegin(); }
 std::unordered_map<int, std::weak_ptr<socket_vc_connection>>::const_iterator socket_vc_channel::connections_end() const { return connections.cend(); }
 
@@ -101,7 +107,7 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 				conn.rtc_conn->onGatheringStateChange([&conn, rtc_addr = this->rtc_addr](rtc::PeerConnection::GatheringState state){
 					if(state == rtc::PeerConnection::GatheringState::Complete){
 						auto desc = conn.rtc_conn->localDescription();
-						// change candidates IPs to specified public IPs
+						// change candidates IPs to the specified public IP
 						std::vector<rtc::Candidate> candidates = desc.value().extractCandidates();
 						for(auto it = candidates.begin(); it != candidates.end(); ++it) // TODO maybe check if there is only one candidate
 							it->changeAddress(rtc_addr);
@@ -128,9 +134,11 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 				session_recv->addToChain(session_send);
 				conn.track_voice->setMediaHandler(session_recv);
 
-				conn.track_voice->onMessage([&, _conn](rtc::binary message) {
+				conn.track_voice->onMessage([&, _conn](rtc::binary message){
+					std::unique_lock lock(channels_mutex);
 					auto& chan = channels[conn.channel_id];
 					auto recv_conn = std::dynamic_pointer_cast<socket_vc_connection>(_conn);
+					std::unique_lock conn_lock(chan.connections_mutex);
 					for(auto it = chan.connections_begin(); it != chan.connections_end(); ++it){
 						std::shared_ptr<socket_vc_connection> conn = it->second.lock();
 						if(conn->user_id == recv_conn->user_id)
@@ -192,6 +200,7 @@ void socket_vc_server::send_to_channel(int channel_id, pqxx::work& tx, socket_ev
 
 	std::shared_lock lock(channels_mutex);
 	socket_vc_channel& chan = channels[channel_id];
+	std::unique_lock conn_lock(chan.connections_mutex);
 	for(auto it = chan.connections_begin(); it != chan.connections_end(); ++it){
 		std::shared_ptr<ix::WebSocket> sock = it->second.lock()->sock.lock();
 		if(sock)
@@ -203,6 +212,7 @@ void socket_vc_server::get_channel_users(int channel_id, std::vector<int>& users
 {
 	std::shared_lock lock(channels_mutex);
 	socket_vc_channel& chan = channels[channel_id];
+	std::unique_lock conn_lock(chan.connections_mutex);
 	for(auto it = chan.connections_begin(); it != chan.connections_end(); ++it)
 		users.push_back(it->first);
 }
