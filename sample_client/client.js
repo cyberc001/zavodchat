@@ -1,4 +1,4 @@
-var hostname = "192.168.0.11"
+var hostname = "localhost"
 
 // токены и прочие данные хранятся в локальных переменных
 var auth_token

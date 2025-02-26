@@ -43,6 +43,7 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 			if(msg->type == ix::WebSocketMessageType::Open){
 				/**** check database validity ****/
 				{
+					std::cerr << "url " << conn.sock.lock()->getUrl() << std::endl;
 					auto query = parse_query(msg->openInfo.uri);
 					db_connection db_conn = pool.hold();
 					pqxx::work tx{*db_conn};
@@ -109,8 +110,9 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 						auto desc = conn.rtc_conn->localDescription();
 						// change candidates IPs to the specified public IP
 						std::vector<rtc::Candidate> candidates = desc.value().extractCandidates();
-						for(auto it = candidates.begin(); it != candidates.end(); ++it) // TODO maybe check if there is only one candidate
-							it->changeAddress(rtc_addr);
+						candidates.push_back(candidates[0]);
+						candidates[0].changeAddress(rtc_addr);
+						candidates[1].changeAddress("127.0.0.1");
 						desc.value().addCandidates(candidates);
 						desc.value().endCandidates();
 
