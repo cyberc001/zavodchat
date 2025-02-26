@@ -20,8 +20,6 @@
 
 int main()
 {
-	//socket_test();
-
 	std::ifstream fd{"config.json"};
 	config cfg;
 	try {

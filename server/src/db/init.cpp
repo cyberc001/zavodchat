@@ -52,22 +52,31 @@ void db_init(std::string conn_str)
 	}
 
 	// Create 2 test users
-	bool created_user1 = true, created_user2 = true;
+	bool created_any_users = false;
 	{
 		try{
 			pqxx::work tx{conn};
 			pqxx::result r = tx.exec("INSERT INTO users(name, status) VALUES('test', 0) RETURNING user_id");
 			tx.exec("INSERT INTO auth(username, password, user_id) VALUES('test', crypt('qwe123', gen_salt('bf')), $1)", pqxx::params(r[0]["user_id"].as<int>()));
 			tx.commit();
-		} catch(const pqxx::unique_violation& e){ created_user1 = false; }
+			created_any_users = true;
+		} catch(const pqxx::unique_violation& e){}
 		try{
 			pqxx::work tx{conn};
 			pqxx::result r = tx.exec("INSERT INTO users(name, status) VALUES('test2', 0) RETURNING user_id");
 			tx.exec("INSERT INTO auth(username, password, user_id) VALUES('test2', crypt('qwe123', gen_salt('bf')), $1)", pqxx::params(r[0]["user_id"].as<int>()));
 			tx.commit();
-		} catch(const pqxx::unique_violation& e){ created_user2 = false; }
+			created_any_users = true;
+		} catch(const pqxx::unique_violation& e){}
+		try{
+			pqxx::work tx{conn};
+			pqxx::result r = tx.exec("INSERT INTO users(name, status) VALUES('test3', 0) RETURNING user_id");
+			tx.exec("INSERT INTO auth(username, password, user_id) VALUES('test3', crypt('qwe123', gen_salt('bf')), $1)", pqxx::params(r[0]["user_id"].as<int>()));
+			tx.commit();
+			created_any_users = true;
+		} catch(const pqxx::unique_violation& e){}
 	}
-	if(!created_user1 && !created_user2)
+	if(!created_any_users)
 		return;
 	// Create 2 test servers
 	{
@@ -91,10 +100,20 @@ void db_init(std::string conn_str)
 		r = tx.exec("INSERT INTO servers(name, owner_id) VALUES('server_test2', $1) RETURNING server_id", pqxx::params(user_id_2));
 		int server_id_2 = r[0]["server_id"].as<int>();
 
+		r = tx.exec("SELECT user_id FROM users WHERE name = 'test3'");
+		if(!r.size()){
+			std::cerr << "Failed to create test server: user 'test3' doesn't exist" << std::endl;
+			return;
+		}
+		int user_id_3 = r[0]["user_id"].as<int>();
+
 		tx.exec("INSERT INTO user_x_server(user_id, server_id) VALUES($1, $2)", pqxx::params(user_id_1, server_id_1));
 		tx.exec("INSERT INTO user_x_server(user_id, server_id) VALUES($1, $2)", pqxx::params(user_id_1, server_id_2));
 		tx.exec("INSERT INTO user_x_server(user_id, server_id) VALUES($1, $2)", pqxx::params(user_id_2, server_id_1));
 		tx.exec("INSERT INTO user_x_server(user_id, server_id) VALUES($1, $2)", pqxx::params(user_id_2, server_id_2));
+		tx.exec("INSERT INTO user_x_server(user_id, server_id) VALUES($1, $2)", pqxx::params(user_id_3, server_id_1));
+		tx.exec("INSERT INTO user_x_server(user_id, server_id) VALUES($1, $2)", pqxx::params(user_id_3, server_id_2));
+
 		tx.commit();
 	}
 	// Create a text channel and a voice channel in each test server
