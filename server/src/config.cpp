@@ -1,5 +1,6 @@
 #include "config.h"
 #include <nlohmann/json.hpp>
+#include <filesystem>
 
 using namespace nlohmann;
 
@@ -43,6 +44,13 @@ config::config(std::ifstream& fd)
 	if(cfg["ws_vc_port"].is_number_unsigned())
 		ws_vc_port = cfg["ws_vc_port"].get<unsigned>();
 
+	if(cfg["user_avatar_path"].is_string())
+		user_avatar_path = cfg["user_avatar_path"].get<std::string>();
+	if(cfg["server_avatar_path"].is_string())
+		server_avatar_path = cfg["server_avatar_path"].get<std::string>();
+	if(cfg["file_storage_path"].is_string())
+		file_storage_path = cfg["file_storage_path"].get<std::string>();
+
 	if(cfg["rtc_addr"].is_string())
 		rtc_addr = cfg["rtc_addr"].get<std::string>();
 	if(cfg["rtc_port"].is_number_unsigned())
@@ -68,6 +76,11 @@ config::config(std::ifstream& fd)
 		servers_owned_per_user = cfg["servers_owned_per_user"].get<unsigned>();
 	if(cfg["max_channels_per_server"].is_number_unsigned())
 		max_channels_per_server = cfg["max_channels_per_server"].get<unsigned>();
+
+	// create directories for file storage
+	std::filesystem::create_directories(user_avatar_path);
+	std::filesystem::create_directories(server_avatar_path);
+	std::filesystem::create_directories(file_storage_path);
 }
 
 std::string config::get_conn_str() const

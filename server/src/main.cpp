@@ -7,6 +7,7 @@
 #include "resource/clock.h"
 #include "resource/server.h"
 #include "resource/user.h"
+#include "resource/file_utils.h"
 #include "resource/server_users.h"
 #include "resource/server_channels.h"
 #include "resource/channel_messages.h"
@@ -32,6 +33,10 @@ int main()
 	db_connect(cfg.get_conn_str());
 	db_init(cfg.get_conn_str());
 	db_connection_pool pool{cfg.get_conn_str()};
+
+	file_utils::user_avatar_storage_path = cfg.user_avatar_path;
+	file_utils::server_avatar_storage_path = cfg.server_avatar_path;
+	file_utils::file_storage_path = cfg.file_storage_path;
 
 	httpserver::webserver ws = httpserver::create_webserver(cfg.https_port)
 								.use_ssl()

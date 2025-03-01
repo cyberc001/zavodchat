@@ -19,6 +19,10 @@ public:
 
 	std::string https_key, https_cert;
 
+	std::string user_avatar_path = "/data/avatar/user/",
+			server_avatar_path = "/data/avatar/server/",
+			file_storage_path = "/data/upload/";
+
 	unsigned min_username_length = 2;
 	unsigned min_password_length = 8;
 

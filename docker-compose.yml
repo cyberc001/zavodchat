@@ -22,8 +22,13 @@ services:
     build:
       context: ./server
       dockerfile: Dockerfile
+    volumes:
+      - upload-volume:/data
     ports:
       - 443:443 # HTTPS 
       - 444:444 # Main socket
       - 445:445 # VC socket
       - 50000:50000/udp # WebRTC
+
+volumes:
+  upload-volume:

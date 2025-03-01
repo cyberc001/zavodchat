@@ -3,11 +3,15 @@
 	"ws_port": 444,
 	"ws_vc_port": 445,
 
-	"rtc_addr": "127.0.0.1",
+	"rtc_addr": "78.37.239.150",
 	"rtc_port": 50000,
 
 	"https_key": "server.key",
 	"https_cert": "server.pem",
+
+	"user_avatar_path": "/data/avatar/user/",
+	"server_avatar_path": "/data/avatar/server/",
+	"file_storage_path": "/data/upload",
 
 	"db_host": "zavodchat-db-1",
 	"db_port": 5432,

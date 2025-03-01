@@ -1,7 +1,7 @@
 #include "auth.h"
-#include <iostream>
 #include <limits>
 #include <resource/utils.h>
+#include <resource/file_utils.h>
 
 auth_resource::auth_resource(db_connection_pool& pool): pool{pool}
 {
@@ -102,12 +102,19 @@ std::shared_ptr<http_response> auth_resource::render_POST(const http_request& re
 	if(args.find(std::string_view("displayname")) != args.end()){
 		std::string displayname = std::string(req.get_arg("displayname"));
 		try{
-			tx.exec("UPDATE auth SET displayname = $1 WHERE user_id = $2", pqxx::params(displayname, user_id));
+			tx.exec("UPDATE users SET name = $1 WHERE user_id = $2", pqxx::params(displayname, user_id));
 		} catch(pqxx::data_exception& e){
 			return create_response::string("Displayname is too long", 400);
 		} catch(const pqxx::unique_violation& e){
 			return create_response::string("Displayname already exists", 403);
 		}
+	}
+	if(args.find(std::string_view("avatar")) != args.end()){
+		std::string fname;
+		err = file_utils::parse_user_avatar(req, "avatar", user_id, fname);
+		if(err)
+			return err;
+		tx.exec("UPDATE users SET avatar = $1 WHERE user_id = $2", pqxx::params(fname, user_id));
 	}
 
 	tx.commit();
