@@ -7,6 +7,7 @@
 #include "resource/clock.h"
 #include "resource/server.h"
 #include "resource/user.h"
+#include "resource/file.h"
 #include "resource/file_utils.h"
 #include "resource/server_users.h"
 #include "resource/server_channels.h"
@@ -97,6 +98,11 @@ int main()
 
 	user_id_resource user_id(pool);
 	ws.register_resource("/users/{user_id}", &user_id);
+
+
+	file_resource user_avatars(cfg.user_avatar_path);
+	ws.register_resource("/files/avatar/user/{fname}", &user_avatars);
+
 
 	ws.start(false);
 	std::cerr << "Listening for HTTPS on port " << cfg.https_port << "...\n";

@@ -1,4 +1,9 @@
 #include "resource/utils.h"
+#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <iosfwd>
 
 void create_response::add_cors(http_response* res)
 {
@@ -10,6 +15,28 @@ void create_response::add_cors(http_response* res)
 std::shared_ptr<http_response> create_response::string(std::string str, int code)
 {
 	string_response* res = new string_response(str, code);
+	add_cors(res);
+	return std::shared_ptr<http_response>(res);
+}
+std::shared_ptr<http_response> create_response::file(std::string fpath)
+{
+	file_response* res = new file_response(fpath);
+
+	// Copied checks from file_response.cpp for performance
+	struct stat sb;
+	if(stat(fpath.c_str(), &sb) == 0){
+	        if(!S_ISREG(sb.st_mode))
+			return create_response::string("File does not exist", 404);
+	} else
+		return create_response::string("File does not exist", 404);
+	int fd = open(fpath.c_str(), O_RDONLY);
+	if(fd == -1) return create_response::string("File does not exist", 404);
+
+	off_t size = lseek(fd, 0, SEEK_END);
+	if(size == (off_t) -1) return create_response::string("File does not exist", 404);
+	close(fd);
+	// End of copied checks
+
 	add_cors(res);
 	return std::shared_ptr<http_response>(res);
 }
