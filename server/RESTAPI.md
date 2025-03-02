@@ -68,6 +68,7 @@ body: `<UUID токена>`
 * username: ?string
 * displayname: ?string
 * password: ?string
+* avatar: ?file
 
 *response 200:*
 
@@ -157,6 +158,7 @@ body: JSON-объект с информацией о севрере.
 Имя сервера
 * owner_id: ?int<br>
 ID нового владельца сервера
+* avatar: ?file
 
 *response 400:*
 
@@ -619,3 +621,32 @@ body: `<причина ошибки>`
 *response 403:*
 
 Нет прав владельца сервера.
+
+
+## /files/avatar/user/$filename
+
+**GET:**
+
+Получить файл - аватарку пользователя.
+
+*response 200:*
+
+Файл в contents в двоичном виде.
+
+*response 404:*
+
+Файл не существует.
+
+## /files/avatar/server/$filename
+
+**GET:**
+
+Получить файл - аватарку сервера.
+
+*response 200:*
+
+Файл в contents в двоичном виде.
+
+*response 404:*
+
+Файл не существует.
