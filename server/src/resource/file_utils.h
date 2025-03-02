@@ -17,10 +17,13 @@ public:
 	// Return an error if the file is bigger than the file size limit, cannot be parsed, or is not an image
 	static std::shared_ptr<http_response> parse_user_avatar(const http_request&, std::string arg_name,
 								int user_id, std::string& out_fname);
+	static std::shared_ptr<http_response> parse_server_avatar(const http_request&, std::string arg_name,
+								int server_id, std::string& out_fname);
+
 private:
 	static std::string get_image_ext(const std::string_view& fraw);
 
-	static void save_file(const std::string_view& fraw, std::string fname);
+	static void save_file(const std::string_view& fraw, std::string fpath);
 };
 
 #endif

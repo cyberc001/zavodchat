@@ -1,5 +1,6 @@
 #include "resource/server.h"
 #include "resource/utils.h"
+#include "resource/file_utils.h"
 #include <nlohmann/json.hpp>
 
 server_resource::server_resource(db_connection_pool& pool): pool{pool}
@@ -111,6 +112,17 @@ std::shared_ptr<http_response> server_id_resource::render_POST(const http_reques
 		ev.data["id"] = server_id;
 		ev.name = "got_server_owner";
 		sserv.send_to_user(new_owner_id, tx, ev);
+
+		updated = true;
+	}
+	if(args.find(std::string_view("avatar")) != args.end()){
+		std::string fname;
+		err = file_utils::parse_server_avatar(req, "avatar", user_id, fname);
+		if(err)
+			return err;
+		tx.exec("UPDATE servers SET avatar = $1 WHERE server_id = $2", pqxx::params(fname, server_id));
+
+		updated = true;
 	}
 	tx.commit();
 

@@ -102,6 +102,8 @@ int main()
 
 	file_resource user_avatars(cfg.user_avatar_path);
 	ws.register_resource("/files/avatar/user/{fname}", &user_avatars);
+	file_resource server_avatars(cfg.server_avatar_path);
+	ws.register_resource("/files/avatar/server/{fname}", &server_avatars);
 
 
 	ws.start(false);

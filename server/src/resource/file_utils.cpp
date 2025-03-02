@@ -26,9 +26,9 @@ std::string file_utils::get_image_ext(const std::string_view& fraw)
 	return "";
 }
 
-void file_utils::save_file(const std::string_view& fraw, std::string fname)
+void file_utils::save_file(const std::string_view& fraw, std::string fpath)
 { // TODO maybe launch a task instead, moving fraw to somewhere
-	std::ofstream fd(user_avatar_storage_path + fname);
+	std::ofstream fd(fpath);
 	fd.write(fraw.data(), fraw.size());
 }
 
@@ -42,7 +42,19 @@ std::shared_ptr<http_response> file_utils::parse_user_avatar(const http_request&
 	if(!ext.size())
 		return create_response::string("Image has invalid format", 400);
 	out_fname = std::to_string(id) + "." + ext;
-	save_file(fraw, out_fname);
+	save_file(fraw, user_avatar_storage_path + out_fname);
+	
+	return nullptr;
+}
+std::shared_ptr<http_response> file_utils::parse_server_avatar(const http_request& req, std::string arg_name,
+								int id, std::string& out_fname)
+{
+	std::string_view fraw = req.get_arg_flat(arg_name);
+	std::string ext = get_image_ext(fraw);
+	if(!ext.size())
+		return create_response::string("Image has invalid format", 400);
+	out_fname = std::to_string(id) + "." + ext;
+	save_file(fraw, server_avatar_storage_path + out_fname);
 	
 	return nullptr;
 }
