@@ -36,6 +36,8 @@ void db_init(std::string conn_str)
 		tx.exec("CREATE TABLE IF NOT EXISTS channels(channel_id SERIAL PRIMARY KEY, server_id INTEGER REFERENCES servers ON DELETE CASCADE NOT NULL, name VARCHAR(64) NOT NULL, type INTEGER NOT NULL )");
 		tx.exec("CREATE TABLE IF NOT EXISTS messages(message_id SERIAL PRIMARY KEY, channel_id INTEGER REFERENCES channels NOT NULL, author_id INTEGER REFERENCES users NOT NULL, sent TIMESTAMP WITH TIME ZONE NOT NULL, last_edited TIMESTAMP WITH TIME ZONE NOT NULL, text VARCHAR(2000) )");
 
+		tx.exec("CREATE TABLE IF NOT EXISTS tmp_files(filename UUID PRIMARY KEY, user_id INTEGER REFERENCES users ON DELETE CASCADE NOT NULL)");
+
 
 		tx.exec("CREATE INDEX IF NOT EXISTS session_user_ids ON sessions (user_id)");
 		tx.exec("CREATE INDEX IF NOT EXISTS session_expire ON sessions (expiration_time)");

@@ -6,7 +6,6 @@
 
 std::string file_utils::user_avatar_storage_path = "/data/avatar/user/";
 std::string file_utils::server_avatar_storage_path = "/data/avatar/server/";
-std::string file_utils::file_storage_path = "/data/upload/";
 
 std::string file_utils::get_image_ext(const std::string_view& fraw)
 {
@@ -31,7 +30,6 @@ void file_utils::save_file(const std::string_view& fraw, std::string fpath)
 	std::ofstream fd(fpath);
 	fd.write(fraw.data(), fraw.size());
 }
-
 
 
 std::shared_ptr<http_response> file_utils::parse_user_avatar(const http_request& req, std::string arg_name,
