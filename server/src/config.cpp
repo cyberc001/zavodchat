@@ -66,9 +66,12 @@ config::config(std::ifstream& fd)
 
 	if(cfg["session_lifetime"].is_number_unsigned())
 		session_lifetime = cfg["session_lifetime"].get<size_t>();
-
 	if(cfg["cleanup_period"].is_number_unsigned())
 		cleanup_period = cfg["cleanup_period"].get<size_t>();
+
+	if(cfg["file_storage_size"].is_number_unsigned())
+		file_storage_size = cfg["file_storage_size"].get<size_t>();
+
 	if(cfg["max_get_count"].is_number_unsigned())
 		max_get_count = cfg["max_get_count"].get<unsigned>();
 
@@ -76,8 +79,6 @@ config::config(std::ifstream& fd)
 		servers_owned_per_user = cfg["servers_owned_per_user"].get<unsigned>();
 	if(cfg["max_channels_per_server"].is_number_unsigned())
 		max_channels_per_server = cfg["max_channels_per_server"].get<unsigned>();
-	if(cfg["max_tmp_files_per_user"].is_number_unsigned())
-		max_tmp_files_per_user = cfg["max_tmp_files_per_user"].get<unsigned>();
 
 	// create directories for file storage
 	std::filesystem::create_directories(user_avatar_path);

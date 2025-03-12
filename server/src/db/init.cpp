@@ -24,7 +24,7 @@ void db_init(std::string conn_str)
 		pqxx::work tx{conn};
 		tx.exec("CREATE EXTENSION IF NOT EXISTS pgcrypto");
 
-		tx.exec("CREATE TABLE IF NOT EXISTS users(user_id SERIAL PRIMARY KEY, name VARCHAR(64) NOT NULL, avatar VARCHAR(128), status INTEGER NOT NULL)");
+		tx.exec("CREATE TABLE IF NOT EXISTS users(user_id SERIAL PRIMARY KEY, name VARCHAR(64) NOT NULL, avatar VARCHAR(128), status INTEGER NOT NULL, fs_busy BIGINT NOT NULL DEFAULT 0)");
 		tx.exec("CREATE TABLE IF NOT EXISTS auth(auth_id SERIAL PRIMARY KEY, username VARCHAR(64) UNIQUE NOT NULL, password TEXT NOT NULL, user_id INTEGER REFERENCES users NOT NULL)");
 		tx.exec("CREATE TABLE IF NOT EXISTS sessions(token UUID PRIMARY KEY, user_id INTEGER REFERENCES users NOT NULL, expiration_time TIMESTAMP WITH TIME ZONE)");
 
@@ -36,7 +36,7 @@ void db_init(std::string conn_str)
 		tx.exec("CREATE TABLE IF NOT EXISTS channels(channel_id SERIAL PRIMARY KEY, server_id INTEGER REFERENCES servers ON DELETE CASCADE NOT NULL, name VARCHAR(64) NOT NULL, type INTEGER NOT NULL )");
 		tx.exec("CREATE TABLE IF NOT EXISTS messages(message_id SERIAL PRIMARY KEY, channel_id INTEGER REFERENCES channels NOT NULL, author_id INTEGER REFERENCES users NOT NULL, sent TIMESTAMP WITH TIME ZONE NOT NULL, last_edited TIMESTAMP WITH TIME ZONE NOT NULL, text VARCHAR(2000) )");
 
-		tx.exec("CREATE TABLE IF NOT EXISTS tmp_files(filename UUID PRIMARY KEY, user_id INTEGER REFERENCES users ON DELETE CASCADE NOT NULL)");
+		tx.exec("CREATE TABLE IF NOT EXISTS fs_total_busy(total BIGINT)");
 
 
 		tx.exec("CREATE INDEX IF NOT EXISTS session_user_ids ON sessions (user_id)");
@@ -50,6 +50,21 @@ void db_init(std::string conn_str)
 		tx.exec("CREATE INDEX IF NOT EXISTS messages_channels ON messages (channel_id)");
 		tx.exec("CREATE INDEX IF NOT EXISTS messages_authors ON messages (author_id)");
 
+
+		tx.exec("CREATE OR REPLACE FUNCTION add_fs_total_busy() RETURNS trigger AS\n"
+			"$BODY$ BEGIN\n"
+			"UPDATE fs_total_busy SET total = total + (NEW.fs_busy - OLD.fs_busy);\n"
+			"RETURN NEW;\n"
+			"END; $BODY$\n"
+			"LANGUAGE plpgsql VOLATILE");
+		tx.exec("CREATE OR REPLACE TRIGGER tadd_fs_total_busy\n"
+			"BEFORE UPDATE OF fs_busy ON users\n"
+			"FOR EACH ROW\n"
+			"EXECUTE FUNCTION add_fs_total_busy();");
+
+		pqxx::result r = tx.exec("SELECT total FROM fs_total_busy");
+		if(!r.size())
+			tx.exec("INSERT INTO fs_total_busy(total) VALUES(0)");
 		tx.commit();
 	}
 

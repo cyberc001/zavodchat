@@ -37,6 +37,8 @@ int main()
 
 	file_utils::user_avatar_storage_path = cfg.user_avatar_path;
 	file_utils::server_avatar_storage_path = cfg.server_avatar_path;
+	file_utils::file_storage_path = cfg.file_storage_path;
+	file_utils::file_storage_size = cfg.file_storage_size;
 
 	httpserver::webserver ws = httpserver::create_webserver(cfg.https_port)
 								.use_ssl()
@@ -103,11 +105,13 @@ int main()
 	ws.register_resource("/files/avatar/user/{fname}", &user_avatars);
 	file_resource server_avatars(cfg.server_avatar_path);
 	ws.register_resource("/files/avatar/server/{fname}", &server_avatars);
-	server_file_resource server_files(pool, cfg.file_storage_path);
-	server_files.max_tmp_files_per_user = cfg.max_tmp_files_per_user;
-	ws.register_resource("/files/upload/{server_id}", &server_files);
-	server_file_id_resource server_file_id(pool, cfg.file_storage_path);
-	ws.register_resource("/files/upload/{server_id}/{fname}", &server_file_id);
+
+	server_file_put_resource server_file_put(pool, cfg.file_storage_path);
+	ws.register_resource("/files/upload/", &server_file_put);
+	server_file_manage_resource server_file_manage(pool, cfg.file_storage_path);
+	ws.register_resource("/files/upload/{fname}", &server_file_manage);
+	server_user_file_resource server_user_file(pool, cfg.file_storage_path);
+	ws.register_resource("/files/upload/{user_id}/{fname}", &server_user_file);
 
 
 	ws.start(false);

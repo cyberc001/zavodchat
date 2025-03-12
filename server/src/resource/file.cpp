@@ -15,23 +15,18 @@ std::shared_ptr<http_response> file_resource::render_GET(const http_request& req
 	return res;
 }
 
-server_file_resource::server_file_resource(db_connection_pool& pool, std::filesystem::path storage_path): pool{pool}, storage_path{storage_path}
+server_file_put_resource::server_file_put_resource(db_connection_pool& pool, std::filesystem::path storage_path): pool{pool}, storage_path{storage_path}
 {
 	disallow_all();
 	set_allowing("PUT", true);
 }
-std::shared_ptr<http_response> server_file_resource::render_PUT(const http_request& req)
+std::shared_ptr<http_response> server_file_put_resource::render_PUT(const http_request& req)
 {
-	int user_id, server_id;
+	int user_id;
 	db_connection conn = pool.hold();
 	pqxx::work tx{*conn};
-	auto err = resource_utils::parse_server_id(req, tx, user_id, server_id);
+	auto err = resource_utils::parse_session_token(req, tx, user_id);
 	if(err) return err;
-
-	pqxx::result r;
-	r = tx.exec("SELECT user_id FROM tmp_files WHERE user_id = $1", pqxx::params(user_id));
-	if(r.size() >= max_tmp_files_per_user)
-		return create_response::string("Too many temporary files per user", 403);
 
 	std::string_view ext = req.get_arg("ext");
 	if(!ext.size())
@@ -42,48 +37,61 @@ std::shared_ptr<http_response> server_file_resource::render_PUT(const http_reque
 	if(!fraw.size())
 		return create_response::string("Empty file", 400);
 
-	r = tx.exec("INSERT INTO tmp_files(filename, user_id) VALUES(gen_random_uuid(), $1) RETURNING filename", pqxx::params(user_id));
-	tx.commit();
-	std::string fname = r[0]["filename"].as<std::string>() + "." + std::string(ext);
-	std::filesystem::create_directories(storage_path / std::to_string(server_id));
-	file_utils::save_file(fraw, storage_path / std::to_string(server_id) / fname);
+	err = file_utils::fs_make_space(tx, user_id, fraw.size());
+	if(err) return err;
+
+	std::string fname = file_utils::generate_fname() + "." + std::string(ext);
+	std::filesystem::create_directories(storage_path / std::to_string(user_id));
+	file_utils::save_file(fraw, storage_path / std::to_string(user_id) / fname);
+
+	file_utils::fs_add_busy(tx, user_id, fraw.size());
 	return create_response::string(fname, 200);
 }
 
 
-server_file_id_resource::server_file_id_resource(db_connection_pool& pool, std::filesystem::path storage_path): file_resource(storage_path), pool{pool}
+server_file_manage_resource::server_file_manage_resource(db_connection_pool& pool, std::filesystem::path storage_path): pool{pool}, storage_path{storage_path}
 {
+	disallow_all();
 	set_allowing("DELETE", true);
 }
 
-std::shared_ptr<http_response> server_file_id_resource::render_GET(const http_request& req)
+std::shared_ptr<http_response> server_file_manage_resource::render_DELETE(const http_request& req)
 {
-	int user_id, server_id;
+	int user_id;
 	db_connection conn = pool.hold();
 	pqxx::work tx{*conn};
-	auto err = resource_utils::parse_server_id(req, tx, user_id, server_id);
+	auto err = resource_utils::parse_session_token(req, tx, user_id);
 	if(err) return err;
 
 	std::string_view fname = req.get_arg("fname");
-	return create_response::file(storage_path / std::to_string(server_id) / fname);
-}
-std::shared_ptr<http_response> server_file_id_resource::render_DELETE(const http_request& req)
-{
-	int user_id, server_id;
-	db_connection conn = pool.hold();
-	pqxx::work tx{*conn};
-	auto err = resource_utils::parse_server_id(req, tx, user_id, server_id);
-	if(err) return err;
+	//fname = fname.substr(0, fname.find_last_of('.'));
 
-	std::string_view fname = req.get_arg("fname");
-	fname = fname.substr(0, fname.find_last_of('.'));
-
-	pqxx::result r;
-	r = tx.exec("SELECT user_id FROM tmp_files WHERE user_id = $1 AND filename = $2", pqxx::params(user_id, fname));
-	if(!r.size())
+	std::filesystem::path fpath = storage_path / std::to_string(user_id) / fname;
+	if(!std::filesystem::exists(fpath))
 		return create_response::string("File does not exist", 404);
-	tx.exec("DELETE FROM tmp_files WHERE filename = $1", pqxx::params(fname));
-	tx.commit();
 
+	size_t fsize = std::filesystem::file_size(fpath);
+	std::filesystem::remove(fpath);
+	file_utils::fs_sub_busy(tx, user_id, fsize);
 	return create_response::string("Deleted", 200);
 }
+
+server_user_file_resource::server_user_file_resource(db_connection_pool& pool, std::filesystem::path storage_path): pool{pool}, storage_path{storage_path}
+{
+	disallow_all();
+	set_allowing("GET", true);
+}
+std::shared_ptr<http_response> server_user_file_resource::render_GET(const http_request& req)
+{
+	int user_id, author_id;
+	db_connection conn = pool.hold();
+	pqxx::work tx{*conn};
+	auto err = resource_utils::parse_session_token(req, tx, user_id);
+	if(err) return err;
+	err = resource_utils::parse_index(req, "user_id", author_id);
+	if(err) return err;
+
+	std::string_view fname = req.get_arg("fname");
+	return create_response::file(storage_path / std::to_string(author_id) / fname);
+}
+

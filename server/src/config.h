@@ -27,13 +27,14 @@ public:
 	unsigned min_password_length = 8;
 
 	size_t session_lifetime = 1800;
-
 	size_t cleanup_period = 3600;
+
+	size_t file_storage_size = 10737418240;
+
 	unsigned max_get_count = 50;
 
 	unsigned servers_owned_per_user = 10;
 	unsigned max_channels_per_server = 50;
-	unsigned max_tmp_files_per_user = 15;
 
 private:
 	std::string db_host; unsigned db_port = 5432;

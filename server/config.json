@@ -28,7 +28,8 @@
 
 	"servers_owned_per_user": 10,
 	"max_channels_per_server": 50,
-	"max_tmp_files_per_user": 15,
+
+	"file_storage_size": 10737418240,
 
 	"max_get_count": 50
 }
