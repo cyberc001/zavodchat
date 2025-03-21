@@ -3,6 +3,7 @@
 #include <iostream>
 #include <chrono>
 #include <thread>
+#include "resource/role_utils.h"
 
 void db_connect(std::string conn_str)
 {
@@ -28,10 +29,12 @@ void db_init(std::string conn_str)
 		tx.exec("CREATE TABLE IF NOT EXISTS auth(auth_id SERIAL PRIMARY KEY, username VARCHAR(64) UNIQUE NOT NULL, password TEXT NOT NULL, user_id INTEGER REFERENCES users NOT NULL)");
 		tx.exec("CREATE TABLE IF NOT EXISTS sessions(token UUID PRIMARY KEY, user_id INTEGER REFERENCES users NOT NULL, expiration_time TIMESTAMP WITH TIME ZONE)");
 
-		tx.exec("CREATE TABLE IF NOT EXISTS servers(server_id SERIAL PRIMARY KEY, name VARCHAR(64) NOT NULL, avatar VARCHAR(128), owner_id INTEGER REFERENCES users NOT NULL)");
+		tx.exec("CREATE TABLE IF NOT EXISTS servers(server_id SERIAL PRIMARY KEY, name VARCHAR(64) NOT NULL, avatar VARCHAR(128), owner_id INTEGER REFERENCES users NOT NULL, default_role_id INTEGER NOT NULL DEFAULT -1)");
 		tx.exec("CREATE TABLE IF NOT EXISTS server_invites(invite_id UUID PRIMARY KEY, server_id INTEGER REFERENCES servers NOT NULL, expiration_time TIMESTAMP WITH TIME ZONE)");
 		tx.exec("CREATE TABLE IF NOT EXISTS server_bans(user_id INTEGER REFERENCES users ON DELETE CASCADE NOT NULL, server_id INTEGER REFERENCES servers ON DELETE CASCADE NOT NULL, expiration_time TIMESTAMP WITH TIME ZONE)");
-		tx.exec("CREATE TABLE IF NOT EXISTS user_x_server(user_id INTEGER REFERENCES users ON DELETE CASCADE NOT NULL, server_id INTEGER REFERENCES servers ON DELETE CASCADE NOT NULL)");
+
+		tx.exec("CREATE TABLE IF NOT EXISTS roles(role_id SERIAL PRIMARY KEY, prev_role_id INTEGER NOT NULL DEFAULT -1, server_id INTEGER REFERENCES servers ON DELETE CASCADE NOT NULL, name VARCHAR(64) NOT NULL, color INTEGER NOT NULL, perms1 BIGINT NOT NULL DEFAULT 0)");
+		tx.exec("CREATE TABLE IF NOT EXISTS user_x_server(user_id INTEGER REFERENCES users ON DELETE CASCADE NOT NULL, server_id INTEGER REFERENCES servers ON DELETE CASCADE NOT NULL, role_id INTEGER REFERENCES roles NOT NULL)"); // can be one-to-many in case a user has multiple roles
 
 		tx.exec("CREATE TABLE IF NOT EXISTS channels(channel_id SERIAL PRIMARY KEY, server_id INTEGER REFERENCES servers ON DELETE CASCADE NOT NULL, name VARCHAR(64) NOT NULL, type INTEGER NOT NULL )");
 		tx.exec("CREATE TABLE IF NOT EXISTS messages(message_id SERIAL PRIMARY KEY, channel_id INTEGER REFERENCES channels NOT NULL, author_id INTEGER REFERENCES users NOT NULL, sent TIMESTAMP WITH TIME ZONE NOT NULL, last_edited TIMESTAMP WITH TIME ZONE NOT NULL, text VARCHAR(2000) )");
@@ -42,6 +45,7 @@ void db_init(std::string conn_str)
 		tx.exec("CREATE INDEX IF NOT EXISTS session_user_ids ON sessions (user_id)");
 		tx.exec("CREATE INDEX IF NOT EXISTS session_expire ON sessions (expiration_time)");
 
+		tx.exec("CREATE INDEX IF NOT EXISTS role_prev_id ON roles (prev_role_id)");
 		tx.exec("CREATE INDEX IF NOT EXISTS server_x_user ON user_x_server (server_id)");
 		tx.exec("CREATE INDEX IF NOT EXISTS ban_servers ON server_bans (server_id)");
 		tx.exec("CREATE INDEX IF NOT EXISTS servers_owners ON servers (owner_id)");
@@ -105,8 +109,10 @@ void db_init(std::string conn_str)
 			return;
 		}
 		int user_id_1 = r[0]["user_id"].as<int>();
+
 		r = tx.exec("INSERT INTO servers(name, owner_id) VALUES('server_test', $1) RETURNING server_id", pqxx::params(user_id_1));
 		int server_id_1 = r[0]["server_id"].as<int>();
+		int default_role_id_1 = role_utils::create_default_role_if_absent(tx, server_id_1);
 
 		r = tx.exec("SELECT user_id FROM users WHERE name = 'test2'");
 		if(!r.size()){
@@ -116,6 +122,7 @@ void db_init(std::string conn_str)
 		int user_id_2 = r[0]["user_id"].as<int>();
 		r = tx.exec("INSERT INTO servers(name, owner_id) VALUES('server_test2', $1) RETURNING server_id", pqxx::params(user_id_2));
 		int server_id_2 = r[0]["server_id"].as<int>();
+		int default_role_id_2 = role_utils::create_default_role_if_absent(tx, server_id_2);
 
 		r = tx.exec("SELECT user_id FROM users WHERE name = 'test3'");
 		if(!r.size()){
@@ -124,12 +131,12 @@ void db_init(std::string conn_str)
 		}
 		int user_id_3 = r[0]["user_id"].as<int>();
 
-		tx.exec("INSERT INTO user_x_server(user_id, server_id) VALUES($1, $2)", pqxx::params(user_id_1, server_id_1));
-		tx.exec("INSERT INTO user_x_server(user_id, server_id) VALUES($1, $2)", pqxx::params(user_id_1, server_id_2));
-		tx.exec("INSERT INTO user_x_server(user_id, server_id) VALUES($1, $2)", pqxx::params(user_id_2, server_id_1));
-		tx.exec("INSERT INTO user_x_server(user_id, server_id) VALUES($1, $2)", pqxx::params(user_id_2, server_id_2));
-		tx.exec("INSERT INTO user_x_server(user_id, server_id) VALUES($1, $2)", pqxx::params(user_id_3, server_id_1));
-		tx.exec("INSERT INTO user_x_server(user_id, server_id) VALUES($1, $2)", pqxx::params(user_id_3, server_id_2));
+		tx.exec("INSERT INTO user_x_server(user_id, server_id, role_id) VALUES($1, $2, $3)", pqxx::params(user_id_1, server_id_1, default_role_id_1));
+		tx.exec("INSERT INTO user_x_server(user_id, server_id, role_id) VALUES($1, $2, $3)", pqxx::params(user_id_1, server_id_2, default_role_id_2));
+		tx.exec("INSERT INTO user_x_server(user_id, server_id, role_id) VALUES($1, $2, $3)", pqxx::params(user_id_2, server_id_1, default_role_id_1));
+		tx.exec("INSERT INTO user_x_server(user_id, server_id, role_id) VALUES($1, $2, $3)", pqxx::params(user_id_2, server_id_2, default_role_id_2));
+		tx.exec("INSERT INTO user_x_server(user_id, server_id, role_id) VALUES($1, $2, $3)", pqxx::params(user_id_3, server_id_1, default_role_id_1));
+		tx.exec("INSERT INTO user_x_server(user_id, server_id, role_id) VALUES($1, $2, $3)", pqxx::params(user_id_3, server_id_2, default_role_id_2));
 
 		tx.commit();
 	}
