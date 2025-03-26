@@ -14,6 +14,7 @@
 #include "resource/channel_messages.h"
 #include "resource/server_invites.h"
 #include "resource/server_bans.h"
+#include "resource/role.h"
 
 #include "db/init.h"
 
@@ -99,6 +100,9 @@ int main()
 
 	user_id_resource user_id(pool);
 	ws.register_resource("/users/{user_id}", &user_id);
+
+	server_roles_resource server_roles(pool, sserv);
+	ws.register_resource("/servers/{server_id}/roles", &server_roles);
 
 
 	file_resource user_avatars(cfg.user_avatar_path);

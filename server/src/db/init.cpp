@@ -29,7 +29,7 @@ void db_init(std::string conn_str)
 		tx.exec("CREATE TABLE IF NOT EXISTS auth(auth_id SERIAL PRIMARY KEY, username VARCHAR(64) UNIQUE NOT NULL, password TEXT NOT NULL, user_id INTEGER REFERENCES users NOT NULL)");
 		tx.exec("CREATE TABLE IF NOT EXISTS sessions(token UUID PRIMARY KEY, user_id INTEGER REFERENCES users NOT NULL, expiration_time TIMESTAMP WITH TIME ZONE)");
 
-		tx.exec("CREATE TABLE IF NOT EXISTS servers(server_id SERIAL PRIMARY KEY, name VARCHAR(64) NOT NULL, avatar VARCHAR(128), owner_id INTEGER REFERENCES users NOT NULL, default_role_id INTEGER NOT NULL DEFAULT -1)");
+		tx.exec("CREATE TABLE IF NOT EXISTS servers(server_id SERIAL PRIMARY KEY, name VARCHAR(64) NOT NULL, avatar VARCHAR(128), owner_id INTEGER REFERENCES users NOT NULL, default_role_id INTEGER NOT NULL DEFAULT -1, head_role_id INTEGER NOT NULL DEFAULT -1)");
 		tx.exec("CREATE TABLE IF NOT EXISTS server_invites(invite_id UUID PRIMARY KEY, server_id INTEGER REFERENCES servers NOT NULL, expiration_time TIMESTAMP WITH TIME ZONE)");
 		tx.exec("CREATE TABLE IF NOT EXISTS server_bans(user_id INTEGER REFERENCES users ON DELETE CASCADE NOT NULL, server_id INTEGER REFERENCES servers ON DELETE CASCADE NOT NULL, expiration_time TIMESTAMP WITH TIME ZONE)");
 
@@ -113,6 +113,8 @@ void db_init(std::string conn_str)
 		r = tx.exec("INSERT INTO servers(name, owner_id) VALUES('server_test', $1) RETURNING server_id", pqxx::params(user_id_1));
 		int server_id_1 = r[0]["server_id"].as<int>();
 		int default_role_id_1 = role_utils::create_default_role_if_absent(tx, server_id_1);
+		int test_role_id_1_1 = role_utils::insert_role(tx, server_id_1, -1, "admin", 0xFF0000);
+		int test_role_id_1_2 = role_utils::insert_role(tx, server_id_1, test_role_id_1_1, "moderator", 0x0000FF);
 
 		r = tx.exec("SELECT user_id FROM users WHERE name = 'test2'");
 		if(!r.size()){
@@ -123,6 +125,8 @@ void db_init(std::string conn_str)
 		r = tx.exec("INSERT INTO servers(name, owner_id) VALUES('server_test2', $1) RETURNING server_id", pqxx::params(user_id_2));
 		int server_id_2 = r[0]["server_id"].as<int>();
 		int default_role_id_2 = role_utils::create_default_role_if_absent(tx, server_id_2);
+		int test_role_id_2_1 = role_utils::insert_role(tx, server_id_2, -1, "admin", 0xFF0000);
+		int test_role_id_2_2 = role_utils::insert_role(tx, server_id_2, test_role_id_2_1, "moderator", 0x0000FF);
 
 		r = tx.exec("SELECT user_id FROM users WHERE name = 'test3'");
 		if(!r.size()){
