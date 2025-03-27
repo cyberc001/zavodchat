@@ -65,8 +65,19 @@ bool role_utils::is_role_higher(pqxx::work& tx, int server_id, int role_id, int 
 	return true;
 }
 
+std::shared_ptr<http_response> role_utils::check_role_not_default(pqxx::work& tx, int server_id, int role_id)
+{
+	pqxx::result r = tx.exec("SELECT default_role_id FROM servers WHERE server_id = $1", pqxx::params(server_id));
+	int default_role_id = r[0]["default_role_id"].as<int>();
+	if(default_role_id == role_id)
+		return create_response::string("The role is default", 400);
+	return nullptr;
+}
 std::shared_ptr<http_response> role_utils::check_role_lower_than_user(pqxx::work& tx, int server_id, int user_id, int role_id, bool can_be_equal)
 {
+	if(!resource_utils::check_server_owner(user_id, server_id, tx))
+		return nullptr;
+
 	// get all user roles
 	pqxx::result r = tx.exec("SELECT role_id FROM user_x_server WHERE user_id = $1 AND server_id = $2", pqxx::params(user_id, server_id));
 	std::set<int> user_role_ids;
@@ -167,7 +178,9 @@ int role_utils::create_default_role_if_absent(pqxx::work& tx, int server_id)
 	if(r[0]["default_role_id"].as<int>() != -1)
 		return -1;
 
-	return insert_role(tx, server_id, find_lowest_role(tx, server_id), "default", 0x999999);
+	int id = insert_role(tx, server_id, find_lowest_role(tx, server_id), "default", 0x999999);
+	tx.exec("UPDATE servers SET default_role_id = $1 WHERE server_id = $2", pqxx::params(id, server_id));
+	return id;
 }
 
 static void move_role(pqxx::work& tx, int server_id,

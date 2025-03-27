@@ -48,6 +48,8 @@ std::shared_ptr<http_response> server_roles_resource::render_PUT(const http_requ
 	}
 	err = role_utils::check_role_lower_than_user(tx, server_id, user_id, next_role_id, true);
 	if(err) return err;
+	err = role_utils::check_role_not_default(tx, server_id, next_role_id);
+	if(err) return err;
 
 	if(next_role_id != -1){
 		err = role_utils::check_server_role(next_role_id, server_id, tx);

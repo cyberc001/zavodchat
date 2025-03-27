@@ -33,8 +33,10 @@ public:
 	static std::vector<pqxx::row> get_role_list(pqxx::work&, int server_id);
 	static bool is_role_higher(pqxx::work&, int server_id, int role_id, int other_role_id);
 
+	static std::shared_ptr<http_response> check_role_not_default(pqxx::work&, int server_id, int role_id);
+	// returns OK (nullptr) if the user is the owner of the server
 	static std::shared_ptr<http_response> check_role_lower_than_user(pqxx::work&, int server_id, int user_id, int role_id, bool can_be_equal = false);
-	// return OK (nullptr) if the user is the owner of the server
+	// returns OK (nullptr) if the user is the owner of the server
 	static std::shared_ptr<http_response> check_permission1(pqxx::work&, int server_id, int user_id, int perm);
 
 	// -1 = next_role_id does not exist
