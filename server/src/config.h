@@ -35,6 +35,7 @@ public:
 
 	unsigned servers_owned_per_user = 10;
 	unsigned max_channels_per_server = 50;
+	unsigned max_roles_per_server = 50;
 
 private:
 	std::string db_host; unsigned db_port = 5432;

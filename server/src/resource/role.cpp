@@ -33,6 +33,10 @@ std::shared_ptr<http_response> server_roles_resource::render_PUT(const http_requ
 	auto err = resource_utils::parse_server_id(req, tx, user_id, server_id);
 	if(err) return err;
 
+	pqxx::result r = tx.exec("SELECT role_id FROM roles WHERE server_id = $1", pqxx::params(server_id));
+	if(r.size() >= max_per_server)
+		return create_response::string("Server has more than " + std::to_string(max_per_server) + " roles", 403);
+
 	int next_role_id;
 	try{
 		next_role_id = std::stoi(std::string(req.get_arg("next_role_id")));

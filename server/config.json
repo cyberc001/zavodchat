@@ -28,6 +28,7 @@
 
 	"servers_owned_per_user": 10,
 	"max_channels_per_server": 50,
+	"max_roles_per_server": 50,
 
 	"file_storage_size": 10737418240,
 
