@@ -33,6 +33,9 @@ std::shared_ptr<http_response> server_roles_resource::render_PUT(const http_requ
 	auto err = resource_utils::parse_server_id(req, tx, user_id, server_id);
 	if(err) return err;
 
+	err = role_utils::check_permission1(tx, server_id, user_id, PERM1_MANAGE_ROLES);
+	if(err) return err;
+
 	pqxx::result r = tx.exec("SELECT role_id FROM roles WHERE server_id = $1", pqxx::params(server_id));
 	if(r.size() >= max_per_server)
 		return create_response::string("Server has more than " + std::to_string(max_per_server) + " roles", 403);
@@ -43,6 +46,9 @@ std::shared_ptr<http_response> server_roles_resource::render_PUT(const http_requ
 	} catch(std::invalid_argument& e){
 		return create_response::string("Invalid next_role_id: '" + std::string(req.get_arg("next_role_id")) + "'", 400);
 	}
+	err = role_utils::check_role_lower_than_user(tx, server_id, user_id, next_role_id, true);
+	if(err) return err;
+
 	if(next_role_id != -1){
 		err = role_utils::check_server_role(next_role_id, server_id, tx);
 		if(err) return err;

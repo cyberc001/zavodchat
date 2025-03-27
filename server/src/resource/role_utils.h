@@ -7,14 +7,15 @@
 #include <httpserver.hpp>
 using namespace httpserver;
 
-#define PERM_CREATE_MESSAGES(p1)			((p1) & 0x3)
-#define PERM_DELETE_MESSAGES(p1)			(((p1) >> 2) & 0x3)
-#define PERM_CHANGE_SERVER(p1)				(((p1) >> 4) & 0x3)
-#define PERM_KICK_MEMBERS(p1)				(((p1) >> 6) & 0x3)
-#define PERM_BAN_MEMBERS(p1)				(((p1) >> 8) & 0x3)
-#define PERM_MANAGE_CHANNELS(p1)			(((p1) >> 10) & 0x3)
-#define PERM_MANAGE_INVITES(p1)				(((p1) >> 12) & 0x3)
-#define PERM_SPEAK_IN_VC(p1)				(((p1) >> 14) & 0x3)
+#define PERM1_CREATE_MESSAGES			0
+#define PERM1_DELETE_MESSAGES			1
+#define PERM1_CHANGE_SERVER			2
+#define PERM1_KICK_MEMBERS			3
+#define PERM1_BAN_MEMBERS			4
+#define PERM1_MANAGE_CHANNELS			5
+#define PERM1_MANAGE_INVITES			6
+#define PERM1_SPEAK_IN_VC			7
+#define PERM1_MANAGE_ROLES			8
 
 
 /* Don't forget to tx.commit(), utils do not commit automatically to avoid closing a transaction. */
@@ -30,6 +31,11 @@ public:
 	static int find_lowest_role(pqxx::work&, int server_id);
 
 	static std::vector<pqxx::row> get_role_list(pqxx::work&, int server_id);
+	static bool is_role_higher(pqxx::work&, int server_id, int role_id, int other_role_id);
+
+	static std::shared_ptr<http_response> check_role_lower_than_user(pqxx::work&, int server_id, int user_id, int role_id, bool can_be_equal = false);
+	// return OK (nullptr) if the user is the owner of the server
+	static std::shared_ptr<http_response> check_permission1(pqxx::work&, int server_id, int user_id, int perm);
 
 	// -1 = next_role_id does not exist
 	static int insert_role(pqxx::work&, int server_id,
