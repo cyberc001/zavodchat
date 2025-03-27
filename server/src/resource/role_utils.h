@@ -29,6 +29,7 @@ public:
 
 	static int find_head_role(pqxx::work&, int server_id);
 	static int find_lowest_role(pqxx::work&, int server_id);
+	static int find_default_role(pqxx::work&, int server_id);
 
 	static std::vector<pqxx::row> get_role_list(pqxx::work&, int server_id);
 	static bool is_role_higher(pqxx::work&, int server_id, int role_id, int other_role_id);

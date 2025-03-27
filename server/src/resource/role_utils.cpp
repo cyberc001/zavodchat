@@ -36,6 +36,13 @@ int role_utils::find_lowest_role(pqxx::work& tx, int server_id)
 		return -1;
 	return r[0]["role_id"].as<int>();
 }
+int role_utils::find_default_role(pqxx::work& tx, int server_id)
+{
+	pqxx::result r = tx.exec("SELECT default_role_id FROM servers WHERE server_id = $1", pqxx::params(server_id));
+	if(!r.size())
+		return -1;
+	return r[0]["default_role_id"].as<int>();
+}
 
 std::vector<pqxx::row> role_utils::get_role_list(pqxx::work& tx, int server_id)
 {
@@ -67,9 +74,7 @@ bool role_utils::is_role_higher(pqxx::work& tx, int server_id, int role_id, int 
 
 std::shared_ptr<http_response> role_utils::check_role_not_default(pqxx::work& tx, int server_id, int role_id)
 {
-	pqxx::result r = tx.exec("SELECT default_role_id FROM servers WHERE server_id = $1", pqxx::params(server_id));
-	int default_role_id = r[0]["default_role_id"].as<int>();
-	if(default_role_id == role_id)
+	if(find_default_role(tx, server_id) == role_id)
 		return create_response::string("The role is default", 400);
 	return nullptr;
 }

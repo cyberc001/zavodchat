@@ -1,5 +1,6 @@
 #include "resource/server_invites.h"
 #include "resource/utils.h"
+#include "resource/role_utils.h"
 
 server_invites_resource::server_invites_resource(db_connection_pool& pool, socket_main_server& sserv): pool{pool}, sserv{sserv}
 {
@@ -34,7 +35,7 @@ std::shared_ptr<http_response> server_invites_resource::render_GET(const http_re
 	if(r.size())
 		return create_response::string("User is banned", 403);
 
-	tx.exec("INSERT INTO user_x_server(user_id, server_id) VALUES($1, $2)", pqxx::params(user_id, server_id));
+	tx.exec("INSERT INTO user_x_server(user_id, server_id, role_id) VALUES($1, $2, $3)", pqxx::params(user_id, server_id, role_utils::find_default_role(tx, server_id)));
 	tx.commit();
 
 	socket_event ev;

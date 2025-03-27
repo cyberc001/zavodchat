@@ -1,6 +1,7 @@
 #include "resource/server.h"
 #include "resource/utils.h"
 #include "resource/file_utils.h"
+#include "resource/role_utils.h"
 #include <nlohmann/json.hpp>
 
 server_resource::server_resource(db_connection_pool& pool): pool{pool}
@@ -45,7 +46,8 @@ std::shared_ptr<http_response> server_resource::render_PUT(const http_request& r
 	try{
 		r = tx.exec("INSERT INTO servers(name, owner_id) VALUES($1, $2) RETURNING server_id", pqxx::params(name, user_id));
 		server_id = r[0]["server_id"].as<int>();
-		tx.exec("INSERT INTO user_x_server(user_id, server_id) VALUES($1, $2)", pqxx::params(user_id, server_id));
+		int default_role_id = role_utils::create_default_role_if_absent(tx, server_id);
+		tx.exec("INSERT INTO user_x_server(user_id, server_id, role_id) VALUES($1, $2, $3)", pqxx::params(user_id, server_id, default_role_id));
 	} catch(pqxx::data_exception& e){
 		return create_response::string("Server name is too long", 400);
 	}
