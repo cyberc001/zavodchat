@@ -145,12 +145,22 @@ std::shared_ptr<http_response> role_utils::check_permission1(pqxx::work& tx, int
 
 	return create_response::string("Server has only default permissions", 500);
 }
+std::shared_ptr<http_response> role_utils::check_validity_perms1(long long perms1)
+{
+	for(int i = 0; i < PERM1_COUNT; ++i)
+		if((perms1 >> (i * 2) & 0x3) == 0x3)
+			return create_response::string("Invalid perms1: bit pair set to 3", 400);
 
+	for(int i = PERM1_COUNT; i < sizeof(long long) * 4; ++i)
+		if((perms1 >> (i * 2) & 0x3) > 0)
+			return create_response::string("Invalid perms1: bit pair set outside of range", 400);
+	return nullptr;
+}
 
 int role_utils::insert_role(pqxx::work& tx, int server_id,
-					int next_role_id, std::string name, int color)
+					int next_role_id, std::string name, int color, long long perms1)
 {
-	pqxx::result r = tx.exec("INSERT INTO roles(prev_role_id, server_id, name, color, perms1) VALUES(-1, $1, $2, $3, $4) RETURNING role_id", pqxx::params(server_id, name, color, 0b100110101010101001));
+	pqxx::result r = tx.exec("INSERT INTO roles(prev_role_id, server_id, name, color, perms1) VALUES(-1, $1, $2, $3, $4) RETURNING role_id", pqxx::params(server_id, name, color, perms1));
 	int role_id = r[0]["role_id"].as<int>();
 
 	r = tx.exec("SELECT head_role_id FROM servers WHERE server_id = $1", pqxx::params(server_id));
@@ -214,7 +224,7 @@ nlohmann::json role_utils::role_json_from_row(const pqxx::row r)
 	nlohmann::json res = {{"id", r["role_id"].as<int>()},
 				{"name", r["name"].as<std::string>()},
 				{"color", r["color"].as<int>()},
-				{"perms1", r["perms1"].as<int>()}};
+				{"perms1", r["perms1"].as<long long>()}};
 	return res;
 }
 nlohmann::json role_utils::role_json_from_row(const pqxx::row&& r)
@@ -222,6 +232,6 @@ nlohmann::json role_utils::role_json_from_row(const pqxx::row&& r)
 	nlohmann::json res = {{"id", r["role_id"].as<int>()},
 				{"name", r["name"].as<std::string>()},
 				{"color", r["color"].as<int>()},
-				{"perms1", r["perms1"].as<int>()}};
+				{"perms1", r["perms1"].as<long long>()}};
 	return res;
 }

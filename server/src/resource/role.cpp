@@ -68,7 +68,19 @@ std::shared_ptr<http_response> server_roles_resource::render_PUT(const http_requ
 	if(color > 0xFFFFFF || color < 0)
 		return create_response::string("Invalid role color: '" + std::string(req.get_arg("next_role_id")) + "'", 400);
 
-	int inserted_id = role_utils::insert_role(tx, server_id, next_role_id, name, color);
+	long long perms1 = 0;
+	auto args = req.get_args();
+	if(args.find(std::string_view("perms1")) != args.end()){
+		try{
+			perms1 = std::stoll(std::string(req.get_arg("perms1")));
+		} catch(std::invalid_argument& e){
+			return create_response::string("Invalid perms1: '" + std::string(req.get_arg("perms1")) + "'", 400);
+		}
+		err = role_utils::check_validity_perms1(perms1);
+		if(err) return err;
+	}
+
+	int inserted_id = role_utils::insert_role(tx, server_id, next_role_id, name, color, perms1);
 	if(inserted_id == -1)
 		return create_response::string("next_role_id does not exist", 400);
 
