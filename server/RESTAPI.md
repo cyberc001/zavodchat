@@ -74,7 +74,7 @@ body: `<UUID токена>`
 
 Данные успешно изменены.
 
-## /users/$id
+## /users/\$user_id
 
 **GET:**
 
@@ -83,7 +83,7 @@ body: `<UUID токена>`
 *response 200:*
 
 body: JSON-объект с информацией о пользователе.
-```
+```json
 {
 	"id": 412,
 	"name": "cyb3rc001",
@@ -129,7 +129,7 @@ body: `<ID созданного сервера>`
 
 body: `<причина ошибки>`
 
-## /servers/$id
+## /servers/\$server_id
 
 **GET:**
 
@@ -141,7 +141,7 @@ body: `<причина ошибки>`
 *response 200:*
 
 body: JSON-объект с информацией о севрере.
-```
+```json
 {
 	"name": "zona bikini",
 	"avatar": "123.12.53.45/avatar_453912.png"
@@ -188,7 +188,7 @@ ID нового владельца сервера
 
 Сервер успешно удалён.
 
-## /servers/$id/users
+## /servers/\$server_id/users
 
 **GET:**
 
@@ -213,7 +213,7 @@ body: JSON-массив из объектов - информации о кажд
 
 body: `<причина ошибки>`
 
-## /servers/$id/users/$id
+## /servers/\$server_id/users/\$user_id
 
 **DELETE:**
 
@@ -234,7 +234,7 @@ body: `<причина ошибки>`
 
 Пользователь не является участником сервера.
 	
-## /servers/$id/channels
+## /servers/\$server_id/channels
 
 **GET:**
 
@@ -270,7 +270,7 @@ body: `<ID созданного канала>`
 
 body: `<причина ошибки>`
 
-## /servers/$id/channels/$id
+## /servers/\$server_id/channels/\$channel_id
 
 **GET:**
 
@@ -284,7 +284,7 @@ body: `<причина ошибки>`
 body: JSON-объект с информацией о канале.
 
 Пример:
-```
+```json
 {
 	"id": 2,
 	"name": "channel_test_vc"
@@ -325,7 +325,7 @@ body: JSON-объект с информацией о канале.
 
 Канал успешно удалён.
 
-## /servers/$id/channels/$id/messages
+## /servers/\$server_id/channels/\$channel_id/messages
 
 **GET:**
 
@@ -365,7 +365,7 @@ body: `<причина ошибки>`
 
 body: `ID созданного сообщения`
 
-## /servers/$id/channels/$id/messages/$id
+## /servers/\$server_id/channels/\$channel_id/messages/\$message_id
 
 **GET:**
 
@@ -379,7 +379,7 @@ body: `ID созданного сообщения`
 body: JSON-объект с информацией о сообщении.
 
 Пример:
-```
+```json
 {
 	"author_id": 1
 	"edited": "2024-11-09 22:25:28.021376+03"
@@ -420,7 +420,7 @@ body: JSON-объект с информацией о сообщении.
 
 Пользователь не является автором сообщения или владельцем сервера.
 
-## /server_invites/$invite_id
+## /server_invites/\$invite_id
 
 **GET:**
 
@@ -441,7 +441,7 @@ body: JSON-объект с информацией о сообщении.
 
 Приглашение истекло / пользователь забанен.
 
-## /servers/$server_id/invites
+## /servers/\$server_id/invites
 
 **GET:**
 
@@ -483,7 +483,7 @@ body: `ID приглашения`
 
 На сервере слишком много приглашений (20).
 
-## /servers/$server_id/invites/$invite_id
+## /servers/\$server_id/invites/\$invite_id
 
 **GET:**
 
@@ -497,7 +497,7 @@ body: `ID приглашения`
 body: JSON-объект с информацией о приглашении.
 
 Пример:
-```
+```json
 {
 	"expires": "2024-11-13 00:00:00+03",
 	"id": "1e1d184c-679a-494e-ba30-6f1f72bd221e"
@@ -552,7 +552,7 @@ body: JSON-объект с информацией о приглашении.
 
 Приглашения с таким ID не существует на этом сервере.
 
-## /servers/$id/bans
+## /servers/\$server_id/bans
 
 **GET:**
 
@@ -605,7 +605,7 @@ body: `<причина ошибки>`
 
 Нет прав владельца, либо попытка забанить владельца сервера.
 
-## /servers/$id/bans/$id
+## /servers/\$server_id/bans/\$ban_id
 
 **DELETE:**
 
@@ -623,7 +623,68 @@ body: `<причина ошибки>`
 Нет прав владельца сервера.
 
 
-## /files/avatar/user/$filename
+## /servers/\$server_id/roles
+
+**GET:**
+
+Получить список ролей в порядке от самой старшей до самой младшей.
+
+*arguments:*
+* token: string
+
+*response 200:*
+
+body: JSON-массив из объектов - информации о каждой роли.
+
+Пример:
+```json
+[
+	{
+		"color": 16711680,
+		"id": 2,
+		"name": "admin",
+		"perms1": 65536
+	},
+	{
+		"color": 255,
+		"id": 3,
+		"name": "moderator",
+		"perms1": 158377
+	},
+	{
+		"color": 10066329,
+		"id": 1,
+		"name": "default",
+		"perms1": 158377
+	}
+]
+```
+
+**PUT:**
+
+Создать новую роль.
+
+*arguments:*
+* token: string
+* next\_role\_id: int<br>
+ID роли, перед которой нужно вставить новую роль.
+* name: string<br>
+Имя роли.
+* color: int<br>
+Цвет роли в формате RGB.
+* perms1: ?long long<br>
+Набор разрешений 1 для роли. По умолачнию 0 (унаследованы все разрешения от младших ролей).
+
+*response 200:*
+
+ID новой роли.
+
+*response 400:*
+
+Неправильные параметры, попытка вставить роль перед default ролью.
+
+
+## /files/avatar/user/\$filename
 
 **GET:**
 
@@ -637,7 +698,7 @@ body: `<причина ошибки>`
 
 Файл не существует.
 
-## /files/avatar/server/$filename
+## /files/avatar/server/\$filename
 
 **GET:**
 
