@@ -70,6 +70,10 @@ int main()
 	ws.register_resource("/servers/{server_id}/users", &server_users);
 	server_user_id_resource server_user_id(pool, sserv);
 	ws.register_resource("/servers/{server_id}/users/{server_user_id}", &server_user_id);
+	server_user_id_roles_resource server_user_roles(pool, sserv);
+	ws.register_resource("/servers/{server_id}/users/{server_user_id}/roles", &server_user_roles);
+	server_user_role_id_resource server_user_role_id(pool, sserv);
+	ws.register_resource("/servers/{server_id}/users/{server_user_id}/roles/{server_role_id}", &server_user_role_id);
 
 	server_channel_resource server_channels(pool, sserv);
 	server_channels.max_per_server = cfg.max_channels_per_server;

@@ -47,6 +47,7 @@ void db_init(std::string conn_str)
 
 		tx.exec("CREATE INDEX IF NOT EXISTS role_prev_id ON roles (prev_role_id)");
 		tx.exec("CREATE INDEX IF NOT EXISTS server_x_user ON user_x_server (server_id)");
+		tx.exec("CREATE INDEX IF NOT EXISTS role_x_user ON user_x_server (role_id)");
 		tx.exec("CREATE INDEX IF NOT EXISTS ban_servers ON server_bans (server_id)");
 		tx.exec("CREATE INDEX IF NOT EXISTS servers_owners ON servers (owner_id)");
 

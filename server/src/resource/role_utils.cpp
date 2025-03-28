@@ -59,6 +59,28 @@ std::vector<pqxx::row> role_utils::get_role_list(pqxx::work& tx, int server_id)
 		res.push_back(rm[cur]);
 	return res;
 }
+std::vector<pqxx::row> role_utils::get_user_role_list(pqxx::work& tx, int server_id, int user_id)
+{
+	// get all user roles
+	pqxx::result r = tx.exec("SELECT role_id FROM user_x_server WHERE user_id = $1 AND server_id = $2", pqxx::params(user_id, server_id));
+	std::set<int> user_role_ids;
+	for(size_t i = 0; i < r.size(); ++i)
+		user_role_ids.insert(r[i]["role_id"].as<int>());
+
+	// get all server roles
+	int head = find_head_role(tx, server_id);
+	r = tx.exec("SELECT role_id, prev_role_id, name, color, perms1 FROM roles WHERE server_id = $1", pqxx::params(server_id));
+	std::unordered_map<int, pqxx::row> rm;
+	for(size_t i = 0; i < r.size(); ++i)
+		rm[r[i]["role_id"].as<int>()] = r[i];
+
+	std::vector<pqxx::row> res;
+	for(int cur = head; cur != -1; cur = rm[cur]["prev_role_id"].as<int>())
+		if(user_role_ids.count(cur))
+			res.push_back(rm[cur]);
+	return res;
+}
+
 bool role_utils::is_role_higher(pqxx::work& tx, int server_id, int role_id, int other_role_id)
 {
 	int head = find_head_role(tx, server_id);
@@ -121,6 +143,48 @@ std::shared_ptr<http_response> role_utils::check_role_lower_than_user(pqxx::work
 	}
 	return create_response::string("No roles found for user", 500);
 }
+std::shared_ptr<http_response> role_utils::check_user_lower_than_other(pqxx::work& tx, int server_id, int user_id, int lower_user_id, bool can_be_equal)
+{
+	if(!resource_utils::check_server_owner(user_id, server_id, tx))
+		return nullptr;
+
+	// get all user roles
+	pqxx::result r = tx.exec("SELECT role_id FROM user_x_server WHERE user_id = $1 AND server_id = $2", pqxx::params(user_id, server_id));
+	std::set<int> user_role_ids;
+	for(size_t i = 0; i < r.size(); ++i)
+		user_role_ids.insert(r[i]["role_id"].as<int>());
+	r = tx.exec("SELECT role_id FROM user_x_server WHERE user_id = $1 AND server_id = $2", pqxx::params(lower_user_id, server_id));
+	std::set<int> lower_user_role_ids;
+	for(size_t i = 0; i < r.size(); ++i)
+		lower_user_role_ids.insert(r[i]["role_id"].as<int>());
+
+	// get all server roles
+	int head = find_head_role(tx, server_id);
+	r = tx.exec("SELECT role_id, prev_role_id, perms1 FROM roles WHERE server_id = $1", pqxx::params(server_id));
+	std::unordered_map<int, pqxx::row> rm;
+	for(size_t i = 0; i < r.size(); ++i)
+		rm[r[i]["role_id"].as<int>()] = r[i];
+
+	// check what user's role comes up first
+	if(can_be_equal){
+		for(int cur = head; cur != -1; cur = rm[cur]["prev_role_id"].as<int>()){
+			bool is_user = user_role_ids.count(cur), is_lower_user = lower_user_role_ids.count(cur);
+			if((is_user && is_lower_user) || is_user)
+				return nullptr;
+			else if(is_lower_user)
+				return create_response::string("Target user has a role higher than that of user", 403);
+		}
+	}
+	else{	
+		for(int cur = head; cur != -1; cur = rm[cur]["prev_role_id"].as<int>())
+			if(lower_user_role_ids.count(cur))
+				return create_response::string("Target user has a role higher or equal to that of user", 403);
+			else if(user_role_ids.count(cur))
+				return nullptr;
+	}
+	return create_response::string("No roles found for user", 500);
+}
+
 std::shared_ptr<http_response> role_utils::check_permission1(pqxx::work& tx, int server_id, int user_id, int perm)
 {
 	if(!resource_utils::check_server_owner(user_id, server_id, tx))

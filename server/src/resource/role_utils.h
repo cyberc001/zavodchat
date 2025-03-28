@@ -35,12 +35,16 @@ public:
 	static int find_default_role(pqxx::work&, int server_id);
 
 	static std::vector<pqxx::row> get_role_list(pqxx::work&, int server_id);
+	static std::vector<pqxx::row> get_user_role_list(pqxx::work&, int server_id, int user_id);
 	static bool is_role_higher(pqxx::work&, int server_id, int role_id, int other_role_id);
 
 	static std::shared_ptr<http_response> check_role_not_default(pqxx::work&, int server_id, int role_id);
 	// returns OK (nullptr) if the user is the owner of the server
+
 	static std::shared_ptr<http_response> check_role_lower_than_user(pqxx::work&, int server_id, int user_id, int role_id, bool can_be_equal = false);
 	// returns OK (nullptr) if the user is the owner of the server
+	static std::shared_ptr<http_response> check_user_lower_than_other(pqxx::work&, int server_id, int user_id, int lower_user_id, bool can_be_equal = false);
+
 	static std::shared_ptr<http_response> check_permission1(pqxx::work&, int server_id, int user_id, int perm);
 	static std::shared_ptr<http_response> check_validity_perms1(long long perms1);
 	// also checks if all permissions are either allowed or forbidden (no default)
