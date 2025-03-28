@@ -199,7 +199,7 @@ std::shared_ptr<http_response> server_role_id_resource::render_DELETE(const http
 	err = role_utils::check_role_not_default(tx, server_id, server_role_id);
 	if(err) return err;
 
-	tx.exec("DELETE FROM roles WHERE role_id = $1", pqxx::params(server_role_id));
+	role_utils::delete_role(tx, server_id, server_role_id);
 	tx.commit();
 	return create_response::string("Deleted", 200);
 }

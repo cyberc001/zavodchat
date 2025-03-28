@@ -244,6 +244,21 @@ void role_utils::move_role(pqxx::work& tx, int server_id,
 	tx.exec("UPDATE roles SET prev_role_id = $1 WHERE role_id = $2", pqxx::params(new_prev_role_id, role_id));
 }
 
+void role_utils::delete_role(pqxx::work& tx, int server_id, int role_id)
+{
+	pqxx::result r = tx.exec("SELECT prev_role_id FROM roles WHERE role_id = $1", pqxx::params(role_id));
+	int old_prev_role_id = r[0]["prev_role_id"].as<int>();
+
+	r = tx.exec("SELECT role_id FROM roles WHERE prev_role_id = $1", pqxx::params(role_id));
+	if(r.size()){ // update next role's prev role
+		int old_next_role_id = r[0]["role_id"].as<int>();	
+		tx.exec("UPDATE roles SET prev_role_id = $1 WHERE role_id = $2", pqxx::params(old_prev_role_id, old_next_role_id));
+	} else{ // deleting the head role
+		tx.exec("UPDATE servers SET head_role_id = $1 WHERE server_id = $2", pqxx::params(old_prev_role_id, server_id));
+	}
+	tx.exec("DELETE FROM roles WHERE role_id = $1", role_id);
+}
+
 /* JSON */
 nlohmann::json role_utils::role_json_from_row(const pqxx::row r)
 {

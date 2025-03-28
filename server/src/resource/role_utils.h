@@ -56,6 +56,8 @@ public:
 	static void move_role(pqxx::work&, int server_id,
 					int role_id, int next_role_id);
 
+	static void delete_role(pqxx::work&, int server_id, int role_id);
+
 	/* JSON */
 	static nlohmann::json role_json_from_row(const pqxx::row r);
 	static nlohmann::json role_json_from_row(const pqxx::row&& r);
