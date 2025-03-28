@@ -684,6 +684,43 @@ ID новой роли.
 Неправильные параметры, попытка вставить роль перед default ролью.
 
 
+## /servers/\$server_id/roles/$role_id
+
+**POST:**
+
+Изменить параметры роли.
+
+*arguments:*
+* token: string
+* next\_role\_id: int<br>
+ID роли, перед которой нужно поставить указанную роль.
+* name: string<br>
+Имя роли.
+* color: int<br>
+Цвет роли в формате RGB.
+* perms1: ?long long<br>
+Набор разрешений 1 для роли.
+
+*response 200:*
+
+Роль была успешно изменена.
+
+*response 400:*
+
+Неправильные параметры, попытка вставить роль перед default ролью.
+
+**DELETE:**
+
+Удалить роль.
+
+*arguments:*
+* token: string
+
+*response 200:*
+
+Роль была успешно удалена.
+
+
 ## /files/avatar/user/\$filename
 
 **GET:**
