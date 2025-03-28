@@ -16,6 +16,8 @@ std::shared_ptr<http_response> role_utils::parse_server_role_id(const http_reque
 }
 std::shared_ptr<http_response> role_utils::check_server_role(int role_id, int server_id, pqxx::work& tx)
 {
+	if(role_id == -1)
+		return nullptr;
 	pqxx::result r = tx.exec("SELECT role_id FROM roles WHERE role_id = $1 AND server_id = $2", pqxx::params(role_id, server_id));
 	if(!r.size())
 		return create_response::string("Role does not belong to the server", 404);
@@ -74,6 +76,8 @@ bool role_utils::is_role_higher(pqxx::work& tx, int server_id, int role_id, int 
 
 std::shared_ptr<http_response> role_utils::check_role_not_default(pqxx::work& tx, int server_id, int role_id)
 {
+	if(role_id == -1)
+		return nullptr;
 	if(find_default_role(tx, server_id) == role_id)
 		return create_response::string("The role is default", 400);
 	return nullptr;
@@ -82,6 +86,8 @@ std::shared_ptr<http_response> role_utils::check_role_lower_than_user(pqxx::work
 {
 	if(!resource_utils::check_server_owner(user_id, server_id, tx))
 		return nullptr;
+	if(role_id == -1)
+		return create_response::string("Only the server owner can edit the highest role", 403);
 
 	// get all user roles
 	pqxx::result r = tx.exec("SELECT role_id FROM user_x_server WHERE user_id = $1 AND server_id = $2", pqxx::params(user_id, server_id));
@@ -156,11 +162,31 @@ std::shared_ptr<http_response> role_utils::check_validity_perms1(long long perms
 			return create_response::string("Invalid perms1: bit pair set outside of range", 400);
 	return nullptr;
 }
+std::shared_ptr<http_response> role_utils::check_default_validity_perms1(long long perms1)
+{
+	for(int i = 0; i < PERM1_COUNT; ++i){
+		long long prm = perms1 >> (i * 2) & 0x3;
+		if(prm == 0x0)
+			return create_response::string("Invalid perms1: bit pair set to 0", 400);
+		if(prm == 0x3)
+			return create_response::string("Invalid perms1: bit pair set to 3", 400);
+	}
+
+	for(int i = PERM1_COUNT; i < sizeof(long long) * 4; ++i)
+		if((perms1 >> (i * 2) & 0x3) > 0)
+			return create_response::string("Invalid perms1: bit pair set outside of range", 400);
+	return nullptr;
+}
 
 int role_utils::insert_role(pqxx::work& tx, int server_id,
 					int next_role_id, std::string name, int color, long long perms1)
 {
-	pqxx::result r = tx.exec("INSERT INTO roles(prev_role_id, server_id, name, color, perms1) VALUES(-1, $1, $2, $3, $4) RETURNING role_id", pqxx::params(server_id, name, color, perms1));
+	pqxx::result r;
+	try{
+		r = tx.exec("INSERT INTO roles(prev_role_id, server_id, name, color, perms1) VALUES(-1, $1, $2, $3, $4) RETURNING role_id", pqxx::params(server_id, name, color, perms1));
+	} catch(pqxx::data_exception& e){
+		return -2;
+	}
 	int role_id = r[0]["role_id"].as<int>();
 
 	r = tx.exec("SELECT head_role_id FROM servers WHERE server_id = $1", pqxx::params(server_id));
@@ -198,7 +224,7 @@ int role_utils::create_default_role_if_absent(pqxx::work& tx, int server_id)
 	return id;
 }
 
-static void move_role(pqxx::work& tx, int server_id,
+void role_utils::move_role(pqxx::work& tx, int server_id,
 			int role_id, int next_role_id)
 {
 	pqxx::result r = tx.exec("SELECT prev_role_id FROM roles WHERE role_id = $1", pqxx::params(role_id));

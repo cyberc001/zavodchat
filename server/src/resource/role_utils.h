@@ -43,8 +43,11 @@ public:
 	// returns OK (nullptr) if the user is the owner of the server
 	static std::shared_ptr<http_response> check_permission1(pqxx::work&, int server_id, int user_id, int perm);
 	static std::shared_ptr<http_response> check_validity_perms1(long long perms1);
+	// also checks if all permissions are either allowed or forbidden (no default)
+	static std::shared_ptr<http_response> check_default_validity_perms1(long long perms1);
 
 	// -1 = next_role_id does not exist
+	// -2 = name is too long
 	static int insert_role(pqxx::work&, int server_id,
 					int next_role_id, std::string name, int color, long long perms1 = PERM1_DEFAULT); // insert at the head if next_role_id = -1
 	static int create_default_role_if_absent(pqxx::work&, int server_id);
