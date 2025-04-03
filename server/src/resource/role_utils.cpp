@@ -293,17 +293,22 @@ void role_utils::move_role(pqxx::work& tx, int server_id,
 {
 	pqxx::result r = tx.exec("SELECT prev_role_id FROM roles WHERE role_id = $1", pqxx::params(role_id));
 	int old_prev_role_id = r[0]["prev_role_id"].as<int>();
-	tx.exec("UPDATE roles SET prev_role_id = $1 WHERE prev_role_id = $2", pqxx::params(old_prev_role_id, role_id)); // update prev_role_id on role before role_id
+	tx.exec("UPDATE roles SET prev_role_id = $1 WHERE prev_role_id = $2", pqxx::params(old_prev_role_id, role_id)); // update prev_role_id on role next to role_id
 
+	int head_role_id = find_head_role(tx, server_id);
 	int new_prev_role_id = -1;
-	if(next_role_id == -1){ // update head role_id
-		r = tx.exec("SELECT head_role_id FROM servers WHERE server_id = $1", pqxx::params(server_id));
-		new_prev_role_id = r[0]["head_role_id"].as<int>();
+	if(next_role_id == -1){ // update head role_id, since now it's role_id
+		new_prev_role_id = head_role_id;
+		if(new_prev_role_id == role_id)
+			return; // nothing to update
 		tx.exec("UPDATE servers SET head_role_id = $1 WHERE server_id = $2", pqxx::params(role_id, server_id));
 	} else { // update prev_role_id of next_role_id
 		r = tx.exec("SELECT prev_role_id FROM roles WHERE role_id = $1", pqxx::params(next_role_id));
 		new_prev_role_id = r[0]["prev_role_id"].as<int>();
 		tx.exec("UPDATE roles SET prev_role_id = $1 WHERE role_id = $2", pqxx::params(role_id, next_role_id));
+
+		if(head_role_id == role_id) // update head role_id, since it used to be role_id
+			tx.exec("UPDATE servers SET head_role_id = $1 WHERE server_id = $2", pqxx::params(old_prev_role_id, server_id));
 	}
 	tx.exec("UPDATE roles SET prev_role_id = $1 WHERE role_id = $2", pqxx::params(new_prev_role_id, role_id));
 }
