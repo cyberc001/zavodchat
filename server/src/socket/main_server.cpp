@@ -40,7 +40,7 @@ socket_main_server::socket_main_server(std::string https_key, std::string https_
 void socket_main_server::send_to_server(int server_id, pqxx::work& tx, socket_event event)
 {
 	std::string dumped = event.dump();
-	pqxx::result r = tx.exec("SELECT user_id FROM user_x_server WHERE server_id = $1", pqxx::params(server_id));
+	pqxx::result r = tx.exec("SELECT user_id FROM user_x_server WHERE server_id = $1 GROUP BY user_id", pqxx::params(server_id));
 
 	std::shared_lock lock(connections_mutex);
 	for(size_t i = 0; i < r.size(); ++i){
@@ -57,7 +57,7 @@ void socket_main_server::send_to_channel(int channel_id, pqxx::work& tx, socket_
 	std::string dumped = event.dump();
 	pqxx::result r = tx.exec("SELECT server_id FROM channels WHERE channel_id = $1", pqxx::params(channel_id));
 	int server_id = r[0]["server_id"].as<int>();
-	r = tx.exec("SELECT user_id FROM user_x_server WHERE server_id = $1", pqxx::params(server_id));
+	r = tx.exec("SELECT user_id FROM user_x_server WHERE server_id = $1 GROUP BY user_id", pqxx::params(server_id));
 
 	std::shared_lock lock(connections_mutex);
 	for(size_t i = 0; i < r.size(); ++i){

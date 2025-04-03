@@ -85,6 +85,16 @@ std::shared_ptr<http_response> server_roles_resource::render_PUT(const http_requ
 		return create_response::string("name is too long", 400);
 
 	tx.commit();
+
+	socket_event ev;
+	resource_utils::json_set_ids(ev.data, server_id);
+	ev.data["id"] = inserted_id;
+	ev.data["name"] = name;
+	ev.data["color"] = color;
+	ev.data["perms1"] = perms1;
+	ev.name = "role_created";
+	sserv.send_to_server(server_id, tx, ev);
+
 	return create_response::string(std::to_string(inserted_id), 200);
 }
 
@@ -114,6 +124,10 @@ std::shared_ptr<http_response> server_role_id_resource::render_POST(const http_r
 	err = role_utils::check_role_lower_than_user(tx, server_id, user_id, server_role_id);
 	if(err) return err;
 
+	socket_event ev;
+	ev.data["id"] = server_role_id;
+	resource_utils::json_set_ids(ev.data, server_id);
+
 	// Parse optional arguments
 	auto args = req.get_args();
 
@@ -134,6 +148,8 @@ std::shared_ptr<http_response> server_role_id_resource::render_POST(const http_r
 		err = role_utils::check_role_not_default(tx, server_id, next_role_id);
 		if(err) return err;
 
+		ev.data["next_role_id"] = next_role_id;
+
 		role_utils::move_role(tx, server_id, server_role_id, next_role_id);
 	}
 	if(args.find(std::string_view("name")) != args.end()){
@@ -146,6 +162,8 @@ std::shared_ptr<http_response> server_role_id_resource::render_POST(const http_r
 		} catch(pqxx::data_exception& e){
 			return create_response::string("name is too long", 400);
 		}
+
+		ev.data["name"] = name;
 	}
 	if(args.find(std::string_view("color")) != args.end()){
 		int color;
@@ -156,6 +174,8 @@ std::shared_ptr<http_response> server_role_id_resource::render_POST(const http_r
 		}
 		if(color > 0xFFFFFF || color < 0)
 			return create_response::string("Invalid role color: '" + std::string(req.get_arg("next_role_id")) + "'", 400);
+
+		ev.data["color"] = color;
 
 		tx.exec("UPDATE roles SET color = $1 WHERE role_id = $2", pqxx::params(color, server_role_id));
 	}
@@ -172,10 +192,16 @@ std::shared_ptr<http_response> server_role_id_resource::render_POST(const http_r
 			err = role_utils::check_validity_perms1(perms1);
 		if(err) return err;
 
+		ev.data["perms1"] = perms1;
+
 		tx.exec("UPDATE roles SET perms1 = $1 WHERE role_id = $2", pqxx::params(perms1, server_role_id));
 	}
 
 	tx.commit();
+
+	ev.name = "role_changed";
+	sserv.send_to_server(server_id, tx, ev);
+
 	return create_response::string("Changed", 200);
 }
 
@@ -201,5 +227,12 @@ std::shared_ptr<http_response> server_role_id_resource::render_DELETE(const http
 
 	role_utils::delete_role(tx, server_id, server_role_id);
 	tx.commit();
+
+	socket_event ev;
+	resource_utils::json_set_ids(ev.data, server_id);
+	ev.data["id"] = server_role_id;
+	ev.name = "role_deleted";
+	sserv.send_to_server(server_id, tx, ev);
+
 	return create_response::string("Deleted", 200);
 }

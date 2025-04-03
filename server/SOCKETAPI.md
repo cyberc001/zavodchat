@@ -249,6 +249,40 @@ wscat -nc 'wss://localhost:445?token=17d58d53-014e-4787-80c2-6518924d8d92&channe
 }
 ```
 
+### role_assigned
+
+Пользователю была назначена роль.
+
+Пример:
+```
+{
+	"data":
+	{
+		"role_id": 7,
+		"server_id": 1,
+		"user_id": 2
+	},
+	"name": "role_assigned"
+}
+```
+
+### role_disallowed
+
+У пользователя была забрана роль.
+
+Пример:
+```
+{
+	"data":
+	{
+		"role_id": 7,
+		"server_id": 1,
+		"user_id": 2
+	},
+	"name": "role_disallowed"
+}
+```
+
 ## Пользователь
 
 ### got_server_owner
@@ -256,7 +290,6 @@ wscat -nc 'wss://localhost:445?token=17d58d53-014e-4787-80c2-6518924d8d92&channe
 Пользователю передали права владельца сервера.
 
 Пример:
-
 ```js
 {
 	"data":
@@ -266,6 +299,65 @@ wscat -nc 'wss://localhost:445?token=17d58d53-014e-4787-80c2-6518924d8d92&channe
 	"name": "got_server_owner"
 }
 ```
+
+# Роли на сервере
+
+### role_created
+
+На сервере была создана новая роль.
+
+Пример:
+```js
+{
+	"data":
+	{
+		"color": 3333,
+		"id": 7,
+		"name": "supreme cult leader",
+		"perms1": 2,
+		"server_id": 1
+	},
+	"name": "role_created"
+}
+```
+
+### role_deleted
+
+На сервере была удалена роль.
+
+Пример:
+```js
+{
+	"data":
+	{
+		"id": 7,
+		"server_id": 1
+	},
+	"name": "role_deleted"
+}
+```
+
+### role_changed
+
+На сервере была изменена роль.
+
+Поля `color`, `name`, `next_role_id` и `perms1` могут отсутствовать в зависимости от того, какие параметры были изменены.
+
+Пример:
+```js
+{
+	"data": {
+		"color": 1111,
+		"id": 7,
+		"name": "gangster",
+		"next_role_id": 2,
+		"perms1": 169,
+		"server_id": 1
+	},
+	"name": "role_changed"
+}
+```
+
 
 # Сокет голосовых каналов
 Порт 445 по умолчанию. Успешное присоединение к нему означает, что пользователь находится в голосовом канале.

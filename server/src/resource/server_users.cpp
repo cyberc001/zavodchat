@@ -132,6 +132,14 @@ std::shared_ptr<http_response> server_user_role_id_resource::render_PUT(const ht
 		return create_response::string("User already has that role", 202);
 	tx.exec("INSERT INTO user_x_server(user_id, server_id, role_id) VALUES($1, $2, $3)", pqxx::params(server_user_id, server_id, server_role_id));
 	tx.commit();
+
+	socket_event ev;
+	resource_utils::json_set_ids(ev.data, server_id);
+	ev.data["user_id"] = server_user_id;
+	ev.data["role_id"] = server_role_id;
+	ev.name = "role_assigned";
+	sserv.send_to_server(server_id, tx, ev);
+
 	return create_response::string("Assigned", 200);
 }
 std::shared_ptr<http_response> server_user_role_id_resource::render_DELETE(const http_request& req)
@@ -164,5 +172,13 @@ std::shared_ptr<http_response> server_user_role_id_resource::render_DELETE(const
 
 	tx.exec("DELETE FROM user_x_server WHERE user_id = $1 AND server_id = $2 AND role_id = $3", pqxx::params(server_user_id, server_id, server_role_id));
 	tx.commit();
+
+	socket_event ev;
+	resource_utils::json_set_ids(ev.data, server_id);
+	ev.data["user_id"] = server_user_id;
+	ev.data["role_id"] = server_role_id;
+	ev.name = "role_disallowed";
+	sserv.send_to_server(server_id, tx, ev);
+
 	return create_response::string("Removed", 200);
 }
