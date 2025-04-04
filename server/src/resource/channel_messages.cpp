@@ -1,5 +1,6 @@
 #include "resource/channel_messages.h"
 #include "resource/utils.h"
+#include "resource/role_utils.h"
 
 channel_messages_resource::channel_messages_resource(db_connection_pool& pool, socket_main_server& sserv) : pool{pool}, sserv{sserv}
 {
@@ -53,6 +54,9 @@ std::shared_ptr<http_response> channel_messages_resource::render_PUT(const http_
 	db_connection conn = pool.hold();
 	pqxx::work tx{*conn};
 	auto err = resource_utils::parse_server_id(req, tx, user_id, server_id);
+	if(err) return err;
+
+	err = role_utils::check_permission1(tx, server_id, user_id, PERM1_CREATE_MESSAGES);
 	if(err) return err;
 
 	int channel_id;
@@ -160,10 +164,9 @@ std::shared_ptr<http_response> channel_message_id_resource::render_DELETE(const 
 	if(err) return err;
 
 	pqxx::result r = tx.exec("SELECT author_id FROM messages WHERE message_id = $1", pqxx::params(message_id));
-	if(r[0]["author_id"].as<int>() != user_id){ // not an author, but still can be the owner
-		r = tx.exec("SELECT owner_id FROM servers WHERE server_id = $1", pqxx::params(server_id));
-		if(r[0]["owner_id"].as<int>() != user_id)
-			return create_response::string("User is neither the author nor the owner", 403);
+	if(r[0]["author_id"].as<int>() != user_id){ // not an author, but still can have the permission
+		err = role_utils::check_permission1(tx, server_id, user_id, PERM1_DELETE_MESSAGES);
+		if(err) return err;
 	}
 
 	tx.exec("DELETE FROM messages WHERE message_id = $1", pqxx::params(message_id));

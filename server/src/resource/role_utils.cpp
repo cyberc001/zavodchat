@@ -147,6 +147,8 @@ std::shared_ptr<http_response> role_utils::check_user_lower_than_other(pqxx::wor
 {
 	if(!resource_utils::check_server_owner(user_id, server_id, tx))
 		return nullptr;
+	if(!resource_utils::check_server_owner(lower_user_id, server_id, tx))
+		return create_response::string("The other user is the owner", 403);
 
 	// get all user roles
 	pqxx::result r = tx.exec("SELECT role_id FROM user_x_server WHERE user_id = $1 AND server_id = $2", pqxx::params(user_id, server_id));

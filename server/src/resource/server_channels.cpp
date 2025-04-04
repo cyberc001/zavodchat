@@ -1,5 +1,6 @@
 #include "resource/server_channels.h"
 #include "resource/utils.h"
+#include "resource/role_utils.h"
 
 server_channel_resource::server_channel_resource(db_connection_pool& pool, socket_main_server& sserv): pool{pool}, sserv{sserv}
 {
@@ -39,7 +40,7 @@ std::shared_ptr<http_response> server_channel_resource::render_PUT(const http_re
 	err = resource_utils::parse_server_id(req, tx, user_id, server_id);
 	if(err) return err;
 
-	err = resource_utils::check_server_owner(user_id, server_id, tx);
+	err = role_utils::check_permission1(tx, server_id, user_id, PERM1_MANAGE_CHANNELS);
 	if(err) return err;
 
 	pqxx::result r = tx.exec("SELECT channel_id, name, type FROM channels WHERE server_id = $1", pqxx::params(server_id));
@@ -103,7 +104,7 @@ std::shared_ptr<http_response> server_channel_id_resource::render_POST(const htt
 	auto err = resource_utils::parse_server_id(req, tx, user_id, server_id);
 	if(err) return err;
 
-	err = resource_utils::check_server_owner(user_id, server_id, tx);
+	err = role_utils::check_permission1(tx, server_id, user_id, PERM1_MANAGE_CHANNELS);
 	if(err) return err;
 
 	int channel_id;
@@ -150,7 +151,7 @@ std::shared_ptr<http_response> server_channel_id_resource::render_DELETE(const h
 	auto err = resource_utils::parse_server_id(req, tx, user_id, server_id);
 	if(err) return err;
 
-	err = resource_utils::check_server_owner(user_id, server_id, tx);
+	err = role_utils::check_permission1(tx, server_id, user_id, PERM1_MANAGE_CHANNELS);
 	if(err) return err;
 
 	int channel_id;

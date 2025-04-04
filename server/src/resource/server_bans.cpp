@@ -1,5 +1,6 @@
 #include "resource/server_bans.h"
 #include "resource/utils.h"
+#include "resource/role_utils.h"
 
 server_bans_resource::server_bans_resource(db_connection_pool& pool, socket_main_server& sserv) : pool{pool}, sserv{sserv}
 {
@@ -43,14 +44,15 @@ std::shared_ptr<http_response> server_bans_resource::render_PUT(const http_reque
 	auto err = resource_utils::parse_server_id(req, tx, user_id, server_id);
 	if(err) return err;
 
-	err = resource_utils::check_server_owner(user_id, server_id, tx);
+	err = role_utils::check_permission1(tx, server_id, user_id, PERM1_BAN_MEMBERS);
 	if(err) return err;
 
 	int ban_user_id;
 	err = resource_utils::parse_index(req, "ban_user_id", ban_user_id);
 	if(err) return err;
-	if(user_id == ban_user_id) // !!!also an established owner of the server
-		return create_response::string("Owner cannot ban themselves", 403);
+
+	err = role_utils::check_user_lower_than_other(tx, server_id, user_id, ban_user_id);
+	if(err) return err;
 
 	pqxx::result r = tx.exec("SELECT user_id FROM server_bans WHERE user_id = $1 AND server_id = $2", pqxx::params(ban_user_id, server_id));
 	if(r.size())
@@ -106,7 +108,7 @@ std::shared_ptr<http_response> server_ban_id_resource::render_POST(const http_re
 	auto err = resource_utils::parse_server_id(req, tx, user_id, server_id);
 	if(err) return err;
 
-	err = resource_utils::check_server_owner(user_id, server_id, tx);
+	err = role_utils::check_permission1(tx, server_id, user_id, PERM1_BAN_MEMBERS);
 	if(err) return err;
 
 	int server_ban_id;
@@ -126,7 +128,7 @@ std::shared_ptr<http_response> server_ban_id_resource::render_POST(const http_re
 	}
 	tx.commit();
 
-	return create_response::string("Unbanned", 200);
+	return create_response::string("Changed ban", 200);
 }
 
 std::shared_ptr<http_response> server_ban_id_resource::render_DELETE(const http_request& req)
@@ -137,7 +139,7 @@ std::shared_ptr<http_response> server_ban_id_resource::render_DELETE(const http_
 	auto err = resource_utils::parse_server_id(req, tx, user_id, server_id);
 	if(err) return err;
 
-	err = resource_utils::check_server_owner(user_id, server_id, tx);
+	err = role_utils::check_permission1(tx, server_id, user_id, PERM1_BAN_MEMBERS);
 	if(err) return err;
 
 	int server_ban_id;

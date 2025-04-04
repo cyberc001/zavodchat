@@ -45,15 +45,19 @@ std::shared_ptr<http_response> server_user_id_resource::render_DELETE(const http
 	auto err = resource_utils::parse_server_id(req, tx, user_id, server_id);
 	if(err) return err;
 
-	err = resource_utils::check_server_owner(user_id, server_id, tx);
+	err = role_utils::check_permission1(tx, server_id, user_id, PERM1_BAN_MEMBERS);
 	if(err) return err;
 
 	int server_user_id;
 	err = resource_utils::parse_server_user_id(req, server_id, tx, server_user_id);
 	if(err) return err;
 
-	if(user_id == server_user_id) // !!!also an established owner of the server
-		return create_response::string("Owner cannot kick themselves", 403);
+	if(!resource_utils::check_server_owner(server_user_id, server_id, tx))
+		return create_response::string("Owner cannot be kicked", 403);
+	if(server_user_id != user_id){
+		err = role_utils::check_user_lower_than_other(tx, server_id, user_id, server_user_id);
+		if(err) return err;
+	}
 
 	socket_event ev;
 	resource_utils::json_set_ids(ev.data, server_id);

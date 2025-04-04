@@ -84,7 +84,7 @@ std::shared_ptr<http_response> server_id_resource::render_POST(const http_reques
 	auto err = resource_utils::parse_server_id(req, tx, user_id, server_id);
 	if(err) return err;
 
-	err = resource_utils::check_server_owner(user_id, server_id, tx);
+	err = role_utils::check_permission1(tx, server_id, user_id, PERM1_CHANGE_SERVER);
 	if(err) return err;
 
 	bool updated = false;
