@@ -15,6 +15,7 @@
 #include "resource/server_invites.h"
 #include "resource/server_bans.h"
 #include "resource/role.h"
+#include "resource/user_status.h"
 
 #include "db/init.h"
 
@@ -104,6 +105,9 @@ int main()
 
 	user_id_resource user_id(pool);
 	ws.register_resource("/users/{user_id}", &user_id);
+
+	user_status_resource user_status(pool);
+	ws.register_resource("/user_status", &user_status);
 
 	server_roles_resource server_roles(pool, sserv);
 	server_roles.max_per_server = cfg.max_roles_per_server;

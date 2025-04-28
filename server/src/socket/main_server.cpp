@@ -1,4 +1,5 @@
 #include "socket/main_server.h"
+#include <resource/user_status.h>
 
 socket_main_server::socket_main_server(std::string https_key, std::string https_cert, int port,
 				db_connection_pool& pool): socket_server(https_key, https_cert, port, pool)
@@ -27,9 +28,34 @@ socket_main_server::socket_main_server(std::string https_key, std::string https_
 				}
 				conn.user_id = r[0]["user_id"].as<int>();
 
+				// set status
+				int status = STATUS_ONLINE;
+				if(query.find("status") != query.end()){
+					try{
+						status = std::stoi(query["status"]);
+					} catch(std::invalid_argument& e) {
+						conn.sock.lock()->close(ix::WebSocketCloseConstants::kNormalClosureCode, "Invalid status");
+						return;
+					}
+					if(status < STATUS_BEGIN || status > STATUS_END){
+						conn.sock.lock()->close(ix::WebSocketCloseConstants::kNormalClosureCode, "Invalid status");
+						return;
+					}
+				}
+				tx.exec("UPDATE users SET status = $1 WHERE user_id = $2", pqxx::params(status, conn.user_id));
+				tx.commit();
+
+				// add user to connections map
 				std::unique_lock lock(connections_mutex);
 				connections[conn.user_id] = conn.sock;
 			} else if(msg->type == ix::WebSocketMessageType::Close){
+				// set status to offline
+				db_connection db_conn = pool.hold();
+				pqxx::work tx{*db_conn};
+				tx.exec("UPDATE users SET status = 0 WHERE user_id = $1", pqxx::params(conn.user_id));
+				tx.commit();
+
+				// remove user from connections map
 				std::unique_lock lock(connections_mutex);
 				connections.erase(conn.user_id);
 			}
