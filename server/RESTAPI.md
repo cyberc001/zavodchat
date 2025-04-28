@@ -51,6 +51,8 @@ body: `<UUID токена>`
 Отображаемое имя
 * password: string<br>
 Пароль
+* avatar: file<br>
+Аватарка пользователя
 
 *response 200:*
 
