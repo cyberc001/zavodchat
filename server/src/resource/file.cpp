@@ -2,9 +2,8 @@
 #include "resource/utils.h"
 #include "resource/file_utils.h"
 
-file_resource::file_resource(std::filesystem::path storage_path): storage_path{storage_path}
+file_resource::file_resource(std::filesystem::path storage_path): base_resource(), storage_path{storage_path}
 {
-	disallow_all();
 	set_allowing("GET", true);
 }
 
@@ -15,9 +14,8 @@ std::shared_ptr<http_response> file_resource::render_GET(const http_request& req
 	return res;
 }
 
-server_file_put_resource::server_file_put_resource(db_connection_pool& pool, std::filesystem::path storage_path): pool{pool}, storage_path{storage_path}
+server_file_put_resource::server_file_put_resource(db_connection_pool& pool, std::filesystem::path storage_path): base_resource(), pool{pool}, storage_path{storage_path}
 {
-	disallow_all();
 	set_allowing("PUT", true);
 }
 std::shared_ptr<http_response> server_file_put_resource::render_PUT(const http_request& req)
@@ -49,9 +47,8 @@ std::shared_ptr<http_response> server_file_put_resource::render_PUT(const http_r
 }
 
 
-server_file_manage_resource::server_file_manage_resource(db_connection_pool& pool, std::filesystem::path storage_path): pool{pool}, storage_path{storage_path}
+server_file_manage_resource::server_file_manage_resource(db_connection_pool& pool, std::filesystem::path storage_path): base_resource(), pool{pool}, storage_path{storage_path}
 {
-	disallow_all();
 	set_allowing("DELETE", true);
 }
 
@@ -76,9 +73,8 @@ std::shared_ptr<http_response> server_file_manage_resource::render_DELETE(const 
 	return create_response::string("Deleted", 200);
 }
 
-server_user_file_resource::server_user_file_resource(db_connection_pool& pool, std::filesystem::path storage_path): pool{pool}, storage_path{storage_path}
+server_user_file_resource::server_user_file_resource(db_connection_pool& pool, std::filesystem::path storage_path): base_resource(), pool{pool}, storage_path{storage_path}
 {
-	disallow_all();
 	set_allowing("GET", true);
 }
 std::shared_ptr<http_response> server_user_file_resource::render_GET(const http_request& req)

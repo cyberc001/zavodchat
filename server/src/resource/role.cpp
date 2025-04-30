@@ -3,9 +3,8 @@
 #include "resource/utils.h"
 #include "resource/role_utils.h"
 
-server_roles_resource::server_roles_resource(db_connection_pool& pool, socket_main_server& sserv) : pool{pool}, sserv{sserv}
+server_roles_resource::server_roles_resource(db_connection_pool& pool, socket_main_server& sserv) : base_resource(), pool{pool}, sserv{sserv}
 {
-	disallow_all();
 	set_allowing("GET", true);
 	set_allowing("PUT", true);
 }
@@ -99,9 +98,8 @@ std::shared_ptr<http_response> server_roles_resource::render_PUT(const http_requ
 }
 
 
-server_role_id_resource::server_role_id_resource(db_connection_pool& pool, socket_main_server& sserv) : pool{pool}, sserv{sserv}
+server_role_id_resource::server_role_id_resource(db_connection_pool& pool, socket_main_server& sserv) : base_resource(), pool{pool}, sserv{sserv}
 {
-	disallow_all();
 	set_allowing("POST", true);
 	set_allowing("DELETE", true);
 }

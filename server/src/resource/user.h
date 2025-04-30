@@ -2,11 +2,9 @@
 #define RESOURCE_USER_H
 
 #include "db/conn_pool.h"
+#include <resource/base.h>
 
-#include <httpserver.hpp>
-using namespace httpserver;
-
-class user_id_resource : public http_resource
+class user_id_resource : public base_resource
 {
 public:
 	user_id_resource(db_connection_pool& pool);

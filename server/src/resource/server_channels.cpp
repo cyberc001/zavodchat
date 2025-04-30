@@ -2,9 +2,8 @@
 #include "resource/utils.h"
 #include "resource/role_utils.h"
 
-server_channel_resource::server_channel_resource(db_connection_pool& pool, socket_main_server& sserv): pool{pool}, sserv{sserv}
+server_channel_resource::server_channel_resource(db_connection_pool& pool, socket_main_server& sserv): base_resource(), pool{pool}, sserv{sserv}
 {
-	disallow_all();
 	set_allowing("GET", true);
 	set_allowing("PUT", true);
 }
@@ -65,9 +64,8 @@ std::shared_ptr<http_response> server_channel_resource::render_PUT(const http_re
 	return create_response::string(std::to_string(channel_id), 200);
 }
 
-server_channel_id_resource::server_channel_id_resource(db_connection_pool& pool, socket_main_server& sserv, socket_vc_server& vcserv): pool{pool}, sserv{sserv}, vcserv{vcserv}
+server_channel_id_resource::server_channel_id_resource(db_connection_pool& pool, socket_main_server& sserv, socket_vc_server& vcserv): base_resource(), pool{pool}, sserv{sserv}, vcserv{vcserv}
 {
-	disallow_all();
 	set_allowing("GET", true);
 	set_allowing("POST", true);
 	set_allowing("DELETE", true);

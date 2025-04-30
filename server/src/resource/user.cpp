@@ -3,9 +3,8 @@
 
 #include <iostream>
 
-user_id_resource::user_id_resource(db_connection_pool& pool) : pool{pool}
+user_id_resource::user_id_resource(db_connection_pool& pool) : base_resource(), pool{pool}
 {
-	disallow_all();
 	set_allowing("GET", true);
 }
 

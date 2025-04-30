@@ -4,11 +4,9 @@
 #include "db/conn_pool.h"
 #include "socket/main_server.h"
 #include <thread>
+#include <resource/base.h>
 
-#include <httpserver.hpp>
-using namespace httpserver;
-
-class server_bans_resource : public http_resource
+class server_bans_resource : public base_resource
 {
 public:
 	server_bans_resource(db_connection_pool& pool, socket_main_server& sserv);
@@ -26,7 +24,7 @@ private:
 	static void ban_time_func(server_bans_resource& inst);
 };
 
-class server_ban_id_resource : public http_resource
+class server_ban_id_resource : public base_resource
 {
 public:
 	server_ban_id_resource(db_connection_pool& pool);

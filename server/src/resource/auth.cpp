@@ -3,11 +3,10 @@
 #include <resource/utils.h>
 #include <resource/file_utils.h>
 
-auth_resource::auth_resource(db_connection_pool& pool): pool{pool}
+auth_resource::auth_resource(db_connection_pool& pool): base_resource(), pool{pool}
 {
 	session_time_thr = std::thread(auth_resource::session_time_func, std::ref(*this));
-
-	disallow_all();
+	
 	set_allowing("GET", true);
 	set_allowing("PUT", true);
 	set_allowing("POST", true);

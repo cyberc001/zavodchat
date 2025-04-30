@@ -3,11 +3,9 @@
 
 #include "db/conn_pool.h"
 #include "socket/main_server.h"
+#include <resource/base.h>
 
-#include <httpserver.hpp>
-using namespace httpserver;
-
-class server_users_resource : public http_resource
+class server_users_resource : public base_resource
 {
 public:
 	server_users_resource(db_connection_pool& pool);
@@ -18,7 +16,7 @@ public:
 private:
 	db_connection_pool& pool;
 };
-class server_user_id_resource : public http_resource
+class server_user_id_resource : public base_resource
 {
 public:
 	server_user_id_resource(db_connection_pool& pool, socket_main_server& sserv);
@@ -29,7 +27,7 @@ private:
 	socket_main_server& sserv;
 };
 
-class server_user_id_roles_resource : public http_resource
+class server_user_id_roles_resource : public base_resource
 {
 public:
 	server_user_id_roles_resource(db_connection_pool& pool, socket_main_server& sserv);
@@ -39,7 +37,7 @@ private:
 	db_connection_pool& pool;
 	socket_main_server& sserv;
 };
-class server_user_role_id_resource : public http_resource
+class server_user_role_id_resource : public base_resource
 {
 public:
 	server_user_role_id_resource(db_connection_pool& pool, socket_main_server& sserv);

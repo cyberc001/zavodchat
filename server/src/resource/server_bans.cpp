@@ -2,11 +2,10 @@
 #include "resource/utils.h"
 #include "resource/role_utils.h"
 
-server_bans_resource::server_bans_resource(db_connection_pool& pool, socket_main_server& sserv) : pool{pool}, sserv{sserv}
+server_bans_resource::server_bans_resource(db_connection_pool& pool, socket_main_server& sserv) : base_resource(), pool{pool}, sserv{sserv}
 {
 	ban_time_thr = std::thread(server_bans_resource::ban_time_func, std::ref(*this));
 
-	disallow_all();
 	set_allowing("GET", true);
 	set_allowing("PUT", true);
 }
@@ -93,9 +92,8 @@ void server_bans_resource::ban_time_func(server_bans_resource& inst)
 }
 
 
-server_ban_id_resource::server_ban_id_resource(db_connection_pool& pool) : pool{pool}
+server_ban_id_resource::server_ban_id_resource(db_connection_pool& pool) : base_resource(), pool{pool}
 {
-	disallow_all();
 	set_allowing("POST", true);
 	set_allowing("DELETE", true);
 }

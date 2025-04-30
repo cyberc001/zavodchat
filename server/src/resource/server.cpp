@@ -4,9 +4,8 @@
 #include "resource/role_utils.h"
 #include <nlohmann/json.hpp>
 
-server_resource::server_resource(db_connection_pool& pool): pool{pool}
+server_resource::server_resource(db_connection_pool& pool): base_resource(), pool{pool}
 {
-	disallow_all();
 	set_allowing("GET", true);
 	set_allowing("PUT", true);
 }
@@ -57,9 +56,8 @@ std::shared_ptr<http_response> server_resource::render_PUT(const http_request& r
 }
 
 
-server_id_resource::server_id_resource(db_connection_pool& pool, socket_main_server& sserv): pool{pool}, sserv{sserv}
+server_id_resource::server_id_resource(db_connection_pool& pool, socket_main_server& sserv): base_resource(), pool{pool}, sserv{sserv}
 {
-	disallow_all();
 	set_allowing("GET", true);
 	set_allowing("POST", true);
 	set_allowing("DELETE", true);

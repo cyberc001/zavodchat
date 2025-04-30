@@ -3,9 +3,7 @@
 
 #include "db/conn_pool.h"
 #include <thread>
-
-#include <httpserver.hpp>
-using namespace httpserver;
+#include <resource/base.h>
 
 #define STATUS_OFFLINE		0
 #define STATUS_ONLINE		1
@@ -15,7 +13,7 @@ using namespace httpserver;
 #define STATUS_BEGIN		STATUS_OFFLINE
 #define STATUS_END		STATUS_NODISTURB
 
-class user_status_resource : public http_resource
+class user_status_resource : public base_resource
 {
 public:
 	user_status_resource(db_connection_pool& pool);

@@ -2,12 +2,10 @@
 #define RESOURCE_FILE_H
 
 #include "db/conn_pool.h"
-
-#include <httpserver.hpp>
-using namespace httpserver;
+#include <resource/base.h>
 
 // generic http resource that allows read-only file access
-class file_resource : public http_resource
+class file_resource : public base_resource
 {
 public:
 	file_resource(std::filesystem::path storage_path);
@@ -20,7 +18,7 @@ private:
 // http resources that allows uploading files, with each user getting an equal share of set storage space.
 // uses rollover when storage space overflows.
 // forbids access to files from servers user is not a member of.
-class server_file_put_resource : public http_resource // no args
+class server_file_put_resource : public base_resource // no args
 {
 public:
 	server_file_put_resource(db_connection_pool& pool, std::filesystem::path storage_path);
@@ -32,7 +30,7 @@ private:
 	std::filesystem::path storage_path;
 	db_connection_pool& pool;
 };
-class server_file_manage_resource : public http_resource // {fname}
+class server_file_manage_resource : public base_resource // {fname}
 {
 public:
 	server_file_manage_resource(db_connection_pool& pool, std::filesystem::path storage_path);
@@ -45,7 +43,7 @@ private:
 	db_connection_pool& pool;
 };
 
-class server_user_file_resource : public http_resource // {user_id} {fname}
+class server_user_file_resource : public base_resource // {user_id} {fname}
 {
 public:
 	server_user_file_resource(db_connection_pool& pool, std::filesystem::path storage_path);

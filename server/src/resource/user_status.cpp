@@ -1,9 +1,8 @@
 #include <resource/user_status.h>
 #include <resource/utils.h>
 
-user_status_resource::user_status_resource(db_connection_pool& pool): pool{pool}
+user_status_resource::user_status_resource(db_connection_pool& pool): base_resource(), pool{pool}
 {
-	disallow_all();
 	set_allowing("POST", true);
 }
 

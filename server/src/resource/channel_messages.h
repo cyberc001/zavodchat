@@ -3,11 +3,9 @@
 
 #include "db/conn_pool.h"
 #include "socket/main_server.h"
+#include <resource/base.h>
 
-#include <httpserver.hpp>
-using namespace httpserver;
-
-class channel_messages_resource : public http_resource
+class channel_messages_resource : public base_resource
 {
 public:
 	channel_messages_resource(db_connection_pool& pool, socket_main_server& sserv);

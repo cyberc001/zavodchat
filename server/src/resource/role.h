@@ -3,11 +3,9 @@
 
 #include "db/conn_pool.h"
 #include "socket/main_server.h"
+#include <resource/base.h>
 
-#include <httpserver.hpp>
-using namespace httpserver;
-
-class server_roles_resource : public http_resource
+class server_roles_resource : public base_resource
 {
 public:
 	server_roles_resource(db_connection_pool& pool, socket_main_server& sserv);
@@ -21,7 +19,7 @@ private:
 	socket_main_server& sserv;
 };
 
-class server_role_id_resource : public http_resource
+class server_role_id_resource : public base_resource
 {
 public:
 	server_role_id_resource(db_connection_pool& pool, socket_main_server& sserv);

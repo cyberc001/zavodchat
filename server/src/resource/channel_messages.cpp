@@ -2,9 +2,8 @@
 #include "resource/utils.h"
 #include "resource/role_utils.h"
 
-channel_messages_resource::channel_messages_resource(db_connection_pool& pool, socket_main_server& sserv) : pool{pool}, sserv{sserv}
+channel_messages_resource::channel_messages_resource(db_connection_pool& pool, socket_main_server& sserv) : base_resource(), pool{pool}, sserv{sserv}
 {
-	disallow_all();
 	set_allowing("GET", true);
 	set_allowing("PUT", true);
 }

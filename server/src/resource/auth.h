@@ -3,13 +3,11 @@
 
 #include "db/conn_pool.h"
 #include <thread>
-
-#include <httpserver.hpp>
-using namespace httpserver;
+#include <resource/base.h>
 
 typedef std::string session_token;
 
-class auth_resource : public http_resource
+class auth_resource : public base_resource
 {
 public:
 	auth_resource(db_connection_pool& pool);

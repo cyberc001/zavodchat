@@ -4,15 +4,14 @@
 #include "db/conn_pool.h"
 #include "socket/main_server.h"
 #include "socket/vc_server.h"
-#include <httpserver.hpp>
-using namespace httpserver;
+#include <resource/base.h>
 
 enum channel_type {
 	CHANNEL_TEXT,
 	CHANNEL_VOICE
 };
 
-class server_channel_resource : public http_resource
+class server_channel_resource : public base_resource
 {
 public:
 	server_channel_resource(db_connection_pool& pool, socket_main_server& sserv);
@@ -27,7 +26,7 @@ private:
 	socket_main_server& sserv;
 };
 
-class server_channel_id_resource : public http_resource
+class server_channel_id_resource : public base_resource
 {
 public:
 	server_channel_id_resource(db_connection_pool& pool, socket_main_server& sserv, socket_vc_server& vcserv);

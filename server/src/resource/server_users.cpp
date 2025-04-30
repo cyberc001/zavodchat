@@ -2,9 +2,8 @@
 #include "resource/utils.h"
 #include "resource/role_utils.h"
 
-server_users_resource::server_users_resource(db_connection_pool& pool) : pool{pool}
+server_users_resource::server_users_resource(db_connection_pool& pool) : base_resource(), pool{pool}
 {
-	disallow_all();
 	set_allowing("GET", true);
 }
 
@@ -31,9 +30,8 @@ std::shared_ptr<http_response> server_users_resource::render_GET(const http_requ
 	return create_response::string(res.dump(), 200);
 }
 
-server_user_id_resource::server_user_id_resource(db_connection_pool& pool, socket_main_server& sserv) : pool{pool}, sserv{sserv}
+server_user_id_resource::server_user_id_resource(db_connection_pool& pool, socket_main_server& sserv) : base_resource(), pool{pool}, sserv{sserv}
 {
-	disallow_all();
 	set_allowing("DELETE", true);
 }
 
@@ -72,9 +70,8 @@ std::shared_ptr<http_response> server_user_id_resource::render_DELETE(const http
 }
 
 
-server_user_id_roles_resource::server_user_id_roles_resource(db_connection_pool& pool, socket_main_server& sserv) : pool{pool}, sserv{sserv}
+server_user_id_roles_resource::server_user_id_roles_resource(db_connection_pool& pool, socket_main_server& sserv) : base_resource(), pool{pool}, sserv{sserv}
 {
-	disallow_all();
 	set_allowing("GET", true);
 }
 
@@ -98,9 +95,8 @@ std::shared_ptr<http_response> server_user_id_roles_resource::render_GET(const h
 	return create_response::string(res.dump(), 200);
 }
 
-server_user_role_id_resource::server_user_role_id_resource(db_connection_pool& pool, socket_main_server& sserv) : pool{pool}, sserv{sserv}
+server_user_role_id_resource::server_user_role_id_resource(db_connection_pool& pool, socket_main_server& sserv) : base_resource(), pool{pool}, sserv{sserv}
 {
-	disallow_all();
 	set_allowing("PUT", true);
 	set_allowing("DELETE", true);
 }

@@ -4,12 +4,10 @@
 #include "db/conn_pool.h"
 #include "socket/main_server.h"
 #include <thread>
-
-#include <httpserver.hpp>
-using namespace httpserver;
+#include <resource/base.h>
 
 // Handles accepting invites
-class server_invites_resource : public http_resource
+class server_invites_resource : public base_resource
 {
 public:
 	server_invites_resource(db_connection_pool& pool, socket_main_server& sserv);
@@ -25,7 +23,7 @@ private:
 	static void invite_time_func(server_invites_resource& inst);
 };
 
-class server_id_invites_resource : public http_resource
+class server_id_invites_resource : public base_resource
 {
 public:
 	server_id_invites_resource(db_connection_pool& pool);
@@ -39,7 +37,7 @@ private:
 	db_connection_pool& pool;
 };
 
-class server_invite_id_resource : public http_resource
+class server_invite_id_resource : public base_resource
 {
 public:
 	server_invite_id_resource(db_connection_pool& pool);
