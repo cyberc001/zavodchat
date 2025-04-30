@@ -67,7 +67,9 @@ function get_messages(server_id, channel_id) {
 
 // сокеты
 var vc_sock
-var vc_debug
+var rtc_conn
+
+var last_track_id = 0
 
 function join_vc(channel_id) {
 	if(vc_sock)
@@ -83,37 +85,40 @@ function join_vc(channel_id) {
 	}
 	vc_sock.onmessage = async function(ev) {
 		const offer = JSON.parse(ev.data)
-		const rtc_conn = new RTCPeerConnection({
-			bundlePolicy: 'max-bundle'
-		})
 
-		rtc_conn.ontrack = (ev) => {
-			console.log("track event", ev)
-			const vc_audio = $("#vc_audio")[0]
-			vc_audio.srcObject = ev.streams[0]
-			vc_audio.play()
-		}
+		if(!rtc_conn){
+			rtc_conn = new RTCPeerConnection({
+				bundlePolicy: 'max-bundle'
+			})
 
-		rtc_conn.onicegatheringstatechange = (state) => {
-			if(rtc_conn.iceGatheringState === "complete"){
-				const answer = rtc_conn.localDescription
-				console.log("sending answer:")
-				console.log(answer)
-				vc_sock.send(JSON.stringify(answer))
+			rtc_conn.ontrack = (ev) => {
+				console.log("track event", ev)
+				const vc_audio = $(`#vc_audio_${last_track_id}`)[0]
+				++last_track_id
+				vc_audio.srcObject = new MediaStream()
+				vc_audio.srcObject.addTrack(ev.track)
+				vc_audio.play()
 			}
+
+			rtc_conn.onsignalingstatechange = (state) => {
+				console.log("STATE", rtc_conn.signalingState);
+				if(rtc_conn.signalingState === "stable"){
+					const answer = rtc_conn.localDescription
+					console.log("sending answer:")
+					console.log(answer)
+					vc_sock.send(JSON.stringify(answer))
+				}
+			}
+
+			const media = await navigator.mediaDevices.getUserMedia({audio: true})
+			console.log("tracks", await navigator.mediaDevices.enumerateDevices())
+			media.getTracks().forEach(track => {rtc_conn.addTrack(track, media); console.log("added track", track)})
 		}
 
 		console.log("setting to offer ", offer)
 		await rtc_conn.setRemoteDescription(offer)
 
-		const media = await navigator.mediaDevices.getUserMedia({audio: true})
-		console.log("tracks", await navigator.mediaDevices.enumerateDevices())
-		media.getTracks().forEach(track => {rtc_conn.addTrack(track, media); console.log("added track", track)})
-		console.log("attached media to\n", rtc_conn)
-
 		const answer = await rtc_conn.createAnswer()
 		await rtc_conn.setLocalDescription(answer)
-
-		vc_debug = rtc_conn
 	}
 }
