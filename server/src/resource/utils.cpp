@@ -7,9 +7,10 @@
 
 void create_response::add_cors(http_response* res)
 {
+	res->with_header("Accept", "*/*");
 	res->with_header("Access-Control-Allow-Origin", "*");
 	res->with_header("Access-Control-Allow-Methods", "*");
-	res->with_header("Access-Control-Allow-Header", "'Access-Control-Allow-Headers: Origin, Content-Type, X-Auth-Token'");
+	res->with_header("Access-Control-Allow-Headers", "Origin, Content-Type, X-Auth-Token, X-Requested-With, Accept");
 }
 
 std::shared_ptr<http_response> create_response::string(std::string str, int code)
