@@ -6,6 +6,32 @@
 
 #define SWAP32(x) ((((x)&0xFF000000) >> 24) | (((x)&0xFF) << 24) | (((x)&0xFF00) << 8) | (((x)&0xFF0000) >> 8))
 
+size_t socket_vc_connection::add_track(rtc::SSRC ssrc, int user_id)
+{
+	if(!unused_tracks.empty()){
+		size_t i = unused_tracks.top();
+		unused_tracks.pop();
+		user_to_track[user_id] = i;
+		rtc::Description::Media desc = tracks[i]->description();
+		desc.clearSSRCs();
+		desc.addSSRC(ssrc, std::to_string(i));
+		tracks[i]->setDescription(desc);
+		return i;
+	}
+	size_t i = tracks.size();
+	rtc::Description::Audio desc(std::to_string(i), rtc::Description::Direction::SendOnly);
+	desc.addOpusCodec(RTC_PAYLOAD_TYPE_VOICE);
+	desc.addSSRC(ssrc, std::to_string(i));
+	tracks.push_back(rtc_conn->addTrack(desc));
+	user_to_track[user_id] = i;
+	return i;
+}
+void socket_vc_connection::remove_track(int user_id)
+{
+	size_t i = user_to_track[user_id];
+	unused_tracks.push(i);
+}
+
 void socket_vc_channel::add_user(int user_id, std::shared_ptr<socket_vc_connection> conn)
 {
 	std::unique_lock lock(connections_mutex);
@@ -14,6 +40,9 @@ void socket_vc_channel::add_user(int user_id, std::shared_ptr<socket_vc_connecti
 void socket_vc_channel::remove_user(int user_id)
 {
 	std::unique_lock lock(connections_mutex);
+
+	auto conn = connections[user_id].lock();
+
 	connections.erase(user_id);
 }
 bool socket_vc_channel::has_user(int user_id)
@@ -120,7 +149,6 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 						candidates[1].changeAddress("127.0.0.1");
 						desc.value().addCandidates(candidates);
 						desc.value().endCandidates();
-						std::cerr << "DESC " << desc.value() << std::endl;
 
 						nlohmann::json offer = {
 							{"type", desc->typeString()},
@@ -161,16 +189,16 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 				rtc::Description::Audio desc("my_voice", rtc::Description::Direction::RecvOnly);
 				desc.addOpusCodec(RTC_PAYLOAD_TYPE_VOICE);
 				desc.addSSRC(ssrc, "my_voice");
-				conn.tracks[0] = conn.rtc_conn->addTrack(desc);
+				conn.tracks.push_back(conn.rtc_conn->addTrack(desc));
 				// create send tracks for all known connections
 				{
 					std::unique_lock lock(channels_mutex);
 					socket_vc_channel& chan = channels[conn.channel_id];
+					size_t i = 0;
 					for(auto it = chan.connections_begin(); it != chan.connections_end(); ++it){
-						rtc::Description::Audio desc(std::to_string(it->first), rtc::Description::Direction::SendOnly);
-						desc.addOpusCodec(RTC_PAYLOAD_TYPE_VOICE);
-						desc.addSSRC(it->second.lock()->tracks[0]->description().getSSRCs()[0], std::to_string(it->first));
-						conn.tracks[it->first] = conn.rtc_conn->addTrack(desc);
+						conn.add_track(it->second.lock()->tracks[0]->description().getSSRCs()[0], it->first);
+
+						std::cerr << "ADDED TRACK " << conn.user_id << " " << it->first << " " << conn.tracks[it->first] << std::endl;
 					}
 				}
 
@@ -179,13 +207,11 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 					std::unique_lock lock(channels_mutex);
 					socket_vc_channel& chan = channels[conn.channel_id];
 					for(auto it = chan.connections_begin(); it != chan.connections_end(); ++it){
-						rtc::Description::Audio desc(std::to_string(conn.user_id), rtc::Description::Direction::SendOnly);
-						desc.addOpusCodec(RTC_PAYLOAD_TYPE_VOICE);
-						desc.addSSRC(ssrc, std::to_string(conn.user_id));
 						auto other_conn = it->second.lock();
-						other_conn->tracks[conn.user_id] = other_conn->rtc_conn->addTrack(desc);
+						other_conn->add_track(ssrc, conn.user_id);
+						std::cerr << "ADDED TRACK " << other_conn->user_id << " " << conn.user_id << " " << other_conn->tracks[conn.user_id] << std::endl;
 						other_conn->rtc_conn->setLocalDescription();
-						std::cerr << "NEW LOCAL DESC " << it->first << std::endl;
+						std::cerr << "NEW LOCAL DESC " << std::endl;
 					}
 				}
 
@@ -194,20 +220,19 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 					std::unique_lock lock(channels_mutex);
 					auto& chan = channels[conn.channel_id];
 					auto recv_conn = std::dynamic_pointer_cast<socket_vc_connection>(_conn);
-					std::cerr << "============== track " << recv_conn->user_id << std::endl;
 					std::unique_lock conn_lock(chan.connections_mutex);
 					for(auto it = chan.connections_begin(); it != chan.connections_end(); ++it){
 						std::shared_ptr<socket_vc_connection> conn = it->second.lock();
 						if(conn->user_id == recv_conn->user_id)
 							continue;
 						// TODO optimize if possible
-						if(conn->tracks.find(recv_conn->user_id) != conn->tracks.end()){
-							*(uint32_t*)(message.data() + 8) = SWAP32(ssrc);
-							conn->tracks[recv_conn->user_id]->send(message.data(), message.size());
-							std::cerr << "sending to conn " << it->first << " " << std::hex << conn->tracks[recv_conn->user_id]->description().getSSRCs()[0] << " " << *(uint32_t*)(message.data() + 8) << " " << ssrc << std::dec << std::endl;
+						if(conn->user_to_track.find(recv_conn->user_id) != conn->user_to_track.end()){
+							auto track = conn->tracks[conn->user_to_track[recv_conn->user_id]];
+							*(uint32_t*)(message.data() + 8) = SWAP32(ssrc); // change SSRC to the one specified in local description
+							std::cerr << "trying to send to track " << conn->user_id << " " << recv_conn->user_id << ", ssrc " << SWAP32(*(uint32_t*)(message.data() + 8)) << std::endl;
+							track->send(message.data(), message.size());
 						}
 					}
-					std::cerr << "================" << std::endl;
 				}, nullptr);
 
 				conn.rtc_conn->setLocalDescription();
@@ -234,7 +259,15 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 					if(conn.channel_id > 0){
 						{
 							std::unique_lock lock(channels_mutex);
-							channels[conn.channel_id].remove_user(conn.user_id);
+							socket_vc_channel& chan = channels[conn.channel_id];
+							chan.remove_user(conn.user_id);
+							for(auto it = chan.connections_begin(); it != chan.connections_end(); ++it){
+								auto other_conn = it->second.lock();
+								other_conn->remove_track(conn.user_id);
+								//other_conn->tracks.erase(conn.user_id);
+								//other_conn->rtc_conn->setLocalDescription();
+								std::cerr << "(ON REMOVE) NEW LOCAL DESC " << std::endl;
+							}
 						}
 
 						db_connection db_conn = pool.hold();
@@ -251,7 +284,7 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 				nlohmann::json j = nlohmann::json::parse(msg->str);
 				rtc::Description answer(j["sdp"].get<std::string>(), j["type"].get<std::string>());
 				conn.rtc_conn->setRemoteDescription(answer);
-				std::cerr << conn.user_id << std::endl;
+				std::cerr << "NEW REMOTE DESC " << conn.user_id << std::endl;
 			}
 		});
 	});

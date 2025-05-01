@@ -4,6 +4,7 @@
 #include "socket/main_server.h"
 #include "rtc/rtc.hpp"
 #include <shared_mutex>
+#include <stack>
 #include <random>
 
 class socket_vc_connection : public socket_connection
@@ -12,8 +13,15 @@ public:
 	int server_id = -1;
 	int channel_id = -1;
 
+	size_t add_track(rtc::SSRC ssrc, int user_id);
+	void remove_track(int user_id);
+
 	std::shared_ptr<rtc::PeerConnection> rtc_conn;
-	std::unordered_map<int, std::shared_ptr<rtc::Track>> tracks; // 0 - voice track receiver
+	// tracks are re-used, and vector is never shrunk, otherwise tracks are gonna be rejected until PeerConnection is re-opened.
+	std::vector<std::shared_ptr<rtc::Track>> tracks; // 0 - voice track receiver
+	std::stack<size_t> unused_tracks;
+	std::unordered_map<int, size_t> user_to_track; // user id to track index
+	size_t tracks_used;
 };
 class socket_vc_channel
 {

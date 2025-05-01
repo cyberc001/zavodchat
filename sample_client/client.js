@@ -65,11 +65,12 @@ function get_messages(server_id, channel_id) {
 }
 
 
-// сокеты
+// голосовой чат
 var vc_sock
 var rtc_conn
 
-var last_track_id = 0
+var vc_audio_elem = document.getElementById('vc_audio')
+var elem_to_track = {} // словарь, отображающий "id дорожки" -> "ссылка на DOM-элемент" (id элементов уже заняты user_id)
 
 function join_vc(channel_id) {
 	if(vc_sock)
@@ -92,16 +93,46 @@ function join_vc(channel_id) {
 			})
 
 			rtc_conn.ontrack = (ev) => {
-				console.log("track event", ev)
+				let user_id = Number(ev.transceiver.mid)
+				let audio_elem_id = 'vc_audio_' + user_id
+
+				if(!ev.streams[0].onremovetrack){
+					ev.streams[0].onremovetrack = (ev) => {
+						console.log("remove track event", ev)
+						elem_to_track[ev.track.id].remove()
+						delete elem_to_track[ev.track.id]
+					}
+				}
+
+				if(!document.getElementById(audio_elem_id)){
+					console.log("add track event", ev)
+					let audio_elem = document.createElement('audio')
+					audio_elem.id = audio_elem_id
+					elem_to_track[ev.track.id] = audio_elem
+					audio_elem.controls = 'controls'
+					audio_elem.srcObject = new MediaStream()
+					audio_elem.srcObject.addTrack(ev.track)
+
+					vc_audio_elem.appendChild(audio_elem)
+					audio_elem.play()
+				}
+
+				/*console.log("generic track event", ev)
 				const vc_audio = $(`#vc_audio_${last_track_id}`)[0]
-				++last_track_id
+
+				let user_id = Number(ev.transceiver.mid)
+				let track_id = last_track_id++
+				track_ids[user_id] = track_id
+
 				vc_audio.srcObject = new MediaStream()
 				vc_audio.srcObject.addTrack(ev.track)
 				vc_audio.play()
+				ev.streams[0].onremovetrack = (ev) => {
+					console.log("remove track event", ev)
+				}*/
 			}
 
 			rtc_conn.onsignalingstatechange = (state) => {
-				console.log("STATE", rtc_conn.signalingState);
 				if(rtc_conn.signalingState === "stable"){
 					const answer = rtc_conn.localDescription
 					console.log("sending answer:")
@@ -111,7 +142,6 @@ function join_vc(channel_id) {
 			}
 
 			const media = await navigator.mediaDevices.getUserMedia({audio: true})
-			console.log("tracks", await navigator.mediaDevices.enumerateDevices())
 			media.getTracks().forEach(track => {rtc_conn.addTrack(track, media); console.log("added track", track)})
 		}
 
