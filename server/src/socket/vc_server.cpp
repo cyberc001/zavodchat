@@ -15,6 +15,7 @@ size_t socket_vc_connection::add_track(rtc::SSRC ssrc, int user_id)
 		rtc::Description::Media desc = tracks[i]->description();
 		desc.clearSSRCs();
 		desc.addSSRC(ssrc, std::to_string(i));
+		desc.addAttribute("user:" + std::to_string(user_id));
 		tracks[i]->setDescription(desc);
 		return i;
 	}
@@ -22,6 +23,7 @@ size_t socket_vc_connection::add_track(rtc::SSRC ssrc, int user_id)
 	rtc::Description::Audio desc(std::to_string(i), rtc::Description::Direction::SendOnly);
 	desc.addOpusCodec(RTC_PAYLOAD_TYPE_VOICE);
 	desc.addSSRC(ssrc, std::to_string(i));
+	desc.addAttribute("user:" + std::to_string(user_id));
 	tracks.push_back(rtc_conn->addTrack(desc));
 	user_to_track[user_id] = i;
 	return i;
@@ -29,7 +31,12 @@ size_t socket_vc_connection::add_track(rtc::SSRC ssrc, int user_id)
 void socket_vc_connection::remove_track(int user_id)
 {
 	size_t i = user_to_track[user_id];
+	// remove user_id
+	rtc::Description::Media desc = tracks[i]->description();
+	desc.removeAttribute("user:" + std::to_string(user_id));
+	tracks[i]->setDescription(desc);
 	unused_tracks.push(i);
+	user_to_track.erase(user_id);
 }
 
 void socket_vc_channel::add_user(int user_id, std::shared_ptr<socket_vc_connection> conn)
@@ -137,7 +144,6 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 				conn.rtc_conn = std::make_shared<rtc::PeerConnection>(conf);
 
 				conn.rtc_conn->onSignalingStateChange([&conn, rtc_addr = this->rtc_addr](rtc::PeerConnection::SignalingState state){
-					std::cerr << "SIGNAL " << conn.user_id << " " << state << std::endl;
 					if(state == rtc::PeerConnection::SignalingState::HaveLocalOffer){
 						auto desc = conn.rtc_conn->localDescription();
 						// change candidates IPs to the specified public IP
@@ -159,8 +165,6 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 				});
 				conn.rtc_conn->onGatheringStateChange([&conn, rtc_addr = this->rtc_addr](rtc::PeerConnection::GatheringState state){
 					if(state == rtc::PeerConnection::GatheringState::Complete){
-						std::cerr << "GATHERED " << conn.user_id << std::endl;
-
 						auto desc = conn.rtc_conn->localDescription();
 						// change candidates IPs to the specified public IP
 						std::vector<rtc::Candidate> candidates = desc.value().extractCandidates();
@@ -229,7 +233,7 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 						if(conn->user_to_track.find(recv_conn->user_id) != conn->user_to_track.end()){
 							auto track = conn->tracks[conn->user_to_track[recv_conn->user_id]];
 							*(uint32_t*)(message.data() + 8) = SWAP32(ssrc); // change SSRC to the one specified in local description
-							std::cerr << "trying to send to track " << conn->user_id << " " << recv_conn->user_id << ", ssrc " << SWAP32(*(uint32_t*)(message.data() + 8)) << std::endl;
+							//std::cerr << "trying to send to track " << conn->user_id << " " << recv_conn->user_id << ", ssrc " << SWAP32(*(uint32_t*)(message.data() + 8)) << std::endl;
 							track->send(message.data(), message.size());
 						}
 					}
@@ -265,7 +269,7 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 								auto other_conn = it->second.lock();
 								other_conn->remove_track(conn.user_id);
 								//other_conn->tracks.erase(conn.user_id);
-								//other_conn->rtc_conn->setLocalDescription();
+								other_conn->rtc_conn->setLocalDescription();
 								std::cerr << "(ON REMOVE) NEW LOCAL DESC " << std::endl;
 							}
 						}
