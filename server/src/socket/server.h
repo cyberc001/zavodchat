@@ -11,6 +11,9 @@
 
 struct socket_event
 {
+	socket_event() = default;
+	socket_event(std::string);
+
 	std::string name;
 	nlohmann::json data;
 

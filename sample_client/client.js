@@ -14,6 +14,7 @@ function login(username, password)
 			$('#label_login').html(username)
 
 			get_servers()
+			serv_sock = new WebSocket(`wss://${hostname}:444?token=${auth_token}`)
 		})
 }
 
@@ -48,6 +49,7 @@ function get_channels(server_id)
 				else if(chan.type == 1)
 					channel_html.push(`<input type='button' value='${chan.name}' id='chan_${chan.id}' onclick='join_vc(${chan.id})' style='margin-top: 3px'/><br>`)
 			}
+			channel_html.push('<input type="button" value="toggle video" onclick="toggle_video()"/>');
 			$('#channel_panel').html(channel_html.join(''))
 		})
 }
@@ -73,7 +75,7 @@ function get_messages(server_id, channel_id)
 var vc_sock
 var rtc_conn
 
-var vc_audio_elem = document.getElementById('vc_audio')
+var vc_tracks_elem = document.getElementById('vc_tracks')
 var track_to_user_id = [] // индекс = (ID трека - 1); значение = ID пользователя (null если трек не используется)
 
 function parse_sdp_user_ids(sdp)
@@ -102,13 +104,13 @@ function parse_sdp_user_ids(sdp)
 
 	// убрать неиспользуемые треки (и показать вновь используемые) со страницы (чисто визуально)
 	for(let i = 0; i < track_to_user_id.length; ++i)
-		document.getElementById('vc_audio_' + (i + 1)).style.display = track_to_user_id[i] ? 'block' : 'none';
+		document.getElementById('vc_track_' + (i + 1)).style.display = track_to_user_id[i] ? 'block' : 'none';
 }
 
 function join_vc(channel_id)
 {
 	if(vc_sock)
-		vc_sock.close(1000, 'by_user');
+		vc_sock.close(1000, 'by_user')
 
 	vc_sock = new WebSocket(`wss://${hostname}:445?token=${auth_token}&channel=${channel_id}`)
 	vc_sock.onopen = function(ev) {
@@ -119,49 +121,84 @@ function join_vc(channel_id)
 			alert('vc socket closed: ' + ev.reason)
 	}
 	vc_sock.onmessage = async function(ev) {
-		const offer = JSON.parse(ev.data)
+		const event = JSON.parse(ev.data)
+		
+		if(event.name == "offer"){
+			const offer = event.data
+			
+			if(!rtc_conn){
+				rtc_conn = new RTCPeerConnection({
+					bundlePolicy: 'max-bundle'
+				})
 
-		if(!rtc_conn){
-			rtc_conn = new RTCPeerConnection({
-				bundlePolicy: 'max-bundle'
-			})
+				rtc_conn.ontrack = (ev) => {
+					let elem_id = 'vc_track_' + ev.transceiver.mid
+					// создать новый элемент воспроизведения, если появился новый трек
+					if(!document.getElementById(elem_id)){
+						track_to_user_id.push(null)
 
-			rtc_conn.ontrack = (ev) => {
-				let audio_elem_id = 'vc_audio_' + ev.transceiver.mid
-				// создать новый элемент воспроизведения аудио, если появился новый трек
-				if(!document.getElementById(audio_elem_id)){
-					track_to_user_id.push(null)
+						console.log('add track event', ev)
+						let track_elem 
+						if(ev.track.kind == 'audio'){
+							track_elem = document.createElement('audio')
+							track_elem.id = elem_id
+							track_elem.controls = 'controls'
+							track_elem.srcObject = new MediaStream()
+							track_elem.srcObject.addTrack(ev.track)
+						} else if(ev.track.kind == 'video'){
+							track_elem = document.createElement('video')
+							track_elem.id = elem_id
+							track_elem.controls = 'controls'
+							track_elem.srcObject = new MediaStream()
+							track_elem.srcObject.addTrack(ev.track)
+						}
 
-					console.log('add track event', ev)
-					let audio_elem = document.createElement('audio')
-					audio_elem.id = audio_elem_id
-					audio_elem.controls = 'controls'
-					audio_elem.srcObject = new MediaStream()
-					audio_elem.srcObject.addTrack(ev.track)
-
-					vc_audio_elem.appendChild(audio_elem)
-					audio_elem.play()
+						vc_tracks_elem.appendChild(track_elem)
+						track_elem.play()
+					}
 				}
+
+				rtc_conn.onsignalingstatechange = (state) => {
+					if(rtc_conn.signalingState === 'stable'){
+						const answer = rtc_conn.localDescription
+						console.log('sending answer:')
+						console.log(answer)
+						vc_sock.send(JSON.stringify({"name": "offer", "data": answer}))
+					}
+				}
+
+				const media = await navigator.mediaDevices.getUserMedia({audio: true})
+				media.getTracks().forEach(track => {rtc_conn.addTrack(track, media); console.log('added track', track)})
 			}
 
-			rtc_conn.onsignalingstatechange = (state) => {
-				if(rtc_conn.signalingState === 'stable'){
-					const answer = rtc_conn.localDescription
-					console.log('sending answer:')
-					console.log(answer)
-					vc_sock.send(JSON.stringify(answer))
-				}
-			}
+			console.log('setting to offer ', offer)
+			await rtc_conn.setRemoteDescription(offer)
+			parse_sdp_user_ids(offer.sdp)
 
-			const media = await navigator.mediaDevices.getUserMedia({audio: true})
-			media.getTracks().forEach(track => {rtc_conn.addTrack(track, media); console.log('added track', track)})
+			const answer = await rtc_conn.createAnswer()
+			await rtc_conn.setLocalDescription(answer)
 		}
+	}
+}
 
-		console.log('setting to offer ', offer)
-		await rtc_conn.setRemoteDescription(offer)
-		parse_sdp_user_ids(offer.sdp)
+async function toggle_video()
+{
+	if(!rtc_conn)
+		return;
 
-		const answer = await rtc_conn.createAnswer()
-		await rtc_conn.setLocalDescription(answer)
+	let enable = true;
+	for(s in rtc_conn.getSenders()){
+		if(s.track && s.track.kind == 'video'){
+			enable = false;
+			break;
+		}
+	}
+	
+	if(enable){
+		const media = await navigator.mediaDevices.getDisplayMedia()
+		media.getTracks().forEach(track => {rtc_conn.addTrack(track, media); console.log('added screenshare track', track)})
+		vc_sock.send(JSON.stringify({"name": "enable_video",
+				"data": ""
+				}))
 	}
 }

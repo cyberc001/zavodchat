@@ -13,15 +13,21 @@ public:
 	int server_id = -1;
 	int channel_id = -1;
 
-	size_t add_track(rtc::SSRC ssrc, int user_id);
-	void remove_track(int user_id);
-
 	std::shared_ptr<rtc::PeerConnection> rtc_conn;
+
 	// tracks are re-used, and vector is never shrunk, otherwise tracks are gonna be rejected until PeerConnection is re-opened.
 	std::vector<std::shared_ptr<rtc::Track>> tracks; // 0 - voice track receiver
-	std::stack<size_t> unused_tracks;
-	std::unordered_map<int, size_t> user_to_track; // user id to track index
-	size_t tracks_used;
+	
+	size_t add_audio_track(rtc::SSRC ssrc, int user_id);
+	void remove_audio_track(int user_id);
+	std::stack<size_t> unused_audio_tracks;
+	std::unordered_map<int, size_t> user_to_audio_track; // user id to track index
+	
+	size_t add_recv_video_track(rtc::SSRC ssrc);
+	size_t add_video_track(rtc::SSRC ssrc, int user_id);
+	void remove_video_track(int user_id);
+	std::stack<size_t> unused_video_tracks;
+	std::unordered_map<int, size_t> user_to_video_track; // -1 - this user (recv track) - optional
 };
 class socket_vc_channel
 {
@@ -41,6 +47,7 @@ private:
 };
 
 #define RTC_PAYLOAD_TYPE_VOICE 96
+#define RTC_PAYLOAD_TYPE_VIDEO 97
 
 class socket_vc_server: public socket_server
 {

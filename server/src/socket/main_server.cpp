@@ -58,6 +58,10 @@ socket_main_server::socket_main_server(std::string https_key, std::string https_
 				// remove user from connections map
 				std::unique_lock lock(connections_mutex);
 				connections.erase(conn.user_id);
+			} else if(msg->type == ix::WebSocketMessageType::Message){
+				for(auto it = recv_cbs.begin(); it != recv_cbs.end(); ++it){
+					(*it)(conn.user_id, socket_event(msg->str));
+				}
 			}
 		});
 	});
@@ -105,4 +109,9 @@ void socket_main_server::send_to_user(int user_id, pqxx::work& tx, socket_event 
 		if(sock)
 			sock->send(dumped);
 	}
+}
+
+void socket_main_server::add_recv_cb(main_server_recv_cb cb)
+{
+	recv_cbs.push_back(cb);
 }

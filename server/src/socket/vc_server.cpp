@@ -6,12 +6,12 @@
 
 #define SWAP32(x) ((((x)&0xFF000000) >> 24) | (((x)&0xFF) << 24) | (((x)&0xFF00) << 8) | (((x)&0xFF0000) >> 8))
 
-size_t socket_vc_connection::add_track(rtc::SSRC ssrc, int user_id)
+size_t socket_vc_connection::add_audio_track(rtc::SSRC ssrc, int user_id)
 {
-	if(!unused_tracks.empty()){
-		size_t i = unused_tracks.top();
-		unused_tracks.pop();
-		user_to_track[user_id] = i;
+	if(!unused_audio_tracks.empty()){
+		size_t i = unused_audio_tracks.top();
+		unused_audio_tracks.pop();
+		user_to_audio_track[user_id] = i;
 		rtc::Description::Media desc = tracks[i]->description();
 		desc.clearSSRCs();
 		desc.addSSRC(ssrc, std::to_string(i));
@@ -25,20 +25,64 @@ size_t socket_vc_connection::add_track(rtc::SSRC ssrc, int user_id)
 	desc.addSSRC(ssrc, std::to_string(i));
 	desc.addAttribute("user:" + std::to_string(user_id));
 	tracks.push_back(rtc_conn->addTrack(desc));
-	user_to_track[user_id] = i;
+	user_to_audio_track[user_id] = i;
 	return i;
 }
-void socket_vc_connection::remove_track(int user_id)
+void socket_vc_connection::remove_audio_track(int user_id)
 {
-	size_t i = user_to_track[user_id];
+	size_t i = user_to_audio_track[user_id];
 	// remove user_id
 	rtc::Description::Media desc = tracks[i]->description();
 	desc.removeAttribute("user:" + std::to_string(user_id));
 	tracks[i]->setDescription(desc);
-	unused_tracks.push(i);
-	user_to_track.erase(user_id);
+	unused_audio_tracks.push(i);
+	user_to_audio_track.erase(user_id);
 }
 
+size_t socket_vc_connection::add_recv_video_track(rtc::SSRC ssrc)
+{
+	size_t i = tracks.size();
+	rtc::Description::Video desc("my_video", rtc::Description::Direction::RecvOnly);
+	desc.addH264Codec(RTC_PAYLOAD_TYPE_VIDEO);
+	desc.setBitrate(8000*1024);
+	desc.addSSRC(ssrc, std::to_string(i));
+	tracks.push_back(rtc_conn->addTrack(desc));
+	user_to_video_track[-1] = i;
+	return i;
+}
+size_t socket_vc_connection::add_video_track(rtc::SSRC ssrc, int user_id)
+{
+	if(!unused_video_tracks.empty()){
+		size_t i = unused_video_tracks.top();
+		unused_video_tracks.pop();
+		user_to_video_track[user_id] = i;
+		rtc::Description::Media desc = tracks[i]->description();
+		desc.clearSSRCs();
+		desc.addSSRC(ssrc, std::to_string(i));
+		desc.addAttribute("user:" + std::to_string(user_id));
+		tracks[i]->setDescription(desc);
+		return i;
+	}
+	size_t i = tracks.size();
+	rtc::Description::Video desc(std::to_string(i), rtc::Description::Direction::SendOnly);
+	desc.addH264Codec(RTC_PAYLOAD_TYPE_VIDEO);
+	desc.setBitrate(8000*1024);
+	desc.addSSRC(ssrc, std::to_string(i));
+	desc.addAttribute("user:" + std::to_string(user_id));
+	tracks.push_back(rtc_conn->addTrack(desc));
+	user_to_video_track[user_id] = i;
+	return i;
+}
+void socket_vc_connection::remove_video_track(int user_id)
+{
+	size_t i = user_to_video_track[user_id];
+	// remove user_id
+	rtc::Description::Media desc = tracks[i]->description();
+	desc.removeAttribute("user:" + std::to_string(user_id));
+	tracks[i]->setDescription(desc);
+	unused_video_tracks.push(i);
+	user_to_video_track.erase(user_id);
+}
 void socket_vc_channel::add_user(int user_id, std::shared_ptr<socket_vc_connection> conn)
 {
 	std::unique_lock lock(connections_mutex);
@@ -156,11 +200,13 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 						desc.value().addCandidates(candidates);
 						desc.value().endCandidates();
 
-						nlohmann::json offer = {
+						socket_event ev;
+						ev.name = "offer";
+						ev.data = {
 							{"type", desc->typeString()},
 							{"sdp", std::string(desc.value())}
 						};
-						conn.sock.lock()->send(offer.dump());
+						conn.sock.lock()->send(ev.dump());
 					}
 				});
 				conn.rtc_conn->onGatheringStateChange([&conn, rtc_addr = this->rtc_addr](rtc::PeerConnection::GatheringState state){
@@ -174,16 +220,17 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 						desc.value().addCandidates(candidates);
 						desc.value().endCandidates();
 
-						nlohmann::json offer = {
+						socket_event ev;
+						ev.name = "offer";
+						ev.data = {
 							{"type", desc->typeString()},
 							{"sdp", std::string(desc.value())}
 						};
-						conn.sock.lock()->send(offer.dump());
+						conn.sock.lock()->send(ev.dump());
 					}
 				});
 
 				const rtc::SSRC ssrc = rndist(rneng);
-
 				auto rtp_conf = std::make_shared<rtc::RtpPacketizationConfig>(ssrc, "audio", RTC_PAYLOAD_TYPE_VOICE, rtc::OpusRtpPacketizer::DefaultClockRate);
 				auto session_recv = std::make_shared<rtc::RtcpReceivingSession>();
 				auto session_send = std::make_shared<rtc::RtcpSrReporter>(rtp_conf);
@@ -200,9 +247,9 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 					socket_vc_channel& chan = channels[conn.channel_id];
 					size_t i = 0;
 					for(auto it = chan.connections_begin(); it != chan.connections_end(); ++it){
-						conn.add_track(it->second.lock()->tracks[0]->description().getSSRCs()[0], it->first);
+						conn.add_audio_track(it->second.lock()->tracks[0]->description().getSSRCs()[0], it->first);
 
-						std::cerr << "ADDED TRACK " << conn.user_id << " " << it->first << " " << conn.tracks[it->first] << std::endl;
+						std::cerr << "ADDED AUDIO TRACK " << conn.user_id << " " << it->first << " " << conn.tracks[it->first] << std::endl;
 					}
 				}
 
@@ -212,8 +259,8 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 					socket_vc_channel& chan = channels[conn.channel_id];
 					for(auto it = chan.connections_begin(); it != chan.connections_end(); ++it){
 						auto other_conn = it->second.lock();
-						other_conn->add_track(ssrc, conn.user_id);
-						std::cerr << "ADDED TRACK " << other_conn->user_id << " " << conn.user_id << " " << other_conn->tracks[conn.user_id] << std::endl;
+						other_conn->add_audio_track(ssrc, conn.user_id);
+						std::cerr << "ADDED AUDIO TRACK " << other_conn->user_id << " " << conn.user_id << " " << other_conn->tracks[conn.user_id] << std::endl;
 						other_conn->rtc_conn->setLocalDescription();
 						std::cerr << "NEW LOCAL DESC " << std::endl;
 					}
@@ -229,11 +276,9 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 						std::shared_ptr<socket_vc_connection> conn = it->second.lock();
 						if(conn->user_id == recv_conn->user_id)
 							continue;
-						// TODO optimize if possible
-						if(conn->user_to_track.find(recv_conn->user_id) != conn->user_to_track.end()){
-							auto track = conn->tracks[conn->user_to_track[recv_conn->user_id]];
+						if(conn->user_to_audio_track.find(recv_conn->user_id) != conn->user_to_audio_track.end()){
+							auto track = conn->tracks[conn->user_to_audio_track[recv_conn->user_id]];
 							*(uint32_t*)(message.data() + 8) = SWAP32(ssrc); // change SSRC to the one specified in local description
-							//std::cerr << "trying to send to track " << conn->user_id << " " << recv_conn->user_id << ", ssrc " << SWAP32(*(uint32_t*)(message.data() + 8)) << std::endl;
 							track->send(message.data(), message.size());
 						}
 					}
@@ -267,8 +312,7 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 							chan.remove_user(conn.user_id);
 							for(auto it = chan.connections_begin(); it != chan.connections_end(); ++it){
 								auto other_conn = it->second.lock();
-								other_conn->remove_track(conn.user_id);
-								//other_conn->tracks.erase(conn.user_id);
+								other_conn->remove_audio_track(conn.user_id);
 								other_conn->rtc_conn->setLocalDescription();
 								std::cerr << "(ON REMOVE) NEW LOCAL DESC " << std::endl;
 							}
@@ -285,10 +329,72 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 					}
 				}
 			} else if(msg->type == ix::WebSocketMessageType::Message){
-				nlohmann::json j = nlohmann::json::parse(msg->str);
-				rtc::Description answer(j["sdp"].get<std::string>(), j["type"].get<std::string>());
-				conn.rtc_conn->setRemoteDescription(answer);
-				std::cerr << "NEW REMOTE DESC " << conn.user_id << std::endl;
+				socket_event ev(msg->str);
+				if(ev.name == "offer"){
+					rtc::Description answer(ev.data["sdp"].get<std::string>(), ev.data["type"].get<std::string>());
+					conn.rtc_conn->setRemoteDescription(answer);
+					std::cerr << "NEW REMOTE DESC " << conn.user_id << std::endl;
+				} else if(ev.name == "enable_video"){
+					const rtc::SSRC ssrc = rndist(rneng);
+					auto rtp_conf = std::make_shared<rtc::RtpPacketizationConfig>(ssrc, "audio", RTC_PAYLOAD_TYPE_VOICE, rtc::OpusRtpPacketizer::DefaultClockRate);
+					auto session_recv = std::make_shared<rtc::RtcpReceivingSession>();
+					auto session_send = std::make_shared<rtc::RtcpSrReporter>(rtp_conf);
+					session_recv->addToChain(session_send);
+
+					// create send tracks for all known connections
+					{
+						std::unique_lock lock(channels_mutex);
+						socket_vc_channel& chan = channels[conn.channel_id];
+						size_t i = 0;
+						for(auto it = chan.connections_begin(); it != chan.connections_end(); ++it){
+							auto other_conn = it->second.lock();
+							if(other_conn->user_to_video_track.find(-1) == other_conn->user_to_video_track.end())
+								continue; // this user didnt enable video
+							conn.add_video_track(other_conn->tracks[other_conn->user_to_video_track[-1]]->description().getSSRCs()[0], it->first);
+	
+							std::cerr << "ADDED VIDEO TRACK " << conn.user_id << " " << it->first << " " << conn.tracks[it->first] << std::endl;
+						}
+					}
+
+					// renegotiate a new send track for all known connections
+					{
+						std::unique_lock lock(channels_mutex);
+						socket_vc_channel& chan = channels[conn.channel_id];
+						for(auto it = chan.connections_begin(); it != chan.connections_end(); ++it){
+							auto other_conn = it->second.lock();
+
+							if(other_conn->user_id == conn.user_id)
+								continue;
+							other_conn->add_video_track(ssrc, conn.user_id);
+							std::cerr << "ADDED VIDEO TRACK " << other_conn->user_id << " " << conn.user_id << " " << other_conn->tracks[conn.user_id] << std::endl;
+							other_conn->rtc_conn->setLocalDescription();
+							std::cerr << "NEW LOCAL DESC " << std::endl;
+						}
+					}
+
+					size_t recv_i = conn.add_recv_video_track(ssrc);
+					conn.tracks[recv_i]->setMediaHandler(session_recv);
+					conn.tracks[recv_i]->onMessage([&, _conn, ssrc](rtc::binary message){
+						conn.tracks[recv_i]->requestBitrate(8000*1024);
+
+						std::unique_lock lock(channels_mutex);
+						auto& chan = channels[conn.channel_id];
+						auto recv_conn = std::dynamic_pointer_cast<socket_vc_connection>(_conn);
+						std::unique_lock conn_lock(chan.connections_mutex);
+						for(auto it = chan.connections_begin(); it != chan.connections_end(); ++it){
+							std::shared_ptr<socket_vc_connection> conn = it->second.lock();
+							if(conn->user_id == recv_conn->user_id)
+								continue;
+							if(conn->user_to_video_track.find(recv_conn->user_id) != conn->user_to_audio_track.end()){
+								auto track = conn->tracks[conn->user_to_video_track[recv_conn->user_id]];
+								*(uint32_t*)(message.data() + 8) = SWAP32(ssrc); // change SSRC to the one specified in local description
+								track->send(message.data(), message.size());
+							}
+						}
+					}, nullptr);
+
+					conn.rtc_conn->setLocalDescription();
+				}
 			}
 		});
 	});

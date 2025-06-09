@@ -3,6 +3,12 @@
 #include <iostream>
 #include <thread>
 
+socket_event::socket_event(std::string str)
+{
+	nlohmann::json obj = nlohmann::json::parse(str);
+	name = obj["name"]; data = obj["data"];
+}
+
 std::string socket_event::dump()
 {
 	nlohmann::json obj = {{"name", name}, {"data", data}};
