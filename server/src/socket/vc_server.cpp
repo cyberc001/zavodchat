@@ -42,7 +42,7 @@ void socket_vc_connection::remove_audio_track(int user_id)
 size_t socket_vc_connection::add_recv_video_track(rtc::SSRC ssrc)
 {
 	size_t i = tracks.size();
-	rtc::Description::Video desc("my_video", rtc::Description::Direction::RecvOnly);
+	rtc::Description::Video desc("my_video" + std::string(i), rtc::Description::Direction::RecvOnly);
 	desc.addH264Codec(RTC_PAYLOAD_TYPE_VIDEO);
 	desc.setBitrate(8000*1024);
 	desc.addSSRC(ssrc, std::to_string(i));
@@ -241,15 +241,22 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 				desc.addOpusCodec(RTC_PAYLOAD_TYPE_VOICE);
 				desc.addSSRC(ssrc, "my_voice");
 				conn.tracks.push_back(conn.rtc_conn->addTrack(desc));
-				// create send tracks for all known connections
+				// create send tracks for all already established connections
 				{
 					std::unique_lock lock(channels_mutex);
 					socket_vc_channel& chan = channels[conn.channel_id];
-					size_t i = 0;
 					for(auto it = chan.connections_begin(); it != chan.connections_end(); ++it){
-						conn.add_audio_track(it->second.lock()->tracks[0]->description().getSSRCs()[0], it->first);
+						auto other_conn = it->second.lock();
 
-						std::cerr << "ADDED AUDIO TRACK " << conn.user_id << " " << it->first << " " << conn.tracks[it->first] << std::endl;
+						conn.add_audio_track(other_conn->tracks[0]->description().getSSRCs()[0], it->first);
+
+						std::cerr << "ADDED ALREADY ESTABLISHED AUDIO TRACK " << conn.user_id << " " << it->first << " " << conn.tracks[it->first] << std::endl;
+
+						if(other_conn->user_to_video_track.find(-1) == other_conn->user_to_video_track.end())
+							continue; // this user didnt enable video
+						conn.add_video_track(other_conn->tracks[other_conn->user_to_video_track[-1]]->description().getSSRCs()[0], it->first);
+
+						std::cerr << "ADDED ALREADY ESTABLISHED VIDEO TRACK " << conn.user_id << " " << it->first << " " << conn.tracks[it->first] << std::endl;
 					}
 				}
 
@@ -341,21 +348,6 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 					auto session_send = std::make_shared<rtc::RtcpSrReporter>(rtp_conf);
 					session_recv->addToChain(session_send);
 
-					// create send tracks for all known connections
-					{
-						std::unique_lock lock(channels_mutex);
-						socket_vc_channel& chan = channels[conn.channel_id];
-						size_t i = 0;
-						for(auto it = chan.connections_begin(); it != chan.connections_end(); ++it){
-							auto other_conn = it->second.lock();
-							if(other_conn->user_to_video_track.find(-1) == other_conn->user_to_video_track.end())
-								continue; // this user didnt enable video
-							conn.add_video_track(other_conn->tracks[other_conn->user_to_video_track[-1]]->description().getSSRCs()[0], it->first);
-	
-							std::cerr << "ADDED VIDEO TRACK " << conn.user_id << " " << it->first << " " << conn.tracks[it->first] << std::endl;
-						}
-					}
-
 					// renegotiate a new send track for all known connections
 					{
 						std::unique_lock lock(channels_mutex);
@@ -385,7 +377,7 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 							std::shared_ptr<socket_vc_connection> conn = it->second.lock();
 							if(conn->user_id == recv_conn->user_id)
 								continue;
-							if(conn->user_to_video_track.find(recv_conn->user_id) != conn->user_to_audio_track.end()){
+							if(conn->user_to_video_track.find(recv_conn->user_id) != conn->user_to_video_track.end()){
 								auto track = conn->tracks[conn->user_to_video_track[recv_conn->user_id]];
 								*(uint32_t*)(message.data() + 8) = SWAP32(ssrc); // change SSRC to the one specified in local description
 								track->send(message.data(), message.size());

@@ -92,7 +92,7 @@ function parse_sdp_user_ids(sdp)
 		let l = lines[i]
 		if(l[0] == 'm' || i == lines.length - 1){
 			if(mid !== null && user_id !== null){
-				track_to_user_id[Number(mid) - 1] = Number(user_id)
+				track_to_user_id[Number(mid)] = Number(user_id)
 				mid = null
 				user_id = null
 			}
@@ -103,8 +103,11 @@ function parse_sdp_user_ids(sdp)
 	}
 
 	// убрать неиспользуемые треки (и показать вновь используемые) со страницы (чисто визуально)
-	for(let i = 0; i < track_to_user_id.length; ++i)
-		document.getElementById('vc_track_' + (i + 1)).style.display = track_to_user_id[i] ? 'block' : 'none';
+	for(let i = 0; i < track_to_user_id.length; ++i){
+		let elem = document.getElementById('vc_track_' + i)
+		if(elem)
+			elem.style.display = track_to_user_id[i] ? 'block' : 'none'
+	}
 }
 
 function join_vc(channel_id)
@@ -175,6 +178,17 @@ function join_vc(channel_id)
 			await rtc_conn.setRemoteDescription(offer)
 			parse_sdp_user_ids(offer.sdp)
 
+			// добавить видео выход (хром либо RTCPeerConnection умственно отсталые и не может понять, что к видеодорожкам других пользователей, которые recvonly, не надо добавлять RTCRtpSender с my_video)
+			for(const tr of rtc_conn.getTransceivers()){
+				if(tr.mid == "my_video"){
+					const media = await navigator.mediaDevices.getDisplayMedia()
+					media.getTracks().forEach(track => {
+						tr.sender.replaceTrack(track)
+						tr.direction = tr.currentDirection = "sendonly"
+					})
+				}
+			}
+
 			const answer = await rtc_conn.createAnswer()
 			await rtc_conn.setLocalDescription(answer)
 		}
@@ -195,8 +209,6 @@ async function toggle_video()
 	}
 	
 	if(enable){
-		const media = await navigator.mediaDevices.getDisplayMedia()
-		media.getTracks().forEach(track => {rtc_conn.addTrack(track, media); console.log('added screenshare track', track)})
 		vc_sock.send(JSON.stringify({"name": "enable_video",
 				"data": ""
 				}))
