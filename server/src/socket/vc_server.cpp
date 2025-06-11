@@ -286,7 +286,6 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 						if(conn->user_id == recv_conn->user_id)
 							continue;
 						if(conn->user_to_audio_track.find(recv_conn->user_id) != conn->user_to_audio_track.end()){
-							std::cerr << "SEND AUDIO FROM " << conn->user_id << "(" << ssrc << ") TO " << recv_conn->user_id << std::endl;
 							auto track = conn->tracks[conn->user_to_audio_track[recv_conn->user_id]];
 							*(uint32_t*)(message.data() + 8) = SWAP32(ssrc); // change SSRC to the one specified in local description
 							track->send(message.data(), message.size());
@@ -346,12 +345,33 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 					}
 				}
 			} else if(msg->type == ix::WebSocketMessageType::Message){
-				socket_event ev(msg->str);
+				socket_event ev;
+				try{
+					ev = socket_event(msg->str);
+				} catch(nlohmann::json::parse_error& e) {
+					ev.name = "error";
+					ev.data = "invalid JSON data";
+					conn.sock.lock()->send(ev.dump());
+					return;
+				}
+
 				if(ev.name == "offer"){
 					rtc::Description answer(ev.data["sdp"].get<std::string>(), ev.data["type"].get<std::string>());
 					conn.rtc_conn->setRemoteDescription(answer);
 					std::cerr << "NEW REMOTE DESC " << conn.user_id << std::endl;
 				} else if(ev.name == "enable_video"){
+					if(ev.data.contains("bitrate")){
+						if(!ev.data["bitrate"].is_number_unsigned()){
+							ev.name = "error";
+							ev.data = "invalid bitrate";
+							conn.sock.lock()->send(ev.dump());
+							return;
+						}
+						conn.recv_video_track_bitrate = std::min(max_video_bitrate, ev.data["bitrate"].get<unsigned>());
+					}
+					else
+						conn.recv_video_track_bitrate = max_video_bitrate;
+
 					const rtc::SSRC ssrc = rndist(rneng);
 					auto rtp_conf = std::make_shared<rtc::RtpPacketizationConfig>(ssrc, "audio", RTC_PAYLOAD_TYPE_VOICE, rtc::OpusRtpPacketizer::DefaultClockRate);
 					auto session_recv = std::make_shared<rtc::RtcpReceivingSession>();
@@ -382,7 +402,7 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 						socket_vc_connection& conn = dynamic_cast<socket_vc_connection&>(*_conn);
 						if(!conn.recv_video_track_requested_bitrate){
 							conn.recv_video_track_requested_bitrate = true;
-							conn.tracks[recv_i]->requestBitrate(8000*1024);
+							conn.tracks[recv_i]->requestBitrate(conn.recv_video_track_bitrate);
 						}
 
 						auto& chan = channels[conn.channel_id];

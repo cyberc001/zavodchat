@@ -82,6 +82,9 @@ config::config(std::ifstream& fd)
 	if(cfg["max_roles_per_server"].is_number_unsigned())
 		max_roles_per_server = cfg["max_roles_per_server"].get<unsigned>();
 
+	if(cfg["max_video_bitrate"].is_number_unsigned())
+		max_video_bitrate = cfg["max_video_bitrate"].get<unsigned>();
+
 	// create directories for file storage
 	std::filesystem::create_directories(user_avatar_path);
 	std::filesystem::create_directories(server_avatar_path);

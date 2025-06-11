@@ -30,6 +30,7 @@ public:
 	std::unordered_map<int, size_t> user_to_video_track; // -1 - this user (recv track) - optional
 	
 	bool recv_video_track_requested_bitrate = false;
+	unsigned recv_video_track_bitrate;
 };
 class socket_vc_channel
 {
@@ -63,6 +64,9 @@ public:
 	void get_channel_users(int channel_id, std::vector<int>& users); // get users connected to voice channel
 
 	std::unordered_map<int, socket_vc_channel> channels;
+
+	/* CONFIG PARAMETERS */
+	unsigned max_video_bitrate = 10240000;
 private:
 	db_connection_pool& pool;
 	socket_main_server& sserv;

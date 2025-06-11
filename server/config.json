@@ -32,5 +32,7 @@
 
 	"file_storage_size": 10737418240,
 
-	"max_get_count": 50
+	"max_get_count": 50,
+
+	"max_video_bitrate": 10240000
 }

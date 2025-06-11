@@ -207,12 +207,15 @@ function join_vc(channel_id)
 
 			const answer = await rtc_conn.createAnswer()
 			await rtc_conn.setLocalDescription(answer)
+		} else if (event.name == "error"){
+			alert('vc socket error: ' + event.data)
 		}
 	}
 }
 
 var video_enabled = false
 var video_to_enable = null
+const video_bitrate = 9000*1024
 async function toggle_video()
 {
 	if(!rtc_conn)
@@ -221,7 +224,7 @@ async function toggle_video()
 	if(!video_enabled){
 		video_to_enable = true
 		vc_sock.send(JSON.stringify({"name": "enable_video",
-				"data": ""
+				"data": {"bitrate": video_bitrate}
 				}))
 	} else{
 		video_to_enable = false

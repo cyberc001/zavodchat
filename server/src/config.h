@@ -37,6 +37,8 @@ public:
 	unsigned max_channels_per_server = 50;
 	unsigned max_roles_per_server = 50;
 
+	unsigned max_video_bitrate = 10240000;
+
 private:
 	std::string db_host; unsigned db_port = 5432;
 	std::string db_user, db_password, db_name;
