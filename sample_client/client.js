@@ -179,15 +179,25 @@ function join_vc(channel_id)
 			parse_sdp_user_ids(offer.sdp)
 
 			// добавить видео выход (хром либо RTCPeerConnection умственно отсталые и не могут понять, что к видеодорожкам других пользователей, которые recvonly, не надо добавлять RTCRtpSender с my_video)
-			for(const tr of rtc_conn.getTransceivers()){
-				if(tr.mid == "my_video" && !tr.sender.track){
-					const media = await navigator.mediaDevices.getDisplayMedia()
-					media.getTracks().forEach(track => {
-						tr.sender.replaceTrack(track)
-						tr.direction = tr.currentDirection = "sendonly"
-					})
+			if(video_to_enable == true){
+				for(const tr of rtc_conn.getTransceivers()){
+					if(tr.mid == "my_video" && !tr.sender.track){
+						const media = await navigator.mediaDevices.getDisplayMedia()
+						media.getTracks().forEach(track => {
+							tr.sender.replaceTrack(track)
+							tr.direction = tr.currentDirection = "sendonly"
+						})
+						break
+					}
 				}
+				video_enabled = true
+			} else if(video_to_enable == false){
+				for(const tr of rtc_conn.getTransceivers())
+					if(tr.mid == "my_video")
+						await tr.sender.replaceTrack(null)
+				video_enabled = false
 			}
+			video_to_enable = null
 
 			const answer = await rtc_conn.createAnswer()
 			await rtc_conn.setLocalDescription(answer)
@@ -195,25 +205,20 @@ function join_vc(channel_id)
 	}
 }
 
+var video_enabled = false
+var video_to_enable = null
 async function toggle_video()
 {
 	if(!rtc_conn)
 		return;
 
-	let enable = true;
-	for(s of rtc_conn.getSenders()){
-		if(s.track && s.track.kind == 'video'){
-			enable = false;
-			break;
-		}
-	}
-	
-	console.log("ENABLE", enable)
-	if(enable){
+	if(!video_enabled){
+		video_to_enable = true
 		vc_sock.send(JSON.stringify({"name": "enable_video",
 				"data": ""
 				}))
 	} else{
+		video_to_enable = false
 		vc_sock.send(JSON.stringify({"name": "disable_video",
 				"data": ""
 				}))
