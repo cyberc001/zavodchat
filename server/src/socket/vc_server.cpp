@@ -269,7 +269,7 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 					for(auto it = chan.connections_begin(); it != chan.connections_end(); ++it){
 						auto other_conn = it->second.lock();
 						other_conn->add_audio_track(ssrc, conn.user_id);
-						std::cerr << "ADDED AUDIO TRACK " << other_conn->user_id << " " << conn.user_id << " " << other_conn->tracks[conn.user_id] << std::endl;
+						std::cerr << "ADDED AUDIO TRACK " << other_conn->user_id << " " << conn.user_id << " " << other_conn->tracks[other_conn->user_to_audio_track[conn.user_id]] << std::endl;
 						other_conn->rtc_conn->setLocalDescription();
 						std::cerr << "NEW LOCAL DESC " << std::endl;
 					}
@@ -286,6 +286,7 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 						if(conn->user_id == recv_conn->user_id)
 							continue;
 						if(conn->user_to_audio_track.find(recv_conn->user_id) != conn->user_to_audio_track.end()){
+							std::cerr << "SEND AUDIO FROM " << conn->user_id << "(" << ssrc << ") TO " << recv_conn->user_id << std::endl;
 							auto track = conn->tracks[conn->user_to_audio_track[recv_conn->user_id]];
 							*(uint32_t*)(message.data() + 8) = SWAP32(ssrc); // change SSRC to the one specified in local description
 							track->send(message.data(), message.size());
@@ -296,20 +297,25 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 				conn.rtc_conn->setLocalDescription();
 
 				// add to connections map when connection is established
-				conn.rtc_conn->onStateChange([&](rtc::PeerConnection::State state){
+				conn.rtc_conn->onStateChange([&, _conn](rtc::PeerConnection::State state){
+					auto conn = std::dynamic_pointer_cast<socket_vc_connection>(_conn);
 					if(state == rtc::PeerConnection::State::Connected){
 						{
 							std::unique_lock lock(channels_mutex);
-							channels[conn.channel_id].add_user(conn.user_id, std::dynamic_pointer_cast<socket_vc_connection>(_conn));
+							channels[conn->channel_id].add_user(conn->user_id, conn);
 						}
 
 						db_connection db_conn = pool.hold();
 						pqxx::work tx{*db_conn};
 						socket_event ev;
-						resource_utils::json_set_ids(ev.data, conn.server_id, conn.channel_id);
-						ev.data["id"] = conn.user_id;
+						resource_utils::json_set_ids(ev.data, conn->server_id, conn->channel_id);
+						ev.data["id"] = conn->user_id;
 						ev.name = "user_joined_vc";
-						sserv.send_to_channel(conn.channel_id, tx, ev);	
+						sserv.send_to_channel(conn->channel_id, tx, ev);	
+					} else if(state == rtc::PeerConnection::State::Failed){
+						if(!conn->sock.expired())
+							conn->sock.lock()->close(ix::WebSocketCloseConstants::kNormalClosureCode, "ICE failed");
+						conn->rtc_conn->close();
 					}
 				});
 			} else if(msg->type == ix::WebSocketMessageType::Close){
@@ -364,7 +370,7 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 							other_conn->add_video_track(ssrc, conn.user_id);
 							std::cerr << "ADDED VIDEO TRACK " << other_conn->user_id << " " << conn.user_id << " " << other_conn->tracks[conn.user_id] << std::endl;
 							other_conn->rtc_conn->setLocalDescription();
-							std::cerr << "NEW LOCAL DESC " << std::endl;
+							std::cerr << "NEW LOCAL DESC " << other_conn->user_id << std::endl;
 						}
 					}
 

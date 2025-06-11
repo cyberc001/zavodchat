@@ -114,6 +114,10 @@ function join_vc(channel_id)
 {
 	if(vc_sock)
 		vc_sock.close(1000, 'by_user')
+	if(rtc_conn){
+		rtc_conn.close()
+		rtc_conn = null
+	}
 
 	vc_sock = new WebSocket(`wss://${hostname}:445?token=${auth_token}&channel=${channel_id}`)
 	vc_sock.onopen = function(ev) {
@@ -133,32 +137,34 @@ function join_vc(channel_id)
 				rtc_conn = new RTCPeerConnection({
 					bundlePolicy: 'max-bundle'
 				})
+				vc_tracks_elem.innterHTML = "" // убрать все медиа-элементы (могли остаться с предыдущих соединений)
 
 				rtc_conn.ontrack = (ev) => {
 					let elem_id = 'vc_track_' + ev.transceiver.mid
-					// создать новый элемент воспроизведения, если появился новый трек
-					if(!document.getElementById(elem_id)){
-						track_to_user_id.push(null)
+					// (пере)создать новый элемент воспроизведения, если появился новый трек
+					if(document.getElementById(elem_id))
+						document.getElementById(elem_id).remove()
 
-						console.log('add track event', ev)
-						let track_elem 
-						if(ev.track.kind == 'audio'){
-							track_elem = document.createElement('audio')
-							track_elem.id = elem_id
-							track_elem.controls = 'controls'
-							track_elem.srcObject = new MediaStream()
-							track_elem.srcObject.addTrack(ev.track)
-						} else if(ev.track.kind == 'video'){
-							track_elem = document.createElement('video')
-							track_elem.id = elem_id
-							track_elem.controls = 'controls'
-							track_elem.srcObject = new MediaStream()
-							track_elem.srcObject.addTrack(ev.track)
-						}
+					track_to_user_id.push(null)
 
-						vc_tracks_elem.appendChild(track_elem)
-						track_elem.play()
+					console.log('add track event', ev)
+					let track_elem 
+					if(ev.track.kind == 'audio'){
+						track_elem = document.createElement('audio')
+						track_elem.id = elem_id
+						track_elem.controls = 'controls'
+						track_elem.srcObject = new MediaStream()
+						track_elem.srcObject.addTrack(ev.track)
+					} else if(ev.track.kind == 'video'){
+						track_elem = document.createElement('video')
+						track_elem.id = elem_id
+						track_elem.controls = 'controls'
+						track_elem.srcObject = new MediaStream()
+						track_elem.srcObject.addTrack(ev.track)
 					}
+
+					vc_tracks_elem.appendChild(track_elem)
+					track_elem.play()
 				}
 
 				rtc_conn.onsignalingstatechange = (state) => {
