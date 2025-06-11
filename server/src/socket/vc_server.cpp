@@ -315,6 +315,7 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 			} else if(msg->type == ix::WebSocketMessageType::Close){
 				if(msg->closeInfo.reason != "User is already connected"){
 					if(conn.channel_id > 0){
+						// remove audio and video tracks from already established connections
 						{
 							std::unique_lock lock(channels_mutex);
 							socket_vc_channel& chan = channels[conn.channel_id];
@@ -322,6 +323,7 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 							for(auto it = chan.connections_begin(); it != chan.connections_end(); ++it){
 								auto other_conn = it->second.lock();
 								other_conn->remove_audio_track(conn.user_id);
+								other_conn->remove_video_track(conn.user_id);
 								other_conn->rtc_conn->setLocalDescription();
 								std::cerr << "(ON REMOVE) NEW LOCAL DESC " << std::endl;
 							}
