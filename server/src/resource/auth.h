@@ -18,6 +18,8 @@ public:
 
 	session_token create_session(int user_id, pqxx::work& tx); // ensures that there are no duplicates
 
+	/* CONFIG PARAMETERS */
+
 	// in seconds
 	size_t session_lifetime = 1800;
 	size_t cleanup_period = 3600;

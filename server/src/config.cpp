@@ -12,57 +12,55 @@ std::string msg_type_error(std::string key, json& cfg, std::string expected)
 }
 
 config::config(){}
+
+#define CHECK_IF_STRING(param){\
+	if(cfg[#param].type() != json::value_t::string)\
+		throw std::logic_error{msg_type_error(#param, cfg, "string")};\
+}
+#define GET_IF_UNSIGNED(param){\
+	if(cfg[#param].is_number_unsigned())\
+		(param) = cfg[#param].get<unsigned>();\
+}
+#define GET_IF_STRING(param){\
+	if(cfg[#param].is_string())\
+		(param) = cfg[#param].get<std::string>();\
+}
+
+
 config::config(std::ifstream& fd)
 {
 	json cfg = json::parse(fd);
 
-	if(cfg["db_host"].type() != json::value_t::string)
-		throw std::logic_error{msg_type_error("db_host", cfg, "string")};
-	if(cfg["db_user"].type() != json::value_t::string)
-		throw std::logic_error{msg_type_error("db_user", cfg, "string")};
-	if(cfg["db_password"].type() != json::value_t::string)
-		throw std::logic_error{msg_type_error("db_password", cfg, "string")};
-	if(cfg["db_name"].type() != json::value_t::string)
-		throw std::logic_error{msg_type_error("db_name", cfg, "string")};
+	CHECK_IF_STRING(db_host)
+	CHECK_IF_STRING(db_user)
+	CHECK_IF_STRING(db_password)
+	CHECK_IF_STRING(db_name)
 
-	if(cfg["https_key"].type() != json::value_t::string)
-		throw std::logic_error{msg_type_error("https_key", cfg, "string")};
-	if(cfg["https_cert"].type() != json::value_t::string)
-		throw std::logic_error{msg_type_error("https_cert", cfg, "string")};
+	CHECK_IF_STRING(https_key)
+	CHECK_IF_STRING(https_cert)
 
 	db_host = cfg["db_host"].get<std::string>();
-	if(cfg["db_port"].is_number_unsigned())
-		db_port = cfg["db_port"].get<unsigned>();
+	GET_IF_UNSIGNED(db_port)
 	db_user = cfg["db_user"].get<std::string>();
 	db_password = cfg["db_password"].get<std::string>();
 	db_name = cfg["db_name"].get<std::string>();
 
-	if(cfg["https_port"].is_number_unsigned())
-		https_port = cfg["https_port"].get<unsigned>();
-	if(cfg["ws_port"].is_number_unsigned())
-		ws_port = cfg["ws_port"].get<unsigned>();
-	if(cfg["ws_vc_port"].is_number_unsigned())
-		ws_vc_port = cfg["ws_vc_port"].get<unsigned>();
+	GET_IF_UNSIGNED(https_port)
+	GET_IF_UNSIGNED(ws_port)
+	GET_IF_UNSIGNED(ws_vc_port)
 
-	if(cfg["user_avatar_path"].is_string())
-		user_avatar_path = cfg["user_avatar_path"].get<std::string>();
-	if(cfg["server_avatar_path"].is_string())
-		server_avatar_path = cfg["server_avatar_path"].get<std::string>();
-	if(cfg["file_storage_path"].is_string())
-		file_storage_path = cfg["file_storage_path"].get<std::string>();
+	GET_IF_STRING(user_avatar_path)
+	GET_IF_STRING(server_avatar_path)
+	GET_IF_STRING(file_storage_path)
 
-	if(cfg["rtc_addr"].is_string())
-		rtc_addr = cfg["rtc_addr"].get<std::string>();
-	if(cfg["rtc_port"].is_number_unsigned())
-		rtc_port = cfg["rtc_port"].get<unsigned>();
+	GET_IF_STRING(rtc_addr)
+	GET_IF_UNSIGNED(rtc_port)
 
 	https_key = cfg["https_key"].get<std::string>();
 	https_cert = cfg["https_cert"].get<std::string>();
 
-	if(cfg["min_username_length"].is_number_unsigned())
-		min_username_length = cfg["min_username_length"].get<unsigned>();
-	if(cfg["min_password_length"].is_number_unsigned())
-		min_password_length = cfg["min_password_length"].get<unsigned>();
+	GET_IF_UNSIGNED(min_username_length)
+	GET_IF_UNSIGNED(min_password_length)
 
 	if(cfg["session_lifetime"].is_number_unsigned())
 		session_lifetime = cfg["session_lifetime"].get<size_t>();
@@ -72,18 +70,13 @@ config::config(std::ifstream& fd)
 	if(cfg["file_storage_size"].is_number_unsigned())
 		file_storage_size = cfg["file_storage_size"].get<size_t>();
 
-	if(cfg["max_get_count"].is_number_unsigned())
-		max_get_count = cfg["max_get_count"].get<unsigned>();
+	GET_IF_UNSIGNED(max_get_count)
 
-	if(cfg["servers_owned_per_user"].is_number_unsigned())
-		servers_owned_per_user = cfg["servers_owned_per_user"].get<unsigned>();
-	if(cfg["max_channels_per_server"].is_number_unsigned())
-		max_channels_per_server = cfg["max_channels_per_server"].get<unsigned>();
-	if(cfg["max_roles_per_server"].is_number_unsigned())
-		max_roles_per_server = cfg["max_roles_per_server"].get<unsigned>();
+	GET_IF_UNSIGNED(servers_owned_per_user)
+	GET_IF_UNSIGNED(max_channels_per_server)
+	GET_IF_UNSIGNED(max_roles_per_server)
 
-	if(cfg["max_video_bitrate"].is_number_unsigned())
-		max_video_bitrate = cfg["max_video_bitrate"].get<unsigned>();
+	GET_IF_UNSIGNED(max_video_bitrate)
 
 	// create directories for file storage
 	std::filesystem::create_directories(user_avatar_path);

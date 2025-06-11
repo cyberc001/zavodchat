@@ -14,6 +14,7 @@ public:
 
 	std::shared_ptr<http_response> render_GET(const http_request&); // user calls this method to join the server
 
+	/* CONFIG PARAMETERS */
 	size_t cleanup_period = 3600;
 private:
 	db_connection_pool& pool;

@@ -8,9 +8,11 @@
 class file_utils
 {
 public:
+	/* CONFIG PARAMETERS */
 	static std::string 	// avatars, indefinite storage but 1 image per user/server
 				user_avatar_storage_path,
 				server_avatar_storage_path,
+				// files, limited space per user
 				file_storage_path;
 	static size_t file_storage_size;
 
