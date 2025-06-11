@@ -25,7 +25,7 @@ COPY ./src /build/src
 COPY config.json /build/
 
 WORKDIR /build
-RUN cmake . && make -j 4
+RUN cmake -DCMAKE_BUILD_TYPE=Debug . && make -j 4
 
 ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
 WORKDIR /build

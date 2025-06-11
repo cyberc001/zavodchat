@@ -41,8 +41,10 @@ void socket_vc_connection::remove_audio_track(int user_id)
 
 size_t socket_vc_connection::add_recv_video_track(rtc::SSRC ssrc)
 {
+	if(user_to_video_track.find(-1) != user_to_video_track.end())
+		return user_to_video_track[-1];
 	size_t i = tracks.size();
-	rtc::Description::Video desc("my_video" + std::string(i), rtc::Description::Direction::RecvOnly);
+	rtc::Description::Video desc("my_video", rtc::Description::Direction::RecvOnly);
 	desc.addH264Codec(RTC_PAYLOAD_TYPE_VIDEO);
 	desc.setBitrate(8000*1024);
 	desc.addSSRC(ssrc, std::to_string(i));
@@ -366,10 +368,15 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 
 					size_t recv_i = conn.add_recv_video_track(ssrc);
 					conn.tracks[recv_i]->setMediaHandler(session_recv);
-					conn.tracks[recv_i]->onMessage([&, _conn, ssrc](rtc::binary message){
-						conn.tracks[recv_i]->requestBitrate(8000*1024);
-
+					conn.tracks[recv_i]->onMessage([&, recv_i, _conn, ssrc](rtc::binary message){
+						// TODO maybe optimize mutex
 						std::unique_lock lock(channels_mutex);
+						socket_vc_connection& conn = dynamic_cast<socket_vc_connection&>(*_conn);
+						if(!conn.recv_video_track_requested_bitrate){
+							conn.recv_video_track_requested_bitrate = true;
+							conn.tracks[recv_i]->requestBitrate(8000*1024);
+						}
+
 						auto& chan = channels[conn.channel_id];
 						auto recv_conn = std::dynamic_pointer_cast<socket_vc_connection>(_conn);
 						std::unique_lock conn_lock(chan.connections_mutex);
@@ -386,6 +393,17 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 					}, nullptr);
 
 					conn.rtc_conn->setLocalDescription();
+				} else if(ev.name == "disable_video"){
+					// remove video track for this user from all established connections
+					{
+						std::unique_lock lock(channels_mutex);
+						socket_vc_channel& chan = channels[conn.channel_id];
+						for(auto it = chan.connections_begin(); it != chan.connections_end(); ++it){
+							auto other_conn = it->second.lock();
+							other_conn->remove_video_track(conn.user_id);
+							other_conn->rtc_conn->setLocalDescription();
+						}
+					}
 				}
 			}
 		});

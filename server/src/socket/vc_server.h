@@ -28,6 +28,8 @@ public:
 	void remove_video_track(int user_id);
 	std::stack<size_t> unused_video_tracks;
 	std::unordered_map<int, size_t> user_to_video_track; // -1 - this user (recv track) - optional
+	
+	bool recv_video_track_requested_bitrate = false;
 };
 class socket_vc_channel
 {
