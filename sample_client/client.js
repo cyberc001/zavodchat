@@ -1,4 +1,4 @@
-var hostname = 'localhost'
+var hostname = '178.66.39.51'
 
 // токены и прочие данные хранятся в локальных переменных
 var auth_token
@@ -74,6 +74,7 @@ function get_messages(server_id, channel_id)
 // голосовой чат
 var vc_sock
 var rtc_conn
+var rtc_conn_ready = false
 
 var vc_tracks_elem = document.getElementById('vc_tracks')
 var track_to_user_id = [] // индекс = (ID трека - 1); значение = ID пользователя (null если трек не используется)
@@ -177,8 +178,13 @@ function join_vc(channel_id)
 				}
 
 				const media = await navigator.mediaDevices.getUserMedia({audio: true})
-				media.getTracks().forEach(track => {rtc_conn.addTrack(track, media); console.log('added track', track)})
-			}
+				for(track of media.getTracks()){
+					rtc_conn.addTrack(track, media)
+					console.log('added track', track)
+				}
+				rtc_conn_ready = true
+			} else if(!rtc_conn_ready) // дублирующийся оффер во время настройки медиа
+				return;
 
 			console.log('setting to offer ', offer)
 			await rtc_conn.setRemoteDescription(offer)
@@ -189,10 +195,10 @@ function join_vc(channel_id)
 				for(const tr of rtc_conn.getTransceivers()){
 					if(tr.mid == "my_video" && !tr.sender.track){
 						const media = await navigator.mediaDevices.getDisplayMedia()
-						media.getTracks().forEach(track => {
+						for(track of media.getTracks()){
 							tr.sender.replaceTrack(track)
 							tr.direction = tr.currentDirection = "sendonly"
-						})
+						}
 						break
 					}
 				}
