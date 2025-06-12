@@ -104,6 +104,11 @@ std::shared_ptr<http_response> server_id_resource::render_POST(const http_reques
 		if(new_owner_id == user_id)
 			return create_response::string("User is already an owner", 202);
 
+		pqxx::result r = tx.exec("SELECT owner_id FROM servers WHERE owner_id = $1", pqxx::params(new_owner_id));
+		if(r.size() >= owned_per_user)
+			return create_response::string("User owns more than " + std::to_string(owned_per_user) + " servers", 403);
+
+
 		err = resource_utils::check_server_member(new_owner_id, server_id, tx);
 		if(err) return err;
 		tx.exec("UPDATE servers SET owner_id = $1 WHERE server_id = $2", pqxx::params(new_owner_id, server_id));
