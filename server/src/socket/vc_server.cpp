@@ -356,9 +356,12 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 				}
 
 				if(ev.name == "offer"){
-					rtc::Description answer(ev.data["sdp"].get<std::string>(), ev.data["type"].get<std::string>());
-					conn.rtc_conn->setRemoteDescription(answer);
-					std::cerr << "NEW REMOTE DESC " << conn.user_id << std::endl;
+					// Sometimes duplicate offers appear. Probably due to state changing to HaveLocalOffer more than one time. (Protect against malicious clients aswell)
+					if(conn.rtc_conn->signalingState() != rtc::PeerConnection::SignalingState::Stable){
+						rtc::Description answer(ev.data["sdp"].get<std::string>(), ev.data["type"].get<std::string>());
+						conn.rtc_conn->setRemoteDescription(answer);
+						std::cerr << "NEW REMOTE DESC " << conn.user_id << std::endl;
+					}
 				} else if(ev.name == "enable_video"){
 					if(ev.data.contains("bitrate")){
 						if(!ev.data["bitrate"].is_number_unsigned()){
