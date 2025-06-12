@@ -15,6 +15,7 @@
 #include "resource/server_bans.h"
 #include "resource/role.h"
 #include "resource/user_status.h"
+#include "resource/params.h"
 
 #include "db/init.h"
 
@@ -124,6 +125,9 @@ int main()
 	ws.register_resource("/files/upload/{fname}", &server_file_manage);
 	server_user_file_resource server_user_file(pool, cfg.file_storage_path);
 	ws.register_resource("/files/upload/{user_id}/{fname}", &server_user_file);
+
+	params_resource params(cfg);
+	ws.register_resource("/params", &params);
 
 
 	ws.start(false);
