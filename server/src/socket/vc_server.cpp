@@ -19,12 +19,19 @@ size_t socket_vc_connection::add_audio_track(rtc::SSRC ssrc, int user_id)
 		tracks[i]->setDescription(desc);
 		return i;
 	}
+	auto rtp_conf = std::make_shared<rtc::RtpPacketizationConfig>(ssrc, "audio", RTC_PAYLOAD_TYPE_VOICE, rtc::OpusRtpPacketizer::DefaultClockRate);
+	auto session_recv = std::make_shared<rtc::RtcpReceivingSession>();
+	auto session_send = std::make_shared<rtc::RtcpSrReporter>(rtp_conf);
+	session_recv->addToChain(session_send);
+
 	size_t i = tracks.size();
 	rtc::Description::Audio desc(std::to_string(i), rtc::Description::Direction::SendOnly);
 	desc.addOpusCodec(RTC_PAYLOAD_TYPE_VOICE);
 	desc.addSSRC(ssrc, std::to_string(i));
 	desc.addAttribute("user:" + std::to_string(user_id));
+
 	tracks.push_back(rtc_conn->addTrack(desc));
+	tracks[i]->setMediaHandler(session_recv);
 	user_to_audio_track[user_id] = i;
 	return i;
 }
@@ -44,6 +51,7 @@ size_t socket_vc_connection::add_recv_video_track(rtc::SSRC ssrc)
 	if(user_to_video_track.find(-1) != user_to_video_track.end())
 		return user_to_video_track[-1];
 	size_t i = tracks.size();
+	std::cerr << "USING NEW RECV VIDEO TRACK " << i << " FOR USER " << user_id << std::endl;
 	rtc::Description::Video desc("my_video", rtc::Description::Direction::RecvOnly);
 	desc.addH264Codec(RTC_PAYLOAD_TYPE_VIDEO);
 	desc.setBitrate(8000*1024);
@@ -57,6 +65,7 @@ size_t socket_vc_connection::add_video_track(rtc::SSRC ssrc, int user_id)
 	if(!unused_video_tracks.empty()){
 		size_t i = unused_video_tracks.top();
 		unused_video_tracks.pop();
+		std::cerr << "USING VACANT VIDEO TRACK " << i << " FOR USER " << user_id << std::endl;
 		user_to_video_track[user_id] = i;
 		rtc::Description::Media desc = tracks[i]->description();
 		desc.clearSSRCs();
@@ -65,18 +74,28 @@ size_t socket_vc_connection::add_video_track(rtc::SSRC ssrc, int user_id)
 		tracks[i]->setDescription(desc);
 		return i;
 	}
+	auto rtp_conf = std::make_shared<rtc::RtpPacketizationConfig>(ssrc, "audio", RTC_PAYLOAD_TYPE_VOICE, rtc::OpusRtpPacketizer::DefaultClockRate);
+	auto session_recv = std::make_shared<rtc::RtcpReceivingSession>();
+	auto session_send = std::make_shared<rtc::RtcpSrReporter>(rtp_conf);
+	session_recv->addToChain(session_send);
+
 	size_t i = tracks.size();
+	std::cerr << "USING NEW VIDEO TRACK " << i << " FOR USER " << user_id << std::endl;
 	rtc::Description::Video desc(std::to_string(i), rtc::Description::Direction::SendOnly);
 	desc.addH264Codec(RTC_PAYLOAD_TYPE_VIDEO);
 	desc.setBitrate(8000*1024);
 	desc.addSSRC(ssrc, std::to_string(i));
 	desc.addAttribute("user:" + std::to_string(user_id));
+
 	tracks.push_back(rtc_conn->addTrack(desc));
 	user_to_video_track[user_id] = i;
+	tracks[i]->setMediaHandler(session_recv);
 	return i;
 }
 void socket_vc_connection::remove_video_track(int user_id)
 {
+	if(user_to_video_track.find(user_id) == user_to_video_track.end())
+		return;
 	size_t i = user_to_video_track[user_id];
 	// remove user_id
 	rtc::Description::Media desc = tracks[i]->description();
@@ -252,13 +271,13 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 
 						conn.add_audio_track(other_conn->tracks[0]->description().getSSRCs()[0], it->first);
 
-						std::cerr << "ADDED ALREADY ESTABLISHED AUDIO TRACK " << conn.user_id << " " << it->first << " " << conn.tracks[it->first] << std::endl;
+						std::cerr << "ADDED ALREADY ESTABLISHED AUDIO TRACK " << conn.user_id << " " << it->first << " " << conn.tracks[conn.user_to_audio_track[it->first]] << std::endl;
 
 						if(other_conn->user_to_video_track.find(-1) == other_conn->user_to_video_track.end())
 							continue; // this user didnt enable video
 						conn.add_video_track(other_conn->tracks[other_conn->user_to_video_track[-1]]->description().getSSRCs()[0], it->first);
-
-						std::cerr << "ADDED ALREADY ESTABLISHED VIDEO TRACK " << conn.user_id << " " << it->first << " " << conn.tracks[it->first] << std::endl;
+						std::cerr << "ADDED ALREADY ESTABLISHED VIDEO TRACK " << conn.user_id << " " << it->first << " " << conn.tracks[conn.user_to_video_track[it->first]] << std::endl;
+						other_conn->users_needing_keyframe.insert(conn.user_id);
 					}
 				}
 
@@ -402,14 +421,12 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 					conn.tracks[recv_i]->onMessage([&, recv_i, _conn, ssrc](rtc::binary message){
 						// TODO maybe optimize mutex
 						std::unique_lock lock(channels_mutex);
-						socket_vc_connection& conn = dynamic_cast<socket_vc_connection&>(*_conn);
-						if(!conn.recv_video_track_requested_bitrate){
-							conn.recv_video_track_requested_bitrate = true;
-							conn.tracks[recv_i]->requestBitrate(conn.recv_video_track_bitrate);
-						}
-
 						auto& chan = channels[conn.channel_id];
 						auto recv_conn = std::dynamic_pointer_cast<socket_vc_connection>(_conn);
+						if(!recv_conn->recv_video_track_requested_bitrate){
+							recv_conn->recv_video_track_requested_bitrate = true;
+							recv_conn->tracks[recv_i]->requestBitrate(recv_conn->recv_video_track_bitrate);
+						}
 						std::unique_lock conn_lock(chan.connections_mutex);
 						for(auto it = chan.connections_begin(); it != chan.connections_end(); ++it){
 							std::shared_ptr<socket_vc_connection> conn = it->second.lock();
@@ -417,7 +434,14 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 								continue;
 							if(conn->user_to_video_track.find(recv_conn->user_id) != conn->user_to_video_track.end()){
 								auto track = conn->tracks[conn->user_to_video_track[recv_conn->user_id]];
-								*(uint32_t*)(message.data() + 8) = SWAP32(ssrc); // change SSRC to the one specified in local description
+								if(recv_conn->users_needing_keyframe.find(conn->user_id) != recv_conn->users_needing_keyframe.end()){
+									recv_conn->tracks[recv_i]->requestKeyframe();
+									recv_conn->users_needing_keyframe.erase(conn->user_id);
+								}
+
+								//std::cerr << "SEND VIDEO FROM " << recv_conn->user_id << " TO " << conn->user_id << " mid " << track->mid() << " ssrc " << ssrc << " ptr " << track << std::endl;
+								auto rtp = reinterpret_cast<rtc::RtpHeader*>(message.data());
+								rtp->setSsrc(ssrc);
 								track->send(message.data(), message.size());
 							}
 						}

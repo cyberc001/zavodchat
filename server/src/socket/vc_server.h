@@ -31,6 +31,7 @@ public:
 	
 	bool recv_video_track_requested_bitrate = false;
 	unsigned recv_video_track_bitrate;
+	std::set<size_t> users_needing_keyframe; // user IDs that, after appearing in connections list, should be generated keyframes for
 };
 class socket_vc_channel
 {

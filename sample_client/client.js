@@ -1,4 +1,4 @@
-var hostname = '178.66.39.51'
+var hostname = 'localhost'
 
 // токены и прочие данные хранятся в локальных переменных
 var auth_token
@@ -154,14 +154,12 @@ function join_vc(channel_id)
 						track_elem = document.createElement('audio')
 						track_elem.id = elem_id
 						track_elem.controls = 'controls'
-						track_elem.srcObject = new MediaStream()
-						track_elem.srcObject.addTrack(ev.track)
+						track_elem.srcObject = ev.streams[0]
 					} else if(ev.track.kind == 'video'){
 						track_elem = document.createElement('video')
 						track_elem.id = elem_id
 						track_elem.controls = 'controls'
-						track_elem.srcObject = new MediaStream()
-						track_elem.srcObject.addTrack(ev.track)
+						track_elem.srcObject = ev.streams[0]
 					}
 
 					vc_tracks_elem.appendChild(track_elem)
