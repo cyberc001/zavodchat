@@ -6,6 +6,7 @@ var auth_token
 // запросы
 function login(username, password)
 {
+	leave_vc()
 	$.get(`https://${hostname}/auth?username=${username}&password=${password}`)
 		.fail(function(jqxhr, _status, _error) { alert(jqxhr.responseText) })
 		.done(function(data) {
@@ -111,10 +112,9 @@ function parse_sdp_user_ids(sdp)
 	}
 }
 
-function join_vc(channel_id)
+function leave_vc()
 {
-	if(vc_sock)
-		vc_sock.close(1000, 'by_user')
+	vc_tracks_elem.innerHTML = "" // убрать все медиа-элементы
 	if(rtc_conn){
 		// удаляем демонстрацию экрана
 		for(const tr of rtc_conn.getTransceivers())
@@ -122,10 +122,18 @@ function join_vc(channel_id)
 				tr.sender.track.stop()
 		video_enabled = false
 		video_to_enable = null
-				
+		track_to_user_id = []
+		rtc_conn_ready = false
+
 		rtc_conn.close()
 		rtc_conn = null
 	}
+	if(vc_sock)
+		vc_sock.close(1000, 'by_user')
+}
+function join_vc(channel_id)
+{
+	leave_vc()
 
 	vc_sock = new WebSocket(`wss://${hostname}:445?token=${auth_token}&channel=${channel_id}`)
 	vc_sock.onopen = function(ev) {
@@ -142,10 +150,10 @@ function join_vc(channel_id)
 			const offer = event.data
 			
 			if(!rtc_conn){
+				console.log("CREATING NEW CONN")
 				rtc_conn = new RTCPeerConnection({
 					bundlePolicy: 'max-bundle'
 				})
-				vc_tracks_elem.innterHTML = "" // убрать все медиа-элементы (могли остаться с предыдущих соединений)
 
 				rtc_conn.ontrack = (ev) => {
 					let elem_id = 'vc_track_' + ev.transceiver.mid

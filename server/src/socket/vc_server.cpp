@@ -307,6 +307,7 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 					auto& chan = channels[conn.channel_id];
 					auto recv_conn = std::dynamic_pointer_cast<socket_vc_connection>(_conn);
 					std::unique_lock conn_lock(chan.connections_mutex);
+					//std::cerr << "msg from " << recv_conn->user_id << " " << ssrc << std::endl;
 					for(auto it = chan.connections_begin(); it != chan.connections_end(); ++it){
 						std::shared_ptr<socket_vc_connection> conn = it->second.lock();
 						if(conn->user_id == recv_conn->user_id)
@@ -314,6 +315,7 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 						if(conn->user_to_audio_track.find(recv_conn->user_id) != conn->user_to_audio_track.end()){
 							auto track = conn->tracks[conn->user_to_audio_track[recv_conn->user_id]];
 							*(uint32_t*)(message.data() + 8) = SWAP32(ssrc); // change SSRC to the one specified in local description
+							//std::cerr << "SEND AUDIO FROM " << recv_conn->user_id << " TO " << conn->user_id << " mid " << track->mid() << " ssrc " << ssrc << std::endl;
 							track->send(message.data(), message.size());
 						}
 					}
@@ -341,6 +343,9 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 						if(!conn->sock.expired())
 							conn->sock.lock()->close(ix::WebSocketCloseConstants::kNormalClosureCode, "ICE failed");
 						conn->rtc_conn->close();
+					} else if(state == rtc::PeerConnection::State::Closed){
+						if(!conn->sock.expired())
+							conn->sock.lock()->close(ix::WebSocketCloseConstants::kNormalClosureCode, "by_user");
 					}
 				});
 			} else if(msg->type == ix::WebSocketMessageType::Close){
