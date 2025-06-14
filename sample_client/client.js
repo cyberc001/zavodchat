@@ -1,4 +1,4 @@
-var hostname = 'localhost'
+var hostname = '192.168.0.13'
 
 // токены и прочие данные хранятся в локальных переменных
 var auth_token
@@ -116,6 +116,13 @@ function join_vc(channel_id)
 	if(vc_sock)
 		vc_sock.close(1000, 'by_user')
 	if(rtc_conn){
+		// удаляем демонстрацию экрана
+		for(const tr of rtc_conn.getTransceivers())
+			if(tr.mid == "my_video")
+				tr.sender.track.stop()
+		video_enabled = false
+		video_to_enable = null
+				
 		rtc_conn.close()
 		rtc_conn = null
 	}
