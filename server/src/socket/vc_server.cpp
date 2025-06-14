@@ -48,8 +48,11 @@ void socket_vc_connection::remove_audio_track(int user_id)
 
 size_t socket_vc_connection::add_recv_video_track(rtc::SSRC ssrc)
 {
-	if(user_to_video_track.find(-1) != user_to_video_track.end())
+	recv_video_track_closed = false;
+	if(user_to_video_track.find(-1) != user_to_video_track.end()){
+		users_needing_keyframe.insert(-1);
 		return user_to_video_track[-1];
+	}
 	size_t i = tracks.size();
 	std::cerr << "USING NEW RECV VIDEO TRACK " << i << " FOR USER " << user_id << std::endl;
 	rtc::Description::Video desc("my_video", rtc::Description::Direction::RecvOnly);
@@ -59,6 +62,10 @@ size_t socket_vc_connection::add_recv_video_track(rtc::SSRC ssrc)
 	tracks.push_back(rtc_conn->addTrack(desc));
 	user_to_video_track[-1] = i;
 	return i;
+}
+bool socket_vc_connection::has_active_recv_video_track()
+{
+	return user_to_video_track.find(-1) != user_to_video_track.end() && !recv_video_track_closed;
 }
 size_t socket_vc_connection::add_video_track(rtc::SSRC ssrc, int user_id)
 {
@@ -382,8 +389,17 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 						std::cerr << "NEW REMOTE DESC " << conn.user_id << std::endl;
 					}
 				} else if(ev.name == "enable_video"){
+					if(conn.has_active_recv_video_track()){
+						socket_event ev;
+						ev.name = "error";
+						ev.data = "video is already enabled for this user";
+						conn.sock.lock()->send(ev.dump());
+						return;
+					}
+
 					if(ev.data.contains("bitrate")){
 						if(!ev.data["bitrate"].is_number_unsigned()){
+							socket_event ev;
 							ev.name = "error";
 							ev.data = "invalid bitrate";
 							conn.sock.lock()->send(ev.dump());
@@ -438,7 +454,10 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 									recv_conn->tracks[recv_i]->requestKeyframe();
 									recv_conn->users_needing_keyframe.erase(conn->user_id);
 								}
-
+								if(recv_conn->users_needing_keyframe.find(-1) != recv_conn->users_needing_keyframe.end()){
+									recv_conn->tracks[recv_i]->requestKeyframe();
+									recv_conn->users_needing_keyframe.erase(-1);
+								}
 								//std::cerr << "SEND VIDEO FROM " << recv_conn->user_id << " TO " << conn->user_id << " mid " << track->mid() << " ssrc " << ssrc << " ptr " << track << std::endl;
 								auto rtp = reinterpret_cast<rtc::RtpHeader*>(message.data());
 								rtp->setSsrc(ssrc);
@@ -458,6 +477,7 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 							other_conn->remove_video_track(conn.user_id);
 							other_conn->rtc_conn->setLocalDescription();
 						}
+						conn.recv_video_track_closed = true;
 					}
 				}
 			}

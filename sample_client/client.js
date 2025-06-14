@@ -193,9 +193,12 @@ function join_vc(channel_id)
 				for(const tr of rtc_conn.getTransceivers()){
 					if(tr.mid == "my_video" && !tr.sender.track){
 						const media = await navigator.mediaDevices.getDisplayMedia()
-						for(track of media.getTracks()){
-							tr.sender.replaceTrack(track)
-							tr.direction = tr.currentDirection = "sendonly"
+						const track = media.getTracks()[0]
+						tr.sender.replaceTrack(track)
+						tr.direction = tr.currentDirection = "sendonly"
+						track.onended = () => {
+							if(video_enabled)
+								toggle_video()
 						}
 						break
 					}
@@ -203,8 +206,10 @@ function join_vc(channel_id)
 				video_enabled = true
 			} else if(video_to_enable == false){
 				for(const tr of rtc_conn.getTransceivers())
-					if(tr.mid == "my_video")
+					if(tr.mid == "my_video"){
+						tr.sender.track.stop()
 						await tr.sender.replaceTrack(null)
+					}
 				video_enabled = false
 			}
 			video_to_enable = null

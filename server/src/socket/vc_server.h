@@ -24,6 +24,7 @@ public:
 	std::unordered_map<int, size_t> user_to_audio_track; // user id to track index
 	
 	size_t add_recv_video_track(rtc::SSRC ssrc);
+	bool has_active_recv_video_track();
 	size_t add_video_track(rtc::SSRC ssrc, int user_id);
 	void remove_video_track(int user_id);
 	std::stack<size_t> unused_video_tracks;
@@ -31,7 +32,8 @@ public:
 	
 	bool recv_video_track_requested_bitrate = false;
 	unsigned recv_video_track_bitrate;
-	std::set<size_t> users_needing_keyframe; // user IDs that, after appearing in connections list, should be generated keyframes for
+	std::set<size_t> users_needing_keyframe; // user IDs that, after appearing in connections list, should be generated keyframes for. If -1 is present, a keyframe should be generated regardless of receiving user (ex. on video re-open)
+	bool recv_video_track_closed = true;
 };
 class socket_vc_channel
 {
