@@ -20,7 +20,7 @@ std::shared_ptr<http_response> server_resource::render_GET(const http_request& r
 	if(err) return err;
 
 	nlohmann::json res = nlohmann::json::array();
-	pqxx::result r = tx.exec("SELECT server_id, name, avatar FROM user_x_server NATURAL JOIN servers WHERE user_id = $1", pqxx::params(user_id));
+	pqxx::result r = tx.exec("SELECT distinct server_id, name, avatar FROM user_x_server NATURAL JOIN servers WHERE user_id = $1", pqxx::params(user_id));
 	for(size_t i = 0; i < r.size(); ++i)
 		res += resource_utils::server_json_from_row(r[i]);
 	return create_response::string(res.dump(), 200);
