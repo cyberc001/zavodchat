@@ -50,11 +50,16 @@ size_t socket_vc_connection::add_recv_video_track(rtc::SSRC ssrc)
 {
 	recv_video_track_closed = false;
 	if(user_to_video_track.find(-1) != user_to_video_track.end()){
+		size_t i = user_to_video_track[-1];
+		rtc::Description::Media desc = tracks[i]->description();
+		desc.clearSSRCs();
+		desc.addSSRC(ssrc, std::to_string(i));
+		tracks[i]->setDescription(desc);
+
 		users_needing_keyframe.insert(-1);
-		return user_to_video_track[-1];
+		return i;
 	}
 	size_t i = tracks.size();
-	std::cerr << "USING NEW RECV VIDEO TRACK " << i << " FOR USER " << user_id << std::endl;
 	rtc::Description::Video desc("my_video", rtc::Description::Direction::RecvOnly);
 	desc.addH264Codec(RTC_PAYLOAD_TYPE_VIDEO);
 	desc.setBitrate(8000*1024);
@@ -72,7 +77,6 @@ size_t socket_vc_connection::add_video_track(rtc::SSRC ssrc, int user_id)
 	if(!unused_video_tracks.empty()){
 		size_t i = unused_video_tracks.top();
 		unused_video_tracks.pop();
-		std::cerr << "USING VACANT VIDEO TRACK " << i << " FOR USER " << user_id << std::endl;
 		user_to_video_track[user_id] = i;
 		rtc::Description::Media desc = tracks[i]->description();
 		desc.clearSSRCs();
@@ -278,12 +282,12 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 
 						conn.add_audio_track(other_conn->tracks[0]->description().getSSRCs()[0], it->first);
 
-						std::cerr << "ADDED ALREADY ESTABLISHED AUDIO TRACK " << conn.user_id << " " << it->first << " " << conn.tracks[conn.user_to_audio_track[it->first]] << std::endl;
+						std::cerr << "ADDED ALREADY ESTABLISHED AUDIO TRACK " << conn.user_id << " " << it->first << " " << conn.tracks[conn.user_to_audio_track[it->first]]->description().getSSRCs()[0] << std::endl;
 
-						if(other_conn->user_to_video_track.find(-1) == other_conn->user_to_video_track.end())
+						if(other_conn->user_to_video_track.find(-1) == other_conn->user_to_video_track.end() || other_conn->recv_video_track_closed)
 							continue; // this user didnt enable video
 						conn.add_video_track(other_conn->tracks[other_conn->user_to_video_track[-1]]->description().getSSRCs()[0], it->first);
-						std::cerr << "ADDED ALREADY ESTABLISHED VIDEO TRACK " << conn.user_id << " " << it->first << " " << conn.tracks[conn.user_to_video_track[it->first]] << std::endl;
+						std::cerr << "ADDED ALREADY ESTABLISHED VIDEO TRACK " << conn.user_id << " " << it->first << " " << conn.tracks[conn.user_to_video_track[it->first]]->description().getSSRCs()[0] << std::endl;
 						other_conn->users_needing_keyframe.insert(conn.user_id);
 					}
 				}
@@ -295,7 +299,7 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 					for(auto it = chan.connections_begin(); it != chan.connections_end(); ++it){
 						auto other_conn = it->second.lock();
 						other_conn->add_audio_track(ssrc, conn.user_id);
-						std::cerr << "ADDED AUDIO TRACK " << other_conn->user_id << " " << conn.user_id << " " << other_conn->tracks[other_conn->user_to_audio_track[conn.user_id]] << std::endl;
+						std::cerr << "ADDED AUDIO TRACK " << other_conn->user_id << " " << conn.user_id << " " << other_conn->tracks[other_conn->user_to_audio_track[conn.user_id]]->description().getSSRCs()[0] << std::endl;
 						other_conn->rtc_conn->setLocalDescription();
 						std::cerr << "NEW LOCAL DESC " << std::endl;
 					}
@@ -307,7 +311,7 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 					auto& chan = channels[conn.channel_id];
 					auto recv_conn = std::dynamic_pointer_cast<socket_vc_connection>(_conn);
 					std::unique_lock conn_lock(chan.connections_mutex);
-					//std::cerr << "msg from " << recv_conn->user_id << " " << ssrc << std::endl;
+					std::cerr << "AUDIO FROM " << recv_conn->user_id << " " << ssrc << std::endl;
 					for(auto it = chan.connections_begin(); it != chan.connections_end(); ++it){
 						std::shared_ptr<socket_vc_connection> conn = it->second.lock();
 						if(conn->user_id == recv_conn->user_id)
@@ -431,7 +435,7 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 							if(other_conn->user_id == conn.user_id)
 								continue;
 							other_conn->add_video_track(ssrc, conn.user_id);
-							std::cerr << "ADDED VIDEO TRACK " << other_conn->user_id << " " << conn.user_id << " " << other_conn->tracks[conn.user_id] << std::endl;
+							std::cerr << "ADDED VIDEO TRACK " << other_conn->user_id << " " << conn.user_id << " " << other_conn->tracks[other_conn->user_to_video_track[conn.user_id]]->description().getSSRCs()[0] << std::endl;
 							other_conn->rtc_conn->setLocalDescription();
 							std::cerr << "NEW LOCAL DESC " << other_conn->user_id << std::endl;
 						}
