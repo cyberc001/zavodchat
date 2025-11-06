@@ -1,0 +1,27 @@
+html, body {
+	height: 100%;
+}
+body {
+	background: #4B4444;
+	color: #F6F5F5;
+
+	display: flex;
+	margin: 0;
+	flex-direction: column;
+}
+
+.login_frame {
+	margin: auto;
+
+	padding: 24px;
+
+	border-style: solid;
+	border-width: 2px;
+	border-radius: 4px;
+	border-color: #969A9F;
+
+	font-size: 28px;
+	text-align: center;
+}
+
+
