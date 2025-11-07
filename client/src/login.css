@@ -9,9 +9,14 @@ body {
 	margin: 0;
 	flex-direction: column;
 }
+::selection {
+	background: #644646;
+}
 
-.login_frame {
+.center_frame {
 	margin: auto;
+
+	width: 250px;
 
 	padding: 24px;
 
@@ -23,5 +28,12 @@ body {
 	font-size: 28px;
 	text-align: center;
 }
-
-
+.suggestion_text {
+	font-size: 16px;
+	text-align: left;
+}
+a {
+	color: #ff4848;
+	text-decoration-line: underline;
+	cursor: pointer;
+}
