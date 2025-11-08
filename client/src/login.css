@@ -32,7 +32,11 @@ body {
 	font-size: 16px;
 	text-align: left;
 }
-a {
+.suggestion_button_link {
+	background: none;
+	padding: 0;
+	border: none;
+
 	color: #ff4848;
 	text-decoration-line: underline;
 	cursor: pointer;

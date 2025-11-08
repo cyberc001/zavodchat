@@ -27,7 +27,7 @@ std::shared_ptr<http_response> server_users_resource::render_GET(const http_requ
 	for(size_t i = 0; i < r.size(); ++i)
 		res += resource_utils::user_json_from_row(r[i]);
 
-	return create_response::string(res.dump(), 200);
+	return create_response::string(req, res.dump(), 200);
 }
 
 server_user_id_resource::server_user_id_resource(db_connection_pool& pool, socket_main_server& sserv) : base_resource(), pool{pool}, sserv{sserv}
@@ -43,17 +43,17 @@ std::shared_ptr<http_response> server_user_id_resource::render_DELETE(const http
 	auto err = resource_utils::parse_server_id(req, tx, user_id, server_id);
 	if(err) return err;
 
-	err = role_utils::check_permission1(tx, server_id, user_id, PERM1_BAN_MEMBERS);
+	err = role_utils::check_permission1(req, tx, server_id, user_id, PERM1_BAN_MEMBERS);
 	if(err) return err;
 
 	int server_user_id;
 	err = resource_utils::parse_server_user_id(req, server_id, tx, server_user_id);
 	if(err) return err;
 
-	if(!resource_utils::check_server_owner(server_user_id, server_id, tx))
-		return create_response::string("Owner cannot be kicked", 403);
+	if(!resource_utils::check_server_owner(req, server_user_id, server_id, tx))
+		return create_response::string(req, "Owner cannot be kicked", 403);
 	if(server_user_id != user_id){
-		err = role_utils::check_user_lower_than_other(tx, server_id, user_id, server_user_id);
+		err = role_utils::check_user_lower_than_other(req, tx, server_id, user_id, server_user_id);
 		if(err) return err;
 	}
 
@@ -66,7 +66,7 @@ std::shared_ptr<http_response> server_user_id_resource::render_DELETE(const http
 	tx.exec("DELETE FROM user_x_server WHERE user_id = $1 AND server_id = $2", pqxx::params(server_user_id, server_id));
 	tx.commit();
 
-	return create_response::string("Kicked", 200);
+	return create_response::string(req, "Kicked", 200);
 }
 
 
@@ -92,7 +92,7 @@ std::shared_ptr<http_response> server_user_id_roles_resource::render_GET(const h
 	for(size_t i = 0; i < r.size(); ++i)
 		res += role_utils::role_json_from_row(r[i]);
 
-	return create_response::string(res.dump(), 200);
+	return create_response::string(req, res.dump(), 200);
 }
 
 server_user_role_id_resource::server_user_role_id_resource(db_connection_pool& pool, socket_main_server& sserv) : base_resource(), pool{pool}, sserv{sserv}
@@ -117,19 +117,19 @@ std::shared_ptr<http_response> server_user_role_id_resource::render_PUT(const ht
 	err = role_utils::parse_server_role_id(req, server_id, tx, server_role_id);
 	if(err) return err;
 
-	err = role_utils::check_permission1(tx, server_id, user_id, PERM1_MANAGE_ROLES);
+	err = role_utils::check_permission1(req, tx, server_id, user_id, PERM1_MANAGE_ROLES);
 	if(err) return err;
 
-	err = role_utils::check_role_lower_than_user(tx, server_id, user_id, server_role_id);
+	err = role_utils::check_role_lower_than_user(req, tx, server_id, user_id, server_role_id);
 	if(err) return err;
 	if(user_id != server_user_id){
-		err = role_utils::check_user_lower_than_other(tx, server_id, user_id, server_user_id);
+		err = role_utils::check_user_lower_than_other(req, tx, server_id, user_id, server_user_id);
 		if(err) return err;
 	}
 
 	pqxx::result r = tx.exec("SELECT user_id FROM user_x_server WHERE user_id = $1 AND server_id = $2 AND role_id = $3", pqxx::params(server_user_id, server_id, server_role_id));
 	if(r.size())
-		return create_response::string("User already has that role", 202);
+		return create_response::string(req, "User already has that role", 202);
 	tx.exec("INSERT INTO user_x_server(user_id, server_id, role_id) VALUES($1, $2, $3)", pqxx::params(server_user_id, server_id, server_role_id));
 	tx.commit();
 
@@ -140,7 +140,7 @@ std::shared_ptr<http_response> server_user_role_id_resource::render_PUT(const ht
 	ev.name = "role_assigned";
 	sserv.send_to_server(server_id, tx, ev);
 
-	return create_response::string("Assigned", 200);
+	return create_response::string(req, "Assigned", 200);
 }
 std::shared_ptr<http_response> server_user_role_id_resource::render_DELETE(const http_request& req)
 {
@@ -158,16 +158,16 @@ std::shared_ptr<http_response> server_user_role_id_resource::render_DELETE(const
 	err = role_utils::parse_server_role_id(req, server_id, tx, server_role_id);
 	if(err) return err;
 
-	err = role_utils::check_permission1(tx, server_id, user_id, PERM1_MANAGE_ROLES);
+	err = role_utils::check_permission1(req, tx, server_id, user_id, PERM1_MANAGE_ROLES);
 	if(err) return err;
 
-	err = role_utils::check_role_lower_than_user(tx, server_id, user_id, server_role_id);
+	err = role_utils::check_role_lower_than_user(req, tx, server_id, user_id, server_role_id);
 	if(err) return err;
 	if(user_id != server_user_id){
-		err = role_utils::check_user_lower_than_other(tx, server_id, user_id, server_user_id);
+		err = role_utils::check_user_lower_than_other(req, tx, server_id, user_id, server_user_id);
 		if(err) return err;
 	}
-	err = role_utils::check_role_not_default(tx, server_id, server_role_id);
+	err = role_utils::check_role_not_default(req, tx, server_id, server_role_id);
 	if(err) return err;
 
 	tx.exec("DELETE FROM user_x_server WHERE user_id = $1 AND server_id = $2 AND role_id = $3", pqxx::params(server_user_id, server_id, server_role_id));
@@ -180,5 +180,5 @@ std::shared_ptr<http_response> server_user_role_id_resource::render_DELETE(const
 	ev.name = "role_disallowed";
 	sserv.send_to_server(server_id, tx, ev);
 
-	return create_response::string("Removed", 200);
+	return create_response::string(req, "Removed", 200);
 }

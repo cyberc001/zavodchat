@@ -2,6 +2,7 @@
 	"https_port": 443,
 	"ws_port": 444,
 	"ws_vc_port": 445,
+	"origins": ["http://localhost:5173"],
 
 	"rtc_addr": "127.0.0.1",
 	"rtc_port": 49000,
@@ -23,8 +24,8 @@
 	"min_password_length": 8,
 
 	"session_lifetime": 1800,
-
 	"cleanup_period": 3600,
+	"sessions_per_user": 8,
 
 	"servers_owned_per_user": 10,
 	"max_channels_per_server": 50,

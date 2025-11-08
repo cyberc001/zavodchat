@@ -29,13 +29,13 @@
 <div class="center_frame">
 <p style="margin: 0; margin-bottom: 20px;">Register</p>
 <TextBox label_text="username" bind:value={username}/>
-<p style="margin: 0; margin-bottom: 6px;"/>
+<p style="margin: 0; margin-bottom: 6px;"></p>
 <TextBox label_text="display name" bind:value={displayname}/>
-<p style="margin: 0; margin-bottom: 6px;"/>
+<p style="margin: 0; margin-bottom: 6px;"></p>
 <TextBox label_text="password" bind:value={password} is_password=true/>
-<p style="margin: 0; margin-bottom: 6px;"/>
+<p style="margin: 0; margin-bottom: 6px;"></p>
 <TextBox label_text="repeat password" bind:value={password_repeat} is_password=true/>
-<p class="suggestion_text"><a on:click={() => setPage(0)}>Click here</a> to log in.</p>
+<p class="suggestion_text"><button class="suggestion_button_link" onclick={() => setPage(0)}>Click here</button> to log in.</p>
 
 <ErrorBox text={error_text}/>
 

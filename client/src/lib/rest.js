@@ -26,7 +26,8 @@ export default class Rest {
 
 	static get(route, _then, _catch, ...params)
 	{
-		axios.get(Rest.get_base_url() + route + Rest.params_to_query(params))
+		axios.get(Rest.get_base_url() + route + Rest.params_to_query(params),
+			{withCredentials: true})
 			.then(_then)
 			.catch(function(err){
 				_catch(err.response);

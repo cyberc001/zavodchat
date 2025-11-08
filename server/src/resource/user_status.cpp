@@ -22,5 +22,5 @@ std::shared_ptr<http_response> user_status_resource::render_POST(const http_requ
 	tx.exec("UPDATE users SET status = $1 WHERE user_id = $2", pqxx::params(status, user_id));
 
 	tx.commit();
-	return create_response::string("Changed", 200);
+	return create_response::string(req, "Changed", 200);
 }

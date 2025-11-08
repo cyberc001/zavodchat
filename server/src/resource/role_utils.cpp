@@ -7,20 +7,20 @@ std::shared_ptr<http_response> role_utils::parse_server_role_id(const http_reque
 	try{
 		server_role_id = std::stoi(std::string(req.get_arg("server_role_id")));
 	} catch(std::invalid_argument& e){
-		return create_response::string("Invalid server role ID", 400);
+		return create_response::string(req, "Invalid server role ID", 400);
 	}
 	pqxx::result r = tx.exec("SELECT role_id FROM roles WHERE role_id = $1 AND server_id = $2", pqxx::params(server_role_id, server_id));
 	if(!r.size())
-		return create_response::string("Role does not belong to the server", 404);
+		return create_response::string(req, "Role does not belong to the server", 404);
 	return nullptr;
 }
-std::shared_ptr<http_response> role_utils::check_server_role(int role_id, int server_id, pqxx::work& tx)
+std::shared_ptr<http_response> role_utils::check_server_role(const http_request& req, int role_id, int server_id, pqxx::work& tx)
 {
 	if(role_id == -1)
 		return nullptr;
 	pqxx::result r = tx.exec("SELECT role_id FROM roles WHERE role_id = $1 AND server_id = $2", pqxx::params(role_id, server_id));
 	if(!r.size())
-		return create_response::string("Role does not belong to the server", 404);
+		return create_response::string(req, "Role does not belong to the server", 404);
 	return nullptr;
 }
 
@@ -96,20 +96,20 @@ bool role_utils::is_role_higher(pqxx::work& tx, int server_id, int role_id, int 
 	return true;
 }
 
-std::shared_ptr<http_response> role_utils::check_role_not_default(pqxx::work& tx, int server_id, int role_id)
+std::shared_ptr<http_response> role_utils::check_role_not_default(const http_request& req, pqxx::work& tx, int server_id, int role_id)
 {
 	if(role_id == -1)
 		return nullptr;
 	if(find_default_role(tx, server_id) == role_id)
-		return create_response::string("The role is default", 400);
+		return create_response::string(req, "The role is default", 400);
 	return nullptr;
 }
-std::shared_ptr<http_response> role_utils::check_role_lower_than_user(pqxx::work& tx, int server_id, int user_id, int role_id, bool can_be_equal)
+std::shared_ptr<http_response> role_utils::check_role_lower_than_user(const http_request& req, pqxx::work& tx, int server_id, int user_id, int role_id, bool can_be_equal)
 {
-	if(!resource_utils::check_server_owner(user_id, server_id, tx))
+	if(!resource_utils::check_server_owner(req, user_id, server_id, tx))
 		return nullptr;
 	if(role_id == -1)
-		return create_response::string("Only the server owner can edit the highest role", 403);
+		return create_response::string(req, "Only the server owner can edit the highest role", 403);
 
 	// get all user roles
 	pqxx::result r = tx.exec("SELECT role_id FROM user_x_server WHERE user_id = $1 AND server_id = $2", pqxx::params(user_id, server_id));
@@ -131,24 +131,24 @@ std::shared_ptr<http_response> role_utils::check_role_lower_than_user(pqxx::work
 			if((is_role_id && is_user_role) || is_user_role)
 				return nullptr;
 			else if(is_role_id)
-				return create_response::string("The role is higher than that of user", 403);
+				return create_response::string(req, "The role is higher than that of user", 403);
 		}
 	}
 	else{	
 		for(int cur = head; cur != -1; cur = rm[cur]["prev_role_id"].as<int>())
 			if(cur == role_id)
-				return create_response::string("The role is higher or equal to that of user", 403);
+				return create_response::string(req, "The role is higher or equal to that of user", 403);
 			else if(user_role_ids.count(cur))
 				return nullptr;
 	}
-	return create_response::string("No roles found for user", 500);
+	return create_response::string(req, "No roles found for user", 500);
 }
-std::shared_ptr<http_response> role_utils::check_user_lower_than_other(pqxx::work& tx, int server_id, int user_id, int lower_user_id, bool can_be_equal)
+std::shared_ptr<http_response> role_utils::check_user_lower_than_other(const http_request& req, pqxx::work& tx, int server_id, int user_id, int lower_user_id, bool can_be_equal)
 {
-	if(!resource_utils::check_server_owner(user_id, server_id, tx))
+	if(!resource_utils::check_server_owner(req, user_id, server_id, tx))
 		return nullptr;
-	if(!resource_utils::check_server_owner(lower_user_id, server_id, tx))
-		return create_response::string("The other user is the owner", 403);
+	if(!resource_utils::check_server_owner(req, lower_user_id, server_id, tx))
+		return create_response::string(req, "The other user is the owner", 403);
 
 	// get all user roles
 	pqxx::result r = tx.exec("SELECT role_id FROM user_x_server WHERE user_id = $1 AND server_id = $2", pqxx::params(user_id, server_id));
@@ -174,22 +174,22 @@ std::shared_ptr<http_response> role_utils::check_user_lower_than_other(pqxx::wor
 			if((is_user && is_lower_user) || is_user)
 				return nullptr;
 			else if(is_lower_user)
-				return create_response::string("Target user has a role higher than that of user", 403);
+				return create_response::string(req, "Target user has a role higher than that of user", 403);
 		}
 	}
 	else{	
 		for(int cur = head; cur != -1; cur = rm[cur]["prev_role_id"].as<int>())
 			if(lower_user_role_ids.count(cur))
-				return create_response::string("Target user has a role higher or equal to that of user", 403);
+				return create_response::string(req, "Target user has a role higher or equal to that of user", 403);
 			else if(user_role_ids.count(cur))
 				return nullptr;
 	}
-	return create_response::string("No roles found for user", 500);
+	return create_response::string(req, "No roles found for user", 500);
 }
 
-std::shared_ptr<http_response> role_utils::check_permission1(pqxx::work& tx, int server_id, int user_id, int perm)
+std::shared_ptr<http_response> role_utils::check_permission1(const http_request& req, pqxx::work& tx, int server_id, int user_id, int perm)
 {
-	if(!resource_utils::check_server_owner(user_id, server_id, tx))
+	if(!resource_utils::check_server_owner(req, user_id, server_id, tx))
 		return nullptr;
 
 	// get all user roles
@@ -210,37 +210,37 @@ std::shared_ptr<http_response> role_utils::check_permission1(pqxx::work& tx, int
 		int perm_status = (rm[cur]["perms1"].as<long long>() >> (perm * 2)) & 0x3;
 		if(user_role_ids.count(rm[cur]["role_id"].as<int>()) && perm_status != 0x0)
 			if(perm_status == 0x2)
-				return create_response::string("No permission", 403);
+				return create_response::string(req, "No permission", 403);
 			else
 				return nullptr;
 	}
 
-	return create_response::string("Server has only default permissions", 500);
+	return create_response::string(req, "Server has only default permissions", 500);
 }
-std::shared_ptr<http_response> role_utils::check_validity_perms1(long long perms1)
+std::shared_ptr<http_response> role_utils::check_validity_perms1(const http_request& req, long long perms1)
 {
 	for(int i = 0; i < PERM1_COUNT; ++i)
 		if((perms1 >> (i * 2) & 0x3) == 0x3)
-			return create_response::string("Invalid perms1: bit pair set to 3", 400);
+			return create_response::string(req, "Invalid perms1: bit pair set to 3", 400);
 
 	for(int i = PERM1_COUNT; i < sizeof(long long) * 4; ++i)
 		if((perms1 >> (i * 2) & 0x3) > 0)
-			return create_response::string("Invalid perms1: bit pair set outside of range", 400);
+			return create_response::string(req, "Invalid perms1: bit pair set outside of range", 400);
 	return nullptr;
 }
-std::shared_ptr<http_response> role_utils::check_default_validity_perms1(long long perms1)
+std::shared_ptr<http_response> role_utils::check_default_validity_perms1(const http_request& req, long long perms1)
 {
 	for(int i = 0; i < PERM1_COUNT; ++i){
 		long long prm = perms1 >> (i * 2) & 0x3;
 		if(prm == 0x0)
-			return create_response::string("Invalid perms1: bit pair set to 0", 400);
+			return create_response::string(req, "Invalid perms1: bit pair set to 0", 400);
 		if(prm == 0x3)
-			return create_response::string("Invalid perms1: bit pair set to 3", 400);
+			return create_response::string(req, "Invalid perms1: bit pair set to 3", 400);
 	}
 
 	for(int i = PERM1_COUNT; i < sizeof(long long) * 4; ++i)
 		if((perms1 >> (i * 2) & 0x3) > 0)
-			return create_response::string("Invalid perms1: bit pair set outside of range", 400);
+			return create_response::string(req, "Invalid perms1: bit pair set outside of range", 400);
 	return nullptr;
 }
 

@@ -2,6 +2,7 @@
 #define CONFIG_H
 
 #include <string>
+#include <vector>
 #include <fstream>
 
 class config
@@ -13,6 +14,7 @@ public:
 	std::string get_conn_str() const;
 
 	unsigned https_port = 443, ws_port = 444, ws_vc_port = 445;
+	std::vector<std::string> origins;
 	
 	std::string rtc_addr = "127.0.0.1";
 	unsigned rtc_port = 50000;
@@ -28,6 +30,7 @@ public:
 
 	size_t session_lifetime = 1800;
 	size_t cleanup_period = 3600;
+	unsigned sessions_per_user = 8;
 
 	size_t file_storage_size = 10737418240;
 

@@ -8,7 +8,7 @@ params_resource::params_resource(config& cfg): cfg(cfg)
 	set_allowing("GET", true);
 }
 
-std::shared_ptr<http_response> params_resource::render_GET(const http_request&)
+std::shared_ptr<http_response> params_resource::render_GET(const http_request& req)
 {
 	nlohmann::json obj = {
 		{"ws_port", cfg.ws_port},
@@ -22,5 +22,5 @@ std::shared_ptr<http_response> params_resource::render_GET(const http_request&)
 		{"max_roles_per_server", cfg.max_roles_per_server},
 		{"max_video_bitrate", cfg.max_video_bitrate}
 	};
-	return create_response::string(obj.dump(), 200);
+	return create_response::string(req, obj.dump(), 200);
 }

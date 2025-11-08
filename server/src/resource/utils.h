@@ -1,6 +1,8 @@
 #ifndef RESOURCE_UTILS_H
 #define RESOURCE_UTILS_H
 
+#include <vector>
+
 #include <nlohmann/json.hpp>
 
 #include <pqxx/pqxx>
@@ -10,10 +12,14 @@ using namespace httpserver;
 class create_response
 {
 public:
-	static std::shared_ptr<http_response> string(std::string str, int code);
-	static std::shared_ptr<http_response> file(std::string fpath);
+	static std::shared_ptr<http_response> string(const http_request& req, std::string str, int code);
+	static std::shared_ptr<http_response> file(const http_request& req, std::string fpath);
+
+	static void set_origins(std::vector<std::string> origins);
 private:
-	static void add_cors(http_response* res);
+	static void add_cors(const http_request& req, http_response& res);
+
+	static std::vector<std::string> origins;
 };
 
 enum order_type {
@@ -48,9 +54,10 @@ public:
 	static std::shared_ptr<http_response> parse_server_ban_id(const http_request&, int server_id, pqxx::work&, int& server_ban_id);
 
 	// Checks if server's owner_id == user_id.
-	static std::shared_ptr<http_response> check_server_owner(int user_id, int server_id, pqxx::work&);
+	static std::shared_ptr<http_response> check_server_owner(const http_request&, int user_id, int server_id, pqxx::work&);
 	// Separate check for user being a member of a server. Used when user is not the one that puts a request.
-	static std::shared_ptr<http_response> check_server_member(int user_id, int server_id, pqxx::work&);
+	static bool check_server_member(int user_id, int server_id, pqxx::work&);
+	static std::shared_ptr<http_response> check_server_member(const http_request&, int user_id, int server_id, pqxx::work&);
 
 	// Checks if channel is in the server
 	static std::shared_ptr<http_response> parse_channel_id(const http_request&, int server_id, pqxx::work&, int& channel_id);

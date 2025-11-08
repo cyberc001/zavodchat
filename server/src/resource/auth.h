@@ -23,6 +23,7 @@ public:
 	// in seconds
 	size_t session_lifetime = 1800;
 	size_t cleanup_period = 3600;
+	unsigned sessions_per_user = 8;
 	
 	unsigned min_username_length = 2;
 	unsigned min_password_length = 8;

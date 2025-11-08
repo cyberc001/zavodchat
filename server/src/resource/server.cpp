@@ -23,7 +23,7 @@ std::shared_ptr<http_response> server_resource::render_GET(const http_request& r
 	pqxx::result r = tx.exec("SELECT distinct server_id, name, avatar FROM user_x_server NATURAL JOIN servers WHERE user_id = $1", pqxx::params(user_id));
 	for(size_t i = 0; i < r.size(); ++i)
 		res += resource_utils::server_json_from_row(r[i]);
-	return create_response::string(res.dump(), 200);
+	return create_response::string(req, res.dump(), 200);
 }
 std::shared_ptr<http_response> server_resource::render_PUT(const http_request& req)
 {
@@ -39,7 +39,7 @@ std::shared_ptr<http_response> server_resource::render_PUT(const http_request& r
 	pqxx::result r;
 	r = tx.exec("SELECT owner_id FROM servers WHERE owner_id = $1", pqxx::params(user_id));
 	if(r.size() >= owned_per_user)
-		return create_response::string("User owns more than " + std::to_string(owned_per_user) + " servers", 403);
+		return create_response::string(req, "User owns more than " + std::to_string(owned_per_user) + " servers", 403);
 	
 	int server_id;
 	try{
@@ -48,11 +48,11 @@ std::shared_ptr<http_response> server_resource::render_PUT(const http_request& r
 		int default_role_id = role_utils::create_default_role_if_absent(tx, server_id);
 		tx.exec("INSERT INTO user_x_server(user_id, server_id, role_id) VALUES($1, $2, $3)", pqxx::params(user_id, server_id, default_role_id));
 	} catch(pqxx::data_exception& e){
-		return create_response::string("Server name is too long", 400);
+		return create_response::string(req, "Server name is too long", 400);
 	}
 	tx.commit();
 
-	return create_response::string(std::to_string(server_id), 200);
+	return create_response::string(req, std::to_string(server_id), 200);
 }
 
 
@@ -72,7 +72,7 @@ std::shared_ptr<http_response> server_id_resource::render_GET(const http_request
 	if(err) return err;
 
 	pqxx::result r = tx.exec("SELECT server_id, name, avatar FROM servers WHERE server_id = $1", pqxx::params(server_id));
-	return create_response::string(resource_utils::server_json_from_row(r[0]).dump(), 200);
+	return create_response::string(req, resource_utils::server_json_from_row(r[0]).dump(), 200);
 }
 std::shared_ptr<http_response> server_id_resource::render_POST(const http_request& req)
 {
@@ -82,7 +82,7 @@ std::shared_ptr<http_response> server_id_resource::render_POST(const http_reques
 	auto err = resource_utils::parse_server_id(req, tx, user_id, server_id);
 	if(err) return err;
 
-	err = role_utils::check_permission1(tx, server_id, user_id, PERM1_CHANGE_SERVER);
+	err = role_utils::check_permission1(req, tx, server_id, user_id, PERM1_CHANGE_SERVER);
 	if(err) return err;
 
 	bool updated = false;
@@ -92,7 +92,7 @@ std::shared_ptr<http_response> server_id_resource::render_POST(const http_reques
 		try{
 			tx.exec("UPDATE servers SET name = $1 WHERE server_id = $2", pqxx::params(name, server_id));
 		} catch(pqxx::data_exception& e){
-			return create_response::string("Server name is too long", 400);
+			return create_response::string(req, "Server name is too long", 400);
 		}
 		updated = true;
 	}
@@ -102,14 +102,14 @@ std::shared_ptr<http_response> server_id_resource::render_POST(const http_reques
 		if(err) return err;
 
 		if(new_owner_id == user_id)
-			return create_response::string("User is already an owner", 202);
+			return create_response::string(req, "User is already an owner", 202);
 
 		pqxx::result r = tx.exec("SELECT owner_id FROM servers WHERE owner_id = $1", pqxx::params(new_owner_id));
 		if(r.size() >= owned_per_user)
-			return create_response::string("User owns more than " + std::to_string(owned_per_user) + " servers", 403);
+			return create_response::string(req, "User owns more than " + std::to_string(owned_per_user) + " servers", 403);
 
 
-		err = resource_utils::check_server_member(new_owner_id, server_id, tx);
+		err = resource_utils::check_server_member(req, new_owner_id, server_id, tx);
 		if(err) return err;
 		tx.exec("UPDATE servers SET owner_id = $1 WHERE server_id = $2", pqxx::params(new_owner_id, server_id));
 
@@ -139,7 +139,7 @@ std::shared_ptr<http_response> server_id_resource::render_POST(const http_reques
 		sserv.send_to_server(server_id, tx, ev);
 	}
 
-	return create_response::string("Changed", 200);
+	return create_response::string(req, "Changed", 200);
 }
 std::shared_ptr<http_response> server_id_resource::render_DELETE(const http_request& req)
 {
@@ -149,7 +149,7 @@ std::shared_ptr<http_response> server_id_resource::render_DELETE(const http_requ
 	auto err = resource_utils::parse_server_id(req, tx, user_id, server_id);
 	if(err) return err;
 
-	err = resource_utils::check_server_owner(user_id, server_id, tx);
+	err = resource_utils::check_server_owner(req, user_id, server_id, tx);
 	if(err) return err;
 
 	socket_event ev;
@@ -160,5 +160,5 @@ std::shared_ptr<http_response> server_id_resource::render_DELETE(const http_requ
 	tx.exec("DELETE FROM servers WHERE server_id = $1", pqxx::params(server_id));
 	tx.commit();
 
-	return create_response::string("Deleted", 200);
+	return create_response::string(req, "Deleted", 200);
 }

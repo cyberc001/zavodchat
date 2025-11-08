@@ -2,7 +2,7 @@
 	const {text, onClick} = $props();
 </script>
 
-<button class="login_button" on:click={onClick}>{text}</button>
+<button class="login_button" onclick={onClick}>{text}</button>
 
 <style>
 .login_button {

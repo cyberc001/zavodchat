@@ -28,7 +28,7 @@ class role_utils
 public:
 	static std::shared_ptr<http_response> parse_server_role_id(const http_request&, int role_id, pqxx::work&, int& server_user_id);
 	// Checks if server has the role
-	static std::shared_ptr<http_response> check_server_role(int role_id, int server_id, pqxx::work&);
+	static std::shared_ptr<http_response> check_server_role(const http_request&, int role_id, int server_id, pqxx::work&);
 
 	static int find_head_role(pqxx::work&, int server_id);
 	static int find_lowest_role(pqxx::work&, int server_id);
@@ -38,17 +38,17 @@ public:
 	static std::vector<pqxx::row> get_user_role_list(pqxx::work&, int server_id, int user_id);
 	static bool is_role_higher(pqxx::work&, int server_id, int role_id, int other_role_id);
 
-	static std::shared_ptr<http_response> check_role_not_default(pqxx::work&, int server_id, int role_id);
+	static std::shared_ptr<http_response> check_role_not_default(const http_request&, pqxx::work&, int server_id, int role_id);
 	// returns OK (nullptr) if the user is the owner of the server
 
-	static std::shared_ptr<http_response> check_role_lower_than_user(pqxx::work&, int server_id, int user_id, int role_id, bool can_be_equal = false);
+	static std::shared_ptr<http_response> check_role_lower_than_user(const http_request&, pqxx::work&, int server_id, int user_id, int role_id, bool can_be_equal = false);
 	// returns OK (nullptr) if the user is the owner of the server
-	static std::shared_ptr<http_response> check_user_lower_than_other(pqxx::work&, int server_id, int user_id, int lower_user_id, bool can_be_equal = false);
+	static std::shared_ptr<http_response> check_user_lower_than_other(const http_request&, pqxx::work&, int server_id, int user_id, int lower_user_id, bool can_be_equal = false);
 
-	static std::shared_ptr<http_response> check_permission1(pqxx::work&, int server_id, int user_id, int perm);
-	static std::shared_ptr<http_response> check_validity_perms1(long long perms1);
+	static std::shared_ptr<http_response> check_permission1(const http_request&, pqxx::work&, int server_id, int user_id, int perm);
+	static std::shared_ptr<http_response> check_validity_perms1(const http_request&, long long perms1);
 	// also checks if all permissions are either allowed or forbidden (no default)
-	static std::shared_ptr<http_response> check_default_validity_perms1(long long perms1);
+	static std::shared_ptr<http_response> check_default_validity_perms1(const http_request&, long long perms1);
 
 	// -1 = next_role_id does not exist
 	// -2 = name is too long

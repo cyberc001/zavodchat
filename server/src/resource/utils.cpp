@@ -5,21 +5,32 @@
 #include <unistd.h>
 #include <iosfwd>
 
-void create_response::add_cors(http_response* res)
+#include <iostream>
+
+std::vector<std::string> create_response::origins;
+void create_response::set_origins(std::vector<std::string> _origins)
 {
-	res->with_header("Accept", "*/*");
-	res->with_header("Access-Control-Allow-Origin", "*");
-	res->with_header("Access-Control-Allow-Methods", "*");
-	res->with_header("Access-Control-Allow-Headers", "Origin, Content-Type, X-Auth-Token, X-Requested-With, Accept");
+	origins = _origins;
 }
 
-std::shared_ptr<http_response> create_response::string(std::string str, int code)
+void create_response::add_cors(const http_request& req, http_response& res)
+{
+	res.with_header("Accept", "*/*");
+	std::string og = std::string(req.get_header("origin"));
+	if(std::find(origins.begin(), origins.end(), og) != origins.end())
+		res.with_header("Access-Control-Allow-Origin", og);
+	res.with_header("Access-Control-Allow-Credentials", "true");
+	res.with_header("Access-Control-Allow-Methods", "*");
+	res.with_header("Access-Control-Allow-Headers", "Origin, Content-Type, X-Auth-Token, X-Requested-With, Accept");
+}
+
+std::shared_ptr<http_response> create_response::string(const http_request& req, std::string str, int code)
 {
 	string_response* res = new string_response(str, code);
-	add_cors(res);
+	add_cors(req, *res);
 	return std::shared_ptr<http_response>(res);
 }
-std::shared_ptr<http_response> create_response::file(std::string fpath)
+std::shared_ptr<http_response> create_response::file(const http_request& req, std::string fpath)
 {
 	file_response* res = new file_response(fpath);
 
@@ -27,18 +38,18 @@ std::shared_ptr<http_response> create_response::file(std::string fpath)
 	struct stat sb;
 	if(stat(fpath.c_str(), &sb) == 0){
 	        if(!S_ISREG(sb.st_mode))
-			return create_response::string("File does not exist", 404);
+			return create_response::string(req, "File does not exist", 404);
 	} else
-		return create_response::string("File does not exist", 404);
+		return create_response::string(req, "File does not exist", 404);
 	int fd = open(fpath.c_str(), O_RDONLY);
-	if(fd == -1) return create_response::string("File does not exist", 404);
+	if(fd == -1) return create_response::string(req, "File does not exist", 404);
 
 	off_t size = lseek(fd, 0, SEEK_END);
-	if(size == (off_t) -1) return create_response::string("File does not exist", 404);
+	if(size == (off_t) -1) return create_response::string(req, "File does not exist", 404);
 	close(fd);
 	// End of copied checks
 
-	add_cors(res);
+	add_cors(req, *res);
 	return std::shared_ptr<http_response>(res);
 }
 
@@ -56,7 +67,7 @@ std::shared_ptr<http_response> resource_utils::parse_index(const http_request& r
 	try{
 		index = std::stoi(std::string(req.get_arg(arg_name)));
 	} catch(std::invalid_argument& e){
-		return create_response::string("Couldn't parse '" + arg_name + "', got: " + std::string(req.get_arg(arg_name)), 400);
+		return create_response::string(req, "Couldn't parse '" + arg_name + "', got: " + std::string(req.get_arg(arg_name)), 400);
 	}
 
 	return std::shared_ptr<http_response>(nullptr);
@@ -67,7 +78,7 @@ std::shared_ptr<http_response> resource_utils::parse_index(const http_request& r
 	if(err) return err;
 
 	if(index < lower_bound)
-		return create_response::string(arg_name + " is invalid: " + std::to_string(index) + " is below " + std::to_string(lower_bound), 403);
+		return create_response::string(req, arg_name + " is invalid: " + std::to_string(index) + " is below " + std::to_string(lower_bound), 403);
 
 	return std::shared_ptr<http_response>(nullptr);
 }
@@ -78,9 +89,9 @@ std::shared_ptr<http_response> resource_utils::parse_index(const http_request& r
 	if(err) return err;
 
 	if(index < lower_bound)
-		return create_response::string(arg_name + " is invalid: " + std::to_string(index) + " is below " + std::to_string(lower_bound), 403);
+		return create_response::string(req, arg_name + " is invalid: " + std::to_string(index) + " is below " + std::to_string(lower_bound), 403);
 	if(index > upper_bound)
-		return create_response::string(arg_name + " is invalid: " + std::to_string(index) + " is above " + std::to_string(upper_bound), 403);
+		return create_response::string(req, arg_name + " is invalid: " + std::to_string(index) + " is above " + std::to_string(upper_bound), 403);
 
 	return std::shared_ptr<http_response>(nullptr);
 }
@@ -89,12 +100,12 @@ std::shared_ptr<http_response> resource_utils::parse_session_token(const http_re
 {
 	pqxx::result r;
 	try{
-		r = tx.exec("SELECT user_id FROM sessions WHERE token = $1 AND expiration_time > now()", pqxx::params(std::string(req.get_arg("token"))));
+		r = tx.exec("SELECT user_id FROM sessions WHERE token = $1 AND expiration_time > now()", pqxx::params(std::string(req.get_cookie("zavodchat_token"))));
 	} catch(pqxx::data_exception& e){
-		return create_response::string("Invalid token", 400);
+		return create_response::string(req, "Invalid token", 400);
 	}
 	if(!r.size())
-		return create_response::string("Expired or invalid token", 401);
+		return create_response::string(req, "Expired or invalid token", 401);
 	user_id = r[0]["user_id"].as<int>();
 	return std::shared_ptr<http_response>(nullptr);
 }
@@ -103,7 +114,7 @@ std::shared_ptr<http_response> resource_utils::parse_timestamp(const http_reques
 {
 	ts = std::string(req.get_arg(arg_name));
 	if(!ts.size())
-		return create_response::string("Empty '" + arg_name + "'", 400);
+		return create_response::string(req, "Empty '" + arg_name + "'", 400);
 	if(ts == "never")
 		ts = "";
 	return nullptr;
@@ -115,11 +126,11 @@ std::shared_ptr<http_response> resource_utils::parse_server_id(const http_reques
 	try{
 		server_id = std::stoi(std::string(req.get_arg("server_id")));
 	} catch(std::invalid_argument& e){
-		return create_response::string("Invalid server ID", 400);
+		return create_response::string(req, "Invalid server ID", 400);
 	}
 	pqxx::result r = tx.exec("SELECT user_id FROM user_x_server WHERE user_id = $1 AND server_id = $2", pqxx::params(user_id, server_id));
 	if(!r.size())
-		return create_response::string("User is not a member of the server", 403);
+		return create_response::string(req, "User is not a member of the server", 403);
 	return nullptr;
 }
 std::shared_ptr<http_response> resource_utils::parse_server_id(const http_request& req, pqxx::work& tx, int& user_id, int& server_id)
@@ -134,11 +145,11 @@ std::shared_ptr<http_response> resource_utils::parse_server_user_id(const http_r
 	try{
 		server_user_id = std::stoi(std::string(req.get_arg("server_user_id")));
 	} catch(std::invalid_argument& e){
-		return create_response::string("Invalid server user ID", 400);
+		return create_response::string(req, "Invalid server user ID", 400);
 	}
 	pqxx::result r = tx.exec("SELECT user_id FROM user_x_server WHERE user_id = $1 AND server_id = $2", pqxx::params(server_user_id, server_id));
 	if(!r.size())
-		return create_response::string("User is not a member of the server", 404);
+		return create_response::string(req, "User is not a member of the server", 404);
 	return nullptr;
 }
 
@@ -147,27 +158,31 @@ std::shared_ptr<http_response> resource_utils::parse_server_ban_id(const http_re
 	try{
 		server_ban_id = std::stoi(std::string(req.get_arg("server_ban_id")));
 	} catch(std::invalid_argument& e){
-		return create_response::string("Invalid server ban ID", 400);
+		return create_response::string(req, "Invalid server ban ID", 400);
 	}
 	pqxx::result r = tx.exec("SELECT user_id FROM server_bans WHERE user_id = $1 AND server_id = $2", pqxx::params(server_ban_id, server_id));
 	if(!r.size())
-		return create_response::string("User is not banned on the server", 404);
+		return create_response::string(req, "User is not banned on the server", 404);
 	return nullptr;
 }
 
 
-std::shared_ptr<http_response> resource_utils::check_server_owner(int user_id, int server_id, pqxx::work& tx)
+std::shared_ptr<http_response> resource_utils::check_server_owner(const http_request& req, int user_id, int server_id, pqxx::work& tx)
 {
 	pqxx::result r = tx.exec("SELECT owner_id FROM servers WHERE server_id = $1", pqxx::params(server_id));
 	if(r[0]["owner_id"].as<int>() != user_id)
-		return create_response::string("User is not the owner of the server", 403);
+		return create_response::string(req, "User is not the owner of the server", 403);
 	return nullptr;
 }
-std::shared_ptr<http_response> resource_utils::check_server_member(int user_id, int server_id, pqxx::work& tx)
+bool resource_utils::check_server_member(int user_id, int server_id, pqxx::work& tx)
 {
 	pqxx::result r = tx.exec("SELECT user_id FROM user_x_server WHERE user_id = $1 AND server_id = $2", pqxx::params(user_id, server_id));
-	if(!r.size())
-		return create_response::string("User with ID " + std::to_string(user_id) + " is not a member of the server", 403);
+	return r.size();
+}
+std::shared_ptr<http_response> resource_utils::check_server_member(const http_request& req, int user_id, int server_id, pqxx::work& tx)
+{
+	if(!check_server_member(user_id, server_id, tx))
+		return create_response::string(req, "User with ID " + std::to_string(user_id) + " is not a member of the server", 403);
 	return nullptr;
 }
 
@@ -176,11 +191,11 @@ std::shared_ptr<http_response> resource_utils::parse_channel_id(const http_reque
 	try{
 		channel_id = std::stoi(std::string(req.get_arg("channel_id")));
 	} catch(std::invalid_argument& e){
-		return create_response::string("Invalid channel ID", 400);
+		return create_response::string(req, "Invalid channel ID", 400);
 	}
 	pqxx::result r = tx.exec("SELECT server_id FROM channels WHERE channel_id = $1", pqxx::params(channel_id));
 	if(!r.size() || r[0]["server_id"].as<int>() != server_id)
-		return create_response::string("Channel does not exist", 404);
+		return create_response::string(req, "Channel does not exist", 404);
 	return std::shared_ptr<http_response>(nullptr);
 }
 
@@ -189,11 +204,11 @@ std::shared_ptr<http_response> resource_utils::parse_message_id(const http_reque
 	try{
 		message_id = std::stoi(std::string(req.get_arg("message_id")));
 	} catch(std::invalid_argument& e){
-		return create_response::string("Invalid message ID", 400);
+		return create_response::string(req, "Invalid message ID", 400);
 	}
 	pqxx::result r = tx.exec("SELECT channel_id FROM messages WHERE message_id = $1", pqxx::params(message_id));
 	if(!r.size() || r[0]["channel_id"].as<int>() != channel_id)
-		return create_response::string("Message does not exist", 404);
+		return create_response::string(req, "Message does not exist", 404);
 	return std::shared_ptr<http_response>(nullptr);
 }
 
@@ -204,10 +219,10 @@ std::shared_ptr<http_response> resource_utils::parse_invite_id(const http_reques
 	try{
 		r = tx.exec("SELECT server_id FROM server_invites WHERE invite_id = $1", pqxx::params(invite_id));
 	} catch(pqxx::data_exception& e){
-		return create_response::string("Invalid UUID '" + invite_id + "'", 400);
+		return create_response::string(req, "Invalid UUID '" + invite_id + "'", 400);
 	}
 	if(!r.size())
-		return create_response::string("Server does not have this invite", 404);
+		return create_response::string(req, "Server does not have this invite", 404);
 	return std::shared_ptr<http_response>(nullptr);
 }
 std::shared_ptr<http_response> resource_utils::parse_invite_id(const http_request& req, int server_id, pqxx::work& tx, std::string& invite_id)
@@ -217,10 +232,10 @@ std::shared_ptr<http_response> resource_utils::parse_invite_id(const http_reques
 	try{
 		r = tx.exec("SELECT server_id FROM server_invites WHERE invite_id = $1", pqxx::params(invite_id));
 	} catch(pqxx::data_exception& e){
-		return create_response::string("Invalid UUID '" + invite_id + "'", 400);
+		return create_response::string(req, "Invalid UUID '" + invite_id + "'", 400);
 	}
 	if(!r.size() || r[0]["server_id"].as<int>() != server_id)
-		return create_response::string("Server does not have this invite", 404);
+		return create_response::string(req, "Server does not have this invite", 404);
 	return std::shared_ptr<http_response>(nullptr);
 }
 

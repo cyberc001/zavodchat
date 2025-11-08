@@ -18,7 +18,7 @@ std::shared_ptr<http_response> server_bans_resource::render_GET(const http_reque
 	auto err = resource_utils::parse_server_id(req, tx, user_id, server_id);
 	if(err) return err;
 
-	err = resource_utils::check_server_owner(user_id, server_id, tx);
+	err = resource_utils::check_server_owner(req, user_id, server_id, tx);
 	if(err) return err;
 
 	int start;
@@ -33,7 +33,7 @@ std::shared_ptr<http_response> server_bans_resource::render_GET(const http_reque
 	for(size_t i = 0; i < r.size(); ++i)
 		res += resource_utils::user_json_from_row(r[i]);
 
-	return create_response::string(res.dump(), 200);
+	return create_response::string(req, res.dump(), 200);
 }
 std::shared_ptr<http_response> server_bans_resource::render_PUT(const http_request& req)
 {
@@ -43,19 +43,19 @@ std::shared_ptr<http_response> server_bans_resource::render_PUT(const http_reque
 	auto err = resource_utils::parse_server_id(req, tx, user_id, server_id);
 	if(err) return err;
 
-	err = role_utils::check_permission1(tx, server_id, user_id, PERM1_BAN_MEMBERS);
+	err = role_utils::check_permission1(req, tx, server_id, user_id, PERM1_BAN_MEMBERS);
 	if(err) return err;
 
 	int ban_user_id;
 	err = resource_utils::parse_index(req, "ban_user_id", ban_user_id);
 	if(err) return err;
 
-	err = role_utils::check_user_lower_than_other(tx, server_id, user_id, ban_user_id);
+	err = role_utils::check_user_lower_than_other(req, tx, server_id, user_id, ban_user_id);
 	if(err) return err;
 
 	pqxx::result r = tx.exec("SELECT user_id FROM server_bans WHERE user_id = $1 AND server_id = $2", pqxx::params(ban_user_id, server_id));
 	if(r.size())
-		return create_response::string("Already banned", 202);
+		return create_response::string(req, "Already banned", 202);
 
 	std::string expires;
 	err = resource_utils::parse_timestamp(req, "expires", expires);
@@ -64,7 +64,7 @@ std::shared_ptr<http_response> server_bans_resource::render_PUT(const http_reque
 	try{
 		tx.exec("INSERT INTO server_bans(user_id, server_id, expiration_time) VALUES ($1, $2, $3)", pqxx::params(ban_user_id, server_id, expires.size() ? expires.c_str() : nullptr));
 	} catch(pqxx::data_exception& e){
-		return create_response::string("Invalid date/time format", 400);
+		return create_response::string(req, "Invalid date/time format", 400);
 	}
 
 	socket_event ev;
@@ -77,7 +77,7 @@ std::shared_ptr<http_response> server_bans_resource::render_PUT(const http_reque
 	tx.exec("DELETE FROM user_x_server WHERE user_id = $1 AND server_id = $2", pqxx::params(ban_user_id, server_id));
 	tx.commit();
 
-	return create_response::string("Banned", 200);
+	return create_response::string(req, "Banned", 200);
 }
 
 void server_bans_resource::ban_time_func(server_bans_resource& inst)
@@ -106,7 +106,7 @@ std::shared_ptr<http_response> server_ban_id_resource::render_POST(const http_re
 	auto err = resource_utils::parse_server_id(req, tx, user_id, server_id);
 	if(err) return err;
 
-	err = role_utils::check_permission1(tx, server_id, user_id, PERM1_BAN_MEMBERS);
+	err = role_utils::check_permission1(req, tx, server_id, user_id, PERM1_BAN_MEMBERS);
 	if(err) return err;
 
 	int server_ban_id;
@@ -121,12 +121,12 @@ std::shared_ptr<http_response> server_ban_id_resource::render_POST(const http_re
 		try{
 			tx.exec("UPDATE server_bans SET expiration_time = $1 WHERE user_id = $2", pqxx::params(expires.size() ? expires.c_str() : nullptr, server_ban_id));
 		} catch(pqxx::data_exception& e){
-			return create_response::string("Invalid date/time format", 400);
+			return create_response::string(req, "Invalid date/time format", 400);
 		}
 	}
 	tx.commit();
 
-	return create_response::string("Changed ban", 200);
+	return create_response::string(req, "Changed ban", 200);
 }
 
 std::shared_ptr<http_response> server_ban_id_resource::render_DELETE(const http_request& req)
@@ -137,7 +137,7 @@ std::shared_ptr<http_response> server_ban_id_resource::render_DELETE(const http_
 	auto err = resource_utils::parse_server_id(req, tx, user_id, server_id);
 	if(err) return err;
 
-	err = role_utils::check_permission1(tx, server_id, user_id, PERM1_BAN_MEMBERS);
+	err = role_utils::check_permission1(req, tx, server_id, user_id, PERM1_BAN_MEMBERS);
 	if(err) return err;
 
 	int server_ban_id;
@@ -146,5 +146,5 @@ std::shared_ptr<http_response> server_ban_id_resource::render_DELETE(const http_
 
 	tx.exec("DELETE FROM server_bans WHERE user_id = $1 AND server_id = $2", pqxx::params(server_ban_id, server_id));
 	tx.commit();
-	return create_response::string("Unbanned", 200);
+	return create_response::string(req, "Unbanned", 200);
 }

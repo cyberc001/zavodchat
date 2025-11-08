@@ -7,7 +7,7 @@ base_resource::base_resource()
 	set_allowing("OPTIONS", true);
 }
 
-std::shared_ptr<http_response> base_resource::render_OPTIONS(const http_request&)
+std::shared_ptr<http_response> base_resource::render_OPTIONS(const http_request& req)
 {
-	return create_response::string("", 200);
+	return create_response::string(req, "", 200);
 }

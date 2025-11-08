@@ -55,7 +55,7 @@ std::shared_ptr<http_response> file_utils::parse_user_avatar(const http_request&
 	std::string_view fraw = req.get_arg_flat(arg_name);
 	std::string ext = get_image_ext(fraw);
 	if(!ext.size())
-		return create_response::string("Image has invalid format", 400);
+		return create_response::string(req, "Image has invalid format", 400);
 	out_fname = std::to_string(id) + "." + ext;
 	save_file(fraw, user_avatar_storage_path + out_fname);
 	
@@ -67,7 +67,7 @@ std::shared_ptr<http_response> file_utils::parse_server_avatar(const http_reques
 	std::string_view fraw = req.get_arg_flat(arg_name);
 	std::string ext = get_image_ext(fraw);
 	if(!ext.size())
-		return create_response::string("Image has invalid format", 400);
+		return create_response::string(req, "Image has invalid format", 400);
 	out_fname = std::to_string(id) + "." + ext;
 	save_file(fraw, server_avatar_storage_path + out_fname);
 	
@@ -98,13 +98,13 @@ size_t file_utils::delete_oldest_file(pqxx::work& tx, int user_id)
 	fs_sub_busy(tx, user_id, sz);
 	return sz;
 }
-std::shared_ptr<http_response> file_utils::fs_make_space(pqxx::work& tx, int user_id, size_t bytes)
+std::shared_ptr<http_response> file_utils::fs_make_space(const http_request& req, pqxx::work& tx, int user_id, size_t bytes)
 {
 	pqxx::result r = tx.exec("SELECT COUNT(*) FROM users");
 	int user_count = r[0]["count"].as<int>();
 	size_t storage_per_user = file_storage_size / user_count;
 	if(bytes >= storage_per_user)
-		return create_response::string("File size is bigger than user storage size", 400);
+		return create_response::string(req, "File size is bigger than user storage size", 400);
 
 	// Free total storage if it overflows
 	r = tx.exec("SELECT total FROM fs_total_busy");
@@ -134,7 +134,7 @@ std::shared_ptr<http_response> file_utils::fs_make_space(pqxx::work& tx, int use
 	
 		if(tofree_total > 0){
 			std::cerr << "PANIC: cannot free " << tofree_total << " total fs bytes" << std::endl;
-			return create_response::string("Internal Server Error", 500);
+			return create_response::string(req, "Internal Server Error", 500);
 		}
 	}
 
@@ -153,7 +153,7 @@ std::shared_ptr<http_response> file_utils::fs_make_space(pqxx::work& tx, int use
 
 		if(tofree_user > 0){
 			std::cerr << "PANIC: cannot free " << tofree_user << " user fs bytes" << std::endl;
-			return create_response::string("Internal Server Error", 500);
+			return create_response::string(req, "Internal Server Error", 500);
 		}	
 	}
 

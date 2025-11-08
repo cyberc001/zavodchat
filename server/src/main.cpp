@@ -51,11 +51,14 @@ int main()
 					pool, sserv, cfg.rtc_addr, cfg.rtc_port);
 	vcserv.max_video_bitrate = cfg.max_video_bitrate;
 
+	create_response::set_origins(cfg.origins);
+
 	auth_resource auth(pool);
 	auth.min_username_length = cfg.min_username_length;
 	auth.min_password_length = cfg.min_password_length;
 	auth.session_lifetime = cfg.session_lifetime;
 	auth.cleanup_period = cfg.cleanup_period;
+	auth.sessions_per_user = cfg.sessions_per_user;
 	ws.register_resource("/auth", &auth);
 
 	server_resource server(pool);

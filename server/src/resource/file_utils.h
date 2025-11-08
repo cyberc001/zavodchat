@@ -33,7 +33,7 @@ public:
 	// If there isn't enough space:
 	// first tries to roll over overflowing user storages;
 	// then rolls over the user's files
-	static std::shared_ptr<http_response> fs_make_space(pqxx::work& tx, int user_id, size_t bytes);
+	static std::shared_ptr<http_response> fs_make_space(const http_request& res, pqxx::work& tx, int user_id, size_t bytes);
 
 private:
 	static std::string get_image_ext(const std::string_view& fraw);

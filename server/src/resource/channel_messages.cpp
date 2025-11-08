@@ -34,7 +34,7 @@ std::shared_ptr<http_response> channel_messages_resource::render_GET(const http_
 		auto err = resource_utils::parse_index(req, "order", int_order);
 		if(err) return err;
 		if(int_order != ORDER_ASC && int_order != ORDER_DESC)
-			return create_response::string("Unknown order type", 400);
+			return create_response::string(req, "Unknown order type", 400);
 		if(int_order == ORDER_ASC)
 			order = "ASC";
 	}
@@ -43,7 +43,7 @@ std::shared_ptr<http_response> channel_messages_resource::render_GET(const http_
 	pqxx::result r = tx.exec("SELECT message_id, author_id, sent, last_edited, text FROM messages WHERE channel_id = $1 ORDER BY sent " + order + " LIMIT $2 OFFSET $3", pqxx::params(channel_id, count, start));
 	for(size_t i = 0; i < r.size(); ++i)
 		res += resource_utils::message_json_from_row(r[i]);
-	return create_response::string(res.dump(), 200);
+	return create_response::string(req, res.dump(), 200);
 }
 std::shared_ptr<http_response> channel_messages_resource::render_PUT(const http_request& req)
 {
@@ -55,7 +55,7 @@ std::shared_ptr<http_response> channel_messages_resource::render_PUT(const http_
 	auto err = resource_utils::parse_server_id(req, tx, user_id, server_id);
 	if(err) return err;
 
-	err = role_utils::check_permission1(tx, server_id, user_id, PERM1_CREATE_MESSAGES);
+	err = role_utils::check_permission1(req, tx, server_id, user_id, PERM1_CREATE_MESSAGES);
 	if(err) return err;
 
 	int channel_id;
@@ -69,7 +69,7 @@ std::shared_ptr<http_response> channel_messages_resource::render_PUT(const http_
 		message_id = r[0]["message_id"].as<int>();
 		ev.data = resource_utils::message_json_from_row(r[0]);
 	} catch(pqxx::data_exception& e){
-		return create_response::string("Message is too long", 400);
+		return create_response::string(req, "Message is too long", 400);
 	}
 	tx.commit();
 
@@ -77,7 +77,7 @@ std::shared_ptr<http_response> channel_messages_resource::render_PUT(const http_
 	ev.name = "message_created";
 	sserv.send_to_channel(channel_id, tx, ev);
 
-	return create_response::string(std::to_string(message_id), 200);
+	return create_response::string(req, std::to_string(message_id), 200);
 }
 
 
@@ -107,7 +107,7 @@ std::shared_ptr<http_response> channel_message_id_resource::render_GET(const htt
 
 	pqxx::result r = tx.exec("SELECT message_id, author_id, sent, last_edited, text FROM messages WHERE message_id = $1", pqxx::params(message_id));
 	nlohmann::json res = resource_utils::message_json_from_row(r[0]);
-	return create_response::string(res.dump(), 200);
+	return create_response::string(req, res.dump(), 200);
 }
 std::shared_ptr<http_response> channel_message_id_resource::render_POST(const http_request& req)
 {
@@ -129,14 +129,14 @@ std::shared_ptr<http_response> channel_message_id_resource::render_POST(const ht
 
 	pqxx::result r = tx.exec("SELECT author_id FROM messages WHERE message_id = $1", pqxx::params(message_id));
 	if(r[0]["author_id"].as<int>() != user_id)
-		return create_response::string("User is not the author of the mssage", 403);
+		return create_response::string(req, "User is not the author of the mssage", 403);
 
 	socket_event ev;
 	try{
 		r = tx.exec("UPDATE messages SET text = $1, last_edited = now() WHERE message_id = $2 RETURNING message_id, last_edited, text, channel_id", pqxx::params(text, message_id));
 		ev.data = resource_utils::message_update_json_from_row(r[0]);
 	} catch(pqxx::data_exception& e){
-		return create_response::string("Message is too long", 400);
+		return create_response::string(req, "Message is too long", 400);
 	}
 	tx.commit();
 
@@ -144,7 +144,7 @@ std::shared_ptr<http_response> channel_message_id_resource::render_POST(const ht
 	ev.name = "message_edited";
 	sserv.send_to_channel(channel_id, tx, ev);
 
-	return create_response::string("Changed", 200);
+	return create_response::string(req, "Changed", 200);
 }
 std::shared_ptr<http_response> channel_message_id_resource::render_DELETE(const http_request& req)
 {
@@ -164,7 +164,7 @@ std::shared_ptr<http_response> channel_message_id_resource::render_DELETE(const 
 
 	pqxx::result r = tx.exec("SELECT author_id FROM messages WHERE message_id = $1", pqxx::params(message_id));
 	if(r[0]["author_id"].as<int>() != user_id){ // not an author, but still can have the permission
-		err = role_utils::check_permission1(tx, server_id, user_id, PERM1_DELETE_MESSAGES);
+		err = role_utils::check_permission1(req, tx, server_id, user_id, PERM1_DELETE_MESSAGES);
 		if(err) return err;
 	}
 
@@ -177,5 +177,5 @@ std::shared_ptr<http_response> channel_message_id_resource::render_DELETE(const 
 	ev.name = "message_deleted";
 	sserv.send_to_channel(channel_id, tx, ev);
 
-	return create_response::string("Deleted", 200);
+	return create_response::string(req, "Deleted", 200);
 }
