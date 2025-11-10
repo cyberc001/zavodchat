@@ -4,12 +4,21 @@
 	import StatusBox from '$lib/control/login/statusbox.svelte';
 	import Rest from '$lib/rest.js';
 	import Auth from '$lib/rest/auth.js';
+	import Server from '$lib/rest/server.js';
 
 	let { setPage } = $props();
 
 	let username = $state(""), password = $state("");
 
 	let error_text = $state("");
+
+	// Check if authentificated
+	Server.get_list(() => setPage(2),
+			(err) => {
+					if(err.status !== 400 && err.status !== 401)
+						window.alert(err.status + " " + err.data);
+				}
+	);
 </script>
 
 <div class="center_frame">

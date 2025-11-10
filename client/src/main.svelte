@@ -5,7 +5,6 @@
 	let { setPage } = $props();
 
 	const setError = (err) => {
-		console.trace();
 		window.alert(err.status + " " + err.data);
 	};
 
