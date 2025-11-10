@@ -21,6 +21,9 @@ body {
 }
 
 .icon_sidebar_server {
+	padding: 0;
+	border-style: none;
+
 	width: 48px;
 	height: 48px;
 
@@ -40,14 +43,18 @@ body {
 .icon_sidebar_server:hover {
 	background: #767676;
 }
-.icon_sidebar_server_text {
-	font-size: 16px;
-	overflow-wrap: break-word;
-	padding: 4px;
-	padding-top: 0px;
 
+div.icon_sidebar_server_el {
+	font-size: 16px;
+	color: #F6F5F5;
+
+	overflow-wrap: break-word;
 	display: -webkit-box;
 	-webkit-line-clamp: 2;
 	-webkit-box-orient: vertical;
 	overflow: hidden;
+}
+img.icon_sidebar_server_el {
+	width: 100%;
+	height: 100%;
 }

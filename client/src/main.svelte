@@ -32,10 +32,12 @@
 
 <div class="sidebar_servers">
 	{#each Object.values(data_servers) as srv}
+		<button tabindex=0 class="icon_sidebar_server" onclick={() => showServer(srv.id)}>
 		{#if srv.avatar === undefined}
-			<div class="icon_sidebar_server" onclick={() => showServer(srv.id)}><div class="icon_sidebar_server_text">{srv.name}</div></div>
+			<div style="padding:4px;"><div class="icon_sidebar_server_el">{srv.name}</div></div>
 		{:else}
-			<img class="icon_sidebar_server" onclick={() => showServer(srv.id)} src={Server.get_avatar_path(srv)}/>
+			<img class="icon_sidebar_server_el" alt={srv.name} src={Server.get_avatar_path(srv)}/>
 		{/if}
+		</button>
 	{/each}
 </div>
