@@ -23,7 +23,7 @@
 	"min_username_length": 2,
 	"min_password_length": 8,
 
-	"session_lifetime": 1800,
+	"session_lifetime": 2592000,
 	"cleanup_period": 3600,
 	"sessions_per_user": 8,
 
