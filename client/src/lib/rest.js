@@ -6,9 +6,9 @@ export default class Rest {
 	static err_to_str(res)
 	{
 		let str = "";
-		if(res.status != 400 && res.status != 404)
-			str += res.status;
-	   	str += res.data;	
+		if(res.status < 400 || res.status > 499)
+			str += res.status + " ";
+	   	str += res.data;
 		return str;
 	}
 
@@ -29,7 +29,9 @@ export default class Rest {
 		axios.get(Rest.get_base_url() + route + Rest.params_to_query(params),
 			{withCredentials: true})
 			.then(_then)
-			.catch(function(err){
+			.catch((err) => {
+				if(err.response === undefined)
+					throw err;
 				_catch(err.response);
 			}
 		);
@@ -38,7 +40,9 @@ export default class Rest {
 	{
 		axios.put(Rest.get_base_url() + route + Rest.params_to_query(params))
 			.then(_then)
-			.catch(function(err){
+			.catch((err) => {
+				if(err.response === undefined)
+					throw err;
 				_catch(err.response);
 			}
 		);

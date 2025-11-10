@@ -1,6 +1,11 @@
 <script>
 	import Login from "../login.svelte";
 	import Register from "../register.svelte";
+	import Main from "../main.svelte";
+
+	import Rest from '$lib/rest.js';
+
+	Rest.host = "https://127.0.0.1";
 
 	let page = $state(0);
 	let setPage = (p) => page = p;
@@ -10,4 +15,6 @@
 	<Login setPage={setPage}/>
 {:else if page == 1}
 	<Register setPage={setPage}/>
+{:else if page == 2}
+	<Main setPage={setPage}/>
 {/if}
