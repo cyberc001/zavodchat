@@ -1,4 +1,5 @@
 import axios from "axios";
+axios.defaults.withCredentials = true;
 
 export default class Rest {
 	static host = "";
@@ -26,8 +27,7 @@ export default class Rest {
 
 	static get(route, _then, _catch, ...params)
 	{
-		axios.get(Rest.get_base_url() + route + Rest.params_to_query(params),
-			{withCredentials: true})
+		axios.get(Rest.get_base_url() + route + Rest.params_to_query(params))
 			.then(_then)
 			.catch((err) => {
 				if(err.response === undefined)

@@ -1,5 +1,6 @@
 <script>
 	import MessageDisplay from '$lib/display/message.svelte';
+	import MessageInput from '$lib/control/message_input.svelte';
 	import ContextMenu from '$lib/control/context_menu.svelte';
 
 	import Rest from '$lib/rest.js';
@@ -35,6 +36,7 @@
 	let sel = $state({
 		server: -1, channel: -1
 	});
+	let message_text = $state("");
 
 	const action_sets = {
 		"message": [{text: "Edit", icon: "edit.svg", func: () => {
@@ -83,7 +85,7 @@
 			// load last messages
 			Message.get_range(sel.server, id, -1, -1,
 						(list) => {
-							channels[id].messages = list;
+							channels[id].messages = list.reverse();
 							for(let msg of list)
 								ensureUser(msg.author_id);
 							console.log("First loaded messages", $state.snapshot(channels));
@@ -91,6 +93,12 @@
 						, setError
 			);
 		}
+	};
+
+	let sendMessage = (text) => {
+		Message.send(sel.server, sel.channel, text,
+				() => {}
+				, setError);
 	};
 
 	// Initialization
@@ -144,8 +152,10 @@
 		{#if sel.channel > -1}
 			{#each channels[sel.channel].messages as msg}
 				<MessageDisplay text={msg.text} author={users[msg.author_id]}
+						time_sent={new Date(msg.sent)}
 						show_ctx_menu={showCtxMenu}/>
 			{/each}
+			<MessageInput onsend={sendMessage}/>
 		{/if}
 	</div>
 </div>
