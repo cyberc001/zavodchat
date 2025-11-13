@@ -1,9 +1,20 @@
+:root {
+	--clr_text: #F6F5F5;
+
+	--clr_bg_panel: #342A2E;
+	--clr_bg_item: #231D1F;
+	--clr_bg_hover: #6D5860;
+	--clr_bg_selected: #4C3D43;
+
+	--clr_border: #231D1F;
+}
+
 html, body {
 	height: 100%;
 }
 body {
 	background: #3B3034;
-	color: #F6F5F5;
+	color: var(--clr_text);
 }
 ::selection {
 	background: #644646;
@@ -16,21 +27,21 @@ body {
 	margin: 14px 0 14px 0;
 }
 .panel {
-	background: #342A2E;
+	background: var(--clr_bg_panel);
 	border-width: 2px;
-	border-color: #231D1F;
+	border-color: var(--clr_border);
 }
 
 .item {
-	background: #231D1F;
+	background: var(--clr_bg_item);
 	border-width: 2px;
-	border-color: #231D1F;
+	border-color: var(--clr_border);
 }
 .hoverable:hover {
-	background: #6D5860;
+	background: var(--clr_bg_hover);
 }
 .selected {
-	background: #4c3d43;
+	background: var(--clr_bg_selected);
 }
 
 /* Specific classes */
@@ -64,7 +75,7 @@ body {
 
 div.sidebar_server_el {
 	font-size: 16px;
-	color: #F6F5F5;
+	color: var(--clr_text);
 
 	overflow-wrap: break-word;
 	display: -webkit-box;
@@ -79,13 +90,14 @@ img.sidebar_server_el {
 
 .sidebar_channel {
 	width: 256px;
+	border-style: none solid none none;
 }
 .sidebar_channel_el {
 	border-style: none none solid none;
 
 	width: 100%;
 
-	color: #F6F5F5;
+	color: var(--clr_text);
 	font-size: 18px;
 
 	display: inline-flex;
@@ -102,4 +114,8 @@ img.sidebar_server_el {
 .sidebar_channel_el_icon {
 	padding-right: 6px;
 	height: 20px;
+}
+
+.sidebar_message {
+	width: 100%;
 }
