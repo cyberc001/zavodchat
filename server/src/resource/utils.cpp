@@ -20,7 +20,7 @@ void create_response::add_cors(const http_request& req, http_response& res)
 	if(std::find(origins.begin(), origins.end(), og) != origins.end())
 		res.with_header("Access-Control-Allow-Origin", og);
 	res.with_header("Access-Control-Allow-Credentials", "true");
-	res.with_header("Access-Control-Allow-Methods", "*");
+	res.with_header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
 	res.with_header("Access-Control-Allow-Headers", "Origin, Content-Type, X-Auth-Token, X-Requested-With, Accept");
 }
 
