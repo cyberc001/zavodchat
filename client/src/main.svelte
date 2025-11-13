@@ -34,7 +34,7 @@
 
 	// UI state
 	let sel = $state({
-		server: -1, channel: -1
+		server: -1, channel: -1, message: -1
 	});
 	let message_text = $state("");
 
@@ -43,6 +43,9 @@
 				console.log("edit!!!");
 			    }},
 			    {text: "Delete", icon: "delete.svg", func: () => {
+				Message.delete(sel.server, sel.channel, sel.message,
+						() => {}
+						, setError);
 				console.log("delete!!!");
 			    }}]
 	};
@@ -52,7 +55,9 @@
 		pos: [1000, 0],
 		actions: []
 	});
-	const showCtxMenu = (pos, action_set) => {
+	const showCtxMenu = (pos, action_set,
+				message_id) => {
+		sel.message = message_id;
 		ctx_menu_params.pos = pos;
 		ctx_menu_params.actions = action_sets[action_set];
 		ctx_menu_params.visible = true;
@@ -154,7 +159,7 @@
 				<MessageDisplay text={msg.text} author={users[msg.author_id]}
 						time_sent={new Date(msg.sent)}
 						time_edited={new Date(msg.edited)}
-						show_ctx_menu={showCtxMenu}/>
+						show_ctx_menu={(pos, action_set) => showCtxMenu(pos, action_set, msg.id)}/>
 			{/each}
 			<MessageInput onsend={sendMessage}/>
 		{/if}

@@ -20,7 +20,7 @@ private:
 	socket_main_server& sserv;
 };
 
-class channel_message_id_resource : public http_resource
+class channel_message_id_resource : public base_resource
 {
 public:
 	channel_message_id_resource(db_connection_pool& pool, socket_main_server& sserv);

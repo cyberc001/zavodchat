@@ -83,7 +83,6 @@ std::shared_ptr<http_response> channel_messages_resource::render_PUT(const http_
 
 channel_message_id_resource::channel_message_id_resource(db_connection_pool& pool, socket_main_server& sserv) : pool{pool}, sserv{sserv}
 {
-	disallow_all();
 	set_allowing("GET", true);
 	set_allowing("POST", true);
 	set_allowing("DELETE", true);

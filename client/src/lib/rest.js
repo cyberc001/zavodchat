@@ -13,6 +13,21 @@ export default class Rest {
 		return str;
 	}
 
+	static get_route_scm(server_id, channel_id, message_id)
+	{
+		let route = "";
+		if(typeof server_id === "undefined")
+			return route;
+		route += "servers/" + server_id;
+		if(typeof channel_id === "undefined")
+			return route;
+		route += "/channels/" + channel_id;
+		if(typeof message_id === "undefined")
+			return route;
+		route += "/messages/" + message_id;
+		return route
+	}
+
 	static get_base_url()
 	{
 		return Rest.host + "/";
@@ -39,6 +54,17 @@ export default class Rest {
 	static put(route, _then, _catch, ...params)
 	{
 		axios.put(Rest.get_base_url() + route + Rest.params_to_query(params))
+			.then(_then)
+			.catch((err) => {
+				if(err.response === undefined)
+					throw err;
+				_catch(err.response);
+			}
+		);
+	}
+	static delete(route, _then, _catch, ...params)
+	{
+		axios.delete(Rest.get_base_url() + route + Rest.params_to_query(params))
 			.then(_then)
 			.catch((err) => {
 				if(err.response === undefined)
