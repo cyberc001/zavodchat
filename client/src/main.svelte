@@ -153,6 +153,7 @@
 			{#each channels[sel.channel].messages as msg}
 				<MessageDisplay text={msg.text} author={users[msg.author_id]}
 						time_sent={new Date(msg.sent)}
+						time_edited={new Date(msg.edited)}
 						show_ctx_menu={showCtxMenu}/>
 			{/each}
 			<MessageInput onsend={sendMessage}/>
