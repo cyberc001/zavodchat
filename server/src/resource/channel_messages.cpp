@@ -47,7 +47,9 @@ std::shared_ptr<http_response> channel_messages_resource::render_GET(const http_
 }
 std::shared_ptr<http_response> channel_messages_resource::render_PUT(const http_request& req)
 {
-	std::string text = std::string(req.get_arg("text"));
+	std::string text = std::string(req.get_content());
+	if(!text.size())
+		return create_response::string(req, "Empty messages are forbidden", 400);
 
 	int user_id, server_id;
 	db_connection conn = pool.hold();
@@ -110,7 +112,9 @@ std::shared_ptr<http_response> channel_message_id_resource::render_GET(const htt
 }
 std::shared_ptr<http_response> channel_message_id_resource::render_POST(const http_request& req)
 {
-	std::string text = std::string(req.get_arg("text"));
+	std::string text = std::string(req.get_content());
+	if(!text.size())
+		return create_response::string(req, "Empty messages are forbidden", 400);
 
 	int user_id, server_id;
 	db_connection conn = pool.hold();

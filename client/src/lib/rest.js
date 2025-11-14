@@ -51,9 +51,22 @@ export default class Rest {
 			}
 		);
 	}
-	static put(route, _then, _catch, ...params)
+	static post(route, content, _then, _catch, ...params)
 	{
-		axios.put(Rest.get_base_url() + route + Rest.params_to_query(params))
+		axios.post(Rest.get_base_url() + route + Rest.params_to_query(params),
+				content)
+			.then(_then)
+			.catch((err) => {
+				if(err.response === undefined)
+					throw err;
+				_catch(err.response);
+			}
+		);
+	}
+	static put(route, content, _then, _catch, ...params)
+	{
+		axios.put(Rest.get_base_url() + route + Rest.params_to_query(params),
+				content)
 			.then(_then)
 			.catch((err) => {
 				if(err.response === undefined)

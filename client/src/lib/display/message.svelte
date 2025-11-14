@@ -17,9 +17,12 @@
 		<b>{author?.name}</b>
 	</div>
 	<div class="message_content_panel">
-		<span class="message_time" title={`Sent: ${time_sent}\nLast edited: ${is_edited ? time_edited : "never"}`}>
-			{formatTimeHHMM(time_sent)}
-		</span>
+		<div>
+			<div class="message_time" title={`Sent: ${time_sent}\nLast edited: ${is_edited ? time_edited : "never"}`}>{formatTimeHHMM(time_sent)}</div>
+			{#if is_edited}
+				<div class="message_time">edited</div>
+			{/if}
+		</div>
 		<span>{text}</span>
 	</div>
 </div>
@@ -40,9 +43,10 @@
 }
 .message_content_panel {
 	display: flex;
-	align-items: end;
+	align-items: baseline;
 
 	font-size: 18px;
+	white-space: pre-line;
 }
 .message_time {
 	margin-right: 8px;

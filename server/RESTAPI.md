@@ -378,9 +378,10 @@ body: `<причина ошибки>`
 *withCredentials*
 
 Отправить сообщение в канал.
+Body должно содержать текст сообщения.
 
-*arguments:*
-* text: string
+*response 400:*
+Пустое сообщение.
 
 *response 200:*
 

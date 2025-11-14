@@ -10,9 +10,8 @@ export default class {
 	}
 
 	static send(server_id, channel_id, text, _then, _catch){
-		Rest.put(Rest.get_route_scm(server_id, channel_id) + "/messages",
-			_then, _catch,
-			"text", text);
+		Rest.put(Rest.get_route_scm(server_id, channel_id) + "/messages", text,
+			_then, _catch);
 	}
 	static delete(server_id, channel_id, message_id, _then, _catch){
 		Rest.delete(Rest.get_route_scm(server_id, channel_id, message_id),
