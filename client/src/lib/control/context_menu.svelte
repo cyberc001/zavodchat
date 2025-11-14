@@ -33,7 +33,7 @@
 				hide_ctx_menu();
 	}}>
 		{#if typeof a.icon !== "undefined"}
-			<img src={"/src/lib/assets/icons/actions/" + a.icon} alt={a.text}/>
+			<img src={"/src/lib/assets/icons/actions/" + a.icon} class="filter_icon_main" alt={a.text}/>
 		{/if}
 		<div style="margin-left: 4px">{a.text}</div>
 	</button>

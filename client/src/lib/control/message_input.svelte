@@ -28,6 +28,7 @@
 .message_input {
 	width: 100%;
 	text-align: center;
+	margin-top: auto;
 }
 .message_input_textarea {
 	width: 80%;

@@ -23,6 +23,7 @@
 		"vite": "^7.1.10"
 	},
 	"dependencies": {
+		"@datastructures-js/binary-search-tree": "^5.4.0",
 		"axios": "^1.13.2"
 	}
 }

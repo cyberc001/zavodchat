@@ -17,4 +17,10 @@ export default class {
 		Rest.delete(Rest.get_route_scm(server_id, channel_id, message_id),
 			_then, _catch);
 	}
+
+	static Status = {
+		None: 0,
+		Deleting: 1,
+		Editing: 2
+	}
 }

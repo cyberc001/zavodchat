@@ -1,4 +1,6 @@
 <script>
+	import AvlTreeWrapper from '$lib/wrapper/avlTree.svelte.js';
+
 	import MessageDisplay from '$lib/display/message.svelte';
 	import MessageInput from '$lib/control/message_input.svelte';
 	import ContextMenu from '$lib/control/context_menu.svelte';
@@ -18,7 +20,18 @@
 	// Backend data
 	let servers = $state({});
 	let channels = $state({});
+	let messages = $state({});
 	let users = $state({});
+
+	let sel_channel_messages = $derived.by(() => {
+		if(sel.channel < 0 || !channels[sel.channel].messages)
+			return [];
+		channels[sel.channel].messages.dirty_flip;
+
+		let list = [];
+		channels[sel.channel].messages.traverseInOrder((node) => list.push(node.getValue()));
+		return list;
+	});
 
 	const ensureUser = (id) => {
 		if(typeof users[id] === "undefined"){
@@ -26,7 +39,6 @@
 			User.get(id,
 			(data) => {
 				users[id] = data;
-				console.log("First loaded user", $state.snapshot(users));
 			}
 			, setError);
 		}
@@ -40,13 +52,19 @@
 
 	const action_sets = {
 		"message": [{text: "Edit", icon: "edit.svg", func: () => {
+				messages[sel.message].status = Message.Status.Editing;
 				console.log("edit!!!");
 			    }},
 			    {text: "Delete", icon: "delete.svg", func: () => {
-				Message.delete(sel.server, sel.channel, sel.message,
-						() => {}
+				messages[sel.message].status = Message.Status.Deleting;
+				let chan_id = sel.channel, msg_id = sel.message; // "capture" ids
+				Message.delete(sel.server, chan_id, msg_id,
+						() => {
+							channels[chan_id].messages.remove(msg_id);
+							channels[chan_id].messages.make_dirty();
+							messages[msg_id] = undefined;
+						}
 						, setError);
-				console.log("delete!!!");
 			    }}]
 	};
 
@@ -79,7 +97,6 @@
 							servers[id].channels.push(ch.id);
 							channels[ch.id] = ch;
 						}
-						console.log("First loaded channels", $state.snapshot(servers));
 					},
 					setError);
 		}
@@ -90,10 +107,14 @@
 			// load last messages
 			Message.get_range(sel.server, id, -1, -1,
 						(list) => {
-							channels[id].messages = list.reverse();
-							for(let msg of list)
+							list = list.reverse();
+
+							channels[id].messages = new AvlTreeWrapper();
+							for(let msg of list){
+								channels[id].messages.insert(msg.id);
+								messages[msg.id] = msg;
 								ensureUser(msg.author_id);
-							console.log("First loaded messages", $state.snapshot(channels));
+							}
 						}
 						, setError
 			);
@@ -143,9 +164,9 @@
 				<div>
 					<button class={"item hoverable sidebar_channel_el" + (sel.channel == i ? " selected" : "")} onclick={() => showChannel(i)}>
 						{#if channels[i].type === 1}
-							<img src="$lib/assets/icons/channel_vc.svg" alt="voice" class="sidebar_channel_el_icon"/>
+							<img src="$lib/assets/icons/channel_vc.svg" alt="voice" class="filter_icon_main sidebar_channel_el_icon"/>
 						{:else}
-							<img src="$lib/assets/icons/channel_text.svg" alt="text" class="sidebar_channel_el_icon"/>
+							<img src="$lib/assets/icons/channel_text.svg" alt="text" class="filter_icon_main sidebar_channel_el_icon"/>
 						{/if}
 						{channels[i].name}
 					</button>
@@ -155,11 +176,12 @@
 	</div>
 	<div class="panel sidebar_message">
 		{#if sel.channel > -1}
-			{#each channels[sel.channel].messages as msg}
-				<MessageDisplay text={msg.text} author={users[msg.author_id]}
-						time_sent={new Date(msg.sent)}
-						time_edited={new Date(msg.edited)}
-						show_ctx_menu={(pos, action_set) => showCtxMenu(pos, action_set, msg.id)}/>
+			{#each sel_channel_messages as i}
+				<MessageDisplay text={messages[i].text} author={users[messages[i].author_id]}
+						time_sent={new Date(messages[i].sent)}
+						time_edited={new Date(messages[i].edited)}
+						status={messages[i].status}
+						show_ctx_menu={(pos, action_set) => showCtxMenu(pos, action_set, i)}/>
 			{/each}
 			<MessageInput onsend={sendMessage}/>
 		{/if}

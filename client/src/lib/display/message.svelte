@@ -1,7 +1,16 @@
 <script>
+	import Message from '$lib/rest/message.js';
+
 	let {text, author, time_sent, time_edited,
+		status = Message.Status.None,
 		show_ctx_menu} = $props();
 	let is_edited = $derived(time_sent.getTime() !== time_edited.getTime());
+
+	let status_msg = $derived(
+		  status == Message.Status.Editing ? "Editing..."
+		: status == Message.Status.Deleting ? "Deleting..."
+		: ""
+	);
 
 	const padnum = (x, n) => x.toString().padStart(n, '0');
 	const formatTimeHHMM = (date) => `${padnum(date.getHours(), 2)}:${padnum(date.getMinutes(), 2)}`;
@@ -16,6 +25,12 @@
 		<img class="user_avatar" src="$lib/assets/default_avatar.png" alt="avatar"/>
 		<b>{author?.name}</b>
 	</div>
+	{#if status_msg !== ""}
+		<div class="message_status_panel">
+			<img src="$lib/assets/icons/loading.svg" alt="loading" class="filter_icon_main" style="margin: 0 6px 0 5px"/>
+			{status_msg}
+		</div>
+	{/if}
 	<div class="message_content_panel">
 		<div>
 			<div class="message_time" title={`Sent: ${time_sent}\nLast edited: ${is_edited ? time_edited : "never"}`}>{formatTimeHHMM(time_sent)}</div>
@@ -40,6 +55,12 @@
 	margin-bottom: 6px;
 
 	font-size: 24px;
+}
+.message_status_panel {
+	display: inline-flex;
+	align-items: center;
+	padding: 4px 6px 4px 0;
+	background: var(--clr_bg_item);
 }
 .message_content_panel {
 	display: flex;
