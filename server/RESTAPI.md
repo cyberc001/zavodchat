@@ -78,11 +78,13 @@ https://localhost/auth?username=test&password=qwe123
 
 Данные успешно изменены.
 
-## /users/\$user_id
+## /users/\$user\_id
 
 **GET:**
 
 Получить информацию о пользователе.
+
+Если `user\_id` == -1 и *withCredentials*, то возвращается информация о текущем пользователе.
 
 *response 200:*
 

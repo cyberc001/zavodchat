@@ -36,11 +36,7 @@
 	const ensureUser = (id) => {
 		if(typeof users[id] === "undefined"){
 			// TODO prevent double-loading
-			User.get(id,
-			(data) => {
-				users[id] = data;
-			}
-			, setError);
+			User.get(id, (data) => { users[id] = data }, setError);
 		}
 	};
 
@@ -62,7 +58,7 @@
 						() => {
 							channels[chan_id].messages.remove(msg_id);
 							channels[chan_id].messages.make_dirty();
-							messages[msg_id] = undefined;
+							delete messages[msg_id];
 						}
 						, setError);
 			    }}]
@@ -81,6 +77,7 @@
 		ctx_menu_params.visible = true;
 	};
 	const hideCtxMenu = () => {
+		sel.message = -1;
 		ctx_menu_params.visible = false;
 	};
 
@@ -122,12 +119,38 @@
 	};
 
 	let sendMessage = (text) => {
+		let chan_id = sel.channel;
+		let pre_id = Math.max(4290000000, channels[chan_id].messages.count() > 0 ? channels[chan_id].messages.max().getValue() + 1 : 0);
+		let now = new Date(Date.now());
+		messages[pre_id] = {
+			author_id: users[-1].id,
+			id: pre_id,
+			sent: now.toISOString(), edited: now.toISOString(),
+			text: text,
+			status: Message.Status.Sending
+		};
+		channels[sel.channel].messages.insert(pre_id);
+		channels[sel.channel].messages.make_dirty();
+
 		Message.send(sel.server, sel.channel, text,
-				() => {}
+				(new_msg_id) => {
+					// Remove message with old fake ID, assign a real ID, re-insert
+					let msg = messages[pre_id];
+					channels[sel.channel].messages.remove(pre_id);
+					channels[sel.channel].messages.make_dirty();
+					delete messages[pre_id];
+
+					msg.id = new_msg_id;
+					msg.status = Message.Status.None;
+					channels[sel.channel].messages.insert(msg.id);
+					messages[msg.id] = msg;
+					channels[sel.channel].messages.make_dirty();
+				}
 				, setError);
 	};
 
 	// Initialization
+	User.get(-1, (data) => { users[-1] = data; }, setError);
 	Server.get_list((list) => {
 					let data_servers = {};
 					for(let srv of list)
@@ -178,8 +201,8 @@
 		{#if sel.channel > -1}
 			{#each sel_channel_messages as i}
 				<MessageDisplay text={messages[i].text} author={users[messages[i].author_id]}
-						time_sent={new Date(messages[i].sent)}
-						time_edited={new Date(messages[i].edited)}
+						time_sent={new Date(messages[i].sent)} time_edited={new Date(messages[i].edited)}
+						selected={sel.message == i}
 						status={messages[i].status}
 						show_ctx_menu={(pos, action_set) => showCtxMenu(pos, action_set, i)}/>
 			{/each}

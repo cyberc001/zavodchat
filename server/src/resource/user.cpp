@@ -17,6 +17,13 @@ std::shared_ptr<http_response> user_id_resource::render_GET(const http_request& 
 	auto err = parse_id(req, tx, user_id);
 	if(err) return err;
 
+	if(user_id == -1){
+		int auth_user_id;
+		err = resource_utils::parse_session_token(req, tx, auth_user_id);
+		if(err) return err;
+		user_id = auth_user_id;
+	}
+
 	pqxx::result r = tx.exec("SELECT user_id, name, avatar, status FROM users WHERE user_id = $1", pqxx::params(user_id));
 	if(!r.size())
 		return create_response::string(req, "User with this ID doesn't exist", 404);

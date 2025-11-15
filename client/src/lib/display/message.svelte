@@ -2,12 +2,13 @@
 	import Message from '$lib/rest/message.js';
 
 	let {text, author, time_sent, time_edited,
-		status = Message.Status.None,
+		selected = false, status = Message.Status.None,
 		show_ctx_menu} = $props();
 	let is_edited = $derived(time_sent.getTime() !== time_edited.getTime());
 
 	let status_msg = $derived(
-		  status == Message.Status.Editing ? "Editing..."
+		  status == Message.Status.Sending ? "Sending..."
+		: status == Message.Status.Editing ? "Editing..."
 		: status == Message.Status.Deleting ? "Deleting..."
 		: ""
 	);
@@ -16,7 +17,7 @@
 	const formatTimeHHMM = (date) => `${padnum(date.getHours(), 2)}:${padnum(date.getMinutes(), 2)}`;
 </script>
 
-<div class="message_panel hoverable" tabindex=0 role="group"
+<div class={"message_panel hoverable" + (selected ? " selected" : "")} tabindex=0 role="group"
 	oncontextmenu={(e) => {
 		event.preventDefault();
 		show_ctx_menu([e.clientX, e.clientY], "message");
