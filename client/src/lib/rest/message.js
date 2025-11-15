@@ -13,6 +13,11 @@ export default class {
 		Rest.put(Rest.get_route_scm(server_id, channel_id) + "/messages", text,
 			(res) => {_then(res.data)}, _catch);
 	}
+	static edit(server_id, channel_id, message_id, text, _then, _catch){
+		Rest.post(Rest.get_route_scm(server_id, channel_id, message_id), text,
+			_then, _catch);
+	}
+
 	static delete(server_id, channel_id, message_id, _then, _catch){
 		Rest.delete(Rest.get_route_scm(server_id, channel_id, message_id),
 			_then, _catch);

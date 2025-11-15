@@ -42,14 +42,14 @@
 
 	// UI state
 	let sel = $state({
-		server: -1, channel: -1, message: -1
+		server: -1, channel: -1, message: -1, message_edit: -1
 	});
 	let message_text = $state("");
 
 	const action_sets = {
 		"message": [{text: "Edit", icon: "edit.svg", func: () => {
-				messages[sel.message].status = Message.Status.Editing;
-				console.log("edit!!!");
+				sel.message_edit = sel.message;
+				message_text = messages[sel.message].text;
 			    }},
 			    {text: "Delete", icon: "delete.svg", func: () => {
 				messages[sel.message].status = Message.Status.Deleting;
@@ -148,6 +148,27 @@
 				}
 				, setError);
 	};
+	let editMessage = (text) => {
+		let chan_id = sel.channel, msg_id = sel.message_edit;
+		let prev_text = messages[msg_id].text;
+		messages[msg_id].status = Message.Status.Editing;
+		messages[msg_id].text = text;
+		sel.message_edit = -1;
+		
+		Message.edit(sel.server, chan_id, msg_id, text,
+				() => {
+					messages[msg_id].status = Message.Status.None;
+				}
+				, (err) => {
+					messages[msg_id].text = prev_text;
+					setError(err);
+				});
+	};
+
+	let stopEditing = () => {
+		sel.message_edit = -1;
+		message_text = "";
+	};
 
 	// Initialization
 	User.get(-1, (data) => { users[-1] = data; }, setError);
@@ -202,11 +223,13 @@
 			{#each sel_channel_messages as i}
 				<MessageDisplay text={messages[i].text} author={users[messages[i].author_id]}
 						time_sent={new Date(messages[i].sent)} time_edited={new Date(messages[i].edited)}
-						selected={sel.message == i}
+						selected={sel.message == i || sel.message_edit == i}
 						status={messages[i].status}
 						show_ctx_menu={(pos, action_set) => showCtxMenu(pos, action_set, i)}/>
 			{/each}
-			<MessageInput onsend={sendMessage}/>
+			<MessageInput
+				bind:value={message_text} onsend={sel.message_edit > -1 ? editMessage : sendMessage}
+				actions={sel.message_edit > -1 ? [{text: "Stop editing", func: stopEditing}] : []}/>
 		{/if}
 	</div>
 </div>

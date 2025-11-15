@@ -32,9 +32,9 @@
 			{status_msg}
 		</div>
 	{/if}
-	<div class="message_content_panel">
+	<div class="message_content_panel" title={`Sent: ${time_sent}\nLast edited: ${is_edited ? time_edited : "never"}`}>
 		<div>
-			<div class="message_time" title={`Sent: ${time_sent}\nLast edited: ${is_edited ? time_edited : "never"}`}>{formatTimeHHMM(time_sent)}</div>
+			<div class="message_time">{formatTimeHHMM(time_sent)}</div>
 			{#if is_edited}
 				<div class="message_time">edited</div>
 			{/if}
