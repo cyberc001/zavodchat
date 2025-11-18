@@ -19,6 +19,7 @@
 	"db_user": "zavodchat",
 	"db_password": "q1w2e3",
 	"db_name": "zavodchat",
+	"create_test_db": true,
 
 	"min_username_length": 2,
 	"min_password_length": 8,

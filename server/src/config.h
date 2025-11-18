@@ -12,6 +12,7 @@ public:
 	config(std::ifstream& fd);
 
 	std::string get_conn_str() const;
+	bool create_test_db = false;
 
 	unsigned https_port = 443, ws_port = 444, ws_vc_port = 445;
 	std::vector<std::string> origins;

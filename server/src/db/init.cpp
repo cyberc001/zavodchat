@@ -4,6 +4,7 @@
 #include <chrono>
 #include <thread>
 #include "resource/role_utils.h"
+#include <cstdlib>
 
 void db_connect(std::string conn_str)
 {
@@ -20,7 +21,6 @@ start:
 void db_init(std::string conn_str)
 {
 	pqxx::connection conn{conn_str};
-
 	{
 		pqxx::work tx{conn};
 		tx.exec("CREATE EXTENSION IF NOT EXISTS pgcrypto");
@@ -72,7 +72,13 @@ void db_init(std::string conn_str)
 			tx.exec("INSERT INTO fs_total_busy(total) VALUES(0)");
 		tx.commit();
 	}
+}
 
+void db_create_test(std::string conn_str)
+{
+	std::cerr << "Creating test database..." << std::endl;
+
+	pqxx::connection conn{conn_str};
 	// Create 2 test users
 	bool created_any_users = false;
 	{
@@ -194,4 +200,47 @@ void db_init(std::string conn_str)
 
 		tx.commit();
 	}
+
+	// Create test messages in every channel
+	{
+		pqxx::work tx{conn};
+
+		pqxx::result r = tx.exec("SELECT user_id FROM users WHERE name = 'test'");
+		if(!r.size()){
+			std::cerr << "Failed to create test messages: user 'test' doesn't exist" << std::endl;
+			return;
+		}
+		int user_id_1 = r[0]["user_id"].as<int>();
+
+		r = tx.exec("SELECT user_id FROM users WHERE name = 'test2'");
+		if(!r.size()){
+			std::cerr << "Failed to create test messages: user 'test2' doesn't exist" << std::endl;
+			return;
+		}
+		int user_id_2 = r[0]["user_id"].as<int>();
+
+
+		const char* chan_names[] = {"channel_test", "channel_test2"};
+		for(size_t i = 0; i < sizeof(chan_names) / sizeof(*chan_names); ++i)
+		{
+			r = tx.exec("SELECT channel_id FROM channels WHERE name = $1", pqxx::params(chan_names[i]));
+			if(!r.size()){
+				std::cerr << "Failed to create test messages: channel '" << chan_names[i] << "' doesn't exist" << std::endl;
+				return;
+			}
+
+			int chan_id = r[0]["channel_id"].as<int>();
+			for(size_t j = 0; j < 120; ++j){
+				std::string text(rand() % 124 + 4, ' ');
+				for(size_t k = 0; k < text.size(); ++k)
+					text[k] = rand() % ('}' - '!' + 1) + '!';
+				tx.exec("INSERT INTO messages(channel_id, author_id, sent, last_edited, text) VALUES($1, $2, date_subtract(now(), ($3 || ' minute')::interval), date_subtract(now(), ($4 || ' minute')::interval), $5)", pqxx::params(chan_id, (rand() & 0x1) ? user_id_1 : user_id_2, (int)((120 - j) * 24), (int)((120 - j) * 24 + rand() % 3), text));
+				
+			}
+			tx.commit();
+		}
+	}
+
+	std::cerr << "Created test database" << std::endl;
+
 }

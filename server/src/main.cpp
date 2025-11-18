@@ -35,6 +35,8 @@ int main()
 
 	db_connect(cfg.get_conn_str());
 	db_init(cfg.get_conn_str());
+	if(cfg.create_test_db)
+		db_create_test(cfg.get_conn_str());
 	db_connection_pool pool{cfg.get_conn_str()};
 
 	file_utils::user_avatar_storage_path = cfg.user_avatar_path;

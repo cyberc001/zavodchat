@@ -40,6 +40,12 @@ config::config(){}
 	else if(!cfg[#param].is_null())\
 		throw std::logic_error{msg_type_error(#param, cfg, "string")};\
 }
+#define GET_BOOL(param){\
+	if(cfg[#param].is_boolean())\
+		(param) = cfg[#param].get<bool>();\
+	else if(!cfg[#param].is_null())\
+		throw std::logic_error{msg_type_error(#param, cfg, "boolean")};\
+}
 
 
 config::config(std::ifstream& fd)
@@ -59,6 +65,7 @@ config::config(std::ifstream& fd)
 	db_user = cfg["db_user"].get<std::string>();
 	db_password = cfg["db_password"].get<std::string>();
 	db_name = cfg["db_name"].get<std::string>();
+	GET_BOOL(create_test_db);
 
 	GET_UNSIGNED(https_port)
 	GET_UNSIGNED(ws_port)
