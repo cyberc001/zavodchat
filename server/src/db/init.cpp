@@ -234,6 +234,8 @@ void db_create_test(std::string conn_str)
 				std::string text(rand() % 124 + 4, ' ');
 				for(size_t k = 0; k < text.size(); ++k)
 					text[k] = rand() % ('}' - '!' + 1) + '!';
+				for(int k = 0; k < rand() % 4; ++k)
+					text[rand() % text.size()] = '\n';
 				tx.exec("INSERT INTO messages(channel_id, author_id, sent, last_edited, text) VALUES($1, $2, date_subtract(now(), ($3 || ' minute')::interval), date_subtract(now(), ($4 || ' minute')::interval), $5)", pqxx::params(chan_id, (rand() & 0x1) ? user_id_1 : user_id_2, (int)((120 - j) * 24), (int)((120 - j) * 24 + rand() % 3), text));
 				
 			}

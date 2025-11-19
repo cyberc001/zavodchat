@@ -31,8 +31,10 @@ body {
 /* Generic classes */
 .main {
 	display: flex;
+
 	height: 100%;
-	margin: 14px 0 14px 0;
+	box-sizing: border-box;
+	padding: 14px 0 14px 0;
 }
 .panel {
 	background: var(--clr_bg_panel);

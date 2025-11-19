@@ -1,6 +1,7 @@
 <script>
 	import AvlTreeWrapper from '$lib/wrapper/avlTree.svelte.js';
 
+	import PaginatedList from '$lib/display/paginated_list.svelte';
 	import MessageDisplay from '$lib/display/message.svelte';
 	import MessageInput from '$lib/control/message_input.svelte';
 	import ContextMenu from '$lib/control/context_menu.svelte';
@@ -30,7 +31,8 @@
 
 		let list = [];
 		channels[sel.channel].messages.traverseInOrder((node) => list.push(node.getValue()));
-		return list;
+		
+		return list.reverse();
 	});
 
 	const ensureUser = (id) => {
@@ -220,13 +222,23 @@
 	</div>
 	<div class="panel sidebar_message">
 		{#if sel.channel > -1}
-			{#each sel_channel_messages as i}
-				<MessageDisplay text={messages[i].text} author={users[messages[i].author_id]}
-						time_sent={new Date(messages[i].sent)} time_edited={new Date(messages[i].edited)}
-						selected={sel.message == i || sel.message_edit == i}
-						status={messages[i].status}
-						show_ctx_menu={(pos, action_set) => showCtxMenu(pos, action_set, i)}/>
-			{/each}
+			{#snippet render_message(item)}
+				<MessageDisplay id={item.id} text={item.text}
+				author={users[item.author_id]}
+				time_sent={new Date(item.sent)} time_edited={new Date(item.edited)}
+				status={item.status}
+				show_ctx_menu={(pos, action_set) => showCtxMenu(pos, action_set, item.id)}/>
+			{/snippet}
+			<PaginatedList items={sel_channel_messages}
+			render_item={render_message} load_items={(index, count, _then) => {
+				Message.get_range(sel.server, sel.channel, index, count,
+					(list) => {
+						for(let msg of list)
+							ensureUser(msg.author_id);
+						_then(list);
+					}
+					, setError);
+			}}/>
 			<MessageInput
 				bind:value={message_text} onsend={sel.message_edit > -1 ? editMessage : sendMessage}
 				actions={sel.message_edit > -1 ? [{text: "Stop editing", func: stopEditing}] : []}/>

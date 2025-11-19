@@ -37,6 +37,7 @@
 .message_input {
 	width: 100%;
 	text-align: center;
+	margin-bottom: 1%;
 	margin-top: auto;
 }
 .message_input_center_panel {
