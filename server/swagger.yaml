@@ -1,0 +1,949 @@
+openapi: 3.0.0
+info:
+  title: Zavodchat (REST)
+  version: 1.0.0
+paths:
+  /users:
+    get:
+      summary: Вход в систему по логину/паролю
+      parameters:
+        - name: username
+          in: query
+          required: true
+          description: Логин пользователя
+          schema:
+            type: string
+            example: test
+        - name: password
+          in: query
+          required: true
+          description: Пароль пользователя
+          schema:
+            type: string
+            example: qwe123            
+      responses:
+        '200':
+          description: Успешная авторизация
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+                example: zavodchat_token=3c3beb77-b54a-4733-8c5d-acd7b2680241
+        '404':
+          description: Неверный логин/пароль
+    put:
+      summary: Регистрация в системе
+      parameters:
+        - name: username
+          in: query
+          required: true
+          description: Логин пользователя
+          schema:
+            type: string
+            example: test
+        - name: displayname
+          in: query
+          required: true
+          description: Псевдоним пользователя
+          schema:
+            type: string
+            example: testuser
+        - name: password
+          in: query
+          required: true
+          description: Пароль пользователя
+          schema:
+            type: string
+            example: qwe123
+      responses:
+        '200':
+          description: Успешная регистрация
+        '400':
+          description: Слишком короткий username/password
+        '403':
+          description: Логин занят
+    post:
+      summary: Изменение данных пользователя
+      parameters:
+        - $ref: "#/parameters/zavodchat_token"
+        - name: username
+          in: query
+          description: Логин пользователя
+          schema:
+            type: string
+            example: test
+        - name: displayname
+          in: query
+          description: Псевдоним пользователя
+          schema:
+            type: string
+            example: testuser
+        - name: password
+          in: query
+          description: Пароль пользователя
+          schema:
+            type: string
+            example: qwe123
+      responses:
+        '200':
+          description: Успешная регистрация
+  /users/$user_id:
+    get:
+      summary: Информация о пользователе
+      responses:
+        '200':
+          description: "Информация о пользователе"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '404':
+          description: Не существует пользователя с таким user_id
+  /user_status:
+    post:
+      summary: Изменить свой статус
+      parameters:
+        - $ref: "#/parameters/zavodchat_token"
+        - name: status
+          in: query
+          required: true
+          description: Статус
+          schema:
+            $ref: '#/components/schemas/UserStatus'
+      responses:
+        '404':
+          description: Не существует пользователя с таким user_id
+  /servers:
+    get:
+      summary: Список серверов, в которых состоит пользователь
+      parameters:
+        - $ref: "#/parameters/zavodchat_token"
+      responses:
+        '200':
+          description: Список серверов
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Server'
+    put:
+      summary: Создать сервер
+      parameters:
+        - $ref: "#/parameters/zavodchat_token"
+        - name: name
+          in: query
+          required: true
+          description: Имя сервера
+          schema:
+            type: string
+            example: Зона
+      responses:
+        '200':
+          description: server_id созданного сервера
+          content:
+            text:
+              example: 73
+        '403':
+          description: Превышено ограничение на количество серверов, которыми владеет пользователь
+  /servers/$server_id:
+    get:
+      summary: Получить информацию о сервере
+      parameters:
+        - $ref: "#/parameters/zavodchat_token"
+      responses:
+        '200':
+          description: "Информация о сервере"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Server'
+    post:
+      summary: Изменить параметры сервера
+      parameters:
+        - $ref: "#/parameters/zavodchat_token"
+        - name: name
+          in: query
+          description: Имя сервера
+          schema:
+            type: string
+            example: testuser
+        - name: owner_id
+          in: query
+          description: ID нового владельца сервера
+          schema:
+            type: integer
+            example: 33
+        - name: avatar
+          in: query
+          description: Аватар сервера
+          schema:
+            type: string
+            format: binary
+      responses:
+        '200':
+          description: Сервер успешно изменён
+        '202':
+          description: Пользователь с owner_id уже является владельцем сервера
+        '400':
+          description: Слишком длинное название сервера
+        '403':
+          description: Пользователь с owner_id не состоит на сервере
+    delete:
+      summary: Удалить сервер
+      parameters:
+        - $ref: "#/parameters/zavodchat_token"
+      responses:
+        '200':
+          description: Сервер успешно удалён
+  /servers/$server_id/users:
+    get:
+      summary: Пагинированный список пользователей
+      parameters:
+        - $ref: "#/parameters/zavodchat_token"
+        - name: start
+          required: true
+          in: query
+          description: Начало диапазона (0 - последний пользователь, 1 - предпоследний, и т.д.)
+          schema:
+            type: integer
+            example: 0
+        - name: count
+          required: true
+          in: query
+          description: Размер диапазона
+          schema:
+            type: integer
+            example: 50
+      responses:
+        '200':
+          description: Список пользователей (может быть < count - означает конец массива пользователей)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+        '403':
+          description: Неправильный start (< 0, >= количеству пользователей) / слишком большой count
+  /servers/$server_id/users/$user_id:
+    delete:
+      summary: Выгнать пользователя с сервера
+      responses:
+        '200':
+          description: Пользователь был кикнут
+        '403':
+          description: Нет прав на кик / попытка кикнуть пользователя >= ролью / попытка кикнуть владельца
+        '404':
+          description: Пользователь не состоит на сервере
+  /servers/$server_id/channels:
+    get:
+      summary: Список каналов
+      parameters:
+        - $ref: "#/parameters/zavodchat_token"
+      responses:
+        '200':
+          description: Информация обо всех каналах
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Channel'
+    put:
+      summary: Создать канал
+      parameters:
+        - $ref: "#/parameters/zavodchat_token"
+        - name: name
+          in: query
+          description: Имя канала
+          schema:
+            type: string
+            example: posidelki
+        - name: type
+          in: query
+          description: 0 - текстовый, 1 - голосовой
+          schema:
+            type: integer
+            example: 0
+      responses:
+        '200':
+          description: channel_id созданного канала
+          content:
+            text:
+              example: 4
+        '403':
+          description: Превышено ограничение на количество каналов на сервере
+  /servers/$server_id/channels/$channel_id:
+    get:
+      summary: Информация о канале
+      parameters:
+        - $ref: "#/parameters/zavodchat_token"
+      responses:
+        '200':
+          description: Информация о канале
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Channel'
+    post:
+      summary: Изменить параметры канала
+      parameters:
+        - $ref: "#/parameters/zavodchat_token"
+        - name: name
+          in: query
+          description: Имя канала
+          schema:
+            type: string
+            example: posidelki_radio
+        - name: type
+          in: query
+          description: 0 - текстовый, 1 - голосовой
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '200':
+          description: Параметры успешно изменены
+    delete:
+      summary: Удалить канал
+      parameters:
+        - $ref: "#/parameters/zavodchat_token"
+      responses:
+        '200':
+          description: Канал успешно удалён
+  /servers/$server_id/channels/$channel_id/messages:
+    get:
+      summary: Пагинированный список сообщений
+      parameters:
+        - $ref: "#/parameters/zavodchat_token"
+        - name: start
+          required: true
+          in: query
+          description: Начало диапазона (0 - последнее сообщение, 1 - предпоследнее, и т.д.)
+          schema:
+            type: integer
+            example: 0
+        - name: count
+          required: true
+          in: query
+          description: Размер диапазона
+          schema:
+            type: integer
+            example: 50
+        - name: order
+          in: query
+          description: Порядок сообщений (0 - от новых к старым (по умолчанию), 1 - от старых к новым)
+          schema:
+            type: integer
+            example: 0
+      responses:
+        '200':
+          description: Сообщения (может быть < count - означает конец массива сообщений)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Message'
+        '403':
+          description: Неправильный start (< 0, >= количеству пользователей) / слишком большой count / канал не текстовый
+    put:
+      summary: Отправить сообщение
+      parameters:
+        - $ref: "#/parameters/zavodchat_token"
+      requestBody:
+        content:
+            text:
+              example: "папа ты купил молоко?"
+      responses:
+        '400':
+          description: Пустое сообщение
+        '200':
+          description: ID созданного сообщения
+          content:
+            text:
+              example: 377
+  /servers/$server_id/channels/$channel_id/messages/$message_id:
+    get:
+      summary: Информация о сообщении
+      parameters:
+        - $ref: "#/parameters/zavodchat_token"
+      responses:
+        '200':
+          description: Сообщение
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+    post:
+      summary: Отредактировать сообщение
+      parameters:
+        - $ref: "#/parameters/zavodchat_token"
+      requestBody:
+        content:
+            text:
+              example: "папа ты купил молоко?"
+      responses:
+        '400':
+          description: Пустое сообщение
+        '403':
+          description: Пользователь не является автором сообщения
+        '200':
+          description: Сообщение успешно отредактировано
+    delete:
+      summary: Удалить сообщение
+      parameters:
+        - $ref: "#/parameters/zavodchat_token"
+      responses:
+        '403':
+          description: Пользователь не является автором сообщения и не имеет право на удаление чужих сообщений
+        '200':
+          description: Сообщение успешно удалено
+  /server_invites/$invite_id:
+    get:
+      summary: Вступить на сервер по приглашению
+      parameters:
+        - $ref: "#/parameters/zavodchat_token"
+      responses:
+        '200':
+          description: Пользователь был принят на сервер
+        '202':
+          description: Пользователь уже состоит на сервере
+        '404':
+          description: Приглашение истекло / пользователь забанен
+  /servers/$server_id/invites:
+    get:
+      summary: Получить список приглашений на сервер
+      parameters:
+        - $ref: "#/parameters/zavodchat_token"
+      responses:
+        '200':
+          description: Информация о приглашениях
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Invite'
+        '403':
+          description: У пользователя нет прав на управление приглашениями
+    put:
+      summary: Создать приглашение
+      parameters:
+        - $ref: "#/parameters/zavodchat_token"
+        - name: expires
+          in: query
+          description: Дата и время истечения приглашения (автоматически удаляется из базы данных через некоторый промежуток). Может быть "never"
+          schema:
+            type: string
+            format: date
+            example: "2024-11-13 12:50:15+03"
+      responses:
+        '200':
+          description: ID созданного приглашения
+          content:
+            text:
+              example: 1e1d184c-679a-494e-ba30-6f1f72bd221e
+        '400':
+          description: Неправильный формат даты и времени expires
+        '403':
+          description: Превышено ограничение на количество приглашений / у пользователя нет прав на управление приглашениями
+  /servers/$server_id/invites/$invite_id:
+    get:
+      summary: Информация о приглашении на сервер
+      parameters:
+        - $ref: "#/parameters/zavodchat_token"
+      responses:
+        '200':
+          description: Информация о приглашении
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Invite'
+        '403':
+          description: У пользователя нет прав на управление приглашениями
+        '404':
+          description: Приглашения с таким ID не существует на сервере
+    post:
+      summary: Изменить параметры приглашения
+      parameters:
+        - $ref: "#/parameters/zavodchat_token"
+        - name: expires
+          in: query
+          description: Дата и время истечения приглашения (автоматически удаляется из базы данных через некоторый промежуток). Может быть "never"
+          schema:
+            type: string
+            format: date
+            example: "2024-11-13 12:50:15+03"
+      responses:
+        '200':
+          description: Приглашение успешно изменено
+        '400':
+          description: Неправильный формат даты и времени expires
+        '403':
+          description: У пользователя нет прав на управление приглашениями
+        '404':
+          description: Приглашения с таким ID не существует на сервере
+    delete:
+      summary: Удалить приглашение
+      parameters:
+        - $ref: "#/parameters/zavodchat_token"
+      responses:
+        '200':
+          description: Приглашение успешно удалено
+        '403':
+          description: У пользователя нет прав на управление приглашениями
+        '404':
+          description: Приглашения с таким ID не существует на сервере
+  /servers/$server_id/bans/:
+    get:
+      parameters:
+        - $ref: "#/parameters/zavodchat_token"
+        - name: start
+          required: true
+          in: query
+          description: Начало диапазона (0 - последний бан, 1 - предпоследний бан, и т.д.)
+          schema:
+            type: integer
+            example: 0
+        - name: count
+          required: true
+          in: query
+          description: Размер диапазона
+          schema:
+            type: integer
+            example: 50
+      responses:
+        '200':
+          description: Список забаненных пользователей (может быть < count - означает конец массива банов)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+        '403':
+          description: Неправильный start (< 0, >= количеству банов) / слишком большой count
+    put:
+      parameters:
+        - $ref: "#/parameters/zavodchat_token"
+        - name: expires
+          in: query
+          description: Дата и время истечения бана (автоматически удаляется из базы данных через некоторый промежуток). Может быть "never" - бан навсегда
+          schema:
+            type: string
+            format: date
+            example: "2024-11-13 12:50:15+03"
+        - name: ban_user_id
+          in: query
+          description: ID пользователя
+          schema:
+            type: integer
+            example: 6
+      responses:
+        '200':
+          description: Пользователь успешно забанен
+        '202':
+          description: Пользователь уже забанен
+        '400':
+          description: Неправильная дата и время expires
+        '403':
+          description: Нет прав на управление банами / попытка забанить >= роль
+    delete:
+      summary: Разбанить пользователя
+      parameters:
+        - $ref: "#/parameters/zavodchat_token"
+      responses:
+        '200':
+          description: Пользователь успешно разбанен
+        '403':
+          description: Нет прав на управление банами
+        '404':
+          description: Пользователь не забанен
+  /servers/$server_id/roles:
+    get:
+      summary: Список ролей
+      parameters:
+        - $ref: "#/parameters/zavodchat_token"
+      responses:
+        '200':
+          description: Список ролей в порядке от самой старшей до самой младшей
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Role'
+    put:
+      summary: Создать новую роль
+      parameters:
+        - $ref: "#/parameters/zavodchat_token"
+        - name: next_role_id
+          required: true
+          in: query
+          description: ID роли, перед (ниже) которой нужно вставить новую роль
+          schema:
+            type: integer
+            example: 6
+        - name: name
+          required: true
+          in: query
+          description: Имя роли
+          schema:
+            type: string
+            example: moderator
+        - name: color
+          required: true
+          in: query
+          description: Цвет роли в формате RGB
+          schema:
+            type: integer
+            example: moderator
+        - name: perms1
+          in: query
+          description: Набор разрешений 1. По умолчанию все разрешения 00 (унаследованы от младших ролей)
+          schema:
+            type: integer
+            example: 158377
+      responses:
+        '200':
+          description: ID созданной роли
+          content:
+            text:
+              example: 17
+        '400':
+          description: Неправильные параметры / попытка вставить роль перед default ролью
+  /servers/$server_id/roles/$role_id:
+    post:
+      summary: Изменить параметры роли
+      parameters:
+        - $ref: "#/parameters/zavodchat_token"
+        - name: next_role_id
+          required: true
+          in: query
+          description: ID роли, перед (ниже) которой нужно вставить новую роль
+          schema:
+            type: integer
+            example: 6
+        - name: name
+          required: true
+          in: query
+          description: Имя роли
+          schema:
+            type: string
+            example: moderator
+        - name: color
+          required: true
+          in: query
+          description: Цвет роли в формате RGB
+          schema:
+            type: integer
+            example: moderator
+        - name: perms1
+          in: query
+          description: Набор разрешений 1. По умолчанию все разрешения 00 (унаследованы от младших ролей)
+          schema:
+            type: integer
+            example: 158377
+      responses:
+        '200':
+          description: Роль успешно изменена
+        '400':
+          description: Неправильные параметры / попытка вставить роль перед default ролью
+    delete:
+      summary: Удалить роль
+      parameters:
+        - $ref: "#/parameters/zavodchat_token"
+      responses:
+        '200':
+          description: Роль успешно удалена
+  /servers/$server_id/users/$user_id/roles:
+    get:
+      summary: Получить роли пользователя
+      parameters:
+        - $ref: "#/parameters/zavodchat_token"
+      responses:
+        '200':
+          description: Список ролей пользователя в порядке от самой старшей до самой младшей
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Role'
+        '404':
+          description: Пользователь не является участником сервера
+  /servers/$server_id/users/$user_id/roles/$role_id:
+    put:
+      summary: Назначить пользователю роль
+      parameters:
+        - $ref: "#/parameters/zavodchat_token"
+      responses:
+        '200':
+          description: Роль успешно назначена
+        '202':
+          description: Пользователь уже имеет эту роль
+    delete:
+      summary: Отнять у пользователя роль
+      parameters:
+        - $ref: "#/parameters/zavodchat_token"
+      responses:
+        '200':
+          description: Роль успешно отобрана
+        '400':
+          description: Попытка отобрать роль по умолчанию
+  /files/avatar/user/$filename:
+    get:
+      summary: Аватар пользователя
+      responses:
+        '200':
+          description: Файл с аватаром
+          content:
+            file:
+              example: (Любой файл поддерживаемого формата изображений)
+        '404':
+          description: Файла не существует
+  /files/avatar/server/$filename:
+    get:
+      summary: Аватар сервера
+      responses:
+        '200':
+          description: Файл с аватаром
+          content:
+            file:
+              example: (Любой файл поддерживаемого формата изображений)
+        '404':
+          description: Файла не существует
+  /files/upload/:
+    put:
+      summary: Загрузить файл на сервер
+      parameters:
+        - $ref: "#/parameters/zavodchat_token"
+        - name: ext
+          required: true
+          in: query
+          description: Расширение файла
+          schema:
+            type: string
+            example: png
+        - name: file
+          in: query
+          description: Файл
+          schema:
+            type: string
+            format: binary
+      responses:
+        '400':
+          description: Пустое расширение / слишком длинное расширение / пустой файл / файл не помещается на отведённое пользователю место на диске
+        '200':
+          description: Случайно сгенерированное имя файла
+          content:
+            text:
+              example: "yN2ZIvEAa5YBT05qGVaBlG1mxDCY7n1v.png"
+  /files/upload/$filename:
+    delete:
+      summary: Удалить свой файл с сервера
+      parameters:
+        - $ref: "#/parameters/zavodchat_token"
+      responses:
+        '404':
+          description: Файла не существует
+        '200':
+          description: Файл был удалён
+  /files/upload/$user_id/$filename:
+    get:
+      summary: Файл с сервера
+      parameters:
+        - $ref: "#/parameters/zavodchat_token"
+      responses:
+        '200':
+          description: Файл
+          content:
+            file:
+              example: (Содержимое файла)
+        '404':
+          description: Файла не существует
+  /params:
+    get:
+      summary: Конфигурация сервера
+      responses:
+        '200':
+          description: Информация о конфигурации сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Config'
+
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 412
+        name:
+          type: string
+          example: cyb3rc001
+        avatar:
+          type: string
+          example: avatar_453912.png
+        status:
+          type: integer
+          example: 0
+    Server:
+      type: object
+      properties:
+        name:
+          type: string
+          example: Зона
+        avatar:
+          type: string
+          example: avatar_453912.png
+    Channel:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 2
+        name:
+          type: string
+          example: channel_test_vc
+        type:
+          description: 0 - текстовый, 1 - голосовой
+          type: integer
+          example: 1
+        vc_users:
+          description: user_id пользователей, которые подключены к голосовому каналу
+          type: array
+          items:
+            type: integer
+          example:
+          - 1
+          - 2
+    Message:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 17
+        author_id:
+          type: integer
+          example: 3
+        sent:
+          type: string
+          format: date
+          example: "2024-11-09 22:25:28.021376+03"
+        edited:
+          type: string
+          format: date
+          example: "2024-11-09 22:25:28.021376+03"
+        text:
+          type: string
+          example: "папа ты купил молоко?"
+    Invite:
+      type: object
+      properties:
+        id:
+          type: string
+          example: 1e1d184c-679a-494e-ba30-6f1f72bd221e
+        expires:
+          type: string
+          format: date
+          example: "2024-11-13 00:00:00+03 или never"
+        server_id:
+          type: integer
+          example: 3
+    Role:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 2
+        color:
+          type: integer
+          example: 16711680
+        name:
+          type: string
+          example: "admin"
+        perms1:
+          type: integer
+          example: 158377
+    
+    Config:
+      type: object
+      properties:
+        max_channels_per_server:
+          type: integer
+          description: Максимальное количество каналов, которые можно создать на одном сервере
+          example: 50
+        max_get_count:
+          type: integer
+          description: Максимальное количество записей, которые можно получить за один запрос пагинации
+          example: 50
+        max_roles_per_server:
+          type: integer
+          description: Максимальное количество ролей, которые можно создать на одном сервере
+          example: 50
+        max_video_bitrate:
+          type: integer
+          description: Максимальный битрейт видео, который можно запросить при его включении в голосовом канале
+          example: 10240000
+        min_password_length:
+          type: integer
+          description: Минимальная длина пароля при регистрации / изменении пароля
+          example: 8
+        min_username_length:
+          type: integer
+          description: Минимальная длина имени пользователя при регистрации / изменении пароля
+          example: 2
+        servers_owned_per_user:
+          type: integer
+          description: Максимальное количество серверов, которыми может владеть один пользователь
+          example: 10
+        total_file_storage_size:
+          type: integer
+          description: Место на диске, выделенное под хранение файлов пользователей. Пропроционально разделено между всеми пользователями.
+          example: 10737418240
+        ws_port:
+          type: integer
+          description: Порт для сообщений WebSocket
+          example: 444
+        ws_vc_port:
+          type: integer
+          description: Порт для сообщений WebSocket голосового канала
+          example: 445
+          
+    UserStatus:
+      type: integer
+      enum:
+        - 0
+        - 1
+        - 2
+        - 3
+      x-enum-descriptions:
+        - Не в сети / невидимый
+        - В сети
+        - Отошёл
+        - Не беспокоить
+      
+    ChannelType:
+      type: integer
+      enum:
+        - 0
+        - 1
+      x-enum-descriptions:
+        - Текстовый
+        - Голосовой
+
+
+parameters:
+  zavodchat_token:
+    name: zavodchat_token
+    in: cookie
+    required: true
+    description: Токен авторизации
+    schema:
+      type: string
+      example: 3c3beb77-b54a-4733-8c5d-acd7b2680241
