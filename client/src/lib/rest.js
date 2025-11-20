@@ -39,10 +39,20 @@ export default class Rest {
 			query += (i == 0 ? "?" : "&") + params[i] + "=" + params[i+1];
 		return query;
 	}
+	static get_headers(params)
+	{
+		if(params.length > 0 && typeof params[0] === "object"){
+			let headers = params[0];
+			params.splice(0, 1);
+			return {"headers": headers};
+		}
+		return {};
+	}
 
 	static get(route, _then, _catch, ...params)
 	{
-		axios.get(Rest.get_base_url() + route + Rest.params_to_query(params))
+		let headers = Rest.get_headers(params);
+		axios.get(Rest.get_base_url() + route + Rest.params_to_query(params), headers)
 			.then(_then)
 			.catch((err) => {
 				if(err.response === undefined)
@@ -53,8 +63,10 @@ export default class Rest {
 	}
 	static post(route, content, _then, _catch, ...params)
 	{
+		let headers = Rest.get_headers(params);
+		console.log("HEADERS", headers, params);
 		axios.post(Rest.get_base_url() + route + Rest.params_to_query(params),
-				content)
+				content, headers)
 			.then(_then)
 			.catch((err) => {
 				if(err.response === undefined)
@@ -65,8 +77,9 @@ export default class Rest {
 	}
 	static put(route, content, _then, _catch, ...params)
 	{
+		let headers = Rest.get_headers(params);
 		axios.put(Rest.get_base_url() + route + Rest.params_to_query(params),
-				content)
+				content, headers)
 			.then(_then)
 			.catch((err) => {
 				if(err.response === undefined)
@@ -77,7 +90,8 @@ export default class Rest {
 	}
 	static delete(route, _then, _catch, ...params)
 	{
-		axios.delete(Rest.get_base_url() + route + Rest.params_to_query(params))
+		let headers = Rest.get_headers(params);
+		axios.delete(Rest.get_base_url() + route + Rest.params_to_query(params), headers)
 			.then(_then)
 			.catch((err) => {
 				if(err.response === undefined)

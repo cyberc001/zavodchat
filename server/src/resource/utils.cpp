@@ -21,7 +21,7 @@ void create_response::add_cors(const http_request& req, http_response& res)
 		res.with_header("Access-Control-Allow-Origin", og);
 	res.with_header("Access-Control-Allow-Credentials", "true");
 	res.with_header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-	res.with_header("Access-Control-Allow-Headers", "Origin, Content-Type, X-Auth-Token, X-Requested-With, Accept");
+	res.with_header("Access-Control-Allow-Headers", "Origin, Content-Type, X-Auth-Token, X-Requested-With, Accept, Username, Password, DisplayName");
 }
 
 std::shared_ptr<http_response> create_response::string(const http_request& req, std::string str, int code)

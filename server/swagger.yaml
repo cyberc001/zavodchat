@@ -3,19 +3,19 @@ info:
   title: Zavodchat (REST)
   version: 1.0.0
 paths:
-  /users:
-    get:
+  /auth:
+    post:
       summary: Вход в систему по логину/паролю
       parameters:
-        - name: username
-          in: query
+        - name: Username
+          in: header
           required: true
           description: Логин пользователя
           schema:
             type: string
             example: test
-        - name: password
-          in: query
+        - name: Password
+          in: header
           required: true
           description: Пароль пользователя
           schema:
@@ -31,25 +31,26 @@ paths:
                 example: zavodchat_token=3c3beb77-b54a-4733-8c5d-acd7b2680241
         '404':
           description: Неверный логин/пароль
+  /register:
     put:
       summary: Регистрация в системе
       parameters:
-        - name: username
-          in: query
+        - name: Username
+          in: header
           required: true
           description: Логин пользователя
           schema:
             type: string
             example: test
-        - name: displayname
-          in: query
+        - name: Displayname
+          in: header
           required: true
           description: Псевдоним пользователя
           schema:
             type: string
             example: testuser
-        - name: password
-          in: query
+        - name: Password
+          in: header
           required: true
           description: Пароль пользователя
           schema:
@@ -66,20 +67,20 @@ paths:
       summary: Изменение данных пользователя
       parameters:
         - $ref: "#/parameters/zavodchat_token"
-        - name: username
-          in: query
+        - name: Username
+          in: header
           description: Логин пользователя
           schema:
             type: string
             example: test
-        - name: displayname
-          in: query
+        - name: Displayname
+          in: header
           description: Псевдоним пользователя
           schema:
             type: string
             example: testuser
-        - name: password
-          in: query
+        - name: Password
+          in: header
           description: Пароль пользователя
           schema:
             type: string

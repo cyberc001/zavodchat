@@ -7,15 +7,13 @@ auth_resource::auth_resource(db_connection_pool& pool): base_resource(), pool{po
 {
 	session_time_thr = std::thread(auth_resource::session_time_func, std::ref(*this));
 	
-	set_allowing("GET", true);
-	set_allowing("PUT", true);
 	set_allowing("POST", true);
 }
 
-std::shared_ptr<http_response> auth_resource::render_GET(const http_request& req)
+std::shared_ptr<http_response> auth_resource::render_POST(const http_request& req)
 {
-	std::string_view username = req.get_arg("username"),
-			password = req.get_arg("password");
+	std::string_view username = req.get_header("username"),
+			password = req.get_header("password");
 
 	db_connection conn = pool.hold();
 	pqxx::work tx{*conn};
@@ -37,11 +35,39 @@ std::shared_ptr<http_response> auth_resource::render_GET(const http_request& req
 	res->with_cookie("zavodchat_token", token + "; Max-Age=" + std::to_string(session_lifetime) + "; SameSite=None; Secure;");
 	return res;
 }
-std::shared_ptr<http_response> auth_resource::render_PUT(const http_request& req)
+
+session_token auth_resource::create_session(int user_id, pqxx::work& tx)
 {
-	std::string_view username = req.get_arg("username"),
-			displayname = req.get_arg("displayname"),
-			password = req.get_arg("password");
+	pqxx::result r = tx.exec("SELECT user_id FROM sessions WHERE user_id = $1", pqxx::params(user_id));
+	if(r.size() >= sessions_per_user)
+		tx.exec("DELETE FROM sessions WHERE token IN (SELECT token FROM sessions WHERE user_id = $1 ORDER BY expiration_time LIMIT 1)", pqxx::params(user_id));
+	r = tx.exec("INSERT INTO sessions(token, user_id, expiration_time) VALUES(gen_random_uuid(), $1, now() + ($2 * interval '1 second')) RETURNING token", pqxx::params(user_id, session_lifetime));
+	tx.commit();
+	return r[0]["token"].as<session_token>();
+}
+
+void auth_resource::session_time_func(auth_resource& inst)
+{
+	for(;;){
+		db_connection conn = inst.pool.hold();
+		pqxx::work tx{*conn};
+		tx.exec("DELETE FROM sessions WHERE expiration_time < now()");
+		tx.commit();
+		std::this_thread::sleep_for(std::chrono::seconds(inst.cleanup_period));
+	}
+}
+
+register_resource::register_resource(db_connection_pool& pool): base_resource(), pool{pool}
+{
+	set_allowing("PUT", true);
+	set_allowing("POST", true);
+}
+
+std::shared_ptr<http_response> register_resource::render_PUT(const http_request& req)
+{
+	std::string_view username = req.get_header("username"),
+			displayname = req.get_header("displayname"),
+			password = req.get_header("password");
 
 	if(username.size() < min_username_length)
 		return create_response::string(req, "Username is shorter than " + std::to_string(min_username_length) + " characters", 400);
@@ -67,7 +93,7 @@ std::shared_ptr<http_response> auth_resource::render_PUT(const http_request& req
 	tx.commit();
 	return create_response::string(req, "Registered", 200);
 }
-std::shared_ptr<http_response> auth_resource::render_POST(const http_request& req)
+std::shared_ptr<http_response> register_resource::render_POST(const http_request& req)
 {
 	db_connection conn = pool.hold();
 	pqxx::work tx{*conn};
@@ -76,9 +102,9 @@ std::shared_ptr<http_response> auth_resource::render_POST(const http_request& re
 	auto err = resource_utils::parse_session_token(req, tx, user_id);
 	if(err) return err;
 
-	auto args = req.get_args();
-	if(args.find(std::string_view("username")) != args.end()){
-		std::string username = std::string(req.get_arg("username"));
+	auto headers = req.get_headers();
+	if(headers.find(std::string_view("username")) != headers.end()){
+		std::string username = std::string(req.get_header("username"));
 		if(username.size() < min_username_length)
 			return create_response::string(req, "Username is shorter than " + std::to_string(min_username_length) + " characters", 400);
 		try{
@@ -89,8 +115,8 @@ std::shared_ptr<http_response> auth_resource::render_POST(const http_request& re
 			return create_response::string(req, "Username already exists", 403);
 		}
 	}
-	if(args.find(std::string_view("password")) != args.end()){
-		std::string password = std::string(req.get_arg("password"));
+	if(headers.find(std::string_view("password")) != headers.end()){
+		std::string password = std::string(req.get_header("password"));
 		if(password.size() < min_password_length)
 			return create_response::string(req, "Password is shorter than " + std::to_string(min_password_length) + " characters", 400);
 
@@ -100,8 +126,8 @@ std::shared_ptr<http_response> auth_resource::render_POST(const http_request& re
 			return create_response::string(req, "Password is too long", 400);
 		}
 	}
-	if(args.find(std::string_view("displayname")) != args.end()){
-		std::string displayname = std::string(req.get_arg("displayname"));
+	if(headers.find(std::string_view("displayname")) != headers.end()){
+		std::string displayname = std::string(req.get_header("displayname"));
 		try{
 			tx.exec("UPDATE users SET name = $1 WHERE user_id = $2", pqxx::params(displayname, user_id));
 		} catch(pqxx::data_exception& e){
@@ -110,7 +136,7 @@ std::shared_ptr<http_response> auth_resource::render_POST(const http_request& re
 			return create_response::string(req, "Displayname already exists", 403);
 		}
 	}
-	if(args.find(std::string_view("avatar")) != args.end()){
+	if(headers.find(std::string_view("avatar")) != headers.end()){
 		std::string fname;
 		err = file_utils::parse_user_avatar(req, "avatar", user_id, fname);
 		if(err)
@@ -120,25 +146,4 @@ std::shared_ptr<http_response> auth_resource::render_POST(const http_request& re
 
 	tx.commit();
 	return create_response::string(req, "Changed", 200);
-}
-
-session_token auth_resource::create_session(int user_id, pqxx::work& tx)
-{
-	pqxx::result r = tx.exec("SELECT user_id FROM sessions WHERE user_id = $1", pqxx::params(user_id));
-	if(r.size() >= sessions_per_user)
-		tx.exec("DELETE FROM sessions WHERE token IN (SELECT token FROM sessions WHERE user_id = $1 ORDER BY expiration_time LIMIT 1)", pqxx::params(user_id));
-	r = tx.exec("INSERT INTO sessions(token, user_id, expiration_time) VALUES(gen_random_uuid(), $1, now() + ($2 * interval '1 second')) RETURNING token", pqxx::params(user_id, session_lifetime));
-	tx.commit();
-	return r[0]["token"].as<session_token>();
-}
-
-void auth_resource::session_time_func(auth_resource& inst)
-{
-	for(;;){
-		db_connection conn = inst.pool.hold();
-		pqxx::work tx{*conn};
-		tx.exec("DELETE FROM sessions WHERE expiration_time < now()");
-		tx.commit();
-		std::this_thread::sleep_for(std::chrono::seconds(inst.cleanup_period));
-	}
 }

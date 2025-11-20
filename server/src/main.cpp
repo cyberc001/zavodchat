@@ -56,12 +56,14 @@ int main()
 	create_response::set_origins(cfg.origins);
 
 	auth_resource auth(pool);
-	auth.min_username_length = cfg.min_username_length;
-	auth.min_password_length = cfg.min_password_length;
 	auth.session_lifetime = cfg.session_lifetime;
 	auth.cleanup_period = cfg.cleanup_period;
 	auth.sessions_per_user = cfg.sessions_per_user;
 	ws.register_resource("/auth", &auth);
+	register_resource _register(pool);
+	_register.min_username_length = cfg.min_username_length;
+	_register.min_password_length = cfg.min_password_length;
+	ws.register_resource("/register", &_register);
 
 	server_resource server(pool);
 	server.owned_per_user = cfg.servers_owned_per_user;
