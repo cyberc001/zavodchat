@@ -1,6 +1,4 @@
 <script>
-	import AvlTreeWrapper from '$lib/wrapper/avlTree.svelte.js';
-
 	import PaginatedList from '$lib/display/paginated_list.svelte';
 	import MessageDisplay from '$lib/display/message.svelte';
 	import MessageInput from '$lib/control/message_input.svelte';
@@ -19,21 +17,10 @@
 	};
 
 	// Backend data
-	let servers = $state({});
+	let servers = $state("loading");
 	let channels = $state({});
-	let messages = $state({});
+	let messages = $state("loading");
 	let users = $state({});
-
-	let sel_channel_messages = $derived.by(() => {
-		if(sel.channel < 0 || !channels[sel.channel].messages)
-			return [];
-		channels[sel.channel].messages.dirty_flip;
-
-		let list = [];
-		channels[sel.channel].messages.traverseInOrder((node) => list.push(node.getValue()));
-		
-		return list.reverse();
-	});
 
 	const ensureUser = (id) => {
 		if(typeof users[id] === "undefined"){
@@ -47,6 +34,7 @@
 		server: -1, channel: -1, message: -1, message_edit: -1
 	});
 	let message_text = $state("");
+	let message_list;
 
 	const action_sets = {
 		"message": [{text: "Edit", icon: "edit.svg", func: () => {
@@ -55,14 +43,9 @@
 			    }},
 			    {text: "Delete", icon: "delete.svg", func: () => {
 				messages[sel.message].status = Message.Status.Deleting;
-				let chan_id = sel.channel, msg_id = sel.message; // "capture" ids
-				Message.delete(sel.server, chan_id, msg_id,
-						() => {
-							channels[chan_id].messages.remove(msg_id);
-							channels[chan_id].messages.make_dirty();
-							delete messages[msg_id];
-						}
-						, setError);
+				let chan_id = sel.channel, msg_i = sel.message; // "capture" ids
+				Message.delete(sel.server, chan_id, messages[msg_i].id,
+						() => message_list.rerender(), setError);
 			    }}]
 	};
 
@@ -71,9 +54,8 @@
 		pos: [1000, 0],
 		actions: []
 	});
-	const showCtxMenu = (pos, action_set,
-				message_id) => {
-		sel.message = message_id;
+	const showCtxMenu = (pos, action_set, i) => {
+		sel.message = i;
 		ctx_menu_params.pos = pos;
 		ctx_menu_params.actions = action_sets[action_set];
 		ctx_menu_params.visible = true;
@@ -84,11 +66,11 @@
 	};
 
 	// Events
-	let showServer = (id) => {
+	const showServer = (id) => {
 		sel.server = id;
 		sel.channel = -1;
-		if(typeof servers[id].channels === "undefined"){
-			// load all the channel data
+		if(servers[id].channels !== "loading" && typeof servers[id].channels === "undefined"){
+			servers[id].channels = "loading";
 			Channel.get_list(id,
 					(list) => {
 						servers[id].channels = [];
@@ -100,74 +82,43 @@
 					setError);
 		}
 	};
-	let showChannel = (id) => {
+	const showChannel = (id) => {
 		sel.channel = id;
-		if(typeof channels[id].messages === "undefined"){
-			// load last messages
-			Message.get_range(sel.server, id, -1, -1,
-						(list) => {
-							list = list.reverse();
-
-							channels[id].messages = new AvlTreeWrapper();
-							for(let msg of list){
-								channels[id].messages.insert(msg.id);
-								messages[msg.id] = msg;
-								ensureUser(msg.author_id);
-							}
-						}
-						, setError
-			);
-		}
 	};
 
-	let sendMessage = (text) => {
+	const sendMessage = (text) => {
 		let chan_id = sel.channel;
-		let pre_id = Math.max(4290000000, channels[chan_id].messages.count() > 0 ? channels[chan_id].messages.max().getValue() + 1 : 0);
+		let pre_id = messages.length > 0 ? messages[messages.length - 1].id + 1000000 : 0;
 		let now = new Date(Date.now());
-		messages[pre_id] = {
+		let msg_i = messages.unshift({
 			author_id: users[-1].id,
 			id: pre_id,
 			sent: now.toISOString(), edited: now.toISOString(),
 			text: text,
 			status: Message.Status.Sending
-		};
-		channels[sel.channel].messages.insert(pre_id);
-		channels[sel.channel].messages.make_dirty();
+		}) - 1;
 
 		Message.send(sel.server, sel.channel, text,
-				(new_msg_id) => {
-					// Remove message with old fake ID, assign a real ID, re-insert
-					let msg = messages[pre_id];
-					channels[sel.channel].messages.remove(pre_id);
-					channels[sel.channel].messages.make_dirty();
-					delete messages[pre_id];
-
-					msg.id = new_msg_id;
-					msg.status = Message.Status.None;
-					channels[sel.channel].messages.insert(msg.id);
-					messages[msg.id] = msg;
-					channels[sel.channel].messages.make_dirty();
-				}
-				, setError);
+				(new_msg_id) => message_list.rerender(), setError);
 	};
-	let editMessage = (text) => {
-		let chan_id = sel.channel, msg_id = sel.message_edit;
-		let prev_text = messages[msg_id].text;
-		messages[msg_id].status = Message.Status.Editing;
-		messages[msg_id].text = text;
+	const editMessage = (text) => {
+		let chan_id = sel.channel, msg_i = sel.message_edit;
+		let prev_text = messages[msg_i].text;
+		messages[msg_i].status = Message.Status.Editing;
+		messages[msg_i].text = text;
 		sel.message_edit = -1;
 		
-		Message.edit(sel.server, chan_id, msg_id, text,
+		Message.edit(sel.server, chan_id, messages[msg_i].id, text,
 				() => {
-					messages[msg_id].status = Message.Status.None;
+					messages[msg_i].status = Message.Status.None;
 				}
 				, (err) => {
-					messages[msg_id].text = prev_text;
+					messages[msg_i].text = prev_text;
 					setError(err);
 				});
 	};
 
-	let stopEditing = () => {
+	const stopEditing = () => {
 		sel.message_edit = -1;
 		message_text = "";
 	};
@@ -194,42 +145,52 @@
 	{/if}
 
 	<div class="panel sidebar_servers">
-		{#each Object.values(servers) as srv}
-			<button class={"item hoverable sidebar_server" + (sel.server == srv.id ? " selected" : "")} onclick={() => showServer(srv.id)}>
-			{#if srv.avatar === undefined}
-				<div style="padding:4px;"><div class="sidebar_server_el">{srv.name}</div></div>
-			{:else}
-				<img class="sidebar_server_el" alt={srv.name} src={Server.get_avatar_path(srv)}/>
-			{/if}
-			</button>
-		{/each}
+		{#if servers === "loading"}
+			<img src="$lib/assets/icons/loading.svg" alt="loading" class="filter_icon_main" style="width: 48px"/>
+		{:else if typeof servers !== "undefined"}
+			{#each Object.values(servers) as srv}
+				<button class={"item hoverable sidebar_server" + (sel.server == srv.id ? " selected" : "")} onclick={() => showServer(srv.id)}>
+				{#if srv.avatar === undefined}
+					<div style="padding:4px;"><div class="sidebar_server_el">{srv.name}</div></div>
+					{:else}
+					<img class="sidebar_server_el" alt={srv.name} src={Server.get_avatar_path(srv)}/>
+				{/if}
+				</button>
+			{/each}
+		{/if}
 	</div>
 	<div class="panel sidebar_channel">
 		{#if sel.server > -1}
-			{#each servers[sel.server].channels as i}
-				<div>
-					<button class={"item hoverable sidebar_channel_el" + (sel.channel == i ? " selected" : "")} onclick={() => showChannel(i)}>
-						{#if channels[i].type === 1}
-							<img src="$lib/assets/icons/channel_vc.svg" alt="voice" class="filter_icon_main sidebar_channel_el_icon"/>
-						{:else}
-							<img src="$lib/assets/icons/channel_text.svg" alt="text" class="filter_icon_main sidebar_channel_el_icon"/>
-						{/if}
-						{channels[i].name}
-					</button>
+			{#if servers[sel.server].channels === "loading"}
+				<div style="text-align: center; margin-top: 6px">
+					<img src="$lib/assets/icons/loading.svg" alt="loading" class="filter_icon_main" style="width: 48px"/>
 				</div>
-			{/each}
+			{:else}
+				{#each servers[sel.server].channels as i}
+					<div>
+						<button class={"item hoverable sidebar_channel_el" + (sel.channel == i ? " selected" : "")} onclick={() => showChannel(i)}>
+							{#if channels[i].type === 1}
+								<img src="$lib/assets/icons/channel_vc.svg" alt="voice" class="filter_icon_main sidebar_channel_el_icon"/>
+							{:else}
+								<img src="$lib/assets/icons/channel_text.svg" alt="text" class="filter_icon_main sidebar_channel_el_icon"/>
+							{/if}
+							{channels[i].name}
+						</button>
+					</div>
+				{/each}
+			{/if}
 		{/if}
 	</div>
 	<div class="panel sidebar_message">
 		{#if sel.channel > -1}
-			{#snippet render_message(item)}
+			{#snippet render_message(i, item)}
 				<MessageDisplay id={item.id} text={item.text}
 				author={users[item.author_id]}
 				time_sent={new Date(item.sent)} time_edited={new Date(item.edited)}
 				status={item.status}
-				show_ctx_menu={(pos, action_set) => showCtxMenu(pos, action_set, item.id)}/>
+				show_ctx_menu={(pos, action_set) => showCtxMenu(pos, action_set, i)}/>
 			{/snippet}
-			<PaginatedList items={sel_channel_messages}
+			<PaginatedList bind:items={messages} bind:this={message_list}
 			render_item={render_message} load_items={(index, count, _then) => {
 				Message.get_range(sel.server, sel.channel, index, count,
 					(list) => {

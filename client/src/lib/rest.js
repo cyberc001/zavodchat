@@ -3,6 +3,8 @@ axios.defaults.withCredentials = true;
 
 export default class Rest {
 	static host = "";
+	// Искусственная дополнительная задержка между запросом и ответом
+	static response_delay = 2000;
 
 	static err_to_str(res)
 	{
@@ -49,38 +51,49 @@ export default class Rest {
 		return {};
 	}
 
+	static wait_response_delay()
+	{
+		return new Promise(resolve => setTimeout(resolve, Rest.response_delay));
+	}
+
 	static get(route, _then, _catch, ...params)
 	{
 		let headers = Rest.get_headers(params);
 		axios.get(Rest.get_base_url() + route + Rest.params_to_query(params), headers)
-			.then(_then)
+			.then(async (res) => {
+				await Rest.wait_response_delay();
+				_then(res);
+			})
 			.catch((err) => {
 				if(err.response === undefined)
 					throw err;
 				_catch(err.response);
-			}
-		);
+			});
 	}
 	static post(route, content, _then, _catch, ...params)
 	{
 		let headers = Rest.get_headers(params);
-		console.log("HEADERS", headers, params);
 		axios.post(Rest.get_base_url() + route + Rest.params_to_query(params),
 				content, headers)
-			.then(_then)
+			.then(async (res) => {
+				await Rest.wait_response_delay();
+				_then(res);
+			})
 			.catch((err) => {
 				if(err.response === undefined)
 					throw err;
 				_catch(err.response);
-			}
-		);
+			});
 	}
 	static put(route, content, _then, _catch, ...params)
 	{
 		let headers = Rest.get_headers(params);
 		axios.put(Rest.get_base_url() + route + Rest.params_to_query(params),
 				content, headers)
-			.then(_then)
+			.then(async (res) => {
+				await Rest.wait_response_delay();
+				_then(res);
+			})
 			.catch((err) => {
 				if(err.response === undefined)
 					throw err;
@@ -92,7 +105,10 @@ export default class Rest {
 	{
 		let headers = Rest.get_headers(params);
 		axios.delete(Rest.get_base_url() + route + Rest.params_to_query(params), headers)
-			.then(_then)
+			.then(async (res) => {
+				await Rest.wait_response_delay();
+				_then(res);
+			})
 			.catch((err) => {
 				if(err.response === undefined)
 					throw err;
