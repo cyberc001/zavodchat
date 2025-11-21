@@ -19,7 +19,7 @@
 	// Backend data
 	let servers = $state("loading");
 	let channels = $state({});
-	let messages = $state("loading");
+	let messages = $state([]);
 	let users = $state({});
 
 	const ensureUser = (id) => {
