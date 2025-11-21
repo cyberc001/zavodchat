@@ -103,6 +103,7 @@ std::shared_ptr<http_response> register_resource::render_POST(const http_request
 	if(err) return err;
 
 	auto headers = req.get_headers();
+	auto args = req.get_args();
 	if(headers.find(std::string_view("username")) != headers.end()){
 		std::string username = std::string(req.get_header("username"));
 		if(username.size() < min_username_length)
@@ -136,7 +137,7 @@ std::shared_ptr<http_response> register_resource::render_POST(const http_request
 			return create_response::string(req, "Displayname already exists", 403);
 		}
 	}
-	if(headers.find(std::string_view("avatar")) != headers.end()){
+	if(args.find(std::string_view("avatar")) != args.end()){
 		std::string fname;
 		err = file_utils::parse_user_avatar(req, "avatar", user_id, fname);
 		if(err)

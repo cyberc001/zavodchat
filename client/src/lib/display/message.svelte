@@ -1,5 +1,6 @@
 <script>
 	import Message from '$lib/rest/message.js';
+	import User from '$lib/rest/user.js';
 
 	let {id, text, author, time_sent, time_edited,
 		selected = false, status = Message.Status.None,
@@ -24,7 +25,11 @@
 		show_ctx_menu([e.clientX, e.clientY], "message");
 }}>
 	<div class="message_user_panel">
-		<img class="user_avatar" src="$lib/assets/default_avatar.png" alt="avatar"/>
+		{#if author?.avatar}
+			<img class="user_avatar" src={User.get_avatar_path(author)} alt="avatar"/>
+		{:else}
+			<img class="user_avatar" src="$lib/assets/default_avatar.png" alt="avatar"/>
+		{/if}
 		<b>{author?.name}</b>
 	</div>
 	{#if status_msg !== ""}
