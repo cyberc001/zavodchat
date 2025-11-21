@@ -34,6 +34,7 @@
 		server: -1, channel: -1, message: -1, message_edit: -1
 	});
 	let message_text = $state("");
+	let prev_message_text = "";
 	let message_list;
 
 	const is_message_fake = (msg_id) => {
@@ -45,6 +46,7 @@
 				if(is_message_fake(sel.message))
 					return;
 				sel.message_edit = sel.message;
+				prev_message_text = message_text;
 				message_text = messages[sel.message].text;
 			    }},
 			    {text: "Delete", icon: "delete.svg", func: () => {
@@ -133,7 +135,7 @@
 
 	const stopEditing = () => {
 		sel.message_edit = -1;
-		message_text = "";
+		message_text = prev_message_text;
 	};
 
 	// Initialization
