@@ -23,13 +23,14 @@
 		return ret;
 	};
 
-	let list_div;
+	let list_div = $state();
 
 	let anchor_id;
 	let anchor_top_before;
 	let list_scroll_top_before;
 
-	export function rerender(){
+	export function rerender(_then){
+		list_div_scroll_top = list_div.scrollTop;
 		is_loading = true;
 		load_items(index, range, (list) => {
 			if(list.length < range){
@@ -46,6 +47,9 @@
 			tick().then(() => {
 				let anchor = document.getElementById("message_display_" + anchor_id);
 				list_div.scrollTop = list_scroll_top_before + (anchor.offsetTop - anchor_top_before);
+				list_div_scroll_top = list_div.scrollTop;
+				if(_then)
+					_then();
 			});
 			is_loading = false;
 		});
@@ -70,6 +74,25 @@
 				list_div.scrollTop = next_scroll_top;
 		} else 
 			list_div.scrollTop = next_scroll_top;
+		list_div_scroll_top = list_div.scrollTop;
+	};
+
+	let list_div_scroll_top = $state(0);
+	// show "Go to latest" button if scrolled more than half-page above latest message
+	let show_goto_latest = $derived(index > 0 || (typeof list_div !== "undefined" && (-list_div_scroll_top > (list_div.scrollHeight - list_div.clientHeight) * 0.5)));
+ 
+	const goto_latest = () => {
+		if(index == 0){
+			list_div.scrollTop = 0;
+			list_div_scroll_top = list_div.scrollTop;
+			return;
+		}
+
+		index = 0;
+		rerender(() => {
+			list_div.scrollTop = 0;
+			list_div_scroll_top = list_div.scrollTop;
+		});
 	};
 </script>
 
@@ -80,10 +103,15 @@
 		{/each}
 	</div>
 	{#if is_loading}
-		<div class="item paginated_list_loading_overlay">
-			<img src="$lib/assets/icons/loading.svg" alt="loading" class="filter_icon_main" style="width: 32px; margin-right: 8px"/>
-			<span class="paginated_list_first_loading_message">Loading messages...</span>
+		<div class="item paginated_list_overlay">
+			<img src="$lib/assets/icons/loading.svg" alt="loading" class="filter_icon_main" style="width: 20px; margin-right: 8px"/>
+			<span class="paginated_list_overlay_text">Loading messages...</span>
 		</div>
+	{/if}
+	{#if show_goto_latest}
+		<button class="item paginated_list_overlay paginated_list_overlay_tolatest" onclick={goto_latest}>
+			<span class="paginated_list_overlay_text" style="text-decoration: underline">To latest messages</span>
+		</button>
 	{/if}
 </div>
 
@@ -98,19 +126,26 @@
 
 	overflow-anchor: none;
 }
-.paginated_list_loading_overlay {
+.paginated_list_overlay {
 	display: flex;
 	align-items: center;
 	justify-content: center;
 
+	padding: 0 8px 0 8px;
+	height: 28px;
+
 	position: absolute;
-	width: 25%;
-	height: 42px;
 	top: 0%;
-	left: 37.5%;
+	left: 50%;
+	transform: translate(-50%, 0%);
 }
-.paginated_list_first_loading_message {
-	font-size: 24px;
+.paginated_list_overlay_tolatest {
+	top: auto;
+	bottom: 0%;
+	border-style: none;
+}
+.paginated_list_overlay_text {
+	font-size: 20px;
 	color: var(--clr_text);
 }
 </style>

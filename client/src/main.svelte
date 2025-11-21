@@ -139,11 +139,6 @@
 </style>
 
 <div class="main">
-	{#if ctx_menu_params.visible}
-		<ContextMenu pos={ctx_menu_params.pos} hide_ctx_menu={hideCtxMenu}
-			     actions={ctx_menu_params.actions}/>
-	{/if}
-
 	<div class="panel sidebar_servers">
 		{#if servers === "loading"}
 			<img src="$lib/assets/icons/loading.svg" alt="loading" class="filter_icon_main" style="width: 48px"/>
@@ -205,4 +200,8 @@
 				actions={sel.message_edit > -1 ? [{text: "Stop editing", func: stopEditing}] : []}/>
 		{/if}
 	</div>
+	{#if ctx_menu_params.visible}
+		<ContextMenu pos={ctx_menu_params.pos} hide_ctx_menu={hideCtxMenu}
+			     actions={ctx_menu_params.actions}/>
+	{/if}
 </div>
