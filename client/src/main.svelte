@@ -36,12 +36,20 @@
 	let message_text = $state("");
 	let message_list;
 
+	const is_message_fake = (msg_id) => {
+		return messages[msg_id].status === Message.Status.Sending
+			|| typeof messages[msg_id].status === "string";
+	};
 	const action_sets = {
 		"message": [{text: "Edit", icon: "edit.svg", func: () => {
+				if(is_message_fake(sel.message))
+					return;
 				sel.message_edit = sel.message;
 				message_text = messages[sel.message].text;
 			    }},
 			    {text: "Delete", icon: "delete.svg", func: () => {
+				if(is_message_fake(sel.message))
+					return;
 				messages[sel.message].status = Message.Status.Deleting;
 				let chan_id = sel.channel, msg_i = sel.message; // "capture" ids
 				Message.delete(sel.server, chan_id, messages[msg_i].id,
@@ -90,16 +98,21 @@
 		let chan_id = sel.channel;
 		let pre_id = messages.length > 0 ? messages[messages.length - 1].id + 1000000 : 0;
 		let now = new Date(Date.now());
-		let msg_i = messages.unshift({
+		messages.unshift({
 			author_id: users[-1].id,
 			id: pre_id,
 			sent: now.toISOString(), edited: now.toISOString(),
 			text: text,
 			status: Message.Status.Sending
-		}) - 1;
+		});
 
 		Message.send(sel.server, sel.channel, text,
-				(new_msg_id) => message_list.rerender(), setError);
+				(new_msg_id) => message_list.rerender(),
+				(err) => {
+					messages[0].status = err.data;
+					//setError(err);
+				}
+		);
 	};
 	const editMessage = (text) => {
 		let chan_id = sel.channel, msg_i = sel.message_edit;
