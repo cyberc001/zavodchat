@@ -24,6 +24,9 @@ services:
       dockerfile: Dockerfile
     volumes:
       - upload-volume:/data
+      - type: bind
+        source: ./server/config.json
+        target: /build/config.json
     ports:
       - 443:443 # HTTPS 
       - 444:444 # Main socket

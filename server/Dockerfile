@@ -22,7 +22,6 @@ RUN git clone https://github.com/paullouisageneau/libdatachannel.git /3rdparty/l
 COPY *.key *.pem /build/
 COPY CMakeLists.txt /build/
 COPY ./src /build/src
-COPY config.json /build/
 
 WORKDIR /build
 RUN cmake -DCMAKE_BUILD_TYPE=Debug . && make -j 4
