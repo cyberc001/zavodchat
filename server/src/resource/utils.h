@@ -69,6 +69,8 @@ public:
 	static std::shared_ptr<http_response> parse_invite_id(const http_request&, pqxx::work&, std::string& invite_id);
 
 	/* JSON */
+	static std::shared_ptr<http_response> json_from_content(const http_request&, nlohmann::json&);
+
 	static void json_set_ids(nlohmann::json& data, int server_id);
 	static void json_set_ids(nlohmann::json& data, int server_id, int channel_id);
 

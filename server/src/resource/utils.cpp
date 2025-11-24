@@ -241,6 +241,16 @@ std::shared_ptr<http_response> resource_utils::parse_invite_id(const http_reques
 
 /* JSON */
 
+std::shared_ptr<http_response> resource_utils::json_from_content(const http_request& req, nlohmann::json& data)
+{
+	try {
+		data = nlohmann::json::parse(req.get_content());
+	} catch(nlohmann::json::parse_error& e){
+		return create_response::string(req, "Invalid JSON content", 400);
+	}
+	return nullptr;
+}
+
 void resource_utils::json_set_ids(nlohmann::json& data, int server_id)
 {
 	data["server_id"] = server_id;

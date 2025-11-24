@@ -6,21 +6,18 @@ paths:
   /auth:
     post:
       summary: Вход в систему по логину/паролю
-      parameters:
-        - name: Username
-          in: header
-          required: true
-          description: Логин пользователя
-          schema:
-            type: string
-            example: test
-        - name: Password
-          in: header
-          required: true
-          description: Пароль пользователя
-          schema:
-            type: string
-            example: qwe123            
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string 
+                  example: chetkii_poc
+                password:
+                  type: string
+                  example: 12345678
       responses:
         '200':
           description: Успешная авторизация
@@ -34,28 +31,21 @@ paths:
   /register:
     put:
       summary: Регистрация в системе
-      parameters:
-        - name: Username
-          in: header
-          required: true
-          description: Логин пользователя
-          schema:
-            type: string
-            example: test
-        - name: Displayname
-          in: header
-          required: true
-          description: Псевдоним пользователя
-          schema:
-            type: string
-            example: testuser
-        - name: Password
-          in: header
-          required: true
-          description: Пароль пользователя
-          schema:
-            type: string
-            example: qwe123
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                  example: chetkii_poc
+                displayname:
+                  type: string
+                  example: Чёткий П0цык
+                password:
+                  type: string
+                  example: 12345678
       responses:
         '200':
           description: Успешная регистрация
@@ -67,27 +57,30 @@ paths:
       summary: Изменение данных пользователя
       parameters:
         - $ref: "#/parameters/zavodchat_token"
-        - name: Username
-          in: header
-          description: Логин пользователя
+        - name: avatar
+          in: query
+          description: Аватар пользователя
           schema:
             type: string
-            example: test
-        - name: Displayname
-          in: header
-          description: Псевдоним пользователя
-          schema:
-            type: string
-            example: testuser
-        - name: Password
-          in: header
-          description: Пароль пользователя
-          schema:
-            type: string
-            example: qwe123
+            format: binary
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                  example: realnii_poc
+                displayname:
+                  type: string
+                  example: рЯльНыЙ____ПОЦЦЦЦЦ
+                password:
+                  type: string
+                  example: letmein123
       responses:
         '200':
-          description: Успешная регистрация
+          description: Успешное изменение данных
   /users/$user_id:
     get:
       summary: Информация о пользователе

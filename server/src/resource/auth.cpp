@@ -12,8 +12,17 @@ auth_resource::auth_resource(db_connection_pool& pool): base_resource(), pool{po
 
 std::shared_ptr<http_response> auth_resource::render_POST(const http_request& req)
 {
-	std::string_view username = req.get_header("username"),
-			password = req.get_header("password");
+	nlohmann::json body;
+	std::shared_ptr<http_response> res = resource_utils::json_from_content(req, body);
+	if(res)
+		return res;
+
+	if(body["username"].type() != nlohmann::json::value_t::string)
+		return create_response::string(req, "'username' should be string", 400);
+	if(body["password"].type() != nlohmann::json::value_t::string)
+		return create_response::string(req, "'password' should be string", 400);
+	std::string username = body["username"].get<std::string>(),
+		    password = body["password"].get<std::string>();
 
 	db_connection conn = pool.hold();
 	pqxx::work tx{*conn};
@@ -31,7 +40,7 @@ std::shared_ptr<http_response> auth_resource::render_POST(const http_request& re
 		return create_response::string(req, "Invalid username or password", 404);
 
 	session_token token = create_session(user_id, tx);
-	std::shared_ptr<http_response> res = create_response::string(req, "", 200);
+	res = create_response::string(req, "", 200);
 	res->with_cookie("zavodchat_token", token + "; Max-Age=" + std::to_string(session_lifetime) + "; SameSite=None; Secure;");
 	return res;
 }
@@ -65,9 +74,19 @@ register_resource::register_resource(db_connection_pool& pool): base_resource(),
 
 std::shared_ptr<http_response> register_resource::render_PUT(const http_request& req)
 {
-	std::string_view username = req.get_header("username"),
-			displayname = req.get_header("displayname"),
-			password = req.get_header("password");
+	nlohmann::json body;
+	std::shared_ptr<http_response> err = resource_utils::json_from_content(req, body);
+	if(err) return err;
+
+	if(body["username"].type() != nlohmann::json::value_t::string)
+		return create_response::string(req, "'username' should be string", 400);
+	if(body["displayname"].type() != nlohmann::json::value_t::string)
+		return create_response::string(req, "'displayname' should be string", 400);
+	if(body["password"].type() != nlohmann::json::value_t::string)
+		return create_response::string(req, "'password' should be string", 400);
+	std::string username = body["username"].get<std::string>(),
+		    displayname = body["displayname"].get<std::string>(),
+		    password = body["password"].get<std::string>();
 
 	if(username.size() < min_username_length)
 		return create_response::string(req, "Username is shorter than " + std::to_string(min_username_length) + " characters", 400);
@@ -95,17 +114,20 @@ std::shared_ptr<http_response> register_resource::render_PUT(const http_request&
 }
 std::shared_ptr<http_response> register_resource::render_POST(const http_request& req)
 {
+	nlohmann::json body;
+	std::shared_ptr<http_response> err = resource_utils::json_from_content(req, body);
+	if(err) return err;
+
 	db_connection conn = pool.hold();
 	pqxx::work tx{*conn};
 
 	int user_id;
-	auto err = resource_utils::parse_session_token(req, tx, user_id);
+	err = resource_utils::parse_session_token(req, tx, user_id);
 	if(err) return err;
 
-	auto headers = req.get_headers();
 	auto args = req.get_args();
-	if(headers.find(std::string_view("username")) != headers.end()){
-		std::string username = std::string(req.get_header("username"));
+	if(body["username"].is_string()){
+		std::string username = body["username"].get<std::string>();
 		if(username.size() < min_username_length)
 			return create_response::string(req, "Username is shorter than " + std::to_string(min_username_length) + " characters", 400);
 		try{
@@ -116,8 +138,8 @@ std::shared_ptr<http_response> register_resource::render_POST(const http_request
 			return create_response::string(req, "Username already exists", 403);
 		}
 	}
-	if(headers.find(std::string_view("password")) != headers.end()){
-		std::string password = std::string(req.get_header("password"));
+	if(body["password"].is_string()){
+		std::string password = body["password"].get<std::string>();
 		if(password.size() < min_password_length)
 			return create_response::string(req, "Password is shorter than " + std::to_string(min_password_length) + " characters", 400);
 
@@ -127,8 +149,8 @@ std::shared_ptr<http_response> register_resource::render_POST(const http_request
 			return create_response::string(req, "Password is too long", 400);
 		}
 	}
-	if(headers.find(std::string_view("displayname")) != headers.end()){
-		std::string displayname = std::string(req.get_header("displayname"));
+	if(body["displayname"].is_string()){
+		std::string displayname = body["displayname"].get<std::string>();
 		try{
 			tx.exec("UPDATE users SET name = $1 WHERE user_id = $2", pqxx::params(displayname, user_id));
 		} catch(pqxx::data_exception& e){
