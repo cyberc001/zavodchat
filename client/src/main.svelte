@@ -204,7 +204,7 @@
 				show_ctx_menu={(pos, action_set) => showCtxMenu(pos, action_set, i)}/>
 			{/snippet}
 			<PaginatedList bind:items={messages} bind:this={message_list}
-			reversed=true
+			reversed={true}
 			loading_text="Loading messages..." to_latest_text="To latest messages"
 			render_item={render_message} item_dom_id_prefix="message_display_"
 			load_items={(index, count, _then) => {

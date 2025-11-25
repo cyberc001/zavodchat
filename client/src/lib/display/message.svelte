@@ -25,7 +25,7 @@
 		event.preventDefault();
 		show_ctx_menu([e.clientX, e.clientY], "message");
 }}>
-	<UserDisplay user={author}/>
+	<UserDisplay user={author} display_status={false}/>
 	{#if status_msg !== ""}
 		{#if typeof status === "string"}
 			<div class="message_status_panel" style="background: var(--clr_bg_text_selection)">

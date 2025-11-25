@@ -10,6 +10,11 @@
 
 	--clr_border: #231D1F;
 	--clr_border_item: #4C3D43;
+
+	--clr_offline: #6C6C6C;
+	--clr_online: #6BFF5F;
+	--clr_away: #FFF75F;
+	--clr_donotdisturb: #FF5F5F;
 }
 .filter_icon_main {
 	filter: invert(100%) sepia(2%) saturate(965%) hue-rotate(236deg) brightness(117%) contrast(92%);

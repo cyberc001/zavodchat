@@ -176,7 +176,7 @@ void db_create_test(std::string conn_str)
 			int user_id;
 			try{
 				std::string username = "testuser" + std::to_string(i);
-				pqxx::result r = tx.exec("INSERT INTO users(name, status) VALUES($1, 0) RETURNING user_id", pqxx::params(username));
+				pqxx::result r = tx.exec("INSERT INTO users(name, status) VALUES($1, $2) RETURNING user_id", pqxx::params(username, i % 4));
 				user_id = r[0]["user_id"].as<int>();
 				tx.exec("INSERT INTO auth(username, password, user_id) VALUES($1, crypt('qwe123', gen_salt('bf')), $2)", pqxx::params(username, user_id));
 			} catch(const pqxx::unique_violation& e){}

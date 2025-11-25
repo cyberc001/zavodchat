@@ -16,4 +16,11 @@ export default class {
 	static get_avatar_path(usr){
 		return Rest.get_base_url() + "files/avatar/user/" + usr.avatar;
 	}
+
+	static Status = {
+		Offline: 0,
+		Online: 1,
+		Away: 2,
+		DoNotDisturb: 3
+	}
 }
