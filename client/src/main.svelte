@@ -1,5 +1,6 @@
 <script>
 	import PaginatedList from '$lib/display/paginated_list.svelte';
+	import UserDisplay from '$lib/display/user.svelte';
 	import MessageDisplay from '$lib/display/message.svelte';
 	import MessageInput from '$lib/control/message_input.svelte';
 	import ContextMenu from '$lib/control/context_menu.svelte';
@@ -19,8 +20,10 @@
 	// Backend data
 	let servers = $state("loading");
 	let channels = $state({});
-	let messages = $state([]);
 	let users = $state({});
+
+	let server_users = $state([]);
+	let messages = $state([]);
 
 	const ensureUser = (id) => {
 		if(typeof users[id] === "undefined"){
@@ -169,7 +172,7 @@
 			{/each}
 		{/if}
 	</div>
-	<div class="panel sidebar_channel">
+	<div class="panel sidebar_channels">
 		{#if sel.server > -1}
 			{#if servers[sel.server].channels === "loading"}
 				<div style="text-align: center; margin-top: 6px">
@@ -191,7 +194,7 @@
 			{/if}
 		{/if}
 	</div>
-	<div class="panel sidebar_message">
+	<div class="panel sidebar_messages">
 		{#if sel.channel > -1}
 			{#snippet render_message(i, item)}
 				<MessageDisplay id={item.id} text={item.text}
@@ -201,7 +204,10 @@
 				show_ctx_menu={(pos, action_set) => showCtxMenu(pos, action_set, i)}/>
 			{/snippet}
 			<PaginatedList bind:items={messages} bind:this={message_list}
-			render_item={render_message} load_items={(index, count, _then) => {
+			reversed=true
+			loading_text="Loading messages..." to_latest_text="To latest messages"
+			render_item={render_message} item_dom_id_prefix="message_display_"
+			load_items={(index, count, _then) => {
 				Message.get_range(sel.server, sel.channel, index, count,
 					(list) => {
 						for(let msg of list)
@@ -218,5 +224,18 @@
 	{#if ctx_menu_params.visible}
 		<ContextMenu pos={ctx_menu_params.pos} hide_ctx_menu={hideCtxMenu}
 			     actions={ctx_menu_params.actions}/>
+	{/if}
+	{#if sel.server > -1}
+		<div class="panel sidebar_users">
+			{#snippet render_user(i, user)}
+				<UserDisplay user={user} div_classes="sidebar_user_display"/>
+			{/snippet}
+			<PaginatedList bind:items={server_users}
+			render_item={render_user} item_dom_id_prefix="user_display_"
+			to_latest_text="Up"
+			load_items={(index, count, _then) => {
+				User.get_range(sel.server, index, count, _then, setError);
+			}}/>
+		</div>
 	{/if}
 </div>

@@ -18,6 +18,16 @@ start:
 	}
 }
 
+#define GET_SERVER_ID(_out, id){\
+	pqxx::result r = tx.exec("SELECT server_id FROM servers WHERE name = '" id "'");\
+	if(!r.size()){\
+		std::cerr << "Failed to create test db: server '" id "' doesn't exist" << std::endl;\
+		return;\
+	}\
+	_out = r[0]["server_id"].as<int>();\
+}
+
+
 void db_init(std::string conn_str)
 {
 	pqxx::connection conn{conn_str};
@@ -154,27 +164,39 @@ void db_create_test(std::string conn_str)
 
 		tx.commit();
 	}
+	// Create 120 users for server_test
+	{
+		pqxx::work tx{conn};
+
+		int server_id;
+		GET_SERVER_ID(server_id, "server_test");
+		int default_role_id = role_utils::find_default_role(tx, server_id);
+
+		for(int i = 0; i < 120; ++i){
+			int user_id;
+			try{
+				std::string username = "testuser" + std::to_string(i);
+				pqxx::result r = tx.exec("INSERT INTO users(name, status) VALUES($1, 0) RETURNING user_id", pqxx::params(username));
+				user_id = r[0]["user_id"].as<int>();
+				tx.exec("INSERT INTO auth(username, password, user_id) VALUES($1, crypt('qwe123', gen_salt('bf')), $2)", pqxx::params(username, user_id));
+			} catch(const pqxx::unique_violation& e){}
+			tx.exec("INSERT INTO user_x_server(user_id, server_id, role_id) VALUES($1, $2, $3)", pqxx::params(user_id, server_id, default_role_id));
+		}
+		tx.commit();
+	}
+
 	// Create a text channel and a voice channel in each test server
 	{
 		pqxx::work tx{conn};
 
-		pqxx::result r = tx.exec("SELECT server_id FROM servers WHERE name = 'server_test'");
-		if(!r.size()){
-			std::cerr << "Failed to create test channels: server 'server_test' doesn't exist" << std::endl;
-			return;
-		}
-		int server_id = r[0]["server_id"].as<int>();
+		int server_id, server_id2;
+		GET_SERVER_ID(server_id, "server_test");
+		GET_SERVER_ID(server_id2, "server_test2");
+
 		tx.exec("INSERT INTO channels(server_id, name, type) VALUES($1, 'channel_test', 0)", pqxx::params(server_id));
 		tx.exec("INSERT INTO channels(server_id, name, type) VALUES($1, 'channel_test_vc', 1)", pqxx::params(server_id));
-
-		r = tx.exec("SELECT server_id FROM servers WHERE name = 'server_test2'");
-		if(!r.size()){
-			std::cerr << "Failed to create test channels: server 'server_test2' doesn't exist" << std::endl;
-			return;
-		}
-		server_id = r[0]["server_id"].as<int>();
-		tx.exec("INSERT INTO channels(server_id, name, type) VALUES($1, 'channel_test2', 0)", pqxx::params(server_id));
-		tx.exec("INSERT INTO channels(server_id, name, type) VALUES($1, 'channel_test2_vc', 1)", pqxx::params(server_id));
+		tx.exec("INSERT INTO channels(server_id, name, type) VALUES($1, 'channel_test2', 0)", pqxx::params(server_id2));
+		tx.exec("INSERT INTO channels(server_id, name, type) VALUES($1, 'channel_test2_vc', 1)", pqxx::params(server_id2));
 
 		tx.commit();
 	}
@@ -182,21 +204,12 @@ void db_create_test(std::string conn_str)
 	{
 		pqxx::work tx{conn};
 
-		pqxx::result r = tx.exec("SELECT server_id FROM servers WHERE name = 'server_test'");
-		if(!r.size()){
-			std::cerr << "Failed to create test invite: server 'server_test' doesn't exist" << std::endl;
-			return;
-		}
-		int server_id = r[0]["server_id"].as<int>();
-		tx.exec("INSERT INTO server_invites(invite_id, server_id, expiration_time) VALUES(gen_random_uuid(), $1, $2)", pqxx::params(server_id, nullptr));
+		int server_id, server_id2;
+		GET_SERVER_ID(server_id, "server_test");
+		GET_SERVER_ID(server_id2, "server_test2");
 
-		r = tx.exec("SELECT server_id FROM servers WHERE name = 'server_test2'");
-		if(!r.size()){
-			std::cerr << "Failed to create test invite: server 'server_test2' doesn't exist" << std::endl;
-			return;
-		}
-		server_id = r[0]["server_id"].as<int>();
 		tx.exec("INSERT INTO server_invites(invite_id, server_id, expiration_time) VALUES(gen_random_uuid(), $1, $2)", pqxx::params(server_id, nullptr));
+		tx.exec("INSERT INTO server_invites(invite_id, server_id, expiration_time) VALUES(gen_random_uuid(), $1, $2)", pqxx::params(server_id2, nullptr));
 
 		tx.commit();
 	}

@@ -100,7 +100,7 @@ img.sidebar_server_el {
 	height: 100%;
 }
 
-.sidebar_channel {
+.sidebar_channels {
 	width: 256px;
 	border-style: none solid none none;
 }
@@ -128,8 +128,17 @@ img.sidebar_server_el {
 	height: 20px;
 }
 
-.sidebar_message {
+.sidebar_messages {
 	width: 100%;
 	display: flex;
 	flex-direction: column;
+}
+
+.sidebar_users {
+	border-style: none none none solid;
+
+	width: 256px;
+}
+.sidebar_user_display {
+	padding: 3px 6px 3px 6px;
 }

@@ -1,6 +1,7 @@
 <script>
 	import Message from '$lib/rest/message.js';
 	import User from '$lib/rest/user.js';
+	import UserDisplay from '$lib/display/user.svelte';
 
 	let {id, text, author, time_sent, time_edited,
 		selected = false, status = Message.Status.None,
@@ -24,14 +25,7 @@
 		event.preventDefault();
 		show_ctx_menu([e.clientX, e.clientY], "message");
 }}>
-	<div class="message_user_panel">
-		{#if author?.avatar}
-			<img class="user_avatar" src={User.get_avatar_path(author)} alt="avatar"/>
-		{:else}
-			<img class="user_avatar" src="$lib/assets/default_avatar.png" alt="avatar"/>
-		{/if}
-		<b>{author?.name}</b>
-	</div>
+	<UserDisplay user={author}/>
 	{#if status_msg !== ""}
 		{#if typeof status === "string"}
 			<div class="message_status_panel" style="background: var(--clr_bg_text_selection)">
@@ -61,14 +55,6 @@
 	padding: 3px;
 	margin: 3px 3px 9px 3px;
 }
-.message_user_panel {
-	display: flex;
-	align-items: center;
-
-	margin-bottom: 6px;
-
-	font-size: 24px;
-}
 .message_status_panel {
 	display: inline-flex;
 	align-items: center;
@@ -88,13 +74,5 @@
 	font-size: 14px;
 	font-family: ui-monospace;
 	color: var(--clr_text_secondary);
-}
-
-.user_avatar {
-	width: 32px;
-	height: 32px;
-
-	border-radius: 4px;
-	margin-right: 8px;
 }
 </style>

@@ -5,6 +5,13 @@ export default class {
 	static get(id, _then, _catch){
 		Rest.get(route + "/" + id, (res) => _then(res.data), _catch);
 	}
+	static get_range(server_id, start, count, _then, _catch){
+		if(start == -1) start = 0;
+		if(count == -1) count = 50;
+		Rest.get(Rest.get_route_scm(server_id) + "/users",
+			(res) => _then(res.data), _catch,
+			"start", start, "count", count);
+	}
 
 	static get_avatar_path(usr){
 		return Rest.get_base_url() + "files/avatar/user/" + usr.avatar;

@@ -4,7 +4,7 @@ axios.defaults.withCredentials = true;
 export default class Rest {
 	static host = "";
 	// Искусственная дополнительная задержка между запросом и ответом
-	static response_delay = 2000;
+	static response_delay = 1000;
 
 	static err_to_str(res)
 	{
