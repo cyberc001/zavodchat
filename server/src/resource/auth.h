@@ -34,8 +34,8 @@ class register_resource : public base_resource
 public:
 	register_resource(db_connection_pool& pool);
 
-	std::shared_ptr<http_response> render_PUT(const http_request&);
 	std::shared_ptr<http_response> render_POST(const http_request&);
+	std::shared_ptr<http_response> render_PUT(const http_request&);
 
 	unsigned min_username_length = 2;
 	unsigned min_password_length = 8;

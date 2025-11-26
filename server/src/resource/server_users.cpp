@@ -97,11 +97,11 @@ std::shared_ptr<http_response> server_user_id_roles_resource::render_GET(const h
 
 server_user_role_id_resource::server_user_role_id_resource(db_connection_pool& pool, socket_main_server& sserv) : base_resource(), pool{pool}, sserv{sserv}
 {
-	set_allowing("PUT", true);
+	set_allowing("POST", true);
 	set_allowing("DELETE", true);
 }
 
-std::shared_ptr<http_response> server_user_role_id_resource::render_PUT(const http_request& req)
+std::shared_ptr<http_response> server_user_role_id_resource::render_POST(const http_request& req)
 {
 	int user_id, server_id;
 	db_connection conn = pool.hold();

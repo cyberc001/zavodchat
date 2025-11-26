@@ -61,7 +61,7 @@ void server_invites_resource::invite_time_func(server_invites_resource& inst)
 server_id_invites_resource::server_id_invites_resource(db_connection_pool& pool): base_resource(), pool{pool}
 {
 	set_allowing("GET", true);
-	set_allowing("PUT", true);
+	set_allowing("POST", true);
 }
 
 std::shared_ptr<http_response> server_id_invites_resource::render_GET(const http_request& req)
@@ -83,7 +83,7 @@ std::shared_ptr<http_response> server_id_invites_resource::render_GET(const http
 
 	return create_response::string(req, res.dump(), 200);
 }
-std::shared_ptr<http_response> server_id_invites_resource::render_PUT(const http_request& req)
+std::shared_ptr<http_response> server_id_invites_resource::render_POST(const http_request& req)
 {
 	int user_id, server_id;
 	db_connection conn = pool.hold();
@@ -115,7 +115,7 @@ std::shared_ptr<http_response> server_id_invites_resource::render_PUT(const http
 server_invite_id_resource::server_invite_id_resource(db_connection_pool& pool): base_resource(), pool{pool}
 {
 	set_allowing("GET", true);
-	set_allowing("POST", true);
+	set_allowing("PUT", true);
 	set_allowing("DELETE", true);
 }
 
@@ -137,7 +137,7 @@ std::shared_ptr<http_response> server_invite_id_resource::render_GET(const http_
 	pqxx::result r = tx.exec("SELECT invite_id, server_id, expiration_time FROM server_invites WHERE invite_id = $1", pqxx::params(invite_id));
 	return create_response::string(req, resource_utils::invite_json_from_row(r[0]).dump(), 200);
 }
-std::shared_ptr<http_response> server_invite_id_resource::render_POST(const http_request& req)
+std::shared_ptr<http_response> server_invite_id_resource::render_PUT(const http_request& req)
 {
 	int user_id, server_id;
 	db_connection conn = pool.hold();

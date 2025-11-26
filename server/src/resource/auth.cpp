@@ -72,7 +72,7 @@ register_resource::register_resource(db_connection_pool& pool): base_resource(),
 	set_allowing("POST", true);
 }
 
-std::shared_ptr<http_response> register_resource::render_PUT(const http_request& req)
+std::shared_ptr<http_response> register_resource::render_POST(const http_request& req)
 {
 	nlohmann::json body;
 	std::shared_ptr<http_response> err = resource_utils::json_from_content(req, body);
@@ -112,7 +112,7 @@ std::shared_ptr<http_response> register_resource::render_PUT(const http_request&
 	tx.commit();
 	return create_response::string(req, "Registered", 200);
 }
-std::shared_ptr<http_response> register_resource::render_POST(const http_request& req)
+std::shared_ptr<http_response> register_resource::render_PUT(const http_request& req)
 {
 	nlohmann::json body;
 	std::shared_ptr<http_response> err = resource_utils::json_from_content(req, body);

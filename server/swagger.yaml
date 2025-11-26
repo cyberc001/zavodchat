@@ -29,7 +29,7 @@ paths:
         '404':
           description: Неверный логин/пароль
   /register:
-    put:
+    post:
       summary: Регистрация в системе
       requestBody:
         content:
@@ -53,7 +53,7 @@ paths:
           description: Слишком короткий username/password
         '403':
           description: Логин занят
-    post:
+    put:
       summary: Изменение данных пользователя
       parameters:
         - $ref: "#/parameters/zavodchat_token"
@@ -94,7 +94,7 @@ paths:
         '404':
           description: Не существует пользователя с таким user_id
   /user_status:
-    post:
+    put:
       summary: Изменить свой статус
       parameters:
         - $ref: "#/parameters/zavodchat_token"
@@ -121,7 +121,7 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Server'
-    put:
+    post:
       summary: Создать сервер
       parameters:
         - $ref: "#/parameters/zavodchat_token"
@@ -152,7 +152,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Server'
-    post:
+    put:
       summary: Изменить параметры сервера
       parameters:
         - $ref: "#/parameters/zavodchat_token"
@@ -244,7 +244,7 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Channel'
-    put:
+    post:
       summary: Создать канал
       parameters:
         - $ref: "#/parameters/zavodchat_token"
@@ -280,7 +280,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Channel'
-    post:
+    put:
       summary: Изменить параметры канала
       parameters:
         - $ref: "#/parameters/zavodchat_token"
@@ -342,7 +342,7 @@ paths:
                   $ref: '#/components/schemas/Message'
         '403':
           description: Неправильный start (< 0, >= количеству пользователей) / слишком большой count / канал не текстовый
-    put:
+    post:
       summary: Отправить сообщение
       parameters:
         - $ref: "#/parameters/zavodchat_token"
@@ -370,7 +370,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Message'
-    post:
+    put:
       summary: Отредактировать сообщение
       parameters:
         - $ref: "#/parameters/zavodchat_token"
@@ -422,7 +422,7 @@ paths:
                   $ref: '#/components/schemas/Invite'
         '403':
           description: У пользователя нет прав на управление приглашениями
-    put:
+    post:
       summary: Создать приглашение
       parameters:
         - $ref: "#/parameters/zavodchat_token"
@@ -459,7 +459,7 @@ paths:
           description: У пользователя нет прав на управление приглашениями
         '404':
           description: Приглашения с таким ID не существует на сервере
-    post:
+    put:
       summary: Изменить параметры приглашения
       parameters:
         - $ref: "#/parameters/zavodchat_token"
@@ -492,6 +492,7 @@ paths:
           description: Приглашения с таким ID не существует на сервере
   /servers/$server_id/bans/:
     get:
+      summary: Пагинированный список забаненных пользователей
       parameters:
         - $ref: "#/parameters/zavodchat_token"
         - name: start
@@ -519,7 +520,8 @@ paths:
                   $ref: '#/components/schemas/User'
         '403':
           description: Неправильный start (< 0, >= количеству банов) / слишком большой count
-    put:
+    post:
+      summary: Забанить пользователя
       parameters:
         - $ref: "#/parameters/zavodchat_token"
         - name: expires
@@ -569,7 +571,7 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Role'
-    put:
+    post:
       summary: Создать новую роль
       parameters:
         - $ref: "#/parameters/zavodchat_token"
@@ -609,7 +611,7 @@ paths:
         '400':
           description: Неправильные параметры / попытка вставить роль перед default ролью
   /servers/$server_id/roles/$role_id:
-    post:
+    put:
       summary: Изменить параметры роли
       parameters:
         - $ref: "#/parameters/zavodchat_token"
@@ -669,7 +671,7 @@ paths:
         '404':
           description: Пользователь не является участником сервера
   /servers/$server_id/users/$user_id/roles/$role_id:
-    put:
+    post:
       summary: Назначить пользователю роль
       parameters:
         - $ref: "#/parameters/zavodchat_token"
@@ -710,7 +712,7 @@ paths:
         '404':
           description: Файла не существует
   /files/upload/:
-    put:
+    post:
       summary: Загрузить файл на сервер
       parameters:
         - $ref: "#/parameters/zavodchat_token"

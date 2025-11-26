@@ -5,7 +5,7 @@
 channel_messages_resource::channel_messages_resource(db_connection_pool& pool, socket_main_server& sserv) : base_resource(), pool{pool}, sserv{sserv}
 {
 	set_allowing("GET", true);
-	set_allowing("PUT", true);
+	set_allowing("POST", true);
 }
 
 std::shared_ptr<http_response> channel_messages_resource::render_GET(const http_request& req)
@@ -45,7 +45,7 @@ std::shared_ptr<http_response> channel_messages_resource::render_GET(const http_
 		res += resource_utils::message_json_from_row(r[i]);
 	return create_response::string(req, res.dump(), 200);
 }
-std::shared_ptr<http_response> channel_messages_resource::render_PUT(const http_request& req)
+std::shared_ptr<http_response> channel_messages_resource::render_POST(const http_request& req)
 {
 	std::string text = std::string(req.get_content());
 	if(!text.size())
@@ -86,7 +86,7 @@ std::shared_ptr<http_response> channel_messages_resource::render_PUT(const http_
 channel_message_id_resource::channel_message_id_resource(db_connection_pool& pool, socket_main_server& sserv) : pool{pool}, sserv{sserv}
 {
 	set_allowing("GET", true);
-	set_allowing("POST", true);
+	set_allowing("PUT", true);
 	set_allowing("DELETE", true);
 }
 
@@ -110,7 +110,7 @@ std::shared_ptr<http_response> channel_message_id_resource::render_GET(const htt
 	nlohmann::json res = resource_utils::message_json_from_row(r[0]);
 	return create_response::string(req, res.dump(), 200);
 }
-std::shared_ptr<http_response> channel_message_id_resource::render_POST(const http_request& req)
+std::shared_ptr<http_response> channel_message_id_resource::render_PUT(const http_request& req)
 {
 	std::string text = std::string(req.get_content());
 	if(!text.size())

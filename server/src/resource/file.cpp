@@ -16,9 +16,9 @@ std::shared_ptr<http_response> file_resource::render_GET(const http_request& req
 
 server_file_put_resource::server_file_put_resource(db_connection_pool& pool, std::filesystem::path storage_path): base_resource(), pool{pool}, storage_path{storage_path}
 {
-	set_allowing("PUT", true);
+	set_allowing("POST", true);
 }
-std::shared_ptr<http_response> server_file_put_resource::render_PUT(const http_request& req)
+std::shared_ptr<http_response> server_file_put_resource::render_POST(const http_request& req)
 {
 	int user_id;
 	db_connection conn = pool.hold();

@@ -23,7 +23,7 @@ class server_file_put_resource : public base_resource // no args
 public:
 	server_file_put_resource(db_connection_pool& pool, std::filesystem::path storage_path);
 
-	std::shared_ptr<http_response> render_PUT(const http_request&); // uploads a file in flat_args[file] with extension from args[ext]
+	std::shared_ptr<http_response> render_POST(const http_request&); // uploads a file in flat_args[file] with extension from args[ext]
 
 	size_t max_ext_size = 10; // not included in config
 private:

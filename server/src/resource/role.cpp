@@ -6,7 +6,7 @@
 server_roles_resource::server_roles_resource(db_connection_pool& pool, socket_main_server& sserv) : base_resource(), pool{pool}, sserv{sserv}
 {
 	set_allowing("GET", true);
-	set_allowing("PUT", true);
+	set_allowing("POST", true);
 }
 
 std::shared_ptr<http_response> server_roles_resource::render_GET(const http_request& req)
@@ -24,7 +24,7 @@ std::shared_ptr<http_response> server_roles_resource::render_GET(const http_requ
 
 	return create_response::string(req, res.dump(), 200);
 }
-std::shared_ptr<http_response> server_roles_resource::render_PUT(const http_request& req)
+std::shared_ptr<http_response> server_roles_resource::render_POST(const http_request& req)
 {
 	int user_id, server_id;
 	db_connection conn = pool.hold();
@@ -100,11 +100,11 @@ std::shared_ptr<http_response> server_roles_resource::render_PUT(const http_requ
 
 server_role_id_resource::server_role_id_resource(db_connection_pool& pool, socket_main_server& sserv) : base_resource(), pool{pool}, sserv{sserv}
 {
-	set_allowing("POST", true);
+	set_allowing("PUT", true);
 	set_allowing("DELETE", true);
 }
 
-std::shared_ptr<http_response> server_role_id_resource::render_POST(const http_request& req)
+std::shared_ptr<http_response> server_role_id_resource::render_PUT(const http_request& req)
 {
 	int user_id, server_id;
 	db_connection conn = pool.hold();

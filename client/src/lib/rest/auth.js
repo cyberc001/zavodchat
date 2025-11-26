@@ -5,6 +5,6 @@ export default class {
 		Rest.post("auth", {"username": username, "password": password}, _then, _catch);
 	}
 	static register(username, displayname, password, _then, _catch){
-		Rest.put("register", {"username": username, "displayname": displayname, "password": password}, _then, _catch);
+		Rest.post("register", {"username": username, "displayname": displayname, "password": password}, _then, _catch);
 	}
 }

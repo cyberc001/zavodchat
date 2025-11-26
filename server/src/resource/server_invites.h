@@ -30,7 +30,7 @@ public:
 	server_id_invites_resource(db_connection_pool& pool);
 
 	std::shared_ptr<http_response> render_GET(const http_request&);
-	std::shared_ptr<http_response> render_PUT(const http_request&);
+	std::shared_ptr<http_response> render_POST(const http_request&);
 
 	unsigned max_per_server = 20;
 
@@ -44,7 +44,7 @@ public:
 	server_invite_id_resource(db_connection_pool& pool);
 
 	std::shared_ptr<http_response> render_GET(const http_request&);
-	std::shared_ptr<http_response> render_POST(const http_request&);
+	std::shared_ptr<http_response> render_PUT(const http_request&);
 	std::shared_ptr<http_response> render_DELETE(const http_request&);
 
 private:

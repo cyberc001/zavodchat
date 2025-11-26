@@ -3,10 +3,10 @@
 
 user_status_resource::user_status_resource(db_connection_pool& pool): base_resource(), pool{pool}
 {
-	set_allowing("POST", true);
+	set_allowing("PUT", true);
 }
 
-std::shared_ptr<http_response> user_status_resource::render_POST(const http_request& req)
+std::shared_ptr<http_response> user_status_resource::render_PUT(const http_request& req)
 {
 	db_connection conn = pool.hold();
 	pqxx::work tx{*conn};
