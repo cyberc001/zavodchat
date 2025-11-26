@@ -26,6 +26,9 @@ paths:
               schema:
                 type: string
                 example: zavodchat_token=3c3beb77-b54a-4733-8c5d-acd7b2680241
+          content:
+            text:
+              example: 3c3beb77-b54a-4733-8c5d-acd7b2680241
         '404':
           description: Неверный логин/пароль
   /register:

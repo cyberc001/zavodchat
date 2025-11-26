@@ -40,7 +40,7 @@ std::shared_ptr<http_response> auth_resource::render_POST(const http_request& re
 		return create_response::string(req, "Invalid username or password", 404);
 
 	session_token token = create_session(user_id, tx);
-	res = create_response::string(req, "", 200);
+	res = create_response::string(req, token, 200);
 	res->with_cookie("zavodchat_token", token + "; Max-Age=" + std::to_string(session_lifetime) + "; SameSite=None; Secure;");
 	return res;
 }
