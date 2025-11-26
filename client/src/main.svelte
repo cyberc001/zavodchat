@@ -1,6 +1,7 @@
 <script>
 	import PaginatedList from '$lib/display/paginated_list.svelte';
 	import UserDisplay from '$lib/display/user.svelte';
+	import UserProfileDisplay from '$lib/display/user_profile.svelte';
 	import MessageDisplay from '$lib/display/message.svelte';
 	import MessageInput from '$lib/control/message_input.svelte';
 	import ContextMenu from '$lib/control/context_menu.svelte';
@@ -34,8 +35,16 @@
 
 	// UI state
 	let sel = $state({
-		server: -1, channel: -1, message: -1, message_edit: -1
+		server: -1, channel: -1, message: -1, message_edit: -1,
+		user_id: -1, user_message_id: -1, user_el: undefined
 	});
+	let sel_user_pos = $derived.by(() => {
+		if(sel.user_id < 0)
+			return [0, 0];
+		let brect = sel.user_el.getBoundingClientRect();
+		return [brect.top, brect.left];
+	});;
+
 	let message_text = $state("");
 	let prev_message_text = "";
 	let message_list;
@@ -95,8 +104,15 @@
 					setError);
 		}
 	};
+
 	const showChannel = (id) => {
 		sel.channel = id;
+	};
+
+	const showUserProfile = (el, id, message_id) => {
+		sel.user_id = id;
+		sel.user_message_id = message_id;
+		sel.user_el = el;
 	};
 
 	const sendMessage = (text) => {
@@ -201,7 +217,10 @@
 				author={users[item.author_id]}
 				time_sent={new Date(item.sent)} time_edited={new Date(item.edited)}
 				status={item.status}
-				show_ctx_menu={(pos, action_set) => showCtxMenu(pos, action_set, i)}/>
+				show_ctx_menu={(pos, action_set) => showCtxMenu(pos, action_set, i)}
+				show_user_profile={(el, id) => showUserProfile(el, id, item.id)}
+				selected_user={item.id == sel.user_message_id && item.author_id == sel.user_id}
+				/>
 			{/snippet}
 			<PaginatedList bind:items={messages} bind:this={message_list}
 			reversed={true}
@@ -228,7 +247,12 @@
 	{#if sel.server > -1}
 		<div class="panel sidebar_users">
 			{#snippet render_user(i, user)}
-				<UserDisplay user={user} div_classes="sidebar_user_display"/>
+				<UserDisplay
+				user={user}
+				div_classes="sidebar_user_display"
+				selected={sel.user_message_id == -1 && i == sel.user_id}
+				show_user_profile={(el, id) => showUserProfile(el, i, -1)}
+				/>
 			{/snippet}
 			<PaginatedList bind:items={server_users}
 			render_item={render_user} item_dom_id_prefix="user_display_"
@@ -237,5 +261,13 @@
 				User.get_range(sel.server, index, count, _then, setError);
 			}}/>
 		</div>
+	{/if}
+
+	{#if sel.user_id > -1}
+		<UserProfileDisplay
+		user={sel.user_message_id > -1 ? users[sel.user_id] : server_users[sel.user_id]}
+		pos={sel_user_pos}
+		hide_profile={() => showUserProfile(undefined, -1, -1)}
+		/>
 	{/if}
 </div>

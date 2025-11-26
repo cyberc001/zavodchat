@@ -1,7 +1,7 @@
 let route = "users";
 import Rest from "$lib/rest";
 
-export default class {
+export default class User {
 	static get(id, _then, _catch){
 		Rest.get(route + "/" + id, (res) => _then(res.data), _catch);
 	}
@@ -21,6 +21,25 @@ export default class {
 		Offline: 0,
 		Online: 1,
 		Away: 2,
-		DoNotDisturb: 3
+		DoNotDisturb: 3,
+
+		getStyle: (st) => {
+			let var_name;
+			switch(st){
+				case User.Status.Offline:
+					var_name = "clr_offline";
+					break;
+				case User.Status.Online:
+					var_name = "clr_online";
+					break;
+				case User.Status.Away:
+					var_name = "clr_away";
+					break;
+				case User.Status.DoNotDisturb:
+					var_name = "clr_donotdisturb";
+					break;
+			}
+			return typeof var_name === "undefined" ? "" : `background: var(--${var_name})`;
+		}
 	}
 }

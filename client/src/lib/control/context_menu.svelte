@@ -22,7 +22,8 @@
 <div class="item context_menu_panel" style="left: {pos[0]}px; top: {pos[1]}px"
 	role="list"
 	onmouseenter={() => pointer_on_menu = true}
-	onmouseleave={() => pointer_on_menu = false}>
+	onmouseleave={() => pointer_on_menu = false}
+>
 {#each actions as a, i}
 	<button class="item context_menu_item hoverable" use:init_focus={i}
 		onclick={() => {

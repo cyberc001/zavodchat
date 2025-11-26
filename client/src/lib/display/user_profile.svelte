@@ -1,25 +1,26 @@
 <script>
 	import User from '$lib/rest/user.js';
 
-	let {user,
-		selected = false, show_user_profile,
-		display_status = true, div_classes = ""} = $props();
+	let {user, pos,
+		hide_profile} = $props();
 
 	let status_style = $derived(User.Status.getStyle(user?.status));
-	let el = $state();
+
+	let pointer_on_profile = false;
+	const onmouseup = () => {
+		if(pointer_on_profile)
+			return;
+		hide_profile();
+	};
 </script>
 
-<button class={"user_display hoverable " + (selected ? "selected " : "") + div_classes}
-	id={user ? "user_display_" + user.id : ""}
-	onclick = {() => {
-		if(show_user_profile) show_user_profile(el, user.id);
-	}}
-	bind:this={el}
+<svelte:window {onmouseup}/>
+<div class="item user_profile_display" style="top: {pos[0]}px; left: {pos[1]}px"
+	onmouseenter={() => pointer_on_profile = true}
+	onmouseleave={() => pointer_on_profile = false}
 >
 	<div class="user_avatar_frame">
-		{#if display_status}
-			<div class="user_status" style={status_style}></div>
-		{/if}
+		<div class="user_status" style={status_style}></div>
 		{#if user?.avatar}
 			<img class="user_avatar" src={User.get_avatar_path(user)} alt="avatar"/>
 		{:else}
@@ -27,18 +28,19 @@
 		{/if}
 	</div>
 	<b>{user?.name}</b>
-</button>
+</div>
 
 <style>
-.user_display {
-	position: relative;
+.user_profile_display {
+	position: absolute;
+
 	display: flex;
 	align-items: center;
 
 	margin-bottom: 6px;
+	padding: 4px 6px 4px 6px;
 
 	border-style: none;
-	background: transparent;
 	color: var(--clr_text);
 	font-size: 24px;
 }

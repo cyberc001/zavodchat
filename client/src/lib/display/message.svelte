@@ -4,8 +4,9 @@
 	import UserDisplay from '$lib/display/user.svelte';
 
 	let {id, text, author, time_sent, time_edited,
-		selected = false, status = Message.Status.None,
-		show_ctx_menu} = $props();
+		selected = false, selected_user = false,
+		status = Message.Status.None,
+		show_ctx_menu, show_user_profile} = $props();
 	let is_edited = $derived(time_sent.getTime() !== time_edited.getTime());
 
 	let status_msg = $derived(
@@ -20,12 +21,12 @@
 	const formatTimeHHMM = (date) => `${padnum(date.getHours(), 2)}:${padnum(date.getMinutes(), 2)}`;
 </script>
 
-<div id={"message_display_" + id} class={"message_panel hoverable" + (selected ? " selected" : "")} tabindex=0 role="group"
-	oncontextmenu={(e) => {
-		event.preventDefault();
-		show_ctx_menu([e.clientX, e.clientY], "message");
-}}>
-	<UserDisplay user={author} display_status={false}/>
+<div id={"message_display_" + id} class="message_panel" tabindex=0 role="group">
+	<UserDisplay user={author}
+	display_status={false}
+	selected={selected_user}
+	show_user_profile={show_user_profile}
+	/>
 	{#if status_msg !== ""}
 		{#if typeof status === "string"}
 			<div class="message_status_panel" style="background: var(--clr_bg_text_selection)">
@@ -38,7 +39,13 @@
 			</div>
 		{/if}
 	{/if}
-	<div class="message_content_panel" title={`Sent: ${time_sent}\nLast edited: ${is_edited ? time_edited : "never"}`}>
+	<div class={"message_content_panel hoverable" + (selected ? " selected" : "")}
+	title={`Sent: ${time_sent}\nLast edited: ${is_edited ? time_edited : "never"}`}
+	oncontextmenu={(e) => {
+		event.preventDefault();
+		show_ctx_menu([e.clientX, e.clientY], "message");
+	}
+	}>
 		<div>
 			<div class="message_time">{formatTimeHHMM(time_sent)}</div>
 			{#if is_edited}

@@ -54,7 +54,7 @@ body {
 	background: var(--clr_bg_hover);
 }
 .selected {
-	background: var(--clr_bg_selected);
+	background: var(--clr_bg_selected) !important;
 }
 
 /* Specific classes */
