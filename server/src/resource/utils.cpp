@@ -272,6 +272,7 @@ nlohmann::json resource_utils::user_json_from_row(const pqxx::row&& r)
 		res += {"avatar", r["avatar"].as<std::string>()};
 	return res;
 }
+
 nlohmann::json resource_utils::server_json_from_row(const pqxx::row&& r)
 {
 	nlohmann::json res = {{"id", r["server_id"].as<int>()},
@@ -290,7 +291,6 @@ nlohmann::json resource_utils::channel_json_from_row(const pqxx::row&& r)
 	};
 }
 
-
 nlohmann::json resource_utils::message_json_from_row(const pqxx::row&& r)
 {
 	return {
@@ -301,6 +301,7 @@ nlohmann::json resource_utils::message_json_from_row(const pqxx::row&& r)
 		{"text", r["text"].as<std::string>()}
 	};
 }
+
 nlohmann::json resource_utils::message_update_json_from_row(const pqxx::row&& r)
 {
 	return {

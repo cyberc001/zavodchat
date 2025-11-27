@@ -220,7 +220,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/User'
+                  $ref: '#/components/schemas/ServerUser'
         '403':
           description: Неправильный start (< 0, >= количеству пользователей) / слишком большой count
   /servers/$server_id/users/$user_id:
@@ -657,22 +657,6 @@ paths:
       responses:
         '200':
           description: Роль успешно удалена
-  /servers/$server_id/users/$user_id/roles:
-    get:
-      summary: Получить роли пользователя
-      parameters:
-        - $ref: "#/parameters/zavodchat_token"
-      responses:
-        '200':
-          description: Список ролей пользователя в порядке от самой старшей до самой младшей
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Role'
-        '404':
-          description: Пользователь не является участником сервера
   /servers/$server_id/users/$user_id/roles/$role_id:
     post:
       summary: Назначить пользователю роль
@@ -791,6 +775,29 @@ components:
         status:
           type: integer
           example: 0
+    ServerUser:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 412
+        name:
+          type: string
+          example: cyb3rc001
+        avatar:
+          type: string
+          example: avatar_453912.png
+        status:
+          type: integer
+          example: 0
+        roles:
+          description: role_id ролей пользователя на сервере
+          type: array
+          items:
+            type: integer
+          example:
+          - 3
+          - 7
     Server:
       type: object
       properties:

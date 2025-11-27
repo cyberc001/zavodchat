@@ -1,6 +1,7 @@
 #include "resource/server_users.h"
 #include "resource/utils.h"
 #include "resource/role_utils.h"
+#include <unordered_map>
 
 server_users_resource::server_users_resource(db_connection_pool& pool) : base_resource(), pool{pool}
 {
@@ -23,9 +24,18 @@ std::shared_ptr<http_response> server_users_resource::render_GET(const http_requ
 	if(err) return err;
 
 	nlohmann::json res = nlohmann::json::array();
-	pqxx::result r = tx.exec("SELECT DISTINCT ON (user_id) user_id, name, avatar, status FROM user_x_server NATURAL JOIN users WHERE server_id = $1 LIMIT $2 OFFSET $3", pqxx::params(server_id, count, start));
-	for(size_t i = 0; i < r.size(); ++i)
-		res += resource_utils::user_json_from_row(r[i]);
+	pqxx::result r = tx.exec("SELECT user_id, name, avatar, status, role_id FROM user_x_server NATURAL JOIN users WHERE server_id = $1 LIMIT $2 OFFSET $3", pqxx::params(server_id, count, start));
+	std::unordered_map<int, size_t> r_users; // for O(1) access to users already inserted in res to append role_ids to them
+	for(size_t i = 0; i < r.size(); ++i){
+		int user_id = r[i]["user_id"].as<int>();
+		if(r_users.find(user_id) == r_users.end()){
+			nlohmann::json user_json = resource_utils::user_json_from_row(r[i]);
+			user_json["roles"] = nlohmann::json::array();
+			res += user_json;
+			r_users[user_id] = res.size() - 1;
+		}
+		res[r_users[user_id]]["roles"].push_back(r[i]["role_id"].as<int>());
+	}
 
 	return create_response::string(req, res.dump(), 200);
 }
@@ -67,32 +77,6 @@ std::shared_ptr<http_response> server_user_id_resource::render_DELETE(const http
 	tx.commit();
 
 	return create_response::string(req, "Kicked", 200);
-}
-
-
-server_user_id_roles_resource::server_user_id_roles_resource(db_connection_pool& pool, socket_main_server& sserv) : base_resource(), pool{pool}, sserv{sserv}
-{
-	set_allowing("GET", true);
-}
-
-std::shared_ptr<http_response> server_user_id_roles_resource::render_GET(const http_request& req)
-{
-	int user_id, server_id;
-	db_connection conn = pool.hold();
-	pqxx::work tx{*conn};
-	auto err = resource_utils::parse_server_id(req, tx, user_id, server_id);
-	if(err) return err;
-
-	int server_user_id;
-	err = resource_utils::parse_server_user_id(req, server_id, tx, server_user_id);
-	if(err) return err;
-
-	nlohmann::json res = nlohmann::json::array();
-	std::vector<pqxx::row> r = role_utils::get_user_role_list(tx, server_id, server_user_id);
-	for(size_t i = 0; i < r.size(); ++i)
-		res += role_utils::role_json_from_row(r[i]);
-
-	return create_response::string(req, res.dump(), 200);
 }
 
 server_user_role_id_resource::server_user_role_id_resource(db_connection_pool& pool, socket_main_server& sserv) : base_resource(), pool{pool}, sserv{sserv}
