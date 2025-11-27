@@ -1,11 +1,11 @@
 <script>
 	import User from '$lib/rest/user.js';
+	import Role from '$lib/rest/role.js';
 
-	let {user,
+	let {user, roles,
 		selected = false, show_user_profile,
 		display_status = true, div_classes = ""} = $props();
 
-	let status_style = $derived(User.Status.getStyle(user?.status));
 	let el = $state();
 </script>
 
@@ -18,7 +18,7 @@
 >
 	<div class="user_avatar_frame">
 		{#if display_status}
-			<div class="user_status" style={status_style}></div>
+			<div class="user_status" style={User.Status.get_style(user?.status)}></div>
 		{/if}
 		{#if user?.avatar}
 			<img class="user_avatar" src={User.get_avatar_path(user)} alt="avatar"/>
@@ -26,7 +26,7 @@
 			<img class="user_avatar" src="$lib/assets/default_avatar.png" alt="avatar"/>
 		{/if}
 	</div>
-	<b>{user?.name}</b>
+	<b style={Role.get_username_style(roles)}>{user?.name}</b>
 </button>
 
 <style>

@@ -24,7 +24,7 @@ std::shared_ptr<http_response> server_users_resource::render_GET(const http_requ
 	if(err) return err;
 
 	nlohmann::json res = nlohmann::json::array();
-	pqxx::result r = tx.exec("SELECT user_id, name, avatar, status, role_id FROM user_x_server NATURAL JOIN users WHERE user_id IN (SELECT DISTINCT ON(user_id) user_id FROM user_x_server WHERE server_id = $1 LIMIT $2 OFFSET $3)", pqxx::params(server_id, count, start)); // select first distinct 'count' users, then get all user_id-role_id entries for those selected users
+	pqxx::result r = tx.exec("SELECT user_id, name, avatar, status, role_id FROM user_x_server NATURAL JOIN users WHERE user_id IN (SELECT DISTINCT ON(user_id) user_id FROM user_x_server WHERE server_id = $1 LIMIT $2 OFFSET $3) AND server_id = $1", pqxx::params(server_id, count, start)); // select first distinct 'count' users, then get all user_id-role_id entries for those selected users
 	std::unordered_map<int, size_t> r_users; // for O(1) access to users already inserted in res to append role_ids to them
 	for(size_t i = 0; i < r.size(); ++i){
 		int user_id = r[i]["user_id"].as<int>();
@@ -58,7 +58,7 @@ std::shared_ptr<http_response> server_user_id_resource::render_GET(const http_re
 	err = resource_utils::parse_server_user_id(req, server_id, tx, server_user_id);
 	if(err) return err;
 
-	pqxx::result r = tx.exec("SELECT user_id, name, avatar, status, role_id FROM user_x_server NATURAL JOIN users WHERE user_id = $1", pqxx::params(server_user_id));
+	pqxx::result r = tx.exec("SELECT user_id, name, avatar, status, role_id FROM user_x_server NATURAL JOIN users WHERE user_id = $1 AND server_id = $2", pqxx::params(server_user_id, server_id));
 	nlohmann::json res = resource_utils::user_json_from_row(r[0]);
 	res["roles"] = nlohmann::json::array();
 	for(size_t i = 0; i < r.size(); ++i)

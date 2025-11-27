@@ -26,7 +26,7 @@ export default class User {
 		Away: 2,
 		DoNotDisturb: 3,
 
-		getStyle: (st) => {
+		get_style: (st) => {
 			let var_name;
 			switch(st){
 				case User.Status.Offline:

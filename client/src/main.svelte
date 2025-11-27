@@ -11,6 +11,7 @@
 	import Channel from '$lib/rest/channel.js';
 	import Message from '$lib/rest/message.js';
 	import User from '$lib/rest/user.js';
+	import Role from '$lib/rest/role.js';
 
 	let { setPage } = $props();
 
@@ -20,13 +21,27 @@
 
 	// Backend data
 	let user_self = $state();
-
+	// global
 	let servers = $state("loading");
 	let channels = $state({});
-	
+	let roles = $state({});
+	// local
 	let server_message_users = $state({});
+	// paginated
 	let server_users = $state([]);
 	let messages = $state([]);
+
+	let profile_display_user = $derived(sel.user_message_id > -1 ? server_message_users[sel.user_id] : server_users[sel.user_id]);
+
+	const getUserRoles = (user) => {
+		let user_roles = [];
+		for(const id of servers[sel.server].roles){
+			const role_id = user.roles.find((x) => x === id);
+			if(typeof role_id !== "undefined")
+				user_roles.push(roles[role_id]);
+		}
+		return user_roles;
+	};
 
 	const ensureUser = (id) => {
 		if(typeof server_message_users[id] === "undefined"){
@@ -108,6 +123,18 @@
 						for(let ch of list){
 							servers[id].channels.push(ch.id);
 							channels[ch.id] = ch;
+						}
+					},
+					setError);
+		}
+		if(servers[id].roles !== "loading" && typeof servers[id].roles === "undefined"){
+			servers[id].roles = "loading";
+			Role.get_list(id,
+					(list) => {
+						servers[id].roles = [];
+						for(let rol of list){
+							servers[id].roles.push(rol.id);
+							roles[rol.id] = rol;
 						}
 					},
 					setError);
@@ -224,6 +251,7 @@
 			{#snippet render_message(i, item)}
 				<MessageDisplay id={item.id} text={item.text}
 				author={server_message_users[item.author_id]}
+				author_roles={getUserRoles(server_message_users[item.author_id])}
 				time_sent={new Date(item.sent)} time_edited={new Date(item.edited)}
 				status={item.status}
 				show_ctx_menu={(pos, action_set) => showCtxMenu(pos, action_set, i)}
@@ -258,6 +286,7 @@
 			{#snippet render_user(i, user)}
 				<UserDisplay
 				user={user}
+				roles={getUserRoles(user)}
 				div_classes="sidebar_user_display"
 				selected={sel.user_message_id == -1 && i == sel.user_id}
 				show_user_profile={(el, id) => showUserProfile(el, i, -1)}
@@ -274,7 +303,8 @@
 
 	{#if sel.user_id > -1}
 		<UserProfileDisplay
-		user={sel.user_message_id > -1 ? server_message_users[sel.user_id] : server_users[sel.user_id]}
+		user={profile_display_user}
+		roles={getUserRoles(profile_display_user)}
 		pos={sel_user_pos}
 		hide_profile={() => showUserProfile(undefined, -1, -1)}
 		/>

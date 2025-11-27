@@ -3,7 +3,8 @@
 	import User from '$lib/rest/user.js';
 	import UserDisplay from '$lib/display/user.svelte';
 
-	let {id, text, author, time_sent, time_edited,
+	let {id, text, time_sent, time_edited,
+		author, author_roles,
 		selected = false, selected_user = false,
 		status = Message.Status.None,
 		show_ctx_menu, show_user_profile} = $props();
@@ -22,7 +23,7 @@
 </script>
 
 <div id={"message_display_" + id} class="message_panel" tabindex=0 role="group">
-	<UserDisplay user={author}
+	<UserDisplay user={author} roles={author_roles}
 	display_status={false}
 	selected={selected_user}
 	show_user_profile={show_user_profile}
