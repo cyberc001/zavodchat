@@ -2,7 +2,7 @@ import Rest from "$lib/rest";
 
 export default class {
 	static get_list(server_id, _then, _catch){
-		Rest.get(Rest.get_route_scm(server_id) + "/roles",
+		Rest.get("Role.get_list", Rest.get_route_scm(server_id) + "/roles",
 			(res) => _then(res.data), _catch);
 	}
 
@@ -12,6 +12,6 @@ export default class {
 
 	// Assuming role_list are ordered from highest to lowest role
 	static get_username_style(role_list){
-		return typeof role_list !== "undefined" ? `color: #${role_list[0].color.toString(16)}` : "";
+		return (typeof role_list !== "undefined" && role_list.length > 0) ? `color: #${role_list[0].color.toString(16)}` : "";
 	}
 }

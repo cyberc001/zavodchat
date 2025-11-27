@@ -3,8 +3,6 @@ axios.defaults.withCredentials = true;
 
 export default class Rest {
 	static host = "";
-	// Искусственная дополнительная задержка между запросом и ответом
-	static response_delay = 1000;
 
 	static err_to_str(res)
 	{
@@ -62,17 +60,25 @@ export default class Rest {
 		return {};
 	}
 
-	static wait_response_delay()
+	static outgoing_requests = {};
+	static cancel_request(request_name)
 	{
-		return new Promise(resolve => setTimeout(resolve, Rest.response_delay));
+		console.log(Rest.outgoing_requests, "cancelling", request_name);
+		if(typeof Rest.outgoing_requests[request_name] !== "undefined"){
+			Rest.outgoing_requests[request_name].abort();
+			delete Rest.outgoing_requests[request_name];
+			console.log("cancelled");
+		}
 	}
 
-	static get(route, _then, _catch, ...params)
+	static get(request_name, route, _then, _catch, ...params)
 	{
 		let headers = Rest.get_headers(params);
+		let abort_controller = new AbortController();
+		headers.signal = abort_controller.signal;
 		axios.get(Rest.get_base_url() + route + Rest.params_to_query(params), headers)
 			.then(async (res) => {
-				await Rest.wait_response_delay();
+				delete Rest.outgoing_requests[request_name];
 				_then(res);
 			})
 			.catch((err) => {
@@ -80,14 +86,17 @@ export default class Rest {
 					throw err;
 				_catch(err.response);
 			});
+		Rest.outgoing_requests[request_name] = abort_controller;
 	}
-	static post(route, content, _then, _catch, ...params)
+	static post(request_name, route, content, _then, _catch, ...params)
 	{
 		let headers = Rest.get_headers(params);
+		let abort_controller = new AbortController();
+		headers.signal = abort_controller.signal;
 		axios.post(Rest.get_base_url() + route + Rest.params_to_query(params),
 				content, headers)
 			.then(async (res) => {
-				await Rest.wait_response_delay();
+				delete Rest.outgoing_requests[request_name];
 				_then(res);
 			})
 			.catch((err) => {
@@ -95,14 +104,17 @@ export default class Rest {
 					throw err;
 				_catch(err.response);
 			});
+		Rest.outgoing_requests[request_name] = abort_controller;
 	}
-	static put(route, content, _then, _catch, ...params)
+	static put(request_name, route, content, _then, _catch, ...params)
 	{
 		let headers = Rest.get_headers(params);
+		let abort_controller = new AbortController();
+		headers.signal = abort_controller.signal;
 		axios.put(Rest.get_base_url() + route + Rest.params_to_query(params),
 				content, headers)
 			.then(async (res) => {
-				await Rest.wait_response_delay();
+				delete Rest.outgoing_requests[request_name];
 				_then(res);
 			})
 			.catch((err) => {
@@ -111,13 +123,16 @@ export default class Rest {
 				_catch(err.response);
 			}
 		);
+		Rest.outgoing_requests[request_name] = abort_controller;
 	}
-	static delete(route, _then, _catch, ...params)
+	static delete(request_name, route, _then, _catch, ...params)
 	{
 		let headers = Rest.get_headers(params);
+		let abort_controller = new AbortController();
+		headers.signal = abort_controller.signal;
 		axios.delete(Rest.get_base_url() + route + Rest.params_to_query(params), headers)
 			.then(async (res) => {
-				await Rest.wait_response_delay();
+				delete Rest.outgoing_requests[request_name];
 				_then(res);
 			})
 			.catch((err) => {
@@ -126,5 +141,6 @@ export default class Rest {
 				_catch(err.response);
 			}
 		);
+		Rest.outgoing_requests[request_name] = abort_controller;
 	}
 }

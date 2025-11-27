@@ -28,7 +28,7 @@
 
 	let list_div = $state();
 
-	let anchor_id;
+	let anchor_id = -1;
 	let anchor_top_before;
 	let list_scroll_top_before;
 
@@ -42,7 +42,7 @@
 		list_div_scroll_top = list_div.scrollTop;
 		is_loading = true;
 		load_items(index, range, (list) => {
-			if(list.length < range){
+			if(list.length < range && index > 0){
 				is_loading = false;
 				index -= (range - list.length);
 				rerender(_then);
@@ -59,7 +59,7 @@
 
 			items = list;
 			tick().then(() => {
-				if(keep_pos){
+				if(keep_pos && anchor_id > -1){
 					let anchor = get_anchor(anchor_id);
 					list_div.scrollTop = list_scroll_top_before + (anchor.offsetTop - anchor_top_before);
 					list_div_scroll_top = list_div.scrollTop;

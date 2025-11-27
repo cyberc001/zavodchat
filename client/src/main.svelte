@@ -45,10 +45,10 @@
 
 	const ensureUser = (id) => {
 		if(typeof server_message_users[id] === "undefined"){
+			server_message_users[id] = User.dummy();
 			const su = server_users.find((user) => user.id == id);
 			if(typeof su === "undefined"){
-				server_message_users[id] = false;
-				User.get_server(id, (data) => {
+				User.get_server(sel.server, id, (data) => {
 					server_message_users[id] = data;
 				}, setError);
 			} else
@@ -70,7 +70,7 @@
 
 	let message_text = $state("");
 	let prev_message_text = "";
-	let message_list;
+	let message_list, server_user_list;
 
 	const is_message_fake = (msg_id) => {
 		return messages[msg_id].status === Message.Status.Sending
@@ -112,8 +112,12 @@
 
 	// Events
 	const showServer = (id) => {
+		messages = [];
+		server_users = [];
+		server_message_users = {};
 		sel.server = id;
 		sel.channel = -1;
+
 		User.get_server(id, user_self.id, (data) => { server_message_users[-1] = data; }, setError);
 		if(servers[id].channels !== "loading" && typeof servers[id].channels === "undefined"){
 			servers[id].channels = "loading";
@@ -136,13 +140,17 @@
 							servers[id].roles.push(rol.id);
 							roles[rol.id] = rol;
 						}
+						server_user_list.rerender(undefined, false);
 					},
 					setError);
 		}
 	};
 
 	const showChannel = (id) => {
+		Rest.cancel_request("Message.get_range");
 		sel.channel = id;
+		if(message_list)
+			message_list.rerender(undefined, false);
 	};
 
 	const showUserProfile = (el, id, message_id) => {
@@ -292,7 +300,7 @@
 				show_user_profile={(el, id) => showUserProfile(el, i, -1)}
 				/>
 			{/snippet}
-			<PaginatedList bind:items={server_users}
+			<PaginatedList bind:items={server_users} bind:this={server_user_list}
 			render_item={render_user} item_dom_id_prefix="user_display_"
 			to_latest_text="Up"
 			load_items={(index, count, _then) => {
