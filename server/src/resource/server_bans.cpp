@@ -12,6 +12,8 @@ server_bans_resource::server_bans_resource(db_connection_pool& pool, socket_main
 
 std::shared_ptr<http_response> server_bans_resource::render_GET(const http_request& req)
 {
+	base_resource::render_GET(req);
+	
 	int user_id, server_id;
 	db_connection conn = pool.hold();
 	pqxx::work tx{*conn};
@@ -37,6 +39,8 @@ std::shared_ptr<http_response> server_bans_resource::render_GET(const http_reque
 }
 std::shared_ptr<http_response> server_bans_resource::render_POST(const http_request& req)
 {
+	base_resource::render_GET(req);
+
 	int user_id, server_id;
 	db_connection conn = pool.hold();
 	pqxx::work tx{*conn};
@@ -100,6 +104,8 @@ server_ban_id_resource::server_ban_id_resource(db_connection_pool& pool) : base_
 
 std::shared_ptr<http_response> server_ban_id_resource::render_PUT(const http_request& req)
 {
+	base_resource::render_PUT(req);
+
 	int user_id, server_id;
 	db_connection conn = pool.hold();
 	pqxx::work tx{*conn};
@@ -131,6 +137,8 @@ std::shared_ptr<http_response> server_ban_id_resource::render_PUT(const http_req
 
 std::shared_ptr<http_response> server_ban_id_resource::render_DELETE(const http_request& req)
 {
+	base_resource::render_DELETE(req);
+
 	int user_id, server_id;
 	db_connection conn = pool.hold();
 	pqxx::work tx{*conn};

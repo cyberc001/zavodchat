@@ -44,6 +44,9 @@ int main()
 	file_utils::file_storage_path = cfg.file_storage_path;
 	file_utils::file_storage_size = cfg.file_storage_size;
 
+
+	base_resource::response_delay = cfg.response_delay;
+
 	httpserver::webserver ws = httpserver::create_webserver(cfg.https_port)
 								.use_ssl()
 								.https_mem_key(cfg.https_key)

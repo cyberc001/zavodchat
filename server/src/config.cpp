@@ -65,7 +65,7 @@ config::config(std::ifstream& fd)
 	db_user = cfg["db_user"].get<std::string>();
 	db_password = cfg["db_password"].get<std::string>();
 	db_name = cfg["db_name"].get<std::string>();
-	GET_BOOL(create_test_db);
+	GET_BOOL(create_test_db)
 
 	GET_UNSIGNED(https_port)
 	GET_UNSIGNED(ws_port)
@@ -87,6 +87,8 @@ config::config(std::ifstream& fd)
 
 	https_key = cfg["https_key"].get<std::string>();
 	https_cert = cfg["https_cert"].get<std::string>();
+
+	GET_SIZE_T(response_delay)
 
 	GET_UNSIGNED(min_username_length)
 	GET_UNSIGNED(min_password_length)

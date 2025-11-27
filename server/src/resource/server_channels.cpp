@@ -10,6 +10,8 @@ server_channel_resource::server_channel_resource(db_connection_pool& pool, socke
 
 std::shared_ptr<http_response> server_channel_resource::render_GET(const http_request& req)
 {
+	base_resource::render_GET(req);
+
 	int user_id, server_id;
 	db_connection conn = pool.hold();
 	pqxx::work tx{*conn};
@@ -26,6 +28,8 @@ std::shared_ptr<http_response> server_channel_resource::render_GET(const http_re
 }
 std::shared_ptr<http_response> server_channel_resource::render_POST(const http_request& req)
 {
+	base_resource::render_POST(req);
+
 	std::string name = std::string(req.get_arg("name"));
 	int type;
 	auto err = resource_utils::parse_index(req, "type", type);
@@ -72,6 +76,8 @@ server_channel_id_resource::server_channel_id_resource(db_connection_pool& pool,
 }
 std::shared_ptr<http_response> server_channel_id_resource::render_GET(const http_request& req)
 {
+	base_resource::render_GET(req);
+
 	int user_id, server_id;
 	db_connection conn = pool.hold();
 	pqxx::work tx{*conn};
@@ -96,6 +102,8 @@ std::shared_ptr<http_response> server_channel_id_resource::render_GET(const http
 }
 std::shared_ptr<http_response> server_channel_id_resource::render_PUT(const http_request& req)
 {
+	base_resource::render_PUT(req);
+
 	int user_id, server_id;
 	db_connection conn = pool.hold();
 	pqxx::work tx{*conn};
@@ -143,6 +151,8 @@ std::shared_ptr<http_response> server_channel_id_resource::render_PUT(const http
 }
 std::shared_ptr<http_response> server_channel_id_resource::render_DELETE(const http_request& req)
 {
+	base_resource::render_DELETE(req);
+
 	int user_id, server_id;
 	db_connection conn = pool.hold();
 	pqxx::work tx{*conn};

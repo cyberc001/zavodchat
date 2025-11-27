@@ -10,6 +10,8 @@ user_id_resource::user_id_resource(db_connection_pool& pool) : base_resource(), 
 
 std::shared_ptr<http_response> user_id_resource::render_GET(const http_request& req)
 {
+	base_resource::render_GET(req);
+
 	db_connection conn = pool.hold();
 	pqxx::work tx{*conn};
 

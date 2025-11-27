@@ -10,6 +10,8 @@ channel_messages_resource::channel_messages_resource(db_connection_pool& pool, s
 
 std::shared_ptr<http_response> channel_messages_resource::render_GET(const http_request& req)
 {
+	base_resource::render_GET(req);
+
 	int user_id, server_id;
 	db_connection conn = pool.hold();
 	pqxx::work tx{*conn};
@@ -47,6 +49,8 @@ std::shared_ptr<http_response> channel_messages_resource::render_GET(const http_
 }
 std::shared_ptr<http_response> channel_messages_resource::render_POST(const http_request& req)
 {
+	base_resource::render_POST(req);
+
 	std::string text = std::string(req.get_content());
 	if(!text.size())
 		return create_response::string(req, "Empty messages are forbidden", 400);
@@ -92,6 +96,8 @@ channel_message_id_resource::channel_message_id_resource(db_connection_pool& poo
 
 std::shared_ptr<http_response> channel_message_id_resource::render_GET(const http_request& req)
 {
+	base_resource::render_GET(req);
+
 	int user_id, server_id;
 	db_connection conn = pool.hold();
 	pqxx::work tx{*conn};
@@ -112,6 +118,8 @@ std::shared_ptr<http_response> channel_message_id_resource::render_GET(const htt
 }
 std::shared_ptr<http_response> channel_message_id_resource::render_PUT(const http_request& req)
 {
+	base_resource::render_PUT(req);
+
 	std::string text = std::string(req.get_content());
 	if(!text.size())
 		return create_response::string(req, "Empty messages are forbidden", 400);
@@ -151,6 +159,8 @@ std::shared_ptr<http_response> channel_message_id_resource::render_PUT(const htt
 }
 std::shared_ptr<http_response> channel_message_id_resource::render_DELETE(const http_request& req)
 {
+	base_resource::render_DELETE(req);
+
 	int user_id, server_id;
 	db_connection conn = pool.hold();
 	pqxx::work tx{*conn};

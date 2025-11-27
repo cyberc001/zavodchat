@@ -12,6 +12,8 @@ auth_resource::auth_resource(db_connection_pool& pool): base_resource(), pool{po
 
 std::shared_ptr<http_response> auth_resource::render_POST(const http_request& req)
 {
+	base_resource::render_POST(req);
+
 	nlohmann::json body;
 	std::shared_ptr<http_response> res = resource_utils::json_from_content(req, body);
 	if(res)
@@ -74,6 +76,8 @@ register_resource::register_resource(db_connection_pool& pool): base_resource(),
 
 std::shared_ptr<http_response> register_resource::render_POST(const http_request& req)
 {
+	base_resource::render_POST(req);
+
 	nlohmann::json body;
 	std::shared_ptr<http_response> err = resource_utils::json_from_content(req, body);
 	if(err) return err;
@@ -114,6 +118,8 @@ std::shared_ptr<http_response> register_resource::render_POST(const http_request
 }
 std::shared_ptr<http_response> register_resource::render_PUT(const http_request& req)
 {
+	base_resource::render_PUT(req);
+
 	nlohmann::json body;
 	std::shared_ptr<http_response> err = resource_utils::json_from_content(req, body);
 	if(err) return err;

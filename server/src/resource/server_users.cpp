@@ -10,6 +10,8 @@ server_users_resource::server_users_resource(db_connection_pool& pool) : base_re
 
 std::shared_ptr<http_response> server_users_resource::render_GET(const http_request& req)
 {
+	base_resource::render_GET(req);
+
 	int user_id, server_id;
 	db_connection conn = pool.hold();
 	pqxx::work tx{*conn};
@@ -48,6 +50,8 @@ server_user_id_resource::server_user_id_resource(db_connection_pool& pool, socke
 
 std::shared_ptr<http_response> server_user_id_resource::render_GET(const http_request& req)
 {
+	base_resource::render_GET(req);
+
 	int user_id, server_id;
 	db_connection conn = pool.hold();
 	pqxx::work tx{*conn};
@@ -68,6 +72,8 @@ std::shared_ptr<http_response> server_user_id_resource::render_GET(const http_re
 }
 std::shared_ptr<http_response> server_user_id_resource::render_DELETE(const http_request& req)
 {
+	base_resource::render_DELETE(req);
+
 	int user_id, server_id;
 	db_connection conn = pool.hold();
 	pqxx::work tx{*conn};
@@ -108,6 +114,8 @@ server_user_role_id_resource::server_user_role_id_resource(db_connection_pool& p
 
 std::shared_ptr<http_response> server_user_role_id_resource::render_POST(const http_request& req)
 {
+	base_resource::render_POST(req);
+
 	int user_id, server_id;
 	db_connection conn = pool.hold();
 	pqxx::work tx{*conn};
@@ -149,6 +157,8 @@ std::shared_ptr<http_response> server_user_role_id_resource::render_POST(const h
 }
 std::shared_ptr<http_response> server_user_role_id_resource::render_DELETE(const http_request& req)
 {
+	base_resource::render_DELETE(req);
+
 	int user_id, server_id;
 	db_connection conn = pool.hold();
 	pqxx::work tx{*conn};

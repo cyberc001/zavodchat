@@ -22,6 +22,8 @@ public:
 
 	std::string https_key, https_cert;
 
+	size_t response_delay = 0;
+
 	std::string user_avatar_path = "/data/avatar/user/",
 			server_avatar_path = "/data/avatar/server/",
 			file_storage_path = "/data/upload/";

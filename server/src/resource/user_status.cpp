@@ -8,6 +8,8 @@ user_status_resource::user_status_resource(db_connection_pool& pool): base_resou
 
 std::shared_ptr<http_response> user_status_resource::render_PUT(const http_request& req)
 {
+	base_resource::render_PUT(req);
+
 	db_connection conn = pool.hold();
 	pqxx::work tx{*conn};
 
