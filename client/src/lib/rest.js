@@ -29,6 +29,17 @@ export default class Rest {
 		route += "/messages/" + message_id;
 		return route
 	}
+	static get_route_su(server_id, user_id)
+	{
+		let route = "";
+		if(typeof server_id === "undefined")
+			return route;
+		route += "servers/" + server_id;
+		if(typeof user_id === "undefined")
+			return route;
+		route += "/users/" + user_id;
+		return route
+	}
 
 	static get_base_url()
 	{

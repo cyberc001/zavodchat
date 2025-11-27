@@ -224,6 +224,15 @@ paths:
         '403':
           description: Неправильный start (< 0, >= количеству пользователей) / слишком большой count
   /servers/$server_id/users/$user_id:
+    get:
+      summary: Информация о пользователе на сервере
+      responses:
+        '200':
+          description: Информация о пользователе
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerUser'
     delete:
       summary: Выгнать пользователя с сервера
       responses:

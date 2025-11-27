@@ -1,11 +1,14 @@
-let route = "users";
 import Rest from "$lib/rest";
 
 export default class User {
-	static get(id, _then, _catch){
-		Rest.get(route + "/" + id, (res) => _then(res.data), _catch);
+	static get(user_id, _then, _catch){
+		Rest.get("users/" + user_id, (res) => _then(res.data), _catch);
 	}
-	static get_range(server_id, start, count, _then, _catch){
+
+	static get_server(server_id, user_id, _then, _catch){
+		Rest.get(Rest.get_route_su(server_id, user_id), (res) => _then(res.data), _catch);
+	}
+	static get_server_range(server_id, start, count, _then, _catch){
 		if(start == -1) start = 0;
 		if(count == -1) count = 50;
 		Rest.get(Rest.get_route_scm(server_id) + "/users",

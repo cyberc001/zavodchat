@@ -19,17 +19,25 @@
 	};
 
 	// Backend data
+	let user_self = $state();
+
 	let servers = $state("loading");
 	let channels = $state({});
-	let users = $state({});
-
+	
+	let server_message_users = $state({});
 	let server_users = $state([]);
 	let messages = $state([]);
 
 	const ensureUser = (id) => {
-		if(typeof users[id] === "undefined"){
-			// TODO prevent double-loading
-			User.get(id, (data) => { users[id] = data }, setError);
+		if(typeof server_message_users[id] === "undefined"){
+			const su = server_users.find((user) => user.id == id);
+			if(typeof su === "undefined"){
+				server_message_users[id] = false;
+				User.get_server(id, (data) => {
+					server_message_users[id] = data;
+				}, setError);
+			} else
+				server_message_users[id] = su;
 		}
 	};
 
@@ -91,6 +99,7 @@
 	const showServer = (id) => {
 		sel.server = id;
 		sel.channel = -1;
+		User.get_server(id, user_self.id, (data) => { server_message_users[-1] = data; }, setError);
 		if(servers[id].channels !== "loading" && typeof servers[id].channels === "undefined"){
 			servers[id].channels = "loading";
 			Channel.get_list(id,
@@ -120,7 +129,7 @@
 		let pre_id = messages.length > 0 ? messages[messages.length - 1].id + 1000000 : 0;
 		let now = new Date(Date.now());
 		messages.unshift({
-			author_id: users[-1].id,
+			author_id: server_message_users[-1].id,
 			id: pre_id,
 			sent: now.toISOString(), edited: now.toISOString(),
 			text: text,
@@ -158,7 +167,7 @@
 	};
 
 	// Initialization
-	User.get(-1, (data) => { users[-1] = data; }, setError);
+	User.get(-1, (data) => { user_self = data; }, setError);
 	Server.get_list((list) => {
 					let data_servers = {};
 					for(let srv of list)
@@ -214,7 +223,7 @@
 		{#if sel.channel > -1}
 			{#snippet render_message(i, item)}
 				<MessageDisplay id={item.id} text={item.text}
-				author={users[item.author_id]}
+				author={server_message_users[item.author_id]}
 				time_sent={new Date(item.sent)} time_edited={new Date(item.edited)}
 				status={item.status}
 				show_ctx_menu={(pos, action_set) => showCtxMenu(pos, action_set, i)}
@@ -258,14 +267,14 @@
 			render_item={render_user} item_dom_id_prefix="user_display_"
 			to_latest_text="Up"
 			load_items={(index, count, _then) => {
-				User.get_range(sel.server, index, count, _then, setError);
+				User.get_server_range(sel.server, index, count, _then, setError);
 			}}/>
 		</div>
 	{/if}
 
 	{#if sel.user_id > -1}
 		<UserProfileDisplay
-		user={sel.user_message_id > -1 ? users[sel.user_id] : server_users[sel.user_id]}
+		user={sel.user_message_id > -1 ? server_message_users[sel.user_id] : server_users[sel.user_id]}
 		pos={sel_user_pos}
 		hide_profile={() => showUserProfile(undefined, -1, -1)}
 		/>

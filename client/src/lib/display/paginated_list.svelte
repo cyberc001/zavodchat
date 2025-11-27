@@ -42,11 +42,9 @@
 		list_div_scroll_top = list_div.scrollTop;
 		is_loading = true;
 		load_items(index, range, (list) => {
-			console.log("index", index, "range", range, "list", list);
 			if(list.length < range){
 				is_loading = false;
 				index -= (range - list.length);
-				console.log("resetting index to", index);
 				rerender(_then);
 				return;
 			}
@@ -87,7 +85,6 @@
 				else{
 					index += reverse_sign * dir * advance;
 					if(index < 0) index = 0;
-					console.log("index", index);
 					list_div.scrollTop = next_scroll_top;
 					rerender();
 				}
