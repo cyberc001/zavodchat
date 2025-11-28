@@ -26,7 +26,7 @@
 		if(typeof self !== "undefined"){
 			let brect = self.getBoundingClientRect();
 			// close profile if scrolled too far
-			if(Math.abs(pos_off[1]) >= brect.height * 0.5)
+			if(Math.abs(pos_off[1]) >= brect.height)
 				hide_profile();
 		}
 	});

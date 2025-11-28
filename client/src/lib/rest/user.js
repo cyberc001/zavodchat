@@ -1,12 +1,19 @@
-import Rest from "$lib/rest";
+import Rest from "$lib/rest.js";
+import IDCache from "$lib/cache/id.svelte.js";
 
 export default class User {
+	static user_server_cache = new IDCache();
+
 	static get(user_id, _then, _catch){
 		Rest.get("User.get", "users/" + user_id, (res) => _then(res.data), _catch);
 	}
 
-	static get_server(server_id, user_id, _then, _catch){
-		Rest.get("User.get_server", Rest.get_route_su(server_id, user_id), (res) => _then(res.data), _catch);
+	static get_server(server_id, user_id, _catch){
+		return User.user_server_cache.get_state([server_id, user_id], (cache, id) => {
+			Rest.get("User.get_server", Rest.get_route_su(server_id, user_id),
+				(res) => cache.set_state(id, res.data),
+				_catch);
+		});
 	}
 	static get_server_range(server_id, start, count, _then, _catch){
 		if(start == -1) start = 0;

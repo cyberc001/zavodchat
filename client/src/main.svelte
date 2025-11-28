@@ -28,20 +28,23 @@
 	// local
 	let server_message_users = $state({});
 	// paginated
-	let server_users = $state([]);
-	let messages = $state([]);
+	let pg_server_users = $state([]);
+	let pg_messages = $state([]);
 
 	let profile_display_user = $derived.by(() => {
 		if(sel.user.id < 0)
 			return undefined;
 		if(sel.user.message_id > -1)
 			return server_message_users[sel.user.id];
-		const i = server_users.findIndex((user) => user.id == sel.user.id);
+		const i = pg_server_users.findIndex((user) => user.id == sel.user.id);
 		if(i > -1)
-			return server_users[i];
+			return pg_server_users[i];
 	});
 
 	const getUserRoles = (user) => {
+		if(!user || !user.roles)
+			return [];
+
 		let user_roles = [];
 		for(const id of servers[sel.server].roles){
 			const role_id = user.roles.find((x) => x === id);
@@ -51,16 +54,25 @@
 		return user_roles;
 	};
 
+
+	// DEBUG
+	$effect(() => {
+		console.log("server_message_users", $state.snapshot(server_message_users));
+	});
+
 	const ensureUser = (id) => {
 		if(typeof server_message_users[id] === "undefined"){
-			server_message_users[id] = User.dummy();
-			const su = server_users.find((user) => user.id == id);
-			if(typeof su === "undefined"){
-				User.get_server(sel.server, id, (data) => {
-					server_message_users[id] = data;
-				}, setError);
-			} else
-				server_message_users[id] = su;
+			server_message_users[id] = User.get_server(sel.server, id, setError);
+
+			//server_message_users[id] = User.dummy();
+
+			//const su = pg_server_users.find((user) => user.id == id);
+			//if(typeof su === "undefined"){
+				//User.get_server(sel.server, id, (data) => {
+				//	server_message_users[id] = data;
+				//}, setError);
+			//} else
+			//	server_message_users[id] = su;
 		}
 	};
 
@@ -94,8 +106,8 @@
 	let message_list_scroll_top = $state(0), server_user_list_scroll_top = $state(0);
 
 	const is_message_fake = (msg_id) => {
-		return messages[msg_id].status === Message.Status.Sending
-			|| typeof messages[msg_id].status === "string";
+		return pg_messages[msg_id].status === Message.Status.Sending
+			|| typeof pg_messages[msg_id].status === "string";
 	};
 	const action_sets = {
 		"message": [{text: "Edit", icon: "edit.svg", func: () => {
@@ -103,14 +115,14 @@
 					return;
 				sel.message_edit = sel.message;
 				prev_message_text = message_text;
-				message_text = messages[sel.message].text;
+				message_text = pg_messages[sel.message].text;
 			    }},
 			    {text: "Delete", icon: "delete.svg", func: () => {
 				if(is_message_fake(sel.message))
 					return;
-				messages[sel.message].status = Message.Status.Deleting;
+				pg_messages[sel.message].status = Message.Status.Deleting;
 				let chan_id = sel.channel, msg_i = sel.message; // "capture" ids
-				Message.delete(sel.server, chan_id, messages[msg_i].id,
+				Message.delete(sel.server, chan_id, pg_messages[msg_i].id,
 						() => message_list.rerender(), setError);
 			    }}]
 	};
@@ -133,15 +145,21 @@
 
 	// Events
 	const showServer = (id) => {
-		messages = [];
-		server_users = [];
+		pg_messages = [];
+		pg_server_users = [];
 		server_message_users = {};
 		sel.server = id;
 		sel.channel = -1;
 
-		User.get_server(id, user_self.id, (data) => { server_message_users[-1] = data; }, setError);
-		if(servers[id].channels !== "loading" && typeof servers[id].channels === "undefined"){
+		server_message_users[user_self.id] = User.get_server(id, user_self.id, setError);
+		console.log("GOT SELF", server_message_users[user_self.id]);
+		//User.get_server(id, user_self.id, (data) => { server_message_users[-1] = data; }, setError);
+
+		channels = Channel.get_list(id, setError);
+		/*if(servers[id].channels !== "loading" && typeof servers[id].channels === "undefined"){
 			servers[id].channels = "loading";
+			channels = Channel.get_list(id, setError);
+
 			Channel.get_list(id,
 					(list) => {
 						servers[id].channels = [];
@@ -151,7 +169,7 @@
 						}
 					},
 					setError);
-		}
+		}*/
 		if(servers[id].roles !== "loading" && typeof servers[id].roles === "undefined"){
 			servers[id].roles = "loading";
 			Role.get_list(id,
@@ -161,10 +179,11 @@
 							servers[id].roles.push(rol.id);
 							roles[rol.id] = rol;
 						}
-						server_user_list.rerender(undefined, false);
 					},
 					setError);
 		}
+		if(server_user_list)
+			server_user_list.rerender(undefined, false);
 	};
 
 	const showChannel = (id) => {
@@ -182,10 +201,10 @@
 
 	const sendMessage = (text) => {
 		let chan_id = sel.channel;
-		let pre_id = messages.length > 0 ? messages[messages.length - 1].id + 1000000 : 0;
+		let pre_id = pg_messages.length > 0 ? pg_messages[pg_messages.length - 1].id + 1000000 : 0;
 		let now = new Date(Date.now());
-		messages.unshift({
-			author_id: server_message_users[-1].id,
+		pg_messages.unshift({
+			author_id: user_self.id,
 			id: pre_id,
 			sent: now.toISOString(), edited: now.toISOString(),
 			text: text,
@@ -195,24 +214,24 @@
 		Message.send(sel.server, sel.channel, text,
 				(new_msg_id) => message_list.rerender(),
 				(err) => {
-					messages[0].status = err.data;
+					pg_messages[0].status = err.data;
 					//setError(err);
 				}
 		);
 	};
 	const editMessage = (text) => {
 		let chan_id = sel.channel, msg_i = sel.message_edit;
-		let prev_text = messages[msg_i].text;
-		messages[msg_i].status = Message.Status.Editing;
-		messages[msg_i].text = text;
+		let prev_text = pg_messages[msg_i].text;
+		pg_messages[msg_i].status = Message.Status.Editing;
+		pg_messages[msg_i].text = text;
 		sel.message_edit = -1;
 		
-		Message.edit(sel.server, chan_id, messages[msg_i].id, text,
+		Message.edit(sel.server, chan_id, pg_messages[msg_i].id, text,
 				() => {
-					messages[msg_i].status = Message.Status.None;
+					pg_messages[msg_i].status = Message.Status.None;
 				}
 				, (err) => {
-					messages[msg_i].text = prev_text;
+					pg_messages[msg_i].text = prev_text;
 					setError(err);
 				});
 	};
@@ -257,26 +276,18 @@
 		{/if}
 	</div>
 	<div class="panel sidebar_channels">
-		{#if sel.server > -1}
-			{#if servers[sel.server].channels === "loading"}
-				<div style="text-align: center; margin-top: 6px">
-					<img src="$lib/assets/icons/loading.svg" alt="loading" class="filter_icon_main" style="width: 48px"/>
-				</div>
-			{:else}
-				{#each servers[sel.server].channels as i}
-					<div>
-						<button class={"item hoverable sidebar_channel_el" + (sel.channel == i ? " selected" : "")} onclick={() => showChannel(i)}>
-							{#if channels[i].type === 1}
-								<img src="$lib/assets/icons/channel_vc.svg" alt="voice" class="filter_icon_main sidebar_channel_el_icon"/>
-							{:else}
-								<img src="$lib/assets/icons/channel_text.svg" alt="text" class="filter_icon_main sidebar_channel_el_icon"/>
-							{/if}
-							{channels[i].name}
-						</button>
-					</div>
-				{/each}
-			{/if}
-		{/if}
+		{#each channels as ch}
+			<div>
+				<button class={"item hoverable sidebar_channel_el" + (sel.channel == ch.idd ? " selected" : "")} onclick={() => showChannel(ch.id)}>
+					{#if ch.type === 1}
+						<img src="$lib/assets/icons/channel_vc.svg" alt="voice" class="filter_icon_main sidebar_channel_el_icon"/>
+					{:else}
+						<img src="$lib/assets/icons/channel_text.svg" alt="text" class="filter_icon_main sidebar_channel_el_icon"/>
+					{/if}
+					{ch.name}
+				</button>
+			</div>
+		{/each}
 	</div>
 	<div class="panel sidebar_messages">
 		{#if sel.channel > -1}
@@ -292,7 +303,7 @@
 				hide_profile={() => showUser(-1, -1)}
 				/>
 			{/snippet}
-			<PaginatedList bind:items={messages} bind:this={message_list}
+			<PaginatedList bind:items={pg_messages} bind:this={message_list}
 			bind:scrollTop={message_list_scroll_top}
 			reversed={true}
 			loading_text="Loading messages..." to_latest_text="To latest messages"
@@ -327,7 +338,7 @@
 				hide_profile={() => showUser(-1, -1)}
 				/>
 			{/snippet}
-			<PaginatedList bind:items={server_users} bind:this={server_user_list}
+			<PaginatedList bind:items={pg_server_users} bind:this={server_user_list}
 			bind:scrollTop={server_user_list_scroll_top}
 			render_item={render_user} item_dom_id_prefix="user_display_"
 			to_latest_text="Up"
