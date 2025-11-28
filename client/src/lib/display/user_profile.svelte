@@ -2,9 +2,34 @@
 	import User from '$lib/rest/user.js';
 	import Role from '$lib/rest/role.js';
 
+	// rel_off - offset relative to size, in %
 	let {user, roles,
-		pos,
+		pos = [0, 0], rel_off = [0, 0],
 		hide_profile} = $props();
+
+	let self = $state();
+
+	const pos_margin_top = 14, pos_margin_bottom = 64;
+	let pos_off = $derived.by(() => {
+		pos;
+		let po = [0, 0];
+		if(typeof self !== "undefined"){
+			let brect = self.getBoundingClientRect();
+			if(pos[1] + brect.height > document.documentElement.clientHeight - pos_margin_bottom)
+				po[1] = document.documentElement.clientHeight - pos_margin_bottom - (pos[1] + brect.height);
+			if(pos[1] < pos_margin_top)
+				po[1] = pos_margin_top - pos[1];
+		}
+		return po;
+	});
+	$effect(() => {
+		if(typeof self !== "undefined"){
+			let brect = self.getBoundingClientRect();
+			// close profile if scrolled too far
+			if(Math.abs(pos_off[1]) >= brect.height * 0.5)
+				hide_profile();
+		}
+	});
 
 	let pointer_on_profile = false;
 	const onmouseup = () => {
@@ -15,9 +40,10 @@
 </script>
 
 <svelte:window {onmouseup}/>
-<div class="item user_profile_display" style="top: {pos[0]}px; left: {pos[1]}px"
+<div class="item user_profile_display" style="left: {pos[0] + pos_off[0]}px; top: {pos[1] + pos_off[1]}px; transform: translate({rel_off[0]}%, {rel_off[1]}%);"
 	onmouseenter={() => pointer_on_profile = true}
 	onmouseleave={() => pointer_on_profile = false}
+	bind:this={self}
 >
 	<div class="user_profile_name">
 		<div class="user_avatar_frame">
@@ -43,6 +69,7 @@
 <style>
 .user_profile_display {
 	position: absolute;
+	z-index: 100;
 
 	padding: 4px 6px 4px 6px;
 }

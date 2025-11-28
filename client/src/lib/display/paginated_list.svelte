@@ -1,7 +1,7 @@
 <script>
 	import { tick } from 'svelte';
 
-	let {items = $bindable([]), index = $bindable(0),
+	let {items = $bindable([]), index = $bindable(0), scrollTop = $bindable(0),
 		range = 30, advance = 10, reversed = false,
 		item_dom_id_prefix,
 		render_item, load_items,
@@ -39,7 +39,7 @@
 	};
 
 	export function rerender(_then, keep_pos=true){
-		list_div_scroll_top = list_div.scrollTop;
+		scrollTop = list_div.scrollTop;
 		is_loading = true;
 		load_items(index, range, (list) => {
 			if(list.length < range && index > 0){
@@ -62,7 +62,7 @@
 				if(keep_pos && anchor_id > -1){
 					let anchor = get_anchor(anchor_id);
 					list_div.scrollTop = list_scroll_top_before + (anchor.offsetTop - anchor_top_before);
-					list_div_scroll_top = list_div.scrollTop;
+					scrollTop = list_div.scrollTop;
 				}
 
 				if(_then)
@@ -92,27 +92,26 @@
 				list_div.scrollTop = next_scroll_top;
 		} else 
 			list_div.scrollTop = next_scroll_top;
-		list_div_scroll_top = list_div.scrollTop;
+		scrollTop = list_div.scrollTop;
 	};
 
-	let list_div_scroll_top = $state(0);
 	// show "Go to latest" button if scrolled more than half-page above last element
 	let show_goto_latest = $derived(typeof to_latest_text !== "undefined" &&
 		(index > 0 || 
-		(typeof list_div !== "undefined" && (reverse_sign * list_div_scroll_top > (list_div.scrollHeight - list_div.clientHeight) * 0.5))
+		(typeof list_div !== "undefined" && (reverse_sign * scrollTop > (list_div.scrollHeight - list_div.clientHeight) * 0.5))
 		));
  
 	const goto_latest = () => {
 		if(index == 0){
 			list_div.scrollTop = 0;
-			list_div_scroll_top = list_div.scrollTop;
+			scrollTop = list_div.scrollTop;
 			return;
 		}
 
 		index = 0;
 		rerender(() => {
 			list_div.scrollTop = 0;
-			list_div_scroll_top = list_div.scrollTop;
+			scrollTop = list_div.scrollTop;
 		}, false);
 	};
 </script>

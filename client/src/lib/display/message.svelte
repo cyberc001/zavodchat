@@ -7,7 +7,7 @@
 		author, author_roles,
 		selected = false, selected_user = false,
 		status = Message.Status.None,
-		show_ctx_menu, show_user_profile} = $props();
+		show_ctx_menu, onclick_user, hide_profile} = $props();
 	let is_edited = $derived(time_sent.getTime() !== time_edited.getTime());
 
 	let status_msg = $derived(
@@ -24,9 +24,11 @@
 
 <div id={"message_display_" + id} class="message_panel" tabindex=0 role="group">
 	<UserDisplay user={author} roles={author_roles}
+	create_id={false}
 	display_status={false}
 	selected={selected_user}
-	show_user_profile={show_user_profile}
+	onclick={onclick_user}
+	hide_profile={hide_profile}
 	/>
 	{#if status_msg !== ""}
 		{#if typeof status === "string"}

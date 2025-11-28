@@ -31,7 +31,15 @@
 	let server_users = $state([]);
 	let messages = $state([]);
 
-	let profile_display_user = $derived(sel.user_message_id > -1 ? server_message_users[sel.user_id] : server_users[sel.user_id]);
+	let profile_display_user = $derived.by(() => {
+		if(sel.user.id < 0)
+			return undefined;
+		if(sel.user.message_id > -1)
+			return server_message_users[sel.user.id];
+		const i = server_users.findIndex((user) => user.id == sel.user.id);
+		if(i > -1)
+			return server_users[i];
+	});
 
 	const getUserRoles = (user) => {
 		let user_roles = [];
@@ -57,20 +65,33 @@
 	};
 
 	// UI state
+	let wnd_width = $state(), wnd_height = $state();
+
 	let sel = $state({
 		server: -1, channel: -1, message: -1, message_edit: -1,
-		user_id: -1, user_message_id: -1, user_el: undefined
+		user: {
+			id: -1, message_id: -1
+		}
 	});
 	let sel_user_pos = $derived.by(() => {
-		if(sel.user_id < 0)
-			return [0, 0];
-		let brect = sel.user_el.getBoundingClientRect();
-		return [brect.top, brect.left];
-	});;
+		wnd_width; wnd_height;
+		message_list_scroll_top; server_user_list_scroll_top;
+
+		if(sel.user.id < 0)
+			return [[0, 0], [0, 0]];
+		let el = document.getElementById(sel.user.message_id > -1
+						? "message_display_" + sel.user.message_id
+						: "user_display_" + sel.user.id);
+		let brect = el.getBoundingClientRect();
+		if(sel.user.message_id > -1)
+			return [[brect.left, brect.top], [0, 0]];
+		return [[brect.left, brect.top], [-100, 0]];
+	});
 
 	let message_text = $state("");
 	let prev_message_text = "";
-	let message_list, server_user_list;
+	let message_list = $state(), server_user_list = $state();
+	let message_list_scroll_top = $state(0), server_user_list_scroll_top = $state(0);
 
 	const is_message_fake = (msg_id) => {
 		return messages[msg_id].status === Message.Status.Sending
@@ -147,16 +168,16 @@
 	};
 
 	const showChannel = (id) => {
+		showUser(-1, -1);
 		Rest.cancel_request("Message.get_range");
 		sel.channel = id;
 		if(message_list)
 			message_list.rerender(undefined, false);
 	};
 
-	const showUserProfile = (el, id, message_id) => {
-		sel.user_id = id;
-		sel.user_message_id = message_id;
-		sel.user_el = el;
+	const showUser = (id, message_id) => {
+		sel.user.id = id;
+		sel.user.message_id = message_id;
 	};
 
 	const sendMessage = (text) => {
@@ -212,10 +233,13 @@
 				, setError);
 </script>
 
+
 <style>
 	@import "main.css";
 </style>
 
+
+<svelte:window bind:innerWidth={wnd_width} bind:innerHeight={wnd_height}/>
 <div class="main">
 	<div class="panel sidebar_servers">
 		{#if servers === "loading"}
@@ -263,11 +287,13 @@
 				time_sent={new Date(item.sent)} time_edited={new Date(item.edited)}
 				status={item.status}
 				show_ctx_menu={(pos, action_set) => showCtxMenu(pos, action_set, i)}
-				show_user_profile={(el, id) => showUserProfile(el, id, item.id)}
-				selected_user={item.id == sel.user_message_id && item.author_id == sel.user_id}
+				selected_user={item.id == sel.user.message_id && item.author_id == sel.user.id}
+				onclick_user={() => showUser(item.author_id, item.id)}
+				hide_profile={() => showUser(-1, -1)}
 				/>
 			{/snippet}
 			<PaginatedList bind:items={messages} bind:this={message_list}
+			bind:scrollTop={message_list_scroll_top}
 			reversed={true}
 			loading_text="Loading messages..." to_latest_text="To latest messages"
 			render_item={render_message} item_dom_id_prefix="message_display_"
@@ -296,11 +322,13 @@
 				user={user}
 				roles={getUserRoles(user)}
 				div_classes="sidebar_user_display"
-				selected={sel.user_message_id == -1 && i == sel.user_id}
-				show_user_profile={(el, id) => showUserProfile(el, i, -1)}
+				selected={sel.user.message_id == -1 && user.id == sel.user.id}
+				onclick={() => showUser(user.id, -1)}
+				hide_profile={() => showUser(-1, -1)}
 				/>
 			{/snippet}
 			<PaginatedList bind:items={server_users} bind:this={server_user_list}
+			bind:scrollTop={server_user_list_scroll_top}
 			render_item={render_user} item_dom_id_prefix="user_display_"
 			to_latest_text="Up"
 			load_items={(index, count, _then) => {
@@ -308,13 +336,13 @@
 			}}/>
 		</div>
 	{/if}
-
-	{#if sel.user_id > -1}
-		<UserProfileDisplay
-		user={profile_display_user}
-		roles={getUserRoles(profile_display_user)}
-		pos={sel_user_pos}
-		hide_profile={() => showUserProfile(undefined, -1, -1)}
-		/>
-	{/if}
 </div>
+
+{#if profile_display_user}
+	<UserProfileDisplay
+	user={profile_display_user}
+	roles={getUserRoles(profile_display_user)}
+	pos={sel_user_pos[0]} rel_off={sel_user_pos[1]}
+	hide_profile={() => showUser(-1, -1)}
+	/>
+{/if}

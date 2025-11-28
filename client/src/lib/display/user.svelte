@@ -3,18 +3,17 @@
 	import Role from '$lib/rest/role.js';
 
 	let {user, roles,
-		selected = false, show_user_profile,
-		display_status = true, div_classes = ""} = $props();
+		selected = false, onclick = () => {}, hide_profile,
+		display_status = true,
+		div_classes = "", create_id = true} = $props();
 
-	let el = $state();
+	let self = $state();
 </script>
 
 <button class={"user_display hoverable " + (selected ? "selected " : "") + div_classes}
-	id={user ? "user_display_" + user.id : ""}
-	onclick = {() => {
-		if(show_user_profile) show_user_profile(el, user.id);
-	}}
-	bind:this={el}
+	id={create_id ? (user ? "user_display_" + user.id : "") : ""}
+	onclick = {onclick}
+	bind:this={self}
 >
 	<div class="user_avatar_frame">
 		{#if display_status}
