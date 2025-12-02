@@ -1,19 +1,42 @@
 <script>
 	import { tick } from 'svelte';
 
-	let {items = $bindable([]), index = $bindable(0), scrollTop = $bindable(0),
+	let {index = $bindable(0), scrollTop = $bindable(0),
 		range = 30, advance = 10, reversed = false,
 		item_dom_id_prefix,
 		render_item, load_items,
 		loading_text = "Loading...", to_latest_text = "To latest"
 		} = $props();
+
+	let items = $derived(load_items(index, range).data);
+
+	let keep_scroll_pos = true;
+	$effect(() => {
+		items;
+
+		let anchor = get_anchor(anchor_id);
+		console.log("SCROLL RECALL", anchor_id, anchor_top_before, anchor?.offsetTop);
+		if(anchor && keep_scroll_pos){
+			list_div.scrollTop = list_scroll_top_before + (anchor.offsetTop - anchor_top_before);
+			console.log("SCROLL SHIFT BACK", list_scroll_top_before, list_div.scrollTop);
+			console.log("SCROLL SHIFT BACK", anchor.offsetTop, anchor_top_before);
+
+			remember_scroll_pos();
+		}
+		keep_scroll_pos = true;
+	});
+	$effect(() => {
+		console.log("LIST ITEMS", $state.snapshot(items));
+	});
+
+	$effect(() => {
+		if(!is_loading && items.length < range && index > (range - items.length))
+			index -= (range - items.length);
+	});
+
 	let reverse_sign = $derived(reversed ? -1 : 1);
 
-	let is_loading = $state(true);
-	load_items(index, range, (list) => {
-		items = list;
-		is_loading = false;
-	});
+	let is_loading = $derived(items.length === 0 || Object.keys(items[items.length - 1]).length === 0);
 
 	let last_scroll_top;
 	const is_scrolling_up = (scroll_top) => {
@@ -31,48 +54,24 @@
 	let anchor_id = -1;
 	let anchor_top_before;
 	let list_scroll_top_before;
-
 	const get_anchor = (id) => {
 		for(const el of list_div.getElementsByTagName("*"))
 			if(el.id === item_dom_id_prefix + id)
 				return el;
 	};
-
-	export function rerender(_then, keep_pos=true){
+	const remember_scroll_pos = () => {
 		scrollTop = list_div.scrollTop;
-		is_loading = true;
-		load_items(index, range, (list) => {
-			if(list.length < range && index > 0){
-				is_loading = false;
-				index -= (range - list.length);
-				rerender(_then);
-				return;
-			}
-
-			let anchor;
-			if(keep_pos){
-				anchor_id = items[Math.floor(items.length / 2)].id;
-				anchor = get_anchor(anchor_id);
-				anchor_top_before = anchor.offsetTop;
-				list_scroll_top_before = list_div.scrollTop;
-			}
-
-			items = list;
-			tick().then(() => {
-				if(keep_pos && anchor_id > -1){
-					let anchor = get_anchor(anchor_id);
-					list_div.scrollTop = list_scroll_top_before + (anchor.offsetTop - anchor_top_before);
-					scrollTop = list_div.scrollTop;
-				}
-
-				if(_then)
-					_then();
-			});
-			is_loading = false;
-		});
-	};
+		anchor_id = items[Math.floor(items.length / 2)].id;
+		anchor_top_before = get_anchor(anchor_id).offsetTop;
+		list_scroll_top_before = list_div.scrollTop;
+	}
 
 	const on_scroll = (e) => {
+		if(is_loading)
+			return;
+
+		remember_scroll_pos();
+
 		let max_scroll = list_div.scrollHeight - list_div.clientHeight;
 		let next_scroll_top = list_div.scrollTop + e.deltaY * 0.3;
 
@@ -80,18 +79,11 @@
 			let dir = Math.sign(e.deltaY);
 
 			if(dir !== 0 && index + reverse_sign * dir >= 0){
-				if(is_loading)
-					e.preventDefault();
-				else{
-					index += reverse_sign * dir * advance;
-					if(index < 0) index = 0;
-					list_div.scrollTop = next_scroll_top;
-					rerender();
-				}
-			} else
-				list_div.scrollTop = next_scroll_top;
-		} else 
-			list_div.scrollTop = next_scroll_top;
+				index += reverse_sign * dir * advance;
+				if(index < 0) index = 0;
+			}
+		}
+		list_div.scrollTop = next_scroll_top;
 		scrollTop = list_div.scrollTop;
 	};
 
@@ -108,11 +100,12 @@
 			return;
 		}
 
+		keep_scroll_pos = false;
 		index = 0;
-		rerender(() => {
+		/*rerender(() => {
 			list_div.scrollTop = 0;
 			scrollTop = list_div.scrollTop;
-		}, false);
+		}, false);*/
 	};
 </script>
 

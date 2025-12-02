@@ -28,10 +28,11 @@
 	// local
 	let server_message_users = $state({});
 	// paginated
-	let pg_server_users = $state([]);
 	let pg_messages = $state([]);
 
 	let profile_display_user = $derived.by(() => {
+		return undefined;
+
 		if(sel.user.id < 0)
 			return undefined;
 		if(sel.user.message_id > -1)
@@ -146,13 +147,11 @@
 	// Events
 	const showServer = (id) => {
 		pg_messages = [];
-		pg_server_users = [];
 		server_message_users = {};
 		sel.server = id;
 		sel.channel = -1;
 
 		server_message_users[user_self.id] = User.get_server(id, user_self.id, setError);
-		console.log("GOT SELF", server_message_users[user_self.id]);
 		//User.get_server(id, user_self.id, (data) => { server_message_users[-1] = data; }, setError);
 
 		channels = Channel.get_list(id, setError);
@@ -182,8 +181,6 @@
 					},
 					setError);
 		}
-		if(server_user_list)
-			server_user_list.rerender(undefined, false);
 	};
 
 	const showChannel = (id) => {
@@ -338,13 +335,11 @@
 				hide_profile={() => showUser(-1, -1)}
 				/>
 			{/snippet}
-			<PaginatedList bind:items={pg_server_users} bind:this={server_user_list}
+			<PaginatedList bind:this={server_user_list}
 			bind:scrollTop={server_user_list_scroll_top}
 			render_item={render_user} item_dom_id_prefix="user_display_"
-			to_latest_text="Up"
-			load_items={(index, count, _then) => {
-				User.get_server_range(sel.server, index, count, _then, setError);
-			}}/>
+			load_items={(index, range) => User.get_server_range(sel.server, index, range, setError)}
+			to_latest_text="Up"/>
 		</div>
 	{/if}
 </div>

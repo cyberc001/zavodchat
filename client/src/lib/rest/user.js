@@ -1,8 +1,10 @@
 import Rest from "$lib/rest.js";
 import IDCache from "$lib/cache/id.svelte.js";
+import RangeCache from "$lib/cache/range.svelte.js";
 
 export default class User {
 	static user_server_cache = new IDCache();
+	static user_server_range_cache = new RangeCache();
 
 	static get(user_id, _then, _catch){
 		Rest.get("User.get", "users/" + user_id, (res) => _then(res.data), _catch);
@@ -15,12 +17,21 @@ export default class User {
 				_catch);
 		});
 	}
-	static get_server_range(server_id, start, count, _then, _catch){
+	static get_server_range(server_id, start, count, _catch){
 		if(start == -1) start = 0;
 		if(count == -1) count = 50;
-		Rest.get("User.get_server_range", Rest.get_route_scm(server_id) + "/users",
+
+		return User.user_server_range_cache.get_state(server_id, start, count,
+			(cache, range, start, count) => {
+				Rest.get("User.get_server_range", Rest.get_route_scm(server_id) + "/users",
+				(res) => cache.set_state(range, start, count, res.data),
+				_catch,
+				"start", start, "count", count);
+			});
+
+		/*Rest.get("User.get_server_range", Rest.get_route_scm(server_id) + "/users",
 			(res) => _then(res.data), _catch,
-			"start", start, "count", count);
+			"start", start, "count", count);*/
 	}
 
 	static dummy(){
