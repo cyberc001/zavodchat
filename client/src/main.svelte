@@ -1,11 +1,4 @@
 <script>
-	import PaginatedList from '$lib/display/paginated_list.svelte';
-	import UserDisplay from '$lib/display/user.svelte';
-	import UserProfileDisplay from '$lib/display/user_profile.svelte';
-	import MessageDisplay from '$lib/display/message.svelte';
-	import MessageInput from '$lib/control/message_input.svelte';
-	import ContextMenu from '$lib/control/context_menu.svelte';
-
 	import Rest from '$lib/rest.js';
 	import Server from '$lib/rest/server.js';
 	import Channel from '$lib/rest/channel.js';
@@ -13,34 +6,28 @@
 	import User from '$lib/rest/user.js';
 	import Role from '$lib/rest/role.js';
 
+	import PaginatedList from '$lib/display/paginated_list.svelte';
+	import UserDisplay from '$lib/display/user.svelte';
+	import UserProfileDisplay from '$lib/display/user_profile.svelte';
+	import MessageDisplay from '$lib/display/message.svelte';
+	import MessageInput from '$lib/control/message_input.svelte';
+	import ContextMenu from '$lib/control/context_menu.svelte';
+
 	let { setPage } = $props();
 
 	const setError = (err) => {
 		window.alert(err.status + " " + err.data);
 	};
 
+
 	// Backend data
 	let user_self = $state();
 	// global
-	let servers = $state("loading");
+	let servers = Server.get_list(setError);
 	let channels = $state({});
 	let roles = $state({});
 	// local
 	let server_message_users = $state({});
-	// paginated
-	let pg_messages = $state([]);
-
-	let profile_display_user = $derived.by(() => {
-		return undefined;
-
-		if(sel.user.id < 0)
-			return undefined;
-		if(sel.user.message_id > -1)
-			return server_message_users[sel.user.id];
-		const i = pg_server_users.findIndex((user) => user.id == sel.user.id);
-		if(i > -1)
-			return pg_server_users[i];
-	});
 
 	const getUserRoles = (user) => {
 		if(!user || !user.roles)
@@ -55,28 +42,6 @@
 		return user_roles;
 	};
 
-
-	// DEBUG
-	$effect(() => {
-		console.log("server_message_users", $state.snapshot(server_message_users));
-	});
-
-	const ensureUser = (id) => {
-		if(typeof server_message_users[id] === "undefined"){
-			server_message_users[id] = User.get_server(sel.server, id, setError);
-
-			//server_message_users[id] = User.dummy();
-
-			//const su = pg_server_users.find((user) => user.id == id);
-			//if(typeof su === "undefined"){
-				//User.get_server(sel.server, id, (data) => {
-				//	server_message_users[id] = data;
-				//}, setError);
-			//} else
-			//	server_message_users[id] = su;
-		}
-	};
-
 	// UI state
 	let wnd_width = $state(), wnd_height = $state();
 
@@ -86,6 +51,7 @@
 			id: -1, message_id: -1
 		}
 	});
+
 	let sel_user_pos = $derived.by(() => {
 		wnd_width; wnd_height;
 		message_list_scroll_top; server_user_list_scroll_top;
@@ -146,54 +112,26 @@
 
 	// Events
 	const showServer = (id) => {
-		pg_messages = [];
 		server_message_users = {};
 		sel.server = id;
 		sel.channel = -1;
-
-		server_message_users[user_self.id] = User.get_server(id, user_self.id, setError);
-		//User.get_server(id, user_self.id, (data) => { server_message_users[-1] = data; }, setError);
-
 		channels = Channel.get_list(id, setError);
-		/*if(servers[id].channels !== "loading" && typeof servers[id].channels === "undefined"){
-			servers[id].channels = "loading";
-			channels = Channel.get_list(id, setError);
-
-			Channel.get_list(id,
-					(list) => {
-						servers[id].channels = [];
-						for(let ch of list){
-							servers[id].channels.push(ch.id);
-							channels[ch.id] = ch;
-						}
-					},
-					setError);
-		}*/
-		if(servers[id].roles !== "loading" && typeof servers[id].roles === "undefined"){
-			servers[id].roles = "loading";
-			Role.get_list(id,
-					(list) => {
-						servers[id].roles = [];
-						for(let rol of list){
-							servers[id].roles.push(rol.id);
-							roles[rol.id] = rol;
-						}
-					},
-					setError);
-		}
 	};
 
 	const showChannel = (id) => {
 		showUser(-1, -1);
 		Rest.cancel_request("Message.get_range");
 		sel.channel = id;
-		if(message_list)
-			message_list.rerender(undefined, false);
 	};
 
+	let profile_display_user = $state();
 	const showUser = (id, message_id) => {
 		sel.user.id = id;
 		sel.user.message_id = message_id;
+		if(id > -1)
+			profile_display_user = User.get_server(sel.server, sel.user.id);
+		else
+			profile_display_user = undefined;
 	};
 
 	const sendMessage = (text) => {
@@ -275,7 +213,7 @@
 	<div class="panel sidebar_channels">
 		{#each channels as ch}
 			<div>
-				<button class={"item hoverable sidebar_channel_el" + (sel.channel == ch.idd ? " selected" : "")} onclick={() => showChannel(ch.id)}>
+				<button class={"item hoverable sidebar_channel_el" + (sel.channel == ch.id ? " selected" : "")} onclick={() => showChannel(ch.id)}>
 					{#if ch.type === 1}
 						<img src="$lib/assets/icons/channel_vc.svg" alt="voice" class="filter_icon_main sidebar_channel_el_icon"/>
 					{:else}
@@ -290,8 +228,8 @@
 		{#if sel.channel > -1}
 			{#snippet render_message(i, item)}
 				<MessageDisplay id={item.id} text={item.text}
-				author={server_message_users[item.author_id]}
-				author_roles={getUserRoles(server_message_users[item.author_id])}
+				author={item.author}
+				author_roles={item.author_roles}
 				time_sent={new Date(item.sent)} time_edited={new Date(item.edited)}
 				status={item.status}
 				show_ctx_menu={(pos, action_set) => showCtxMenu(pos, action_set, i)}
@@ -300,19 +238,16 @@
 				hide_profile={() => showUser(-1, -1)}
 				/>
 			{/snippet}
-			<PaginatedList bind:items={pg_messages} bind:this={message_list}
+			<PaginatedList bind:this={message_list}
 			bind:scrollTop={message_list_scroll_top}
 			reversed={true}
 			loading_text="Loading messages..." to_latest_text="To latest messages"
 			render_item={render_message} item_dom_id_prefix="message_display_"
-			load_items={(index, count, _then) => {
-				Message.get_range(sel.server, sel.channel, index, count,
-					(list) => {
-						for(let msg of list)
-							ensureUser(msg.author_id);
-						_then(list);
-					}
-					, setError);
+			load_items={(index, range) => Message.get_range(sel.server, sel.channel, index, range, setError)}
+			augment_item={(msg) => {
+							msg.author = User.get_server(sel.server, msg.author_id);
+							msg.author_roles = Role.get_user_roles(msg.author, sel.server);
+			}}
 			}}/>
 			<MessageInput
 				bind:value={message_text} onsend={sel.message_edit > -1 ? editMessage : sendMessage}
@@ -328,7 +263,7 @@
 			{#snippet render_user(i, user)}
 				<UserDisplay
 				user={user}
-				roles={getUserRoles(user)}
+				user_roles={user.role_list}
 				div_classes="sidebar_user_display"
 				selected={sel.user.message_id == -1 && user.id == sel.user.id}
 				onclick={() => showUser(user.id, -1)}
@@ -339,6 +274,7 @@
 			bind:scrollTop={server_user_list_scroll_top}
 			render_item={render_user} item_dom_id_prefix="user_display_"
 			load_items={(index, range) => User.get_server_range(sel.server, index, range, setError)}
+			augment_item={(user) => {user.role_list = Role.get_user_roles(user, sel.server)}}
 			to_latest_text="Up"/>
 		</div>
 	{/if}
@@ -346,8 +282,7 @@
 
 {#if profile_display_user}
 	<UserProfileDisplay
-	user={profile_display_user}
-	roles={getUserRoles(profile_display_user)}
+	user={profile_display_user} user_roles={Role.get_user_roles(profile_display_user, sel.server)}
 	pos={sel_user_pos[0]} rel_off={sel_user_pos[1]}
 	hide_profile={() => showUser(-1, -1)}
 	/>

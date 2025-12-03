@@ -1,9 +1,19 @@
 let route = "servers";
 import Rest from "$lib/rest";
+import ListCache from "$lib/cache/list.svelte.js";
 
-export default class {
-	static get_list(_then, _catch){
-		Rest.get("Server.get_list", route, (res) => _then(res.data), _catch);
+export default class Server {
+	static server_cache = new ListCache();
+
+	static get_list(_catch){
+		return Server.server_cache.get_state(0, (cache, id) => {
+			Rest.get("Server.get_list", Rest.get_route_scm(""),
+				(res) => cache.set_state(id, res.data),
+				_catch);
+		});
+	}
+	static get_list_nocache(_then, _catch){ // version for login.svelte to test token for validity
+		Rest.get("Server.get_list", Rest.get_route_scm(""), (res) => _then(res.data), _catch);	
 	}
 
 	static get_avatar_path(srv){

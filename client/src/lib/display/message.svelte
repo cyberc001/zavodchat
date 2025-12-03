@@ -23,7 +23,7 @@
 </script>
 
 <div id={"message_display_" + id} class="message_panel" tabindex=0 role="group">
-	<UserDisplay user={author} roles={author_roles}
+	<UserDisplay user={author} user_roles={author_roles}
 	create_id={false}
 	display_status={false}
 	selected={selected_user}

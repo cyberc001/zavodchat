@@ -3,7 +3,7 @@
 	import Role from '$lib/rest/role.js';
 
 	// rel_off - offset relative to size, in %
-	let {user, roles,
+	let {user, user_roles,
 		pos = [0, 0], rel_off = [0, 0],
 		hide_profile} = $props();
 
@@ -54,10 +54,10 @@
 				<img class="user_avatar" src="$lib/assets/default_avatar.png" alt="avatar"/>
 			{/if}
 		</div>
-		<b style={Role.get_username_style(roles)}>{user?.name}</b>
+		<b style={Role.get_username_style(user_roles)}>{user?.name}</b>
 	</div>
 	<div class="user_role_list">
-		{#each roles as rol}
+		{#each user_roles as rol}
 			<div class="user_role">
 				<div class="user_role_color" style={Role.get_style(rol)}></div>
 				{rol.name}

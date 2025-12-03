@@ -2,7 +2,7 @@
 	import User from '$lib/rest/user.js';
 	import Role from '$lib/rest/role.js';
 
-	let {user, roles,
+	let {user, user_roles,
 		selected = false, onclick = () => {}, hide_profile,
 		display_status = true,
 		div_classes = "", create_id = true} = $props();
@@ -12,7 +12,7 @@
 
 <button class={"user_display hoverable " + (selected ? "selected " : "") + div_classes}
 	id={create_id ? (user ? "user_display_" + user.id : "") : ""}
-	onclick = {onclick}
+	onclick={onclick}
 	bind:this={self}
 >
 	<div class="user_avatar_frame">
@@ -25,7 +25,7 @@
 			<img class="user_avatar" src="$lib/assets/default_avatar.png" alt="avatar"/>
 		{/if}
 	</div>
-	<b style={Role.get_username_style(roles)}>{user?.name}</b>
+	<b style={Role.get_username_style(user_roles)}>{user?.name}</b>
 </button>
 
 <style>

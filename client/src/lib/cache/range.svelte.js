@@ -220,7 +220,6 @@ export default class RangeCache extends IDCache {
 		if(typeof this.cache[id] === "undefined")
 			this.cache[id] = this._default_state_constructor();
 
-		console.log("cache", JSON.parse(JSON.stringify(this.cache[id])));
 		let enc_range = this._find_enclosing_range(this.cache[id], range);
 		let load = false;
 		if(!enc_range){
@@ -229,9 +228,7 @@ export default class RangeCache extends IDCache {
 		}
 
 		let nobs = new RangeObserver(enc_range, start, start + count);
-		console.log("pushing new observer", nobs, "to range", enc_range);
 		enc_range.observers.push(new WeakRef(nobs));
-		console.log("observers list", enc_range.observers);
 
 		if(load)
 			load_func(this, enc_range, start, count);
@@ -240,7 +237,6 @@ export default class RangeCache extends IDCache {
 	}
 	// Should be called from get_state(, load_func), therefore id is not parsed twice
 	set_state(range, start, count, data){
-		console.log("set_state", range, start, count, data);
 		for(let i = start; i < start + count && i - start < data.length; ++i)
 			range.arr[i - range.start] = data[i - start];
 	

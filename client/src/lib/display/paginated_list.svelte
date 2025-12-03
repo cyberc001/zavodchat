@@ -4,29 +4,34 @@
 	let {index = $bindable(0), scrollTop = $bindable(0),
 		range = 30, advance = 10, reversed = false,
 		item_dom_id_prefix,
-		render_item, load_items,
+		render_item, load_items, augment_item = () => {},
 		loading_text = "Loading...", to_latest_text = "To latest"
 		} = $props();
 
-	let items = $derived(load_items(index, range).data);
+	// Keeping this reference is CRUCIAL so that observer does not get garbage collected and items are notified of the changes
+	let items_range = $derived(load_items(index, range));
+
+	let items = $derived(items_range.data);
+
+	// A method for loading additional information into items. Its useful, because:
+	// 1. You cannot use cached REST methods in snippets that PaginatedList uses to render items, since it makes PaginatedList mutate static state (i.e. cache) that Main owns
+	// 2. Same goes for embedding data directly in REST cached requests using other REST cached requests
+	$effect(() => {
+		for(let item of items)
+			if(item && Object.keys(item).length > 0)
+				augment_item(item);
+	});
 
 	let keep_scroll_pos = true;
 	$effect(() => {
 		items;
 
 		let anchor = get_anchor(anchor_id);
-		console.log("SCROLL RECALL", anchor_id, anchor_top_before, anchor?.offsetTop);
 		if(anchor && keep_scroll_pos){
 			list_div.scrollTop = list_scroll_top_before + (anchor.offsetTop - anchor_top_before);
-			console.log("SCROLL SHIFT BACK", list_scroll_top_before, list_div.scrollTop);
-			console.log("SCROLL SHIFT BACK", anchor.offsetTop, anchor_top_before);
-
 			remember_scroll_pos();
 		}
 		keep_scroll_pos = true;
-	});
-	$effect(() => {
-		console.log("LIST ITEMS", $state.snapshot(items));
 	});
 
 	$effect(() => {

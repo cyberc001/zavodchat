@@ -63,11 +63,9 @@ export default class Rest {
 	static outgoing_requests = {};
 	static cancel_request(request_name)
 	{
-		console.log(Rest.outgoing_requests, "cancelling", request_name);
 		if(typeof Rest.outgoing_requests[request_name] !== "undefined"){
 			Rest.outgoing_requests[request_name].abort();
 			delete Rest.outgoing_requests[request_name];
-			console.log("cancelled");
 		}
 	}
 

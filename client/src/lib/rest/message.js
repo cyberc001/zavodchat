@@ -1,12 +1,20 @@
 import Rest from "$lib/rest";
+import RangeCache from "$lib/cache/range.svelte.js";
 
-export default class {
-	static get_range(server_id, channel_id, start, count, _then, _catch){
+export default class Message {
+	static message_range_cache = new RangeCache();
+
+	static get_range(server_id, channel_id, start, count, _catch){
 		if(start == -1) start = 0;
 		if(count == -1) count = 50;
-		Rest.get("Message.get_range", Rest.get_route_scm(server_id, channel_id) + "/messages",
-			(res) => _then(res.data), _catch,
-			"start", start, "count", count);
+
+		return Message.message_range_cache.get_state([server_id, channel_id], start, count,
+			(cache, range, start, count) => {
+				Rest.get("Message.get_range", Rest.get_route_scm(server_id, channel_id) + "/messages",
+				(res) => cache.set_state(range, start, count, res.data),
+				_catch,
+				"start", start, "count", count);
+			});
 	}
 
 	static send(server_id, channel_id, text, _then, _catch){

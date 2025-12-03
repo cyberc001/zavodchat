@@ -13,11 +13,11 @@
 	let error_text = $state("");
 
 	// Check if authentificated
-	Server.get_list(() => setPage(2),
-			(err) => {
-					if(err.status !== 400 && err.status !== 401)
+	Server.get_list_nocache(() => setPage(2),
+					(err) => {
+						if(err.status !== 400 && err.status !== 401)
 						window.alert(err.status + " " + err.data);
-				}
+					}
 	);
 </script>
 
