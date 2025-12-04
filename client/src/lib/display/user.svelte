@@ -15,17 +15,21 @@
 	onclick={onclick}
 	bind:this={self}
 >
-	<div class="user_avatar_frame">
-		{#if display_status}
-			<div class="user_status" style={User.Status.get_style(user?.status)}></div>
-		{/if}
-		{#if user?.avatar}
-			<img class="user_avatar" src={User.get_avatar_path(user)} alt="avatar"/>
-		{:else}
-			<img class="user_avatar" src="$lib/assets/default_avatar.png" alt="avatar"/>
-		{/if}
-	</div>
-	<b style={Role.get_username_style(user_roles)}>{user?.name}</b>
+	{#if !user || Object.keys(user).length === 0}
+		<img src="$lib/assets/icons/loading.svg" alt="loading" class="filter_icon_main" style="width: 24px"/>
+	{:else}
+		<div class="user_avatar_frame">
+			{#if display_status}
+				<div class="user_status" style={User.Status.get_style(user?.status)}></div>
+			{/if}
+			{#if user?.avatar}
+				<img class="user_avatar" src={User.get_avatar_path(user)} alt="avatar"/>
+			{:else}
+				<img class="user_avatar" src="$lib/assets/default_avatar.png" alt="avatar"/>
+			{/if}
+		</div>
+		<b style={Role.get_username_style(user_roles)}>{user?.name}</b>
+	{/if}
 </button>
 
 <style>

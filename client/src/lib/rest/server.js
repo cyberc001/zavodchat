@@ -7,13 +7,13 @@ export default class Server {
 
 	static get_list(_catch){
 		return Server.server_cache.get_state(0, (cache, id) => {
-			Rest.get("Server.get_list", Rest.get_route_scm(""),
+			Rest.get(Rest.get_route_scm(""),
 				(res) => cache.set_state(id, res.data),
 				_catch);
 		});
 	}
 	static get_list_nocache(_then, _catch){ // version for login.svelte to test token for validity
-		Rest.get("Server.get_list", Rest.get_route_scm(""), (res) => _then(res.data), _catch);	
+		Rest.get(Rest.get_route_scm(""), (res) => _then(res.data), _catch);	
 	}
 
 	static get_avatar_path(srv){

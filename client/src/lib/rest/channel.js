@@ -6,7 +6,7 @@ export default class Channel {
 
 	static get_list(server_id, _catch){
 		return Channel.channel_cache.get_state(server_id, (cache, id) => {
-			Rest.get("Channel.get_list", Rest.get_route_scm(server_id, ""),
+			Rest.get(Rest.get_route_scm(server_id, ""),
 				(res) => cache.set_state(id, res.data),
 				_catch);
 		});

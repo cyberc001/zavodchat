@@ -3,16 +3,25 @@ import IDCache from "$lib/cache/id.svelte.js";
 import RangeCache from "$lib/cache/range.svelte.js";
 
 export default class User {
+	static user_cache = new IDCache();
 	static user_server_cache = new IDCache();
 	static user_server_range_cache = new RangeCache();
 
-	static get(user_id, _then, _catch){
+	static get(user_id, _catch){
+		return User.user_cache.get_state(user_id,
+			(cache, id) => {
+				Rest.get("users/" + user_id,
+					(res) => cache.set_state(id, res.data),
+					_catch);
+		});
+
 		Rest.get("User.get", "users/" + user_id, (res) => _then(res.data), _catch);
 	}
 
 	static get_server(server_id, user_id, _catch){
-		return User.user_server_cache.get_state([server_id, user_id], (cache, id) => {
-			Rest.get("User.get_server", Rest.get_route_su(server_id, user_id),
+		return User.user_server_cache.get_state([server_id, user_id],
+			(cache, id) => {
+			Rest.get(Rest.get_route_su(server_id, user_id),
 				(res) => cache.set_state(id, res.data),
 				_catch);
 		});
@@ -23,15 +32,11 @@ export default class User {
 
 		return User.user_server_range_cache.get_state(server_id, start, count,
 			(cache, range, start, count) => {
-				Rest.get("User.get_server_range", Rest.get_route_scm(server_id) + "/users",
+				Rest.get(Rest.get_route_scm(server_id) + "/users",
 				(res) => cache.set_state(range, start, count, res.data),
 				_catch,
 				"start", start, "count", count);
 			});
-
-		/*Rest.get("User.get_server_range", Rest.get_route_scm(server_id) + "/users",
-			(res) => _then(res.data), _catch,
-			"start", start, "count", count);*/
 	}
 
 	static dummy(){

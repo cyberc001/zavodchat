@@ -12,6 +12,9 @@
 	let items_range = $derived(load_items(index, range));
 
 	let items = $derived(items_range.data);
+	export function getItem(idx){
+		return items[idx];
+	}
 
 	// A method for loading additional information into items. Its useful, because:
 	// 1. You cannot use cached REST methods in snippets that PaginatedList uses to render items, since it makes PaginatedList mutate static state (i.e. cache) that Main owns
@@ -41,7 +44,7 @@
 
 	let reverse_sign = $derived(reversed ? -1 : 1);
 
-	let is_loading = $derived(items.length === 0 || Object.keys(items[items.length - 1]).length === 0);
+	let is_loading = $derived(items.length > 0 && Object.keys(items[items.length - 1]).length === 0);
 
 	let last_scroll_top;
 	const is_scrolling_up = (scroll_top) => {
@@ -107,17 +110,15 @@
 
 		keep_scroll_pos = false;
 		index = 0;
-		/*rerender(() => {
-			list_div.scrollTop = 0;
-			scrollTop = list_div.scrollTop;
-		}, false);*/
 	};
 </script>
 
 <div class="paginated_list">
 	<div class="paginated_list" style={reversed ? "flex-direction: column-reverse" : ""} onwheel={on_scroll} bind:this={list_div}>
 		{#each items as item, i}
-			{@render render_item(i, item)}
+			{#if Object.keys(item).length > 0}
+				{@render render_item(i, item)}
+			{/if}
 		{/each}
 	</div>
 	{#if is_loading}

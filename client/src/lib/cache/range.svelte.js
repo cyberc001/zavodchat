@@ -201,18 +201,6 @@ export default class RangeCache extends IDCache {
 
 	get_state(_id, start, count, load_func){
 		let tree = this._default_state_constructor();
-		/*this._insert_range(tree, new DataRange(50, 70, true));
-		this._insert_range(tree, new DataRange(20, 30, true));
-		this._insert_range(tree, new DataRange(16, 17, true));
-		this._insert_range(tree, new DataRange(80, 100, true));
-		this._insert_range(tree, new DataRange(40, 45, true));
-		this._insert_range(tree, new DataRange(110, 130, true));
-		this._insert_range(tree, new DataRange(10, 14, true));
-		this._insert_range(tree, new DataRange(33, 35, true));
-		this._insert_range(tree, new DataRange(46, 48, true));
-
-		this._remove_one(tree, 40);
-		return;*/
 
 		let id = this.state_refs_id(_id);
 		let range = new DataRange(start, start + count);

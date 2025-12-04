@@ -10,7 +10,7 @@ export default class Message {
 
 		return Message.message_range_cache.get_state([server_id, channel_id], start, count,
 			(cache, range, start, count) => {
-				Rest.get("Message.get_range", Rest.get_route_scm(server_id, channel_id) + "/messages",
+				Rest.get(Rest.get_route_scm(server_id, channel_id) + "/messages",
 				(res) => cache.set_state(range, start, count, res.data),
 				_catch,
 				"start", start, "count", count);
@@ -18,16 +18,16 @@ export default class Message {
 	}
 
 	static send(server_id, channel_id, text, _then, _catch){
-		Rest.post("Message.send", Rest.get_route_scm(server_id, channel_id) + "/messages", text,
+		Rest.post(Rest.get_route_scm(server_id, channel_id) + "/messages", text,
 			(res) => {_then(res.data)}, _catch);
 	}
 	static edit(server_id, channel_id, message_id, text, _then, _catch){
-		Rest.put("Message.edit", Rest.get_route_scm(server_id, channel_id, message_id), text,
+		Rest.put(Rest.get_route_scm(server_id, channel_id, message_id), text,
 			_then, _catch);
 	}
 
 	static delete(server_id, channel_id, message_id, _then, _catch){
-		Rest.delete("Message.delete", Rest.get_route_scm(server_id, channel_id, message_id),
+		Rest.delete(Rest.get_route_scm(server_id, channel_id, message_id),
 			_then, _catch);
 	}
 

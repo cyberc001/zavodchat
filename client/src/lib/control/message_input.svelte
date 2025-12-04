@@ -1,6 +1,6 @@
 <script>
 	let { hint = "", max_rows = 5, value = $bindable(""),
-		actions = [],
+		status, actions = [],
 		onsend } = $props();
 
 	let textarea_rows = $state(1);
@@ -12,15 +12,19 @@
 		textarea_rows = Math.min(text_rows, max_rows);
 	});
 	const textarea_onkeyup = (e) => {
-		if(e.code === "Enter" && e.ctrlKey/*&& value.length > 0*/){
+		if(e.code === "Enter" && e.ctrlKey/*&& value.length > 0*/)
 			onsend(value);
-			value = "";
-		}
 	}
 </script>
 
 <div class="message_input">
 	<div class="message_input_center_panel">
+		{#if status}
+			<div class="message_input_status_panel">
+				<img src="$lib/assets/icons/loading.svg" alt="loading" class="filter_icon_main" style="margin-right: 5px"/>
+				{status}
+			</div>
+		{/if}
 		<div class="message_input_actions">
 			{#each actions as a}
 				<button class="item message_input_action_button" onclick={a.func}>{a.text}</button>
@@ -62,6 +66,14 @@
 }
 .message_input_action_button:active {
 	background: var(--clr_bg_selected);
+}
+
+
+.message_input_status_panel {
+	display: inline-flex;
+	align-items: center;
+	padding: 4px 6px 4px 4px;
+	background: var(--clr_bg_item);
 }
 
 

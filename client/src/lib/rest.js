@@ -60,85 +60,52 @@ export default class Rest {
 		return {};
 	}
 
-	static outgoing_requests = {};
-	static cancel_request(request_name)
-	{
-		if(typeof Rest.outgoing_requests[request_name] !== "undefined"){
-			Rest.outgoing_requests[request_name].abort();
-			delete Rest.outgoing_requests[request_name];
-		}
-	}
-
-	static get(request_name, route, _then, _catch, ...params)
+	static get(route, _then, _catch, ...params)
 	{
 		let headers = Rest.get_headers(params);
-		let abort_controller = new AbortController();
-		headers.signal = abort_controller.signal;
 		axios.get(Rest.get_base_url() + route + Rest.params_to_query(params), headers)
-			.then(async (res) => {
-				delete Rest.outgoing_requests[request_name];
-				_then(res);
-			})
+			.then(_then)
 			.catch((err) => {
 				if(err.response === undefined)
 					throw err;
 				_catch(err.response);
 			});
-		Rest.outgoing_requests[request_name] = abort_controller;
 	}
-	static post(request_name, route, content, _then, _catch, ...params)
+	static post(route, content, _then, _catch, ...params)
 	{
 		let headers = Rest.get_headers(params);
-		let abort_controller = new AbortController();
-		headers.signal = abort_controller.signal;
 		axios.post(Rest.get_base_url() + route + Rest.params_to_query(params),
 				content, headers)
-			.then(async (res) => {
-				delete Rest.outgoing_requests[request_name];
-				_then(res);
-			})
+			.then(_then)
 			.catch((err) => {
 				if(err.response === undefined)
 					throw err;
 				_catch(err.response);
 			});
-		Rest.outgoing_requests[request_name] = abort_controller;
 	}
-	static put(request_name, route, content, _then, _catch, ...params)
+	static put(route, content, _then, _catch, ...params)
 	{
 		let headers = Rest.get_headers(params);
-		let abort_controller = new AbortController();
-		headers.signal = abort_controller.signal;
 		axios.put(Rest.get_base_url() + route + Rest.params_to_query(params),
 				content, headers)
-			.then(async (res) => {
-				delete Rest.outgoing_requests[request_name];
-				_then(res);
-			})
+			.then(_then)
 			.catch((err) => {
 				if(err.response === undefined)
 					throw err;
 				_catch(err.response);
 			}
 		);
-		Rest.outgoing_requests[request_name] = abort_controller;
 	}
-	static delete(request_name, route, _then, _catch, ...params)
+	static delete(route, _then, _catch, ...params)
 	{
 		let headers = Rest.get_headers(params);
-		let abort_controller = new AbortController();
-		headers.signal = abort_controller.signal;
 		axios.delete(Rest.get_base_url() + route + Rest.params_to_query(params), headers)
-			.then(async (res) => {
-				delete Rest.outgoing_requests[request_name];
-				_then(res);
-			})
+			.then(_then)
 			.catch((err) => {
 				if(err.response === undefined)
 					throw err;
 				_catch(err.response);
 			}
 		);
-		Rest.outgoing_requests[request_name] = abort_controller;
 	}
 }

@@ -6,7 +6,7 @@ export default class Role {
 
 	static get_list(server_id, _catch){
 		return Role.role_list_cache.get_state(server_id, (cache, id) => {
-			Rest.get("Role.get_list", Rest.get_route_scm(server_id) + "/roles",
+			Rest.get(Rest.get_route_scm(server_id) + "/roles",
 				(res) => cache.set_state(id, res.data),
 				_catch);
 		});

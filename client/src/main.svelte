@@ -1,5 +1,4 @@
 <script>
-	import Rest from '$lib/rest.js';
 	import Server from '$lib/rest/server.js';
 	import Channel from '$lib/rest/channel.js';
 	import Message from '$lib/rest/message.js';
@@ -21,13 +20,10 @@
 
 
 	// Backend data
-	let user_self = $state();
-	// global
+	let user_self = User.get(-1, setError);	
 	let servers = Server.get_list(setError);
 	let channels = $state({});
 	let roles = $state({});
-	// local
-	let server_message_users = $state({});
 
 	const getUserRoles = (user) => {
 		if(!user || !user.roles)
@@ -68,6 +64,7 @@
 	});
 
 	let message_text = $state("");
+	let message_status = $state();
 	let prev_message_text = "";
 	let message_list = $state(), server_user_list = $state();
 	let message_list_scroll_top = $state(0), server_user_list_scroll_top = $state(0);
@@ -76,21 +73,18 @@
 		return pg_messages[msg_id].status === Message.Status.Sending
 			|| typeof pg_messages[msg_id].status === "string";
 	};
+
 	const action_sets = {
 		"message": [{text: "Edit", icon: "edit.svg", func: () => {
-				if(is_message_fake(sel.message))
-					return;
 				sel.message_edit = sel.message;
 				prev_message_text = message_text;
-				message_text = pg_messages[sel.message].text;
+				message_text = message_list.getItem(sel.message).text;
 			    }},
 			    {text: "Delete", icon: "delete.svg", func: () => {
-				if(is_message_fake(sel.message))
-					return;
-				pg_messages[sel.message].status = Message.Status.Deleting;
-				let chan_id = sel.channel, msg_i = sel.message; // "capture" ids
-				Message.delete(sel.server, chan_id, pg_messages[msg_i].id,
-						() => message_list.rerender(), setError);
+				let msg = message_list.getItem(sel.message);
+				msg.status = Message.Status.Deleting;
+				Message.delete(sel.server, sel.channel, msg.id,
+						() => {}, setError);
 			    }}]
 	};
 
@@ -112,7 +106,6 @@
 
 	// Events
 	const showServer = (id) => {
-		server_message_users = {};
 		sel.server = id;
 		sel.channel = -1;
 		channels = Channel.get_list(id, setError);
@@ -120,7 +113,6 @@
 
 	const showChannel = (id) => {
 		showUser(-1, -1);
-		Rest.cancel_request("Message.get_range");
 		sel.channel = id;
 	};
 
@@ -135,56 +127,28 @@
 	};
 
 	const sendMessage = (text) => {
-		let chan_id = sel.channel;
-		let pre_id = pg_messages.length > 0 ? pg_messages[pg_messages.length - 1].id + 1000000 : 0;
-		let now = new Date(Date.now());
-		pg_messages.unshift({
-			author_id: user_self.id,
-			id: pre_id,
-			sent: now.toISOString(), edited: now.toISOString(),
-			text: text,
-			status: Message.Status.Sending
-		});
-
+		message_status = "Sending...";
 		Message.send(sel.server, sel.channel, text,
-				(new_msg_id) => message_list.rerender(),
-				(err) => {
-					pg_messages[0].status = err.data;
-					//setError(err);
-				}
-		);
+				() => {
+					message_text = "";
+					message_status = undefined;
+				}, setError);
 	};
 	const editMessage = (text) => {
-		let chan_id = sel.channel, msg_i = sel.message_edit;
-		let prev_text = pg_messages[msg_i].text;
-		pg_messages[msg_i].status = Message.Status.Editing;
-		pg_messages[msg_i].text = text;
+		let msg = message_list.getItem(sel.message_edit);
+		let prev_text = msg.text;
+		msg.status = Message.Status.Editing;
+		msg.text = text;
 		sel.message_edit = -1;
 		
-		Message.edit(sel.server, chan_id, pg_messages[msg_i].id, text,
-				() => {
-					pg_messages[msg_i].status = Message.Status.None;
-				}
-				, (err) => {
-					pg_messages[msg_i].text = prev_text;
-					setError(err);
-				});
+		Message.edit(sel.server, sel.channel, msg.id, text,
+				() => {}, setError);
 	};
 
 	const stopEditing = () => {
 		sel.message_edit = -1;
 		message_text = prev_message_text;
 	};
-
-	// Initialization
-	User.get(-1, (data) => { user_self = data; }, setError);
-	Server.get_list((list) => {
-					let data_servers = {};
-					for(let srv of list)
-						data_servers[srv.id] = srv;
-					servers = data_servers;
-				}
-				, setError);
 </script>
 
 
@@ -196,10 +160,10 @@
 <svelte:window bind:innerWidth={wnd_width} bind:innerHeight={wnd_height}/>
 <div class="main">
 	<div class="panel sidebar_servers">
-		{#if servers === "loading"}
+		{#if servers.loading}
 			<img src="$lib/assets/icons/loading.svg" alt="loading" class="filter_icon_main" style="width: 48px"/>
-		{:else if typeof servers !== "undefined"}
-			{#each Object.values(servers) as srv}
+		{:else}
+			{#each servers as srv}
 				<button class={"item hoverable sidebar_server" + (sel.server == srv.id ? " selected" : "")} onclick={() => showServer(srv.id)}>
 				{#if srv.avatar === undefined}
 					<div style="padding:4px;"><div class="sidebar_server_el">{srv.name}</div></div>
@@ -211,18 +175,24 @@
 		{/if}
 	</div>
 	<div class="panel sidebar_channels">
-		{#each channels as ch}
-			<div>
-				<button class={"item hoverable sidebar_channel_el" + (sel.channel == ch.id ? " selected" : "")} onclick={() => showChannel(ch.id)}>
-					{#if ch.type === 1}
-						<img src="$lib/assets/icons/channel_vc.svg" alt="voice" class="filter_icon_main sidebar_channel_el_icon"/>
-					{:else}
-						<img src="$lib/assets/icons/channel_text.svg" alt="text" class="filter_icon_main sidebar_channel_el_icon"/>
-					{/if}
-					{ch.name}
-				</button>
+		{#if channels.loading}
+			<div style="text-align: center; margin-top: 6px">
+				<img src="$lib/assets/icons/loading.svg" alt="loading" class="filter_icon_main" style="width: 48px"/>
 			</div>
-		{/each}
+		{:else}
+			{#each channels as ch}
+				<div>
+					<button class={"item hoverable sidebar_channel_el" + (sel.channel == ch.id ? " selected" : "")} onclick={() => showChannel(ch.id)}>
+						{#if ch.type === 1}
+							<img src="$lib/assets/icons/channel_vc.svg" alt="voice" class="filter_icon_main sidebar_channel_el_icon"/>
+						{:else}
+							<img src="$lib/assets/icons/channel_text.svg" alt="text" class="filter_icon_main sidebar_channel_el_icon"/>
+						{/if}
+						{ch.name}
+					</button>
+				</div>
+			{/each}
+		{/if}
 	</div>
 	<div class="panel sidebar_messages">
 		{#if sel.channel > -1}
@@ -251,6 +221,7 @@
 			}}/>
 			<MessageInput
 				bind:value={message_text} onsend={sel.message_edit > -1 ? editMessage : sendMessage}
+				status={message_status}
 				actions={sel.message_edit > -1 ? [{text: "Stop editing", func: stopEditing}] : []}/>
 		{/if}
 	</div>
