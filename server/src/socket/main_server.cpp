@@ -1,6 +1,9 @@
 #include "socket/main_server.h"
 #include <resource/user_status.h>
 
+// DELETE
+#include <iostream>
+
 socket_main_server::socket_main_server(std::string https_key, std::string https_cert, int port,
 				db_connection_pool& pool): socket_server(https_key, https_cert, port, pool)
 {
@@ -17,7 +20,7 @@ socket_main_server::socket_main_server(std::string https_key, std::string https_
 
 				// check auth token
 				try{
-					r = tx.exec("SELECT user_id FROM sessions WHERE token = $1 AND expiration_time > now()", pqxx::params(query["token"]));
+					r = tx.exec("SELECT user_id FROM sessions WHERE token = $1 AND expiration_time > now()", pqxx::params(parse_token(msg)));
 				} catch(pqxx::data_exception& e){
 					conn.sock.lock()->close(ix::WebSocketCloseConstants::kNormalClosureCode, "Invalid token");
 					return;

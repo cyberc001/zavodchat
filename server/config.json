@@ -10,6 +10,8 @@
 	"https_key": "server.key",
 	"https_cert": "server.pem",
 
+	"response_delay": 400,
+
 	"user_avatar_path": "/data/avatar/user/",
 	"server_avatar_path": "/data/avatar/server/",
 	"file_storage_path": "/data/upload",

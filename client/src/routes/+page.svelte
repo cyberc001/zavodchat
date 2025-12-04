@@ -4,8 +4,10 @@
 	import Main from "../main.svelte";
 
 	import Rest from '$lib/rest.js';
+	import MainSocket from '$lib/socket/main.js';
 
 	Rest.host = "https://127.0.0.1";
+	MainSocket.host = "wss://127.0.0.1:444";
 
 	let page = $state(0);
 	let setPage = (p) => page = p;

@@ -165,7 +165,7 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 
 					// check auth token
 					try{
-						r = tx.exec("SELECT user_id FROM sessions WHERE token = $1 AND expiration_time > now()", pqxx::params(query["token"]));
+						r = tx.exec("SELECT user_id FROM sessions WHERE token = $1 AND expiration_time > now()", pqxx::params(parse_token(msg)));
 					} catch(pqxx::data_exception& e){
 						conn.sock.lock()->close(ix::WebSocketCloseConstants::kNormalClosureCode, "Invalid token");
 						return;

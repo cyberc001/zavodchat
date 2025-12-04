@@ -64,3 +64,16 @@ std::unordered_map<std::string, std::string> socket_server::parse_query(std::str
 	}
 	return res;
 }
+std::string socket_server::parse_token(const ix::WebSocketMessagePtr& msg)
+{
+	static const std::string beg = "zavodchat_token=";
+
+	if(msg->openInfo.headers.find("Cookie") == msg->openInfo.headers.end())
+		return "";
+	std::string cookie = msg->openInfo.headers["Cookie"];
+
+	std::string::size_type i = cookie.find(beg);
+	if(i == std::string::npos)
+		return "";
+	return cookie.substr(i + beg.size());
+}

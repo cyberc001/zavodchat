@@ -5,6 +5,8 @@
 	import User from '$lib/rest/user.js';
 	import Role from '$lib/rest/role.js';
 
+	import MainSocket from '$lib/socket/main.js';
+
 	import PaginatedList from '$lib/display/paginated_list.svelte';
 	import UserDisplay from '$lib/display/user.svelte';
 	import UserProfileDisplay from '$lib/display/user_profile.svelte';
@@ -15,7 +17,10 @@
 	let { setPage } = $props();
 
 	const setError = (err) => {
-		window.alert(err.status + " " + err.data);
+		if(err.reason)
+			window.alert(err.type + ": " + err.reason);
+		else
+			window.alert(err.status + " " + err.data);
 	};
 
 
@@ -37,6 +42,15 @@
 		}
 		return user_roles;
 	};
+
+	// Sockets
+	let socket_main = new MainSocket();
+	socket_main.ws.onclose = setError;
+	socket_main.ws.onerror = setError;
+	socket_main.ws.onmessage = (e) => {
+		console.log(e);
+	};
+	console.log(socket_main);
 
 	// UI state
 	let wnd_width = $state(), wnd_height = $state();

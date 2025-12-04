@@ -35,6 +35,7 @@ public:
 	void listen(bool wait);
 
 	static std::unordered_map<std::string, std::string> parse_query(std::string uri);
+	std::string parse_token(const ix::WebSocketMessagePtr& msg);
 protected:
 	ix::WebSocketServer srv;
 	db_connection_pool& pool;
