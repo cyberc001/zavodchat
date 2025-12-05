@@ -19,7 +19,7 @@ export default class MainSocket {
 			switch(name){
 				case "message_edited":
 					tree = Message.message_range_cache.get_tree([data.server_id, data.channel_id]);
-					Message.message_range_cache.update_one_id(tree, data.id, {
+					tree.update_one_id(data.id, {
 						edited: data.edited,
 						text: data.text,
 						status: Message.Status.None
@@ -27,11 +27,11 @@ export default class MainSocket {
 					break;
 				case "message_deleted":
 					tree = Message.message_range_cache.get_tree([data.server_id, data.channel_id]);
-					Message.message_range_cache.remove_one_id(tree, data.id);
+					tree.remove_one_id(data.id);
 					break;
 				case "message_created":
 					tree = Message.message_range_cache.get_tree([data.server_id, data.channel_id]);
-					Message.message_range_cache.insert_last(tree, data);
+					tree.insert_last(data);
 					break;
 			}
 		};

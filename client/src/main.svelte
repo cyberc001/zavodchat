@@ -148,7 +148,8 @@
 		msg.status = Message.Status.Editing;
 		msg.text = text;
 		sel.message_edit = -1;
-		
+		message_text = "";
+
 		Message.edit(sel.server, sel.channel, msg.id, text,
 				() => {}, setError);
 	};

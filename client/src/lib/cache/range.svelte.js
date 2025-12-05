@@ -138,30 +138,23 @@ export class DataRange {
 	}
 };
 
-export default class RangeCache extends IDCache {
-	cache = {};
+export class DataRangeTree {
+	_tree;
 
-	// RB-tree methods
-	_default_state_constructor(){
-		let tree = new RBTree((a, b) => {
+	constructor(){
+		this._tree = new RBTree((a, b) => {
 			return a.end - b.end;
 		});
-		return tree;
 	}
 
-	get_tree(_id){
-		const id = this.state_refs_id(_id);
-		return this.cache[id];
-	}
-
-	find_enclosing_range(tree, range){
-		const iter = tree.lowerBound(range);
+	find_enclosing_range(range){
+		const iter = this._tree.lowerBound(range);
 		if(!iter?._cursor || !iter.data()?.contains(range))
 			return null;
 		return iter.data();
 	}
-	find_enclosing_range_id(tree, range){
-		return this.__find_enclosing_range_id_iter(tree._root, range);
+	find_enclosing_range_id(range){
+		return this.__find_enclosing_range_id_iter(this._tree._root, range);
 	}
 	__find_enclosing_range_id_iter(node, range){
 		if(node === null)
@@ -175,11 +168,11 @@ export default class RangeCache extends IDCache {
 	}
 
 
-	find_idx_of_id(tree, id){
+	find_idx_of_id(id){
 		const r = new DataRange();
 		r.id_start = id;
 		r.id_end = id;
-		const enc_range = this.find_enclosing_range_id(tree, r);
+		const enc_range = this.find_enclosing_range_id(r);
 		if(!enc_range)
 			return;
 		for(let i = enc_range.start; i < enc_range.end; ++i)
@@ -188,14 +181,13 @@ export default class RangeCache extends IDCache {
 	}
 
 
-
-	insert_range(tree, range){
-		if(tree.size === 0){
-			tree.insert(range);
+	insert_range(range){
+		if(this._tree.size === 0){
+			this._tree.insert(range);
 			return range;
 		}
 
-		const iter = tree.upperBound(range); // find closest ancestor that has bigger end
+		const iter = this._tree.upperBound(range); // find closest ancestor that has bigger end
 		if(!iter.data())
 			iter.prev();
 
@@ -209,17 +201,17 @@ export default class RangeCache extends IDCache {
 					range = range.union(r);
 				}
 		}
-		tree.insert(range);
+		this._tree.insert(range);
 		for(const r of deleted_subranges)
-			tree.remove(r);
+			this._tree.remove(r);
 		return range;
 	}
 
 
-	insert_last(tree, data){
+	insert_last(data){
 		let range = new DataRange(0, 0);
 
-		const iter = tree.lowerBound(range);
+		const iter = this._tree.lowerBound(range);
 		let containing_range = iter.data();
 		if(!containing_range.contains(range))
 			containing_range = undefined;
@@ -232,7 +224,7 @@ export default class RangeCache extends IDCache {
 		}
 
 		// shift everything right by 1 except the containing range
-		this.__insert_last_iter(tree._root, containing_range);
+		this.__insert_last_iter(this._tree._root, containing_range);
 	}
 	__insert_last_iter(node, r){
 		if(node === null || node.data === r)
@@ -246,10 +238,10 @@ export default class RangeCache extends IDCache {
 	}
 
 	// remove a single element at index idx, subtracting 1 from the range this index is in, and shifting left by 1 all ranges with bigger end
-	remove_one(tree, idx){
+	remove_one(idx){
 		let range = new DataRange(idx, idx);
 
-		const iter = tree.lowerBound(range);
+		const iter = this._tree.lowerBound(range);
 		let containing_range = iter.data();
 		if(!containing_range || !containing_range.contains(range)){
 			console.error(`Attempt to remove index ${idx} from tree that does not contain it`, JSON.parse(JSON.stringify(tree)));
@@ -259,7 +251,7 @@ export default class RangeCache extends IDCache {
 		containing_range.arr.splice(idx - containing_range.start, 1);
 		--containing_range.end;
 		containing_range.update_observers();
-		this.__remove_one_iter(tree._root, idx);
+		this.__remove_one_iter(this._tree._root, idx);
 	}
 	__remove_one_iter(node, idx){
 		if(node === null)
@@ -276,45 +268,57 @@ export default class RangeCache extends IDCache {
 		}
 		this.__remove_one_iter(node.right, idx);
 	}
-	remove_one_id(tree, id){
-		let idx = this.find_idx_of_id(tree, id);
+	remove_one_id(id){
+		let idx = this.find_idx_of_id(id);
 		if(typeof idx !== "undefined")
-			this.remove_one(tree, idx);
+			this.remove_one(idx);
 	}
 
-	update_one(tree, idx, data){
+	update_one(idx, data){
 		let range = new DataRange(idx, idx);
 
-		const iter = tree.lowerBound(range);
+		const iter = this._tree.lowerBound(range);
 		let containing_range = iter.data();
 		if(!containing_range || !containing_range.contains(range))
 			return; // ignore the update
 
 		for(const f in data)
 			containing_range.arr[idx - containing_range.start][f] = data[f];
-		console.log("updating observers", containing_range.observers);
 		containing_range.update_observers(idx, idx + 1);
 	}
-	update_one_id(tree, id, data){
-		let idx = this.find_idx_of_id(tree, id);
+	update_one_id(id, data){
+		let idx = this.find_idx_of_id(id);
 		if(typeof idx !== "undefined")
-			this.update_one(tree, idx, data);
+			this.update_one(idx, data);
 	}
 
+};
+
+export default class RangeCache extends IDCache {
+	cache = {};
+
+	// RB-tree methods
+	_default_state_constructor(){
+		return new DataRangeTree();
+	}
+
+	get_tree(_id){
+		const id = this.state_refs_id(_id);
+		return this.cache[id];
+	}
 
 	get_state(_id, start, count, load_func){
-		let tree = this._default_state_constructor();
-
 		let id = this.state_refs_id(_id);
 		let range = new DataRange(start, start + count);
 
 		if(typeof this.cache[id] === "undefined")
 			this.cache[id] = this._default_state_constructor();
+		let tree = this.cache[id];
 
-		let enc_range = this.find_enclosing_range(this.cache[id], range);
+		let enc_range = tree.find_enclosing_range(range);
 		let load = false;
 		if(!enc_range){
-			enc_range = this.insert_range(this.cache[id], range);
+			enc_range = tree.insert_range(range);
 			load = true;
 		}
 
@@ -328,8 +332,6 @@ export default class RangeCache extends IDCache {
 	}
 	// Should be called from get_state(, load_func), therefore id is not parsed twice
 	set_state(range, start, count, data){
-		console.log("set_state BEFORE", JSON.parse(JSON.stringify(range)), start, count, data);
-
 		let min_id = data[0]?.id, max_id = data[0]?.id;
 		for(let i = start; i < start + count && i - start < data.length; ++i){
 			let dat = data[i - start];
@@ -353,6 +355,5 @@ export default class RangeCache extends IDCache {
 		range.update_observers(start, Math.min(start + count, range.end), missing > 0);
 
 		range.t = performance.now();
-		console.log("set_state AFTER", JSON.parse(JSON.stringify(range)));
 	}
 }
