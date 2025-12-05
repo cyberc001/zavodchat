@@ -44,13 +44,7 @@
 	};
 
 	// Sockets
-	let socket_main = new MainSocket();
-	socket_main.ws.onclose = setError;
-	socket_main.ws.onerror = setError;
-	socket_main.ws.onmessage = (e) => {
-		console.log(e);
-	};
-	console.log(socket_main);
+	let socket_main = new MainSocket(setError, setError);
 
 	// UI state
 	let wnd_width = $state(), wnd_height = $state();

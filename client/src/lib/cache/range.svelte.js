@@ -3,8 +3,7 @@ import { RBTree } from "bintrees";
 
 class RangeObserver {
 	data = $state([]);
-	start = 0;
-	end = 0;
+	start = 0; end = 0;
 
 	constructor(range, start, end){
 		this.start = start;
@@ -19,28 +18,31 @@ class RangeObserver {
 	}
 }
 
-class DataRange {
+export class DataRange {
 	arr = [];
 	observers = [];
 
-	start = 0;
-	end = 0;
+	start = 0; end = 0;
+	id_start = 0; id_end = 0;
 	t = 0; // creation time, latest range's values are prioritized when merging
 
 	constructor(start, end, init){
+		// empty constructor; could be used for comparison ranges
+		if(typeof start === "undefined")
+			return;
+
 		if(typeof end === "undefined" && typeof init === "undefined"){
 			// copy constructor
 			let other = start;
-			this.start = other.start;
-			this.end = other.end;
+			this.start = other.start; this.end = other.end;
+			this.id_start = other.id_start; this.id_end = other.id_end;
 			this.t = other.t;
 			for(let i = 0; i < this.end - this.start; ++i)
 				this.arr.push(other.arr[i]);
 			return;
 		}
 
-		this.start = start;
-		this.end = end;
+		this.start = start; this.end = end;
 		this.t = performance.now();
 		for(let i = 0; i < end - start; ++i)
 			this.arr.push(init ? {data: start + i, t: this.t} : {});
@@ -61,10 +63,20 @@ class DataRange {
 		return (this.end >= other.start && this.start <= other.end)
 		|| (this.start <= other.end && this.end >= other.start);
 	}
+	intersects_id(other){
+		return (this.id_end >= other.id_start && this.id_start <= other.id_end)
+		|| (this.id_start <= other.id_end && this.id_end >= other.id_start);
+	}
+
 	contains(other){
 		if(typeof other === "number")
 			return other >= this.start && other <= this.end;
 		return this.start <= other.start && this.end >= other.start;
+	}
+	contains_id(other){
+		if(typeof other === "number")
+			return other >= this.id_start && other <= this.od_end;
+		return this.id_start <= other.id_start && this.id_end >= other.id_start;
 	}
 
 	union(other){
@@ -87,7 +99,10 @@ class DataRange {
 		else
 			for(let i = this.end; i < other.end; ++i)
 				new_range.arr[i - new_range.start] = other.arr[i - other.start];
-		
+
+		new_range.id_start = Math.min(this.id_start, other.id_start);
+		new_range.id_end = Math.max(this.id_end, other.id_end);
+
 		new_range.observers = this.observers;
 		new_range.observers.push.apply(new_range.observers, other.observers);
 
@@ -130,20 +145,51 @@ export default class RangeCache extends IDCache {
 	_default_state_constructor(){
 		let tree = new RBTree((a, b) => {
 			return a.end - b.end;
-			//return a.start - b.start;
 		});
-
 		return tree;
 	}
 
-	_find_enclosing_range(tree, range){
+	get_tree(_id){
+		const id = this.state_refs_id(_id);
+		return this.cache[id];
+	}
+
+	find_enclosing_range(tree, range){
 		const iter = tree.lowerBound(range);
 		if(!iter?._cursor || !iter.data()?.contains(range))
 			return null;
 		return iter.data();
 	}
+	find_enclosing_range_id(tree, range){
+		return this.__find_enclosing_range_id_iter(tree._root, range);
+	}
+	__find_enclosing_range_id_iter(node, range){
+		if(node === null)
+			return;
+		if(node.data.contains_id(range))
+			return node.data;
 
-	_insert_range(tree, range){
+		if(range.id_end > node.data.id_end)
+			return __find_enclosing_range_id_iter(node.right, range);
+		return __find_enclosing_range_id_iter(node.left, range);
+	}
+
+
+	find_idx_of_id(tree, id){
+		const r = new DataRange();
+		r.id_start = id;
+		r.id_end = id;
+		const enc_range = this.find_enclosing_range_id(tree, r);
+		if(!enc_range)
+			return;
+		for(let i = enc_range.start; i < enc_range.end; ++i)
+			if(enc_range.arr[i - enc_range.start].id === id)
+				return i;
+	}
+
+
+
+	insert_range(tree, range){
 		if(tree.size === 0){
 			tree.insert(range);
 			return range;
@@ -169,8 +215,38 @@ export default class RangeCache extends IDCache {
 		return range;
 	}
 
+
+	insert_last(tree, data){
+		let range = new DataRange(0, 0);
+
+		const iter = tree.lowerBound(range);
+		let containing_range = iter.data();
+		if(!containing_range.contains(range))
+			containing_range = undefined;
+		if(containing_range){
+			++containing_range.end;
+			if(data.id > containing_range.id_end)
+				containing_range.id_end = data.id;
+			containing_range.arr.unshift(data);
+			containing_range.update_observers();
+		}
+
+		// shift everything right by 1 except the containing range
+		this.__insert_last_iter(tree._root, containing_range);
+	}
+	__insert_last_iter(node, r){
+		if(node === null || node.data === r)
+			return;
+
+		++node.data.start; ++node.data.end;
+		node.data.update_observers();
+
+		this.__insert_last_iter(node.left, r);
+		this.__insert_last_iter(node.right, r);
+	}
+
 	// remove a single element at index idx, subtracting 1 from the range this index is in, and shifting left by 1 all ranges with bigger end
-	_remove_one(tree, idx){
+	remove_one(tree, idx){
 		let range = new DataRange(idx, idx);
 
 		const iter = tree.lowerBound(range);
@@ -182,20 +258,47 @@ export default class RangeCache extends IDCache {
 
 		containing_range.arr.splice(idx - containing_range.start, 1);
 		--containing_range.end;
-		this.__r_remove_one_iter(tree._root, idx);
+		containing_range.update_observers();
+		this.__remove_one_iter(tree._root, idx);
 	}
-	__r_remove_one_iter(node, idx){
+	__remove_one_iter(node, idx){
 		if(node === null)
 			return;
+
 		if(!node.data.contains(idx) && node.data.end > idx){
 			--node.data.start; --node.data.end;
+			node.data.update_observers();
 		}
 
 		if(node.data.end > idx){
 			// potential ranges with (end > idx) in left subtree
-			this.__r_remove_one_iter(node.left, idx);
+			this.__remove_one_iter(node.left, idx);
 		}
-		this.__r_remove_one_iter(node.right, idx);
+		this.__remove_one_iter(node.right, idx);
+	}
+	remove_one_id(tree, id){
+		let idx = this.find_idx_of_id(tree, id);
+		if(typeof idx !== "undefined")
+			this.remove_one(tree, idx);
+	}
+
+	update_one(tree, idx, data){
+		let range = new DataRange(idx, idx);
+
+		const iter = tree.lowerBound(range);
+		let containing_range = iter.data();
+		if(!containing_range || !containing_range.contains(range))
+			return; // ignore the update
+
+		for(const f in data)
+			containing_range.arr[idx - containing_range.start][f] = data[f];
+		console.log("updating observers", containing_range.observers);
+		containing_range.update_observers(idx, idx + 1);
+	}
+	update_one_id(tree, id, data){
+		let idx = this.find_idx_of_id(tree, id);
+		if(typeof idx !== "undefined")
+			this.update_one(tree, idx, data);
 	}
 
 
@@ -208,10 +311,10 @@ export default class RangeCache extends IDCache {
 		if(typeof this.cache[id] === "undefined")
 			this.cache[id] = this._default_state_constructor();
 
-		let enc_range = this._find_enclosing_range(this.cache[id], range);
+		let enc_range = this.find_enclosing_range(this.cache[id], range);
 		let load = false;
 		if(!enc_range){
-			enc_range = this._insert_range(this.cache[id], range);
+			enc_range = this.insert_range(this.cache[id], range);
 			load = true;
 		}
 
@@ -225,8 +328,21 @@ export default class RangeCache extends IDCache {
 	}
 	// Should be called from get_state(, load_func), therefore id is not parsed twice
 	set_state(range, start, count, data){
-		for(let i = start; i < start + count && i - start < data.length; ++i)
-			range.arr[i - range.start] = data[i - start];
+		console.log("set_state BEFORE", JSON.parse(JSON.stringify(range)), start, count, data);
+
+		let min_id = data[0]?.id, max_id = data[0]?.id;
+		for(let i = start; i < start + count && i - start < data.length; ++i){
+			let dat = data[i - start];
+			range.arr[i - range.start] = dat;
+			if(dat.id < min_id)
+				min_id = dat.id;
+			if(dat.id > max_id)
+				max_id = dat.id;
+		}
+		if(range.id_start > min_id)
+			range.id_start = min_id;
+		if(range.id_end < max_id)
+			range.id_end = max_id;
 	
 		let missing = count - data.length;
 		// If we were loading the end of range and server underdelivered, remove dummy items
@@ -237,5 +353,6 @@ export default class RangeCache extends IDCache {
 		range.update_observers(start, Math.min(start + count, range.end), missing > 0);
 
 		range.t = performance.now();
+		console.log("set_state AFTER", JSON.parse(JSON.stringify(range)));
 	}
 }
