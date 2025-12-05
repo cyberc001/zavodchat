@@ -43,6 +43,7 @@
 		{/if}
 	{/if}
 	<div class={"message_content_panel hoverable" + (selected ? " selected" : "")}
+	role="listitem"
 	title={`Sent: ${time_sent}\nLast edited: ${is_edited ? time_edited : "never"}`}
 	oncontextmenu={(e) => {
 		event.preventDefault();

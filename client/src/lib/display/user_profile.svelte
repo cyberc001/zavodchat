@@ -41,6 +41,8 @@
 
 <svelte:window {onmouseup}/>
 <div class="item user_profile_display" style="left: {pos[0] + pos_off[0]}px; top: {pos[1] + pos_off[1]}px; transform: translate({rel_off[0]}%, {rel_off[1]}%);"
+	tabindex=0
+	role="dialog"
 	onmouseenter={() => pointer_on_profile = true}
 	onmouseleave={() => pointer_on_profile = false}
 	bind:this={self}

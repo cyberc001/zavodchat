@@ -32,7 +32,8 @@
 		</div>
 		<textarea class="item message_input_textarea" rows={textarea_rows}
 			bind:value
-			onkeyup={textarea_onkeyup}/>
+			onkeyup={textarea_onkeyup}>
+		</textarea>
 	</div>
 </div>
 
