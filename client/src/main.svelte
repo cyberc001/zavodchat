@@ -7,6 +7,9 @@
 
 	import MainSocket from '$lib/socket/main.js';
 
+	import TabbedSettings from '$lib/control/tabbed_settings.svelte';
+	import {tabs as user_settings_tabs} from '$lib/settings/user.svelte';
+
 	import PaginatedList from '$lib/display/paginated_list.svelte';
 	import UserDisplay from '$lib/display/user.svelte';
 	import UserProfileDisplay from '$lib/display/user_profile.svelte';
@@ -112,6 +115,10 @@
 		ctx_menu_params.visible = false;
 	};
 
+	const closeSettings = () => {
+		sel.settings_tabs = undefined;
+	}
+
 	// Events
 	const showServer = (id) => {
 		sel.server = id;
@@ -167,41 +174,61 @@
 
 
 <svelte:window bind:innerWidth={wnd_width} bind:innerHeight={wnd_height}/>
-<div class="main">
-	<div class="panel sidebar_servers">
-		{#if servers.loading}
-			<img src="$lib/assets/icons/loading.svg" alt="loading" class="filter_icon_main" style="width: 48px"/>
-		{:else}
-			{#each servers as srv}
-				<button class={"item hoverable sidebar_server" + (sel.server == srv.id ? " selected" : "")} onclick={() => showServer(srv.id)}>
-				{#if srv.avatar === undefined}
-					<div style="padding:4px;"><div class="sidebar_server_el">{srv.name}</div></div>
+
+{#if sel.settings_tabs}
+
+<div style="padding: 16px; height: 100%">
+	<TabbedSettings tabs={sel.settings_tabs} close_settings={closeSettings}/>
+</div>
+	
+{:else}
+	<div class="main">
+		<div style="height: 100%; margin-left: 16px">
+			<div style="display: flex; height: 90%">
+				<div class="panel sidebar_servers">
+					{#if servers.loading}
+					<img src="$lib/assets/icons/loading.svg" alt="loading" class="filter_icon_main" style="width: 48px"/>
 					{:else}
-					<img class="sidebar_server_el" alt={srv.name} src={Server.get_avatar_path(srv)}/>
-				{/if}
-				</button>
-			{/each}
-		{/if}
-	</div>
-	<div class="panel sidebar_channels">
-		{#if channels.loading}
-			<div style="text-align: center; margin-top: 6px">
-				<img src="$lib/assets/icons/loading.svg" alt="loading" class="filter_icon_main" style="width: 48px"/>
-			</div>
-		{:else}
-			{#each channels as ch}
-				<div>
-					<button class={"item hoverable sidebar_channel_el" + (sel.channel == ch.id ? " selected" : "")} onclick={() => showChannel(ch.id)}>
-						{#if ch.type === 1}
-							<img src="$lib/assets/icons/channel_vc.svg" alt="voice" class="filter_icon_main sidebar_channel_el_icon"/>
+					{#each servers as srv}
+						<button class={"item hoverable sidebar_server" + (sel.server == srv.id ? " selected" : "")} onclick={() => showServer(srv.id)}>
+						{#if srv.avatar === undefined}
+						<div style="padding:4px;"><div class="sidebar_server_el">{srv.name}</div></div>
 						{:else}
-							<img src="$lib/assets/icons/channel_text.svg" alt="text" class="filter_icon_main sidebar_channel_el_icon"/>
+						<img class="sidebar_server_el" alt={srv.name} src={Server.get_avatar_path(srv)}/>
 						{/if}
-						{ch.name}
-					</button>
+						</button>
+					{/each}
+					{/if}
 				</div>
-			{/each}
-		{/if}
+				<div class="panel sidebar_channels">
+					{#if channels.loading}
+						<div style="text-align: center; margin-top: 6px">
+						<img src="$lib/assets/icons/loading.svg" alt="loading" class="filter_icon_main" style="width: 48px"/>
+					</div>
+					{:else}
+					{#each channels as ch}
+						<div>
+							<button class={"item hoverable transparent_button sidebar_channel_el" + (sel.channel == ch.id ? " selected" : "")} onclick={() => showChannel(ch.id)}>
+								{#if ch.type === 1}
+								<img src="$lib/assets/icons/channel_vc.svg" alt="voice" class="filter_icon_main sidebar_channel_el_icon"/>
+								{:else}
+								<img src="$lib/assets/icons/channel_text.svg" alt="text" class="filter_icon_main sidebar_channel_el_icon"/>
+								{/if}
+								{ch.name}
+							</button>
+						</div>
+					{/each}
+					{/if}
+			</div>
+		</div>
+
+		<div class="panel profile_panel">
+			<button class="hoverable transparent_button"
+			onclick={() => sel.settings_tabs = user_settings_tabs()}
+			>
+				<img src="$lib/assets/icons/settings.svg" alt="profile settings" class="filter_icon_main" style="width: 32px"/>
+			</button>
+		</div>
 	</div>
 	<div class="panel sidebar_messages">
 		{#if sel.channel > -1}
@@ -266,4 +293,6 @@
 	pos={sel_user_pos[0]} rel_off={sel_user_pos[1]}
 	hide_profile={() => showUser(-1, -1)}
 	/>
+{/if}
+
 {/if}

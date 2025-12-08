@@ -57,6 +57,14 @@ body {
 	background: var(--clr_bg_selected) !important;
 }
 
+.transparent_button {
+	border-style: none;
+	padding: 0;
+}
+.transparent_button:not(.selected):not(:hover) {
+	background: transparent;
+}
+
 /* Specific classes */
 
 .sidebar_servers {
@@ -65,8 +73,7 @@ body {
 	align-items: center;
 
 	border-style: none solid none none;
-	width: 64px;
-	margin-left: 16px;
+	width: 58px;
 	padding: 6px;
 }
 
@@ -121,12 +128,9 @@ img.sidebar_server_el {
 	align-items: center;
 	padding: 4px 0px 4px 4px;
 
-	user-select: none;
-
 	cursor: pointer;
-}
-.sidebar_channel_el:not(.selected):not(:hover) {
-	background: transparent;
+
+	user-select: none;
 }
 .sidebar_channel_el_icon {
 	padding-right: 6px;
@@ -146,4 +150,12 @@ img.sidebar_server_el {
 }
 .sidebar_user_display {
 	padding: 3px 6px 3px 6px;
+}
+
+
+.profile_panel {
+	border-style: solid;
+
+	/* remove the border from height */	
+	height: calc(10% - 4px);
 }
