@@ -202,7 +202,10 @@ wscat -nc 'wss://localhost:445?channel=2'
 {
 	"data":
 	{
-		"id": 2,
+		"id": 412,
+		"name": "cyb3rc001",
+		"avatar": "avatar_453912.png",
+		"status": 0,
 		"server_id": 1
 	},
 	"name": "user_joined"
