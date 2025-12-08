@@ -2,7 +2,7 @@
 #define USER_STATUS_H
 
 #include "db/conn_pool.h"
-#include <thread>
+#include "socket/main_server.h"
 #include <resource/base.h>
 
 #define STATUS_OFFLINE		0
@@ -16,12 +16,13 @@
 class user_status_resource : public base_resource
 {
 public:
-	user_status_resource(db_connection_pool& pool);
+	user_status_resource(db_connection_pool& pool, socket_main_server& sserv);
 
 	std::shared_ptr<http_response> render_PUT(const http_request&);
 
 private:
 	db_connection_pool& pool;
+	socket_main_server& sserv;
 };
 
 #endif

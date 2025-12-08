@@ -1,5 +1,6 @@
 import { DataRange } from "$lib/cache/range.svelte.js";
 import Message from "$lib/rest/message.js";
+import User from "$lib/rest/user.svelte.js";
 
 export default class MainSocket {
 	static host;
@@ -21,6 +22,10 @@ export default class MainSocket {
 		message_created: function(data) {
 			let tree = Message.message_range_cache.get_tree([data.server_id, data.channel_id]);
 			tree.insert_last(data);
+		},
+
+		user_status_changed: function(data) {
+			User.update_cache(data.id, {status: data.status});
 		}
 	};
 
@@ -33,6 +38,8 @@ export default class MainSocket {
 			const _data = JSON.parse(e.data);
 			if(Object.hasOwn(MainSocket.socket_event_handlers, _data.name))
 				MainSocket.socket_event_handlers[_data.name](_data.data);
+			else
+				console.warn("Unhandled main WebSocket event", _data);
 		};
 	}
 };

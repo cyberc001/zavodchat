@@ -1,8 +1,6 @@
 #include "socket/main_server.h"
 #include <resource/user_status.h>
-
-// DELETE
-#include <iostream>
+#include <resource/utils.h>
 
 socket_main_server::socket_main_server(std::string https_key, std::string https_cert, int port,
 				db_connection_pool& pool): socket_server(https_key, https_cert, port, pool)
@@ -45,22 +43,40 @@ socket_main_server::socket_main_server(std::string https_key, std::string https_
 						return;
 					}
 				}
-				tx.exec("UPDATE users SET status = $1 WHERE user_id = $2", pqxx::params(status, conn.user_id));
-				tx.commit();
 
 				// add user to connections map
-				std::unique_lock lock(connections_mutex);
-				connections[conn.user_id] = conn.sock;
+				{
+					std::unique_lock lock(connections_mutex);
+					connections[conn.user_id] = conn.sock;
+				}
+
+				socket_event ev;
+				ev.data["id"] = conn.user_id;
+				ev.data["status"] = status;
+				ev.name = "user_status_changed";
+				send_to_user_observers(conn.user_id, tx, ev);
+
+				tx.exec("UPDATE users SET status = $1 WHERE user_id = $2", pqxx::params(status, conn.user_id));
+				tx.commit();
 			} else if(msg->type == ix::WebSocketMessageType::Close){
 				// set status to offline
 				db_connection db_conn = pool.hold();
 				pqxx::work tx{*db_conn};
-				tx.exec("UPDATE users SET status = 0 WHERE user_id = $1", pqxx::params(conn.user_id));
-				tx.commit();
 
 				// remove user from connections map
-				std::unique_lock lock(connections_mutex);
-				connections.erase(conn.user_id);
+				{
+					std::unique_lock lock(connections_mutex);
+					connections.erase(conn.user_id);
+				}
+
+				socket_event ev;
+				ev.data["id"] = conn.user_id;
+				ev.data["status"] = STATUS_OFFLINE;
+				ev.name = "user_status_changed";
+				send_to_user_observers(conn.user_id, tx, ev);
+
+				tx.exec("UPDATE users SET status = 0 WHERE user_id = $1", pqxx::params(conn.user_id));
+				tx.commit();
 			} else if(msg->type == ix::WebSocketMessageType::Message){
 				for(auto it = recv_cbs.begin(); it != recv_cbs.end(); ++it){
 					(*it)(conn.user_id, socket_event(msg->str));
@@ -113,6 +129,21 @@ void socket_main_server::send_to_user(int user_id, pqxx::work& tx, socket_event 
 			sock->send(dumped);
 	}
 }
+void socket_main_server::send_to_user_observers(int user_id, pqxx::work& tx, socket_event event)
+{
+	pqxx::result r = tx.exec("SELECT DISTINCT ON(user_id) user_id, server_id FROM user_x_server WHERE server_id IN (SELECT server_id FROM user_x_server WHERE user_id = $1)", pqxx::params(user_id));
+
+	std::shared_lock lock(connections_mutex);
+	for(size_t i = 0; i < r.size(); ++i){
+		int user_id = r[i]["user_id"].as<int>();
+		if(connections.find(user_id) != connections.end()){
+			std::shared_ptr<ix::WebSocket> sock = connections[user_id].lock();
+			if(sock)
+				sock->send(event.dump());
+		}
+	}
+}
+
 
 void socket_main_server::add_recv_cb(main_server_recv_cb cb)
 {

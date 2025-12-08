@@ -113,7 +113,7 @@ int main()
 	user_id_resource user_id(pool);
 	ws.register_resource("/users/{user_id}", &user_id);
 
-	user_status_resource user_status(pool);
+	user_status_resource user_status(pool, sserv);
 	ws.register_resource("/user_status", &user_status);
 
 	server_roles_resource server_roles(pool, sserv);

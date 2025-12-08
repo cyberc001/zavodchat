@@ -230,6 +230,24 @@ wscat -nc 'wss://localhost:445?channel=2'
 }
 ```
 
+### user_status_changed
+
+У пользователя на одном сервере с получателем изменился статус.
+
+Пример:
+
+```js
+{
+	"data":
+	{
+		"status": 1,
+		"id": 1
+	}
+    },
+    "name": "user_status_changed"
+}
+```
+
 ### user_joined_vc
 
 Пользователь присоединился к голосовому каналу.

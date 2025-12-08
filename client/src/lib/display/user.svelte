@@ -1,5 +1,5 @@
 <script>
-	import User from '$lib/rest/user.js';
+	import User from '$lib/rest/user.svelte.js';
 	import Role from '$lib/rest/role.js';
 
 	let {user, user_roles,

@@ -2,7 +2,7 @@
 	import Server from '$lib/rest/server.js';
 	import Channel from '$lib/rest/channel.js';
 	import Message from '$lib/rest/message.js';
-	import User from '$lib/rest/user.js';
+	import User from '$lib/rest/user.svelte.js';
 	import Role from '$lib/rest/role.js';
 
 	import MainSocket from '$lib/socket/main.js';

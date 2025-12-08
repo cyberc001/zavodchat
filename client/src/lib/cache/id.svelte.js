@@ -16,7 +16,8 @@ export default class {
 		let id = this.state_refs_id(_id);
 		if(typeof this.cache[id] === "undefined"){
 			this.cache[id] = this._default_state_constructor();
-			load_func(this, id);
+			if(load_func)
+				load_func(this, id);
 		}
 		return this.cache[id];
 	}

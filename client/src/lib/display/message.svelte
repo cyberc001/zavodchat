@@ -1,6 +1,6 @@
 <script>
 	import Message from '$lib/rest/message.js';
-	import User from '$lib/rest/user.js';
+	import User from '$lib/rest/user.svelte.js';
 	import UserDisplay from '$lib/display/user.svelte';
 
 	let {id, text, time_sent, time_edited,
