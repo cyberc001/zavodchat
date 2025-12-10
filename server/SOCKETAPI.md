@@ -230,9 +230,9 @@ wscat -nc 'wss://localhost:445?channel=2'
 }
 ```
 
-### user_status_changed
+### user_changed
 
-У пользователя на одном сервере с получателем изменился статус.
+У пользователя на одном сервере с получателем изменились параметры (статус, имя, аватар).
 
 Пример:
 
@@ -240,11 +240,13 @@ wscat -nc 'wss://localhost:445?channel=2'
 {
 	"data":
 	{
+		"id": 412,
 		"status": 1,
-		"id": 1
+		"avatar": "avatar_444212.png",
+		"name": "rena_fan_no1"
 	}
     },
-    "name": "user_status_changed"
+    "name": "user_changed"
 }
 ```
 

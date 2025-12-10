@@ -60,17 +60,10 @@ paths:
       summary: Изменение данных пользователя
       parameters:
         - $ref: "#/parameters/zavodchat_token"
-        - name: avatar
-          in: query
-          description: Аватар пользователя
-          schema:
-            type: string
-            format: binary
       requestBody:
         content:
-          application/json:
+          multipart/form-data:
             schema:
-              type: object
               properties:
                 username:
                   type: string
@@ -81,6 +74,12 @@ paths:
                 password:
                   type: string
                   example: letmein123
+                avatar:
+                  type: string
+                  format: binary
+                  example: (Любой поддерживаемый формат изображений)
+                  
+
       responses:
         '200':
           description: Успешное изменение данных

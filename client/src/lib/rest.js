@@ -2,7 +2,7 @@ import axios from "axios";
 axios.defaults.withCredentials = true;
 
 export default class Rest {
-	static host = "";
+	static host = "https://127.0.0.1";
 
 	static err_to_str(res)
 	{

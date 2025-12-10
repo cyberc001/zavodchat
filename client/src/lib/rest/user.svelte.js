@@ -16,6 +16,14 @@ export default class User {
 	}
 
 	static update_cache(user_id, data){
+		// try to update user_self
+		if(user_id !== -1 && User.user_cache.has_state(-1)
+			&& User.user_cache.get_state(-1).id === user_id){
+			let user_data = User.user_cache.get_state(-1);
+			for(const f in data)
+				user_data[f] = data[f];
+		}
+
 		if(!User.user_cache.cache.hasOwnProperty(user_id))
 			return;
 
@@ -25,8 +33,11 @@ export default class User {
 
 		// for each server that user shared with the client
 		for(const server_id of user_data.servers){
-			for(const f in data)
-				User.user_server_cache.get_state([server_id, user_id])[f] = data[f];
+			if(User.user_server_cache.has_state([server_id, user_id])){
+				let st = User.user_server_cache.get_state([server_id, user_id]);
+				for(const f in data)
+					st[f] = data[f];
+			}
 
 			let tree = User.user_server_range_cache.get_tree(server_id);
 			if(tree)
@@ -42,9 +53,11 @@ export default class User {
 					(res) => cache.set_state(id, res.data),
 					_catch);
 		});
-
-		Rest.get("User.get", "users/" + user_id, (res) => _then(res.data), _catch);
 	}
+	static get_nocache(user_id, _then, _catch){
+		Rest.get("users/" + user_id, (res) => _then(res.data), _catch);
+	}
+
 
 	static get_server(server_id, user_id, _catch){
 		return User.user_server_cache.get_state([server_id, user_id],

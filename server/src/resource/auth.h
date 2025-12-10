@@ -2,6 +2,7 @@
 #define RESOURCE_AUTH_H
 
 #include "db/conn_pool.h"
+#include "socket/main_server.h"
 #include <thread>
 #include <resource/base.h>
 
@@ -32,7 +33,7 @@ private:
 class register_resource : public base_resource
 {
 public:
-	register_resource(db_connection_pool& pool);
+	register_resource(db_connection_pool& pool, socket_main_server& sserv);
 
 	std::shared_ptr<http_response> render_POST(const http_request&);
 	std::shared_ptr<http_response> render_PUT(const http_request&);
@@ -41,6 +42,7 @@ public:
 	unsigned min_password_length = 8;
 private:
 	db_connection_pool& pool;
+	socket_main_server& sserv;
 };
 
 #endif

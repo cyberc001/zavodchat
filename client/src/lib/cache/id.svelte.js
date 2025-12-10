@@ -26,4 +26,7 @@ export default class {
 		for(const key in data)
 			this.cache[id][key] = data[key];
 	}
+	has_state(_id){
+		return this.cache.hasOwnProperty(this.state_refs_id(_id));
+	}
 }

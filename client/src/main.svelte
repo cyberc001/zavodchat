@@ -8,7 +8,8 @@
 	import MainSocket from '$lib/socket/main.js';
 
 	import TabbedSettings from '$lib/control/tabbed_settings.svelte';
-	import {tabs as user_settings_tabs} from '$lib/settings/user.svelte';
+	import SettingsUser from '$lib/settings/user.svelte';
+	let settings_user = $state();
 
 	import PaginatedList from '$lib/display/paginated_list.svelte';
 	import UserDisplay from '$lib/display/user.svelte';
@@ -175,6 +176,8 @@
 
 <svelte:window bind:innerWidth={wnd_width} bind:innerHeight={wnd_height}/>
 
+
+<SettingsUser bind:this={settings_user}/>
 {#if sel.settings_tabs}
 
 <div style="padding: 16px; height: 100%">
@@ -224,7 +227,7 @@
 
 		<div class="panel profile_panel">
 			<button class="hoverable transparent_button"
-			onclick={() => sel.settings_tabs = user_settings_tabs()}
+			onclick={() => sel.settings_tabs = settings_user.tabs()}
 			>
 				<img src="$lib/assets/icons/settings.svg" alt="profile settings" class="filter_icon_main" style="width: 32px"/>
 			</button>

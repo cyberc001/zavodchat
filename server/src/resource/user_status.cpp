@@ -25,7 +25,7 @@ std::shared_ptr<http_response> user_status_resource::render_PUT(const http_reque
 	socket_event ev;
 	ev.data["id"] = user_id;
 	ev.data["status"] = status;
-	ev.name = "user_status_changed";
+	ev.name = "user_changed";
 	sserv.send_to_user_observers(user_id, tx, ev);
 
 	tx.exec("UPDATE users SET status = $1 WHERE user_id = $2", pqxx::params(status, user_id));

@@ -53,7 +53,7 @@ socket_main_server::socket_main_server(std::string https_key, std::string https_
 				socket_event ev;
 				ev.data["id"] = conn.user_id;
 				ev.data["status"] = status;
-				ev.name = "user_status_changed";
+				ev.name = "user_changed";
 				send_to_user_observers(conn.user_id, tx, ev);
 
 				tx.exec("UPDATE users SET status = $1 WHERE user_id = $2", pqxx::params(status, conn.user_id));
@@ -72,7 +72,7 @@ socket_main_server::socket_main_server(std::string https_key, std::string https_
 				socket_event ev;
 				ev.data["id"] = conn.user_id;
 				ev.data["status"] = STATUS_OFFLINE;
-				ev.name = "user_status_changed";
+				ev.name = "user_changed";
 				send_to_user_observers(conn.user_id, tx, ev);
 
 				tx.exec("UPDATE users SET status = 0 WHERE user_id = $1", pqxx::params(conn.user_id));

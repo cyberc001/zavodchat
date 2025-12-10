@@ -3,7 +3,7 @@ import Message from "$lib/rest/message.js";
 import User from "$lib/rest/user.svelte.js";
 
 export default class MainSocket {
-	static host;
+	static host = "wss://127.0.0.1:444";
 	ws;
 
 	static socket_event_handlers = {
@@ -24,8 +24,14 @@ export default class MainSocket {
 			tree.insert_last(data);
 		},
 
-		user_status_changed: function(data) {
-			User.update_cache(data.id, {status: data.status});
+		user_changed: function(data) {
+			const allowed_fields = ["status", "name", "avatar"];
+			let dat = {};
+			for(const key of allowed_fields)
+				if(data.hasOwnProperty(key))
+					dat[key] = data[key];
+
+			User.update_cache(data.id, dat);
 		}
 	};
 

@@ -24,6 +24,8 @@ public:
 
 	static std::string generate_fname(size_t sz = 32);
 	static void save_file(const std::string_view& fraw, std::string fpath);
+	static void save_file_aliased(const std::string_view& fraw, std::string path, std::string ext,
+							int id, std::string& out_fname);
 
 	static void fs_add_busy(pqxx::work& tx, int user_id, size_t bytes);
 	static void fs_sub_busy(pqxx::work& tx, int user_id, size_t bytes);

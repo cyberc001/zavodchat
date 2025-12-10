@@ -35,6 +35,19 @@ void file_utils::save_file(const std::string_view& fraw, std::string fpath)
 	std::ofstream fd(fpath);
 	fd.write(fraw.data(), fraw.size());
 }
+void file_utils::save_file_aliased(const std::string_view& fraw, std::string path, std::string ext,
+					int id, std::string& out_fname)
+{
+	std::string alias_fname = std::to_string(id) + "." + ext;
+	if(std::filesystem::exists(path + alias_fname)){
+		std::filesystem::remove(std::filesystem::read_symlink(path + alias_fname));
+		std::filesystem::remove(path + alias_fname);
+	}
+
+	out_fname = generate_fname() + "." + ext;
+	save_file(fraw, path + out_fname);
+	std::filesystem::create_symlink(path + out_fname, path + alias_fname);
+}
 std::string file_utils::generate_fname(size_t sz)
 {
 	static const char chars[] = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIKLMNOPQRSTUVWXYZ";
@@ -56,9 +69,7 @@ std::shared_ptr<http_response> file_utils::parse_user_avatar(const http_request&
 	std::string ext = get_image_ext(fraw);
 	if(!ext.size())
 		return create_response::string(req, "Image has invalid format", 400);
-	out_fname = std::to_string(id) + "." + ext;
-	save_file(fraw, user_avatar_storage_path + out_fname);
-	
+	save_file_aliased(fraw, user_avatar_storage_path, ext, id, out_fname);
 	return nullptr;
 }
 std::shared_ptr<http_response> file_utils::parse_server_avatar(const http_request& req, std::string arg_name,
@@ -68,9 +79,7 @@ std::shared_ptr<http_response> file_utils::parse_server_avatar(const http_reques
 	std::string ext = get_image_ext(fraw);
 	if(!ext.size())
 		return create_response::string(req, "Image has invalid format", 400);
-	out_fname = std::to_string(id) + "." + ext;
-	save_file(fraw, server_avatar_storage_path + out_fname);
-	
+	save_file_aliased(fraw, server_avatar_storage_path, ext, id, out_fname);
 	return nullptr;
 }
 

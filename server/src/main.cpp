@@ -63,7 +63,7 @@ int main()
 	auth.cleanup_period = cfg.cleanup_period;
 	auth.sessions_per_user = cfg.sessions_per_user;
 	ws.register_resource("/auth", &auth);
-	register_resource _register(pool);
+	register_resource _register(pool, sserv);
 	_register.min_username_length = cfg.min_username_length;
 	_register.min_password_length = cfg.min_password_length;
 	ws.register_resource("/register", &_register);
