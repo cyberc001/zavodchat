@@ -17,7 +17,7 @@
 							username: "", password: "", password_repeat: ""});
 
 	let profile_avatar_picker = $state();
-	let profile_avatar_url = $state(User.get_avatar_path(self_user));
+	let profile_avatar_url = $state("");
 	let profile_passwords_match = $derived(state_profile.state.password === state_profile.state.password_repeat);
 
 	$effect(() => {
@@ -25,11 +25,10 @@
 	});
 
 	$effect(() => {
-		profile_avatar_url = User.get_avatar_path(self_user);
-	});
-
-	User.get_nocache(-1, (u) => {
-		state_profile.set_all_states("displayname", u.name);
+		if(self_user.name){
+			profile_avatar_url = User.get_avatar_path(self_user);
+			state_profile.set_all_states("displayname", self_user.name);
+		}
 	});
 
 	export function tabs() {

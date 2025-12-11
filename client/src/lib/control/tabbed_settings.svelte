@@ -2,7 +2,7 @@
 	import SettingsTabState from "$lib/control/settings_tab_state.svelte.js";
 	import Button from "$lib/control/settings/button.svelte";
 
-	let {tabs, close_settings} = $props();
+	let {tabs, params, close_settings} = $props();
 
 	let sel_tab = $state(0);
 </script>
@@ -22,7 +22,7 @@
 		{/each}
 	</div>
 	<div class="tabbed_settings_tab">
-		<div>{@render tabs[sel_tab].render()}</div>
+		<div>{@render tabs[sel_tab].render(params)}</div>
 		{#if tabs[sel_tab].state.changes === SettingsTabState.ChangesState.HasChanges
 			|| tabs[sel_tab].state.changes === SettingsTabState.ChangesState.Invalid}
 			<div class="tabbed_settings_actions">

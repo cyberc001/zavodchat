@@ -47,7 +47,8 @@ export default class Rest {
 	{
 		let query = "";
 		for(let i = 0; i < params.length; i += 2)
-			query += (i == 0 ? "?" : "&") + params[i] + "=" + params[i+1];
+			if(typeof params[i + 1] !== "undefined")
+				query += (i == 0 ? "?" : "&") + params[i] + "=" + params[i + 1];
 		return query;
 	}
 	static get_headers(params)

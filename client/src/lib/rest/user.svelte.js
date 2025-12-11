@@ -24,7 +24,7 @@ export default class User {
 				user_data[f] = data[f];
 		}
 
-		if(!User.user_cache.cache.hasOwnProperty(user_id))
+		if(!User.user_cache.has_state(user_id))
 			return;
 
 		let user_data = User.user_cache.get_state(user_id);
@@ -97,6 +97,8 @@ export default class User {
 	}
 
 	static get_avatar_path(usr){
+		if(typeof usr.avatar === "undefined")
+			return "/src/lib/assets/default_avatar.png";
 		return Rest.get_base_url() + "files/avatar/user/" + usr.avatar;
 	}
 

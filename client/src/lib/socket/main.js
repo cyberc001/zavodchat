@@ -1,6 +1,7 @@
 import { DataRange } from "$lib/cache/range.svelte.js";
 import Message from "$lib/rest/message.js";
 import User from "$lib/rest/user.svelte.js";
+import Server from "$lib/rest/server.js";
 
 export default class MainSocket {
 	static host = "wss://127.0.0.1:444";
@@ -32,6 +33,16 @@ export default class MainSocket {
 					dat[key] = data[key];
 
 			User.update_cache(data.id, dat);
+		},
+
+		server_edited: function(data) {
+			const allowed_fields = ["name", "avatar"];
+			let dat = {};
+			for(const key of allowed_fields)
+				if(data.hasOwnProperty(key))
+					dat[key] = data[key];
+
+			Server.update_cache(data.id, dat);
 		}
 	};
 

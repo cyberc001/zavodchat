@@ -8,8 +8,11 @@
 	import MainSocket from '$lib/socket/main.js';
 
 	import TabbedSettings from '$lib/control/tabbed_settings.svelte';
+	let settings_params = $state({});
 	import SettingsUser from '$lib/settings/user.svelte';
 	let settings_user = $state();
+	import SettingsServer from '$lib/settings/server.svelte';
+	let settings_server = $state();
 
 	import PaginatedList from '$lib/display/paginated_list.svelte';
 	import UserDisplay from '$lib/display/user.svelte';
@@ -97,6 +100,10 @@
 				msg.status = Message.Status.Deleting;
 				Message.delete(sel.server, sel.channel, msg.id,
 						() => {}, setError);
+			    }}],
+
+		"server": [{text: "Settings", icon: "settings.svg", func: () => {
+				sel.settings_tabs = settings_server.tabs();
 			    }}]
 	};
 
@@ -178,6 +185,8 @@
 
 
 <SettingsUser bind:this={settings_user}/>
+<SettingsServer bind:this={settings_server} server_id={settings_params.server_id}/>
+
 {#if sel.settings_tabs}
 
 <div style="padding: 16px; height: 100%">
@@ -193,7 +202,14 @@
 					<img src="$lib/assets/icons/loading.svg" alt="loading" class="filter_icon_main" style="width: 48px"/>
 					{:else}
 					{#each servers as srv}
-						<button class={"item hoverable sidebar_server" + (sel.server == srv.id ? " selected" : "")} onclick={() => showServer(srv.id)}>
+						<button class={"item hoverable sidebar_server" + (sel.server == srv.id ? " selected" : "")}
+							onclick={() => showServer(srv.id)}
+							oncontextmenu={(e) => {
+								event.preventDefault();
+								settings_params.server_id = srv.id;
+								showCtxMenu([e.clientX, e.clientY], "server");
+							}}
+						>
 						{#if srv.avatar === undefined}
 						<div style="padding:4px;"><div class="sidebar_server_el">{srv.name}</div></div>
 						{:else}

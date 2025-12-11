@@ -112,6 +112,7 @@ div.sidebar_server_el {
 img.sidebar_server_el {
 	width: 100%;
 	height: 100%;
+	border-radius: 4px;
 }
 
 .sidebar_channels {
