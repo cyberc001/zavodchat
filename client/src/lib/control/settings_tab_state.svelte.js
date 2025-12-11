@@ -1,4 +1,4 @@
-export default class {
+export default class SettingsTabState {
 	state = $state({});
 	default_state = $state({});
 
@@ -7,12 +7,14 @@ export default class {
 			this.default_state[key] = this.state[key] = _default_state[key];
 	}
 
-
-	has_changes = $derived.by(() => {
+	changes_override = $state(SettingsTabState.ChangesState.Inherit);
+	changes = $derived.by(() => {
+		if(this.changes_override !== SettingsTabState.ChangesState.Inherit)
+			return this.changes_override;
 		for(const key of Object.keys(this.state))
 			if(this.state[key] !== this.default_state[key])
-				return true;
-		return false;
+				return SettingsTabState.ChangesState.HasChanges;
+		return SettingsTabState.ChangesState.NoChanges;
 	});
 
 	is_changed(key){
@@ -37,5 +39,13 @@ export default class {
 
 	set_all_states(key, value){
 		this.state[key] = this.default_state[key] = value;
+	}
+
+
+	static ChangesState = {
+		Inherit: 0,
+		Invalid: 1,
+		HasChanges: 2,
+		NoChanges: 3
 	}
 }

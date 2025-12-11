@@ -92,6 +92,7 @@
 
 .user_avatar_frame {
 	position: relative;
+	min-width: 32px;
 	width: 32px;
 	height: 32px;
 
@@ -116,7 +117,7 @@
 }
 
 .user_role_list {
-	width: 177px; /* FIXME */
+	width: 100%;
 	display: flex;
 	flex-wrap: wrap;
 }

@@ -1,6 +1,7 @@
 :root {
 	--clr_text: #F6F5F5;
 	--clr_text_secondary: #988888;
+	--clr_text_error: #FF5A5A;
 
 	--clr_bg_panel: #342A2E;
 	--clr_bg_item: #231D1F;
@@ -148,6 +149,7 @@ img.sidebar_server_el {
 	border-style: none none none solid;
 
 	width: 256px;
+	min-width: 256px;
 }
 .sidebar_user_display {
 	padding: 3px 6px 3px 6px;

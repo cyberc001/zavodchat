@@ -1,6 +1,9 @@
 <script>
 	let {display_url = $bindable(""), file = $bindable()} = $props();
 
+	import Button from "$lib/control/settings/button.svelte";
+
+	let file_picker = $state();
 	let value = $state("");
 	let files = $state();
 	$effect(() => {
@@ -14,10 +17,6 @@
 		}
 	});
 
-	$effect(() => {
-		console.log("display_url", display_url);
-	});
-
 	export function reset(){
 		value = "";
 		display_url = "";
@@ -26,14 +25,25 @@
 
 <div class="avatar_picker_frame">
 	<img src={display_url} class="avatar_picker_img"/>
-	<input type="file" bind:files bind:value/>
+	<input style="display: none" type="file" accept=".png,.jpg,.bmp"
+		bind:this={file_picker} bind:files bind:value/>
+	<Button text="Choose file" onclick={() => file_picker.click()}/>
 </div>
 
 <style>
 .avatar_picker_frame {
-	
+	display: flex;
+	flex-direction: column;
+
+	width: 132px;
 }
 .avatar_picker_img {
-	width: 64px;
+	width: 128px;
+
+	margin-bottom: 4px;
+
+	border-width: 2px;
+	border-style: solid;
+	border-color: var(--clr_border);
 }
 </style>

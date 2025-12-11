@@ -1,8 +1,8 @@
 <script>
-	const {text, onclick} = $props();
+	const {text, onclick, disabled = false} = $props();
 </script>
 
-<button class="settings_button" onclick={onclick}>{text}</button>
+<button class="settings_button" onclick={onclick} {disabled}>{text}</button>
 
 <style>
 .settings_button {
@@ -16,6 +16,12 @@
 	border-style: solid;
 	border-radius: 4px;
 }
+
+.settings_button:disabled {
+	background: var(--clr_bg_panel);
+	pointer-events: none;
+}
+
 .settings_button:focus {
 	outline: none;
 	border-color: var(--clr_border_focus);

@@ -28,26 +28,35 @@
 				<img class="user_avatar" src="$lib/assets/default_avatar.png" alt="avatar"/>
 			{/if}
 		</div>
-		<b style={Role.get_username_style(user_roles)}>{user?.name}</b>
+		<b class="user_name_text" style={Role.get_username_style(user_roles)}>{user?.name}</b>
 	{/if}
 </button>
 
 <style>
+
 .user_display {
 	position: relative;
 	display: flex;
 	align-items: center;
+	height: auto;
 
 	margin-bottom: 6px;
 
 	border-style: none;
 	background: transparent;
 	color: var(--clr_text);
-	font-size: 24px;
+	font-size: 22px;
 }
+.user_name_text {
+	white-space: nowrap;
+	overflow-x: hidden;
+	text-overflow: ellipsis;
+}
+
 .user_avatar_frame {
 	position: relative;
 	width: 32px;
+	min-width: 32px;
 	height: 32px;
 
 	border-radius: 4px;

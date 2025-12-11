@@ -1,4 +1,5 @@
 <script>
+	import SettingsTabState from "$lib/control/settings_tab_state.svelte.js";
 	import Button from "$lib/control/settings/button.svelte";
 
 	let {tabs, close_settings} = $props();
@@ -22,9 +23,10 @@
 	</div>
 	<div class="tabbed_settings_tab">
 		<div>{@render tabs[sel_tab].render()}</div>
-		{#if tabs[sel_tab].state.has_changes}
+		{#if tabs[sel_tab].state.changes === SettingsTabState.ChangesState.HasChanges
+			|| tabs[sel_tab].state.changes === SettingsTabState.ChangesState.Invalid}
 			<div class="tabbed_settings_actions">
-				<Button text="Apply changes" onclick={tabs[sel_tab].apply_changes}/>
+				<Button text="Apply changes" onclick={tabs[sel_tab].apply_changes} disabled={tabs[sel_tab].state.changes === SettingsTabState.ChangesState.Invalid}/>
 				<Button text="Discard changes" onclick={() => tabs[sel_tab].state.discard_changes()}/>
 			</div>
 		{/if}
@@ -51,7 +53,7 @@
 .tabbed_settings_tab {
 	position: relative;
 
-	width: 90%;
+	width: 85%;
 	padding: 16px;
 }
 
@@ -60,7 +62,7 @@
 	border-color: var(--clr_border);
 	border-width: 2px;
 
-	width: 10%;
+	width: 15%;
 }
 
 .tabbed_settings_actions {
@@ -68,5 +70,10 @@
 	bottom: 0%;
 
 	margin-bottom: 32px;
+	padding: 8px;
+
+	border-style: solid;
+	border-width: 2px;
+	border-color: var(--clr_border);
 }
 </style>

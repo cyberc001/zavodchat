@@ -1,23 +1,25 @@
 <script>
-	let {label_text, is_password = false, value = $bindable("")} = $props();
+	let {label_text, error = "",
+		is_password = false, value = $bindable("")} = $props();
 </script>
 
 <div class="settings_textbox_frame">
 	<p class="settings_textbox_label">{label_text}</p>
 	<input autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" type={is_password ? "password" : "input"} class="settings_textbox" bind:value={value}/>
+	<p class="settings_textbox_label" style="color: var(--clr_text_error)">{error}</p>
 </div>
 
 <style>
 .settings_textbox_frame {
 	display: flex;
 	flex-direction: column;
+	margin-bottom: 12px;
 }
 .settings_textbox {
 	font-size: 20px;
-	color: #F6F5F5;
+	color: var(--clr_text);
 
-	width: 512px;
-	margin-bottom: 12px;
+	width: var(--width, 512px);
 
 	background: var(--clr_bg_item);
 
