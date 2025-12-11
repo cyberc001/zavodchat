@@ -1,5 +1,6 @@
 let route = "servers";
 import Rest from "$lib/rest";
+import Util from "$lib/util";
 import IdCache from "$lib/cache/id.svelte.js";
 import ListCache from "$lib/cache/list.svelte.js";
 
@@ -27,12 +28,9 @@ export default class Server {
 		});
 	}
 	static change(server_id, data, _then, _catch){
-		let fd = new FormData();
-		const allowed_properties = ["name", "owner_id", "avatar"];
-		for(const key of allowed_properties)
-			if(data.hasOwnProperty(key))
-				fd.append(key, data[key]);
-		Rest.put(Rest.get_route_scm(server_id), fd, (res) => _then(res.data), _catch);
+		Rest.put(Rest.get_route_scm(server_id),
+			Util.form_data_from_object(data, ["name", "owner_id", "avatar"]),
+			(res) => _then(res.data), _catch);
 	}
 
 	static get_list(_catch){

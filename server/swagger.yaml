@@ -158,24 +158,21 @@ paths:
       summary: Изменить параметры сервера
       parameters:
         - $ref: "#/parameters/zavodchat_token"
-        - name: name
-          in: query
-          description: Имя сервера
-          schema:
-            type: string
-            example: testuser
-        - name: owner_id
-          in: query
-          description: ID нового владельца сервера
-          schema:
-            type: integer
-            example: 33
-        - name: avatar
-          in: query
-          description: Аватар сервера
-          schema:
-            type: string
-            format: binary
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              properties:
+                name:
+                  type: string
+                  example: настоящие поцыки
+                owner_id:
+                  type: int
+                  example: 401
+                avatar:
+                  type: string
+                  format: binary
+                  example: (Любой поддерживаемый формат изображений)
       responses:
         '200':
           description: Сервер успешно изменён
@@ -183,7 +180,7 @@ paths:
           description: Пользователь с owner_id уже является владельцем сервера
         '400':
           description: Слишком длинное название сервера
-        '403':
+        '404':
           description: Пользователь с owner_id не состоит на сервере
     delete:
       summary: Удалить сервер

@@ -17,7 +17,7 @@
 	});
 
 	// General
-	let state_general = new SettingsTabState({name: "", avatar_file: null});
+	let state_general = new SettingsTabState({name: "", avatar: null});
 
 	let server_avatar_picker = $state();
 	let server_avatar_url = $state("");
@@ -33,12 +33,7 @@
 		return [
 			{ name: "General", render: general, state: state_general,
 				apply_changes: () => {
-					let query = {};
-					if(state_general.is_changed("name"))
-						query.name = state_general.state.name;
-					if(state_general.is_changed("avatar_file"))
-						query.avatar = state_general.state.avatar_file;
-					Server.change(server_id, query,
+					Server.change(server_id, state_general.get_dict_of_changes(),
 						() => state_general.apply_changes(),
 						() => state_general.discard_changes());
 				},
@@ -52,7 +47,7 @@
 <Group name="Profile settings">
 	<div style="display: flex">
 		<AvatarPicker bind:this={server_avatar_picker}
-		bind:file={state_general.state.avatar_file}
+		bind:file={state_general.state.avatar}
 			bind:display_url={server_avatar_url}
 		/>
 		<div style="margin-left: 16px"></div>

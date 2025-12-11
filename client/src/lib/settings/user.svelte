@@ -13,7 +13,7 @@
 	let self_user = User.get(-1);
 
 	// Profile
-	let state_profile = new SettingsTabState({displayname: "", avatar_file: null,
+	let state_profile = new SettingsTabState({displayname: "", avatar: null,
 							username: "", password: "", password_repeat: ""});
 
 	let profile_avatar_picker = $state();
@@ -38,16 +38,7 @@
 					if(!profile_passwords_match)
 						return;
 
-					let req_body = {};
-					if(state_profile.is_changed("displayname"))
-						req_body.displayname = state_profile.state.displayname;
-					if(state_profile.is_changed("username"))
-						req_body.username = state_profile.state.username;
-					if(state_profile.is_changed("password"))
-						req_body.password = state_profile.state.password;
-					if(state_profile.is_changed("avatar_file"))
-						req_body.avatar = state_profile.state.avatar_file;
-					Auth.change_user_data(req_body,
+					Auth.change_user_data(state_profile.get_dict_of_changes(),
 						() => {
 							state_profile.discard_changes(["username", "password"]);
 							state_profile.apply_changes();
@@ -64,7 +55,7 @@
 <Group name="Profile settings">
 	<div style="display: flex">
 		<AvatarPicker bind:this={profile_avatar_picker}
-		bind:file={state_profile.state.avatar_file}
+		bind:file={state_profile.state.avatar}
 			bind:display_url={profile_avatar_url}
 		/>
 		<div style="margin-left: 16px"></div>

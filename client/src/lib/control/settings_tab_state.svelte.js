@@ -20,6 +20,13 @@ export default class SettingsTabState {
 	is_changed(key){
 		return this.state[key] !== this.default_state[key];
 	}
+	get_dict_of_changes(allowed){
+		let dict = {};
+		for(const key in (typeof allowed === "undefined" ? this.state : allowed))
+			if(this.is_changed(key))
+				dict[key] = this.state[key];
+		return dict;
+	}
 
 	apply_changes(){
 		for(const key of Object.keys(this.state))
