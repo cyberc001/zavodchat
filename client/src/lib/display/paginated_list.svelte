@@ -102,14 +102,10 @@
 		));
  
 	const goto_latest = () => {
-		if(index == 0){
-			list_div.scrollTop = 0;
-			scrollTop = list_div.scrollTop;
-			return;
-		}
-
 		keep_scroll_pos = false;
 		index = 0;
+		list_div.scrollTop = 0;
+		scrollTop = list_div.scrollTop;
 	};
 </script>
 
