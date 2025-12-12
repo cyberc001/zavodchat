@@ -19,7 +19,6 @@
 	// General
 	let state_general = new SettingsTabState({name: "", avatar: null});
 
-	let server_avatar_picker = $state();
 	let server_avatar_url = $state("");
 
 	$effect(() => {
@@ -46,9 +45,9 @@
 {#snippet general(p)}
 <Group name="Profile settings">
 	<div style="display: flex">
-		<AvatarPicker bind:this={server_avatar_picker}
+		<AvatarPicker
 		bind:file={state_general.state.avatar}
-			bind:display_url={server_avatar_url}
+		bind:display_url={server_avatar_url}
 		/>
 		<div style="margin-left: 16px"></div>
 	<Textbox label_text="Server name" bind:value={state_general.state.name} --width="363px"/>

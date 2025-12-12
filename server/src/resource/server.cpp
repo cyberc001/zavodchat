@@ -54,6 +54,16 @@ std::shared_ptr<http_response> server_resource::render_POST(const http_request& 
 	} catch(pqxx::data_exception& e){
 		return create_response::string(req, "Server name is too long", 400);
 	}
+
+	auto args = req.get_args();
+	if(args.find(std::string_view("avatar")) != args.end()){
+		std::string fname;
+		err = file_utils::parse_server_avatar(req, "avatar", server_id, fname);
+		if(err)
+			return err;
+		tx.exec("UPDATE servers SET avatar = $1 WHERE server_id = $2", pqxx::params(fname, server_id));
+	}
+
 	tx.commit();
 
 	return create_response::string(req, std::to_string(server_id), 200);
@@ -130,7 +140,7 @@ std::shared_ptr<http_response> server_id_resource::render_PUT(const http_request
 	}
 	if(args.find(std::string_view("avatar")) != args.end()){
 		std::string fname;
-		err = file_utils::parse_server_avatar(req, "avatar", user_id, fname);
+		err = file_utils::parse_server_avatar(req, "avatar", server_id, fname);
 		if(err)
 			return err;
 		tx.exec("UPDATE servers SET avatar = $1 WHERE server_id = $2", pqxx::params(fname, server_id));

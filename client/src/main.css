@@ -75,8 +75,17 @@ body {
 	align-items: center;
 
 	border-style: none solid none none;
-	width: 58px;
+	box-sizing: border-box;
+
+	width: 64px;
+	height: -webkit-fill-available;
 	padding: 6px;
+}
+.sidebar_server_actions {
+	box-sizing: border-box;
+	width: 64px;
+	height: 64px;
+	border-style: solid solid none solid;
 }
 
 .sidebar_server {

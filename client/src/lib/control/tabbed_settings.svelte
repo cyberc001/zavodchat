@@ -23,18 +23,34 @@
 	</div>
 	<div class="tabbed_settings_tab">
 		<div>{@render tabs[sel_tab].render(params)}</div>
-		{#if tabs[sel_tab].state.changes === SettingsTabState.ChangesState.HasChanges
-			|| tabs[sel_tab].state.changes === SettingsTabState.ChangesState.Invalid}
+
+		{#if tabs[sel_tab].state.constructor.name === "SettingsTabState"}
+			{#if tabs[sel_tab].state.changes === SettingsTabState.ChangesState.HasChanges
+				|| tabs[sel_tab].state.changes === SettingsTabState.ChangesState.Invalid}
+				<div class="tabbed_settings_actions">
+					<Button text="Apply changes" onclick={tabs[sel_tab].apply_changes} disabled={tabs[sel_tab].state.changes === SettingsTabState.ChangesState.Invalid}/>
+					<Button text="Discard changes" onclick={() => tabs[sel_tab].state.discard_changes()}/>
+				</div>
+			{/if}
+		{:else}
 			<div class="tabbed_settings_actions">
-				<Button text="Apply changes" onclick={tabs[sel_tab].apply_changes} disabled={tabs[sel_tab].state.changes === SettingsTabState.ChangesState.Invalid}/>
-				<Button text="Discard changes" onclick={() => tabs[sel_tab].state.discard_changes()}/>
+				<Button text="Create"
+				onclick={() => tabs[sel_tab].create(() => {
+					tabs[sel_tab].state.reset();
+					close_settings();
+				})}
+				disabled={!tabs[sel_tab].state.valid}/>
 			</div>
 		{/if}
 	</div>
 	<div>
 		<button
 		class="hoverable transparent_button"
-		onclick={close_settings}
+		onclick={() => {
+			if(tabs[sel_tab].state.constructor.name !== "SettingsTabState")
+				tabs[sel_tab].state.reset();
+			close_settings();
+		}}
 		>
 			<img src="$lib/assets/icons/close.svg" alt="close settings" class="filter_icon_main" style="width: 32px"/>
 		</button>

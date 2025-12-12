@@ -16,6 +16,9 @@
 	import SettingsChannel from '$lib/settings/channel.svelte';
 	let settings_channel = $state();
 
+	import CreateServer from '$lib/settings/create_server.svelte';
+	let create_server = $state();
+
 	import PaginatedList from '$lib/display/paginated_list.svelte';
 	import UserDisplay from '$lib/display/user.svelte';
 	import UserProfileDisplay from '$lib/display/user_profile.svelte';
@@ -194,6 +197,8 @@
 <SettingsServer bind:this={settings_server} server_id={settings_params.server_id}/>
 <SettingsChannel bind:this={settings_channel} server_id={sel.server} channel_id={settings_params.channel_id}/>
 
+<CreateServer bind:this={create_server}/>
+
 {#if sel.settings_tabs}
 
 <div style="padding: 16px; height: 100%">
@@ -204,28 +209,38 @@
 	<div class="main">
 		<div style="height: 100%; margin-left: 16px">
 			<div style="display: flex; height: 90%">
-				<div class="panel sidebar_servers">
-					{#if servers.loading}
-					<img src="$lib/assets/icons/loading.svg" alt="loading" class="filter_icon_main" style="width: 48px"/>
-					{:else}
-					{#each servers as srv}
-						<button class={"item hoverable sidebar_server" + (sel.server == srv.id ? " selected" : "")}
-							onclick={() => showServer(srv.id)}
-							oncontextmenu={(e) => {
-								event.preventDefault();
-								settings_params.server_id = srv.id;
-								showCtxMenu([e.clientX, e.clientY], "server");
-							}}
-						>
-						{#if srv.avatar === undefined}
-						<div style="padding:4px;"><div class="sidebar_server_el">{srv.name}</div></div>
+				<div style="display: flex; flex-direction: column">
+					<div class="panel sidebar_servers">
+						{#if servers.loading}
+						<img src="$lib/assets/icons/loading.svg" alt="loading" class="filter_icon_main" style="width: 48px"/>
 						{:else}
-						<img class="sidebar_server_el" alt={srv.name} src={Server.get_avatar_path(srv)}/>
+						{#each servers as srv}
+							<button class={"item hoverable sidebar_server" + (sel.server == srv.id ? " selected" : "")}
+								onclick={() => showServer(srv.id)}
+								oncontextmenu={(e) => {
+									event.preventDefault();
+									settings_params.server_id = srv.id;
+									showCtxMenu([e.clientX, e.clientY], "server");
+								}}
+							>
+							{#if srv.avatar === undefined}
+							<div style="padding:4px;"><div class="sidebar_server_el">{srv.name}</div></div>
+							{:else}
+							<img class="sidebar_server_el" alt={srv.name} src={Server.get_avatar_path(srv)}/>
+							{/if}
+							</button>
+						{/each}
 						{/if}
+					</div>
+					<div class="panel sidebar_servers sidebar_server_actions">
+						<button class={"item hoverable sidebar_server"}
+							onclick={() => sel.settings_tabs = create_server.tabs()}
+						>
+						<img src="$lib/assets/icons/add.svg" alt="create server" class="filter_icon_main" style="width: 40px"/>
 						</button>
-					{/each}
-					{/if}
+					</div>
 				</div>
+
 				<div class="panel sidebar_channels">
 					{#if channels.loading}
 						<div style="text-align: center; margin-top: 6px">

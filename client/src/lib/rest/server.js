@@ -27,6 +27,11 @@ export default class Server {
 				_catch);
 		});
 	}
+	static create(data, _then, _catch){
+		Rest.post(Rest.get_route_scm(""),
+				Util.form_data_from_object(data, ["name", "avatar"]),
+				(res) => _then(res.data), _catch);
+	}
 	static change(server_id, data, _then, _catch){
 		Rest.put(Rest.get_route_scm(server_id),
 			Util.form_data_from_object(data, ["name", "owner_id", "avatar"]),
@@ -47,6 +52,8 @@ export default class Server {
 	static get_avatar_path(srv){
 		if(typeof srv.avatar === "undefined")
 			return "/src/lib/assets/default_avatar.png";
+		if(srv.avatar.startsWith("data:image"))
+			return srv.avatar;
 		return Rest.get_base_url() + "files/avatar/server/" + srv.avatar;
 	}
 }
