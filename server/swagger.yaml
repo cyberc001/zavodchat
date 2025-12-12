@@ -127,13 +127,18 @@ paths:
       summary: Создать сервер
       parameters:
         - $ref: "#/parameters/zavodchat_token"
-        - name: name
-          in: query
-          required: true
-          description: Имя сервера
-          schema:
-            type: string
-            example: Зона
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              properties:
+                name:
+                  type: string
+                  example: КЛУБ ВЕСЁЛЫХ И НАХОДЧИВЫХ
+                avatar:
+                  type: string
+                  format: binary
+                  example: (Любой поддерживаемый формат изображений)
       responses:
         '200':
           description: server_id созданного сервера
@@ -256,18 +261,17 @@ paths:
       summary: Создать канал
       parameters:
         - $ref: "#/parameters/zavodchat_token"
-        - name: name
-          in: query
-          description: Имя канала
-          schema:
-            type: string
-            example: posidelki
-        - name: type
-          in: query
-          description: 0 - текстовый, 1 - голосовой
-          schema:
-            type: integer
-            example: 0
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              properties:
+                name:
+                  type: string
+                  example: тексты весёлых лет
+                type:
+                  type: integer
+                  example: 0
       responses:
         '200':
           description: channel_id созданного канала
@@ -292,18 +296,17 @@ paths:
       summary: Изменить параметры канала
       parameters:
         - $ref: "#/parameters/zavodchat_token"
-        - name: name
-          in: query
-          description: Имя канала
-          schema:
-            type: string
-            example: posidelki_radio
-        - name: type
-          in: query
-          description: 0 - текстовый, 1 - голосовой
-          schema:
-            type: integer
-            example: 1
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              properties:
+                name:
+                  type: string
+                  example: радио судного дня
+                type:
+                  type: integer
+                  example: 1
       responses:
         '200':
           description: Параметры успешно изменены
