@@ -31,6 +31,7 @@
 </div>
 
 <style>
+@import "style.css";
 .avatar_picker_frame {
 	display: flex;
 	flex-direction: column;
