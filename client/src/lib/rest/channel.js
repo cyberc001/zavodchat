@@ -7,6 +7,10 @@ export default class Channel {
 	static channel_cache = new IDCache();
 	static channel_list_cache = new ListCache();
 
+	static add_channel_to_cache(server_id, data){
+		if(Channel.channel_list_cache.has_state(server_id))
+			Channel.channel_list_cache.get_state(server_id).push(data);
+	}
 	static update_cache(server_id, channel_id, data){
 		if(Channel.channel_cache.has_state([server_id, channel_id])){
 			let channel_data = Channel.channel_cache.get_state([server_id, channel_id]);
@@ -29,10 +33,15 @@ export default class Channel {
 				_catch);
 		});
 	}
+	static create(server_id, data, _then, _catch){
+		Rest.post(Rest.get_route_scm(server_id, ""),
+				Util.form_data_from_object(data, ["name", "type"]),
+				(res) => _then(res.data), _catch);
+	}
 	static change(server_id, channel_id, data, _then, _catch){
 		Rest.put(Rest.get_route_scm(server_id, channel_id),
-			Util.form_data_from_object(data, ["name", "type"]),
-			(res) => _then(res.data), _catch);
+				Util.form_data_from_object(data, ["name", "type"]),
+				(res) => _then(res.data), _catch);
 	}
 
 	static get_list(server_id, _catch){

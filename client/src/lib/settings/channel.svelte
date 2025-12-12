@@ -12,8 +12,7 @@
 
 	let channel = $state({});
 	$effect(() => {
-		if(channel_id)
-			channel = Channel.get(server_id, channel_id);
+		channel = channel_id ? Channel.get(server_id, channel_id) : {};
 	});
 
 	// General
@@ -23,6 +22,9 @@
 		if(channel.name){
 			state_general.set_all_states("name", channel.name);
 			state_general.set_all_states("type", channel.type);
+		} else {
+			state_general.set_all_states("name", "");
+			state_general.set_all_states("type", Channel.Type.Text);
 		}
 	});
 
@@ -41,7 +43,7 @@
 	}
 </script>
 
-{#snippet general(p)}
+{#snippet general()}
 <Group name="General settings">
 	<Textbox label_text="Channel name" bind:value={state_general.state.name}/>
 	<Select label_text="Channel type" bind:value={state_general.state.type}

@@ -82,10 +82,7 @@ body {
 	padding: 6px;
 }
 .sidebar_server_actions {
-	box-sizing: border-box;
-	width: 64px;
 	height: 64px;
-	border-style: solid solid none solid;
 }
 
 .sidebar_server {
@@ -126,8 +123,13 @@ img.sidebar_server_el {
 
 .sidebar_channels {
 	width: 256px;
+	height: -webkit-fill-available;
 	border-style: none solid none none;
 }
+.sidebar_channel_actions {
+	height: 32px;
+}
+
 .sidebar_channel_el {
 	border-style: none none solid none;
 

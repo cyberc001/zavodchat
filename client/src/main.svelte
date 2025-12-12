@@ -18,6 +18,8 @@
 
 	import CreateServer from '$lib/settings/create_server.svelte';
 	let create_server = $state();
+	import CreateChannel from '$lib/settings/create_channel.svelte';
+	let create_channel = $state();
 
 	import PaginatedList from '$lib/display/paginated_list.svelte';
 	import UserDisplay from '$lib/display/user.svelte';
@@ -39,7 +41,7 @@
 	// Backend data
 	let user_self = User.get(-1, setError);	
 	let servers = Server.get_list(setError);
-	let channels = $state({});
+	let channels = $state([]);
 	let roles = $state({});
 
 	const getUserRoles = (user) => {
@@ -140,12 +142,14 @@
 	const showServer = (id) => {
 		sel.server = id;
 		sel.channel = -1;
+		settings_params = {};
 		channels = Channel.get_list(id, setError);
 	};
 
 	const showChannel = (id) => {
 		showUser(-1, -1);
 		sel.channel = id;
+		settings_params = {};
 	};
 
 	let profile_display_user = $state();
@@ -198,6 +202,7 @@
 <SettingsChannel bind:this={settings_channel} server_id={sel.server} channel_id={settings_params.channel_id}/>
 
 <CreateServer bind:this={create_server}/>
+<CreateChannel bind:this={create_channel} server_id={sel.server}/>
 
 {#if sel.settings_tabs}
 
@@ -241,34 +246,48 @@
 					</div>
 				</div>
 
-				<div class="panel sidebar_channels">
-					{#if channels.loading}
-						<div style="text-align: center; margin-top: 6px">
-						<img src="$lib/assets/icons/loading.svg" alt="loading" class="filter_icon_main" style="width: 48px"/>
-					</div>
-					{:else}
-					{#each channels as ch}
-						<div>
-							<button
-								class={"item hoverable transparent_button sidebar_channel_el" + (sel.channel == ch.id ? " selected" : "")}
-							onclick={() => showChannel(ch.id)}
-							oncontextmenu={(e) => {
-								event.preventDefault();
-								settings_params.channel_id = ch.id;
-								showCtxMenu([e.clientX, e.clientY], "channel");
-							}}
-							>
-								{#if ch.type === 1}
-								<img src="$lib/assets/icons/channel_vc.svg" alt="voice" class="filter_icon_main sidebar_channel_el_icon"/>
-								{:else}
-								<img src="$lib/assets/icons/channel_text.svg" alt="text" class="filter_icon_main sidebar_channel_el_icon"/>
-								{/if}
-								{ch.name}
-							</button>
+				<div style="display: flex; flex-direction: column">
+					<div class="panel sidebar_channels">
+						{#if channels.loading}
+							<div style="text-align: center; margin-top: 6px">
+							<img src="$lib/assets/icons/loading.svg" alt="loading" class="filter_icon_main" style="width: 48px"/>
 						</div>
-					{/each}
+						{:else}
+						{#each channels as ch}
+							<div>
+								<button
+								class={"item hoverable transparent_button sidebar_channel_el" + (sel.channel == ch.id ? " selected" : "")}
+								onclick={() => showChannel(ch.id)}
+								oncontextmenu={(e) => {
+									event.preventDefault();
+									settings_params.channel_id = ch.id;
+									showCtxMenu([e.clientX, e.clientY], "channel");
+								}}
+								>
+									{#if ch.type === 1}
+									<img src="$lib/assets/icons/channel_vc.svg" alt="voice" class="filter_icon_main sidebar_channel_el_icon"/>
+									{:else}
+									<img src="$lib/assets/icons/channel_text.svg" alt="text" class="filter_icon_main sidebar_channel_el_icon"/>
+									{/if}
+									{ch.name}
+								</button>
+							</div>
+						{/each}
+						{/if}
+					</div>
+					{#if typeof channels.loading !== "undefined" && !channels.loading}
+					<div class="panel sidebar_channels sidebar_channel_actions">
+						<button
+						class="item hoverable transparent_button sidebar_channel_el"
+						style="border-style: solid none none none"
+						onclick={() => sel.settings_tabs = create_channel.tabs()}
+						>
+							<img src="$lib/assets/icons/add.svg" alt="add channel" class="filter_icon_main sidebar_channel_el_icon"/>
+							Add channel
+						</button>
+					</div>
 					{/if}
-			</div>
+				</div>
 		</div>
 
 		<div class="panel profile_panel">

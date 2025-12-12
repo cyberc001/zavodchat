@@ -12,8 +12,7 @@
 
 	let server = $state({});
 	$effect(() => {
-		if(server_id)
-			server = Server.get(server_id);
+		server = server_id ? Server.get(server_id) : {};
 	});
 
 	// General
@@ -25,6 +24,9 @@
 		if(server.name){
 			server_avatar_url = Server.get_avatar_path(server);
 			state_general.set_all_states("name", server.name);
+		} else {
+			server_avatar_url = "";
+			state_general.set_all_states("name", "");
 		}
 	});
 

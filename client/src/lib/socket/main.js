@@ -35,6 +35,9 @@ export default class MainSocket {
 			Server.update_cache(data.id, Util.object_from_object(data, ["name", "avatar"]));
 		},
 
+		channel_created: function(data) {
+			Channel.add_channel_to_cache(data.server_id, Util.object_from_object(data, ["name", "type"]));
+		},
 		channel_edited: function(data) {
 			Channel.update_cache(data.server_id, data.id, Util.object_from_object(data, ["name", "type"]));
 		}
