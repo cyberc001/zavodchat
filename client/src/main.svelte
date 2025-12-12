@@ -13,6 +13,8 @@
 	let settings_user = $state();
 	import SettingsServer from '$lib/settings/server.svelte';
 	let settings_server = $state();
+	import SettingsChannel from '$lib/settings/channel.svelte';
+	let settings_channel = $state();
 
 	import PaginatedList from '$lib/display/paginated_list.svelte';
 	import UserDisplay from '$lib/display/user.svelte';
@@ -104,7 +106,11 @@
 
 		"server": [{text: "Settings", icon: "settings.svg", func: () => {
 				sel.settings_tabs = settings_server.tabs();
-			    }}]
+			    }}],
+
+		"channel": [{text: "Settings", icon: "settings.svg", func: () => {
+				sel.settings_tabs = settings_channel.tabs();
+			    }}],
 	};
 
 	let ctx_menu_params = $state({
@@ -186,6 +192,7 @@
 
 <SettingsUser bind:this={settings_user}/>
 <SettingsServer bind:this={settings_server} server_id={settings_params.server_id}/>
+<SettingsChannel bind:this={settings_channel} server_id={sel.server} channel_id={settings_params.channel_id}/>
 
 {#if sel.settings_tabs}
 
@@ -227,7 +234,15 @@
 					{:else}
 					{#each channels as ch}
 						<div>
-							<button class={"item hoverable transparent_button sidebar_channel_el" + (sel.channel == ch.id ? " selected" : "")} onclick={() => showChannel(ch.id)}>
+							<button
+								class={"item hoverable transparent_button sidebar_channel_el" + (sel.channel == ch.id ? " selected" : "")}
+							onclick={() => showChannel(ch.id)}
+							oncontextmenu={(e) => {
+								event.preventDefault();
+								settings_params.channel_id = ch.id;
+								showCtxMenu([e.clientX, e.clientY], "channel");
+							}}
+							>
 								{#if ch.type === 1}
 								<img src="$lib/assets/icons/channel_vc.svg" alt="voice" class="filter_icon_main sidebar_channel_el_icon"/>
 								{:else}

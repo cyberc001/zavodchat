@@ -9,6 +9,9 @@
 	font-size: 20px;
 	color: #F6F5F5;
 
+	box-sizing: border-box;
+	width: var(--width, auto);
+
 	background: var(--clr_bg_item);
 
 	border-color: var(--clr_border_item);

@@ -19,6 +19,7 @@
 	font-size: 20px;
 	color: var(--clr_text);
 
+	box-sizing: border-box;
 	width: var(--width, 512px);
 
 	background: var(--clr_bg_item);

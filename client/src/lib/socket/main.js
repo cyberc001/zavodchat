@@ -3,6 +3,7 @@ import Util from "$lib/util";
 import Message from "$lib/rest/message.js";
 import User from "$lib/rest/user.svelte.js";
 import Server from "$lib/rest/server.js";
+import Channel from "$lib/rest/channel.js";
 
 export default class MainSocket {
 	static host = "wss://127.0.0.1:444";
@@ -32,6 +33,10 @@ export default class MainSocket {
 
 		server_edited: function(data) {
 			Server.update_cache(data.id, Util.object_from_object(data, ["name", "avatar"]));
+		},
+
+		channel_edited: function(data) {
+			Channel.update_cache(data.server_id, data.id, Util.object_from_object(data, ["name", "type"]));
 		}
 	};
 

@@ -130,6 +130,7 @@ std::shared_ptr<http_response> server_channel_id_resource::render_PUT(const http
 	}
 	if(args.find(std::string_view("type")) != args.end()){
 		int type;
+		err = resource_utils::parse_index(req, "type", type);
 		if(err) return err;
 		if(type != CHANNEL_TEXT && type != CHANNEL_VOICE)
 			return create_response::string(req, "Unknown channel type", 400);
