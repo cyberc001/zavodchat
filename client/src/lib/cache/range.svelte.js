@@ -109,12 +109,7 @@ export class DataRange {
 		return new_range;
 	}
 
-	update_observers(start, end, missing){
-		if(typeof start === "undefined"){
-			start = this.start;
-			end = this.end;
-		}
-
+	delete_gced_observers(){
 		// Thanks JavaScript developers for making WeakMap non-iterable, Lua doesnt totally have a WeakMap that works for my purposes https://stackoverflow.com/questions/36760314/how-to-make-weak-set-or-weak-map-iterable-in-es6
 		let new_obs = [];
 		for(const ref of this.observers){
@@ -123,16 +118,35 @@ export class DataRange {
 				new_obs.push(ref);
 		}
 		this.observers = new_obs;
+	}
+	update_observers(start, end){
+		if(typeof start === "undefined"){
+			start = this.start;
+			end = this.end;
+		}
+
+		this.delete_gced_observers();
 
 		for(const ref of this.observers){
 			const obs = ref.deref();
 			if(obs){ // in case an object gets garbage collected after new_obs is formed
-				if(missing && obs.end > this.end){
+				if(obs.end > this.end){
 					let m = obs.end - this.end;
 					obs.end = this.end;
 					obs.data.splice(obs.data.length - m, m);
 				}
 				obs.update(this, start, end);
+			}
+		}
+	}
+	inc_observers_end(){
+		this.delete_gced_observers();
+
+		for(const ref of this.observers){
+			const obs = ref.deref();
+			if(obs){
+				++obs.end;
+				obs.update(this, this.start, this.end);
 			}
 		}
 	}
@@ -220,7 +234,8 @@ export class DataRangeTree {
 			if(data.id > containing_range.id_end)
 				containing_range.id_end = data.id;
 			containing_range.arr.unshift(data);
-			containing_range.update_observers();
+			containing_range.inc_observers_end();
+			//containing_range.update_observers();
 		}
 
 		// shift everything right by 1 except the containing range
