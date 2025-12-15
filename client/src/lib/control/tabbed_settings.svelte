@@ -22,7 +22,12 @@
 		{/each}
 	</div>
 	<div class="tabbed_settings_tab">
-		<div>{@render tabs[sel_tab].render(params)}</div>
+		<div>{@render tabs[sel_tab].render(params, () => {
+				if(tabs[sel_tab].state.reset)
+					tabs[sel_tab].state.reset();
+				close_settings();
+			})}
+		</div>
 
 		{#if tabs[sel_tab].state.constructor.name === "SettingsTabState"}
 			{#if tabs[sel_tab].state.changes === SettingsTabState.ChangesState.HasChanges

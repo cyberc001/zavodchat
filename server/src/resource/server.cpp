@@ -172,6 +172,13 @@ std::shared_ptr<http_response> server_id_resource::render_DELETE(const http_requ
 	err = resource_utils::check_server_owner(req, user_id, server_id, tx);
 	if(err) return err;
 
+	pqxx::result r = tx.exec("SELECT avatar FROM servers WHERE server_id = $1", pqxx::params(server_id));
+	if(!r[0]["avatar"].is_null()){
+		std::string avatar_fpath = r[0]["avatar"].as<std::string>();
+		std::string ext = avatar_fpath.substr(avatar_fpath.rfind('.') + 1);
+		file_utils::delete_file_aliased(file_utils::server_avatar_storage_path, server_id, ext);
+	}
+
 	socket_event ev;
 	ev.data["id"] = server_id;
 	ev.name = "server_deleted";

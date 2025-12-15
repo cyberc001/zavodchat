@@ -4,6 +4,7 @@
 
 	box-sizing: border-box;
 	width: var(--width, auto);
+	margin: var(--margin, 0 0 0 0);
 
 	background: var(--clr_bg_item);
 

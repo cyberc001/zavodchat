@@ -46,8 +46,17 @@ void file_utils::save_file_aliased(const std::string_view& fraw, std::string pat
 
 	out_fname = generate_fname() + "." + ext;
 	save_file(fraw, path + out_fname);
-	std::filesystem::create_symlink(path + out_fname, path + alias_fname);
+	std::filesystem::create_symlink(out_fname, path + alias_fname);
 }
+void file_utils::delete_file_aliased(std::string path, int id, std::string ext)
+{
+	std::string alias_fname = std::to_string(id) + "." + ext;
+	if(std::filesystem::exists(path + alias_fname)){
+		std::filesystem::remove(path / std::filesystem::read_symlink(path + alias_fname));
+		std::filesystem::remove(path + alias_fname);
+	}
+}
+
 std::string file_utils::generate_fname(size_t sz)
 {
 	static const char chars[] = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIKLMNOPQRSTUVWXYZ";

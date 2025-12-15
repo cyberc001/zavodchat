@@ -45,6 +45,8 @@ body {
 	background: var(--clr_bg_panel);
 	border-width: 2px;
 	border-color: var(--clr_border);
+
+	color: var(--clr_text);
 }
 
 .item {

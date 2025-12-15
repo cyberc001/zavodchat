@@ -26,7 +26,8 @@
 					Server.create(state_general.state,
 						(server_id) => {
 							data.id = server_id;
-							data.avatar = server_avatar_url;
+							if(server_avatar_url)
+								data.avatar = server_avatar_url;
 							Server.server_list_cache.cache[0].push(data);
 							close_settings();
 						},
@@ -37,7 +38,7 @@
 	}
 </script>
 
-{#snippet general(p)}
+{#snippet general(params, close_settings)}
 <Group name="Profile settings">
 	<div style="display: flex">
 		<AvatarPicker

@@ -37,6 +37,10 @@ export default class Server {
 			Util.form_data_from_object(data, ["name", "owner_id", "avatar"]),
 			(res) => _then(res.data), _catch);
 	}
+	static delete(server_id, _then, _catch){
+		Rest.delete(Rest.get_route_scm(server_id),
+			_then, _catch);
+	}
 
 	static get_list(_catch){
 		return Server.server_list_cache.get_state(0, (cache, id) => {

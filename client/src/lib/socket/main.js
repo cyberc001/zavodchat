@@ -37,6 +37,12 @@ export default class MainSocket {
 		server_edited: function(data) {
 			Server.update_cache(data.id, Util.object_from_object(data, ["name", "avatar"]));
 		},
+		server_deleted: function(data) {
+			delete Server.server_cache.cache[data.id];
+			let idx = Server.server_list_cache.cache[0]?.findIndex((x) => x.id === data.id);
+			if(typeof idx !== "undefined" && idx !== -1)
+				Server.server_list_cache.cache[0].splice(idx, 1);
+		},
 
 		channel_created: function(data) {
 			Channel.add_channel_to_cache(data.server_id, Util.object_from_object(data, ["name", "type", "id"]));
@@ -45,14 +51,14 @@ export default class MainSocket {
 			Channel.update_cache(data.server_id, data.id, Util.object_from_object(data, ["name", "type"]));
 		},
 		channel_deleted: function(data) {
-			delete Channel.channel_cache[data.id];
+			delete Channel.channel_cache.cache[data.id];
 			let idx = Channel.channel_list_cache.cache[data.server_id]?.findIndex((x) => x.id === data.id);
-			if(idx !== -1)
+			if(typeof idx !== "undefined" && idx !== -1)
 				Channel.channel_list_cache.cache[data.server_id].splice(idx, 1);
 		}
 	};
 
-	constructor(onclose, onerror) {
+	constructor(onclose, onerror, onmessage) {
 		this.ws = new WebSocket(MainSocket.host);
 		this.ws.onclose = onclose;
 		this.ws.onerror = onerror;
@@ -63,6 +69,8 @@ export default class MainSocket {
 				MainSocket.socket_event_handlers[_data.name](_data.data);
 			else
 				console.warn("Unhandled main WebSocket event", _data);
+			if(onmessage)
+				onmessage(_data.name, _data.data);
 		};
 	}
 };

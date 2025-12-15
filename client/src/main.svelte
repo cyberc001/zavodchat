@@ -58,7 +58,11 @@
 	};
 
 	// Sockets
-	let socket_main = new MainSocket(setError, setError);
+	let socket_main = new MainSocket(setError, setError,
+					(name, data) => {
+						if(name === "server_deleted" && settings_params.server_id === data.id)
+							delete settings_params.server_id;
+					});
 
 	// UI state
 	let wnd_width = $state(), wnd_height = $state();
