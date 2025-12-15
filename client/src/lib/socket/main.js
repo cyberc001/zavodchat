@@ -12,19 +12,22 @@ export default class MainSocket {
 	static socket_event_handlers = {
 		message_edited: function(data) {
 			let tree = Message.message_range_cache.get_tree([data.server_id, data.channel_id]);
-			tree.update_one_id(data.id, {
-				edited: data.edited,
-				text: data.text,
-				status: Message.Status.None
-			});
+			if(tree)
+				tree.update_one_id(data.id, {
+					edited: data.edited,
+					text: data.text,
+					status: Message.Status.None
+				});
 		},
 		message_deleted: function(data) {
 			let tree = Message.message_range_cache.get_tree([data.server_id, data.channel_id]);
-			tree.remove_one_id(data.id);
+			if(tree)
+				tree.remove_one_id(data.id);
 		},
 		message_created: function(data) {
 			let tree = Message.message_range_cache.get_tree([data.server_id, data.channel_id]);
-			tree.insert_last(data);
+			if(tree)
+				tree.insert_last(data);
 		},
 
 		user_changed: function(data) {
