@@ -139,8 +139,11 @@ img.sidebar_server_el {
 	font-size: 18px;
 
 	display: inline-flex;
+	text-align: left;
 	align-items: center;
 	padding: 4px 0px 4px 4px;
+
+	overflow-wrap: anywhere;
 
 	cursor: pointer;
 

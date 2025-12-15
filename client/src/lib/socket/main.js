@@ -43,6 +43,12 @@ export default class MainSocket {
 		},
 		channel_edited: function(data) {
 			Channel.update_cache(data.server_id, data.id, Util.object_from_object(data, ["name", "type"]));
+		},
+		channel_deleted: function(data) {
+			delete Channel.channel_cache[data.id];
+			let idx = Channel.channel_list_cache.cache[data.server_id]?.findIndex((x) => x.id === data.id);
+			if(idx !== -1)
+				Channel.channel_list_cache.cache[data.server_id].splice(idx, 1);
 		}
 	};
 

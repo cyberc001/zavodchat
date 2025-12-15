@@ -43,6 +43,10 @@ export default class Channel {
 				Util.form_data_from_object(data, ["name", "type"]),
 				(res) => _then(res.data), _catch);
 	}
+	static delete(server_id, channel_id, _then, _catch){
+		Rest.delete(Rest.get_route_scm(server_id, channel_id),
+			_then, _catch);
+	}
 
 	static get_list(server_id, _catch){
 		return Channel.channel_list_cache.get_state(server_id, (cache, id) => {

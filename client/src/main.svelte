@@ -64,7 +64,8 @@
 	let wnd_width = $state(), wnd_height = $state();
 
 	let sel = $state({
-		server: -1, channel: -1, message: -1, message_edit: -1,
+		server: -1, channel: -1,
+		message: -1, message_edit: -1,
 		user: {
 			id: -1, message_id: -1
 		}
@@ -115,6 +116,10 @@
 
 		"channel": [{text: "Settings", icon: "settings.svg", func: () => {
 				sel.settings_tabs = settings_channel.tabs();
+			    }},
+			    {text: "Delete", icon: "delete.svg", func: () => {
+				Channel.delete(sel.server, settings_params.channel_id,
+						() => {}, setError);
 			    }}],
 	};
 
