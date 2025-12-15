@@ -224,8 +224,8 @@
 	
 {:else}
 	<div class="main">
-		<div style="height: 100%; margin-left: 16px">
-			<div style="display: flex; height: 90%">
+		<div style="height: 100%; width: 322px; margin-left: 16px; display: flex; flex-direction: column">
+			<div style="display: flex; height: -webkit-fill-available">
 				<div style="display: flex; flex-direction: column">
 					<div class="panel sidebar_servers">
 						{#if servers.loading}
@@ -310,6 +310,15 @@
 		</div>
 
 		<div class="panel profile_panel">
+			{#if Object.keys(user_self).length === 0}
+				<img src="$lib/assets/icons/loading.svg" alt="loading" class="filter_icon_main" style="width: 24px"/>
+			{:else}
+				<div style="display: flex; align-items: center; margin-bottom: 6px">
+					<img src={User.get_avatar_path(user_self)} style="width: 32px; height: 32px; margin-right: 8px" alt="avatar"/>
+					{user_self.name}
+				</div>
+			{/if}
+
 			<button class="hoverable transparent_button"
 			onclick={() => sel.settings_tabs = settings_user.tabs()}
 			>

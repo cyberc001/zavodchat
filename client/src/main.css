@@ -180,6 +180,12 @@ img.sidebar_server_el {
 .profile_panel {
 	border-style: solid;
 
-	/* remove the border from height */	
-	height: calc(10% - 4px);
+	box-sizing: border-box;
+	height: auto;
+
+	width: 100%;
+	padding: 8px;
+
+	font-size: 24px;
+	overflow-wrap: anywhere;
 }

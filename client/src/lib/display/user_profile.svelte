@@ -78,6 +78,10 @@
 	z-index: 100;
 
 	padding: 4px 6px 4px 6px;
+
+	min-width: 160px;
+	max-width: 320px;
+	width: max-content;
 }
 .user_profile_name {
 	display: flex;
@@ -88,6 +92,8 @@
 	border-style: none;
 	color: var(--clr_text);
 	font-size: 24px;
+
+	overflow-wrap: anywhere;
 }
 
 .user_avatar_frame {
