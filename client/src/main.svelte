@@ -40,6 +40,7 @@
 
 	// Backend data
 	let user_self = User.get(-1, setError);	
+	let server = $state({});
 	let servers = Server.get_list(setError);
 	let channels = $state([]);
 	let roles = $state({});
@@ -152,6 +153,8 @@
 		sel.server = id;
 		sel.channel = -1;
 		settings_params = {};
+
+		server = Server.get(id);
 		channels = Channel.get_list(id, setError);
 	};
 
@@ -257,15 +260,22 @@
 
 				<div style="display: flex; flex-direction: column">
 					<div class="panel sidebar_channels">
+						<div class="sidebar_channel_name">
+							{#if server.name}
+								{server.name}
+							{/if}
+						</div>
+
 						{#if channels.loading}
 							<div style="text-align: center; margin-top: 6px">
 							<img src="$lib/assets/icons/loading.svg" alt="loading" class="filter_icon_main" style="width: 48px"/>
 						</div>
 						{:else}
-						{#each channels as ch}
+						{#each channels as ch, i}
 							<div>
 								<button
 								class={"item hoverable transparent_button sidebar_channel_el" + (sel.channel == ch.id ? " selected" : "")}
+								style={i == channels.length - 1 ? "border-style: solid none solid none" : ""}
 								onclick={() => showChannel(ch.id)}
 								oncontextmenu={(e) => {
 									event.preventDefault();

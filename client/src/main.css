@@ -131,9 +131,13 @@ img.sidebar_server_el {
 .sidebar_channel_actions {
 	height: 32px;
 }
+.sidebar_channel_name {
+	margin: 8px 0 8px 8px;
+	font-size: 24px;
+}
 
 .sidebar_channel_el {
-	border-style: none none solid none;
+	border-style: solid none none none;
 
 	width: 100%;
 
