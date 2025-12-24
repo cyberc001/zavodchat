@@ -1,4 +1,5 @@
 import Rest from "$lib/rest";
+import Util from "$lib/util";
 import ListCache from "$lib/cache/list.svelte.js";
 
 export default class Role {
@@ -6,14 +7,20 @@ export default class Role {
 
 	static get_list(server_id, _catch){
 		return Role.role_list_cache.get_state(server_id, (cache, id) => {
-			Rest.get(Rest.get_route_scm(server_id) + "/roles",
+			Rest.get(Rest.get_route_sr(server_id, ""),
 				(res) => cache.set_state(id, res.data),
 				_catch);
 		});
 	}
 
+	static change(server_id, role_id, data, _then, _catch){
+		return Rest.put(Rest.get_route_sr(server_id, role_id),
+					Util.form_data_from_object(data, ["next_role_id"]),
+					(res) => _then(res.data), _catch);
+	}
+
 	static get_style(role){
-		return typeof role !== "undefined" ? `background: #${role.color.toString(16)}` : "";
+		return typeof role !== "undefined" ? `background: #${role.color.toString(16).padStart(6, "0")}` : "";
 	}
 
 	static get_user_roles(user, server_id){
@@ -30,6 +37,6 @@ export default class Role {
 	};
 	// Assuming role_list are ordered from highest to lowest role
 	static get_username_style(role_list){
-		return (typeof role_list !== "undefined" && role_list.length > 0) ? `color: #${role_list[0].color.toString(16)}` : "";
+		return (typeof role_list !== "undefined" && role_list.length > 0) ? `color: #${role_list[0].color.toString(16).padStart(6, "0")}` : "";
 	}
 }

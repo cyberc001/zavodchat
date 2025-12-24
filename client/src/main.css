@@ -69,7 +69,19 @@ body {
 	background: transparent;
 }
 
-/* Specific classes */
+
+/* Frequently used classes */
+
+.user_role_circle_big {
+	display: inline-block;
+	width: 16px;
+	height: 16px;
+	background: pink;
+	border-radius: 50%;
+}
+
+
+/* Main window classes */
 
 .sidebar_servers {
 	display: flex;

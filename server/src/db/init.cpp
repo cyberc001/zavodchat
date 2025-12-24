@@ -133,6 +133,7 @@ void db_create_test(std::string conn_str)
 		int test_role_id_1_1 = role_utils::insert_role(tx, server_id_1, -1, "admin", 0xFF0000);
 		tx.exec("UPDATE roles SET perms1 = $1 WHERE role_id = $2", pqxx::params(65536, test_role_id_1_1));
 		int test_role_id_1_2 = role_utils::insert_role(tx, server_id_1, test_role_id_1_1, "moderator", 0x0000FF);
+		int test_role_id_1_3 = role_utils::insert_role(tx, server_id_1, test_role_id_1_2, "pleb", 0xFFFF00);
 
 		r = tx.exec("SELECT user_id FROM users WHERE name = 'test2'");
 		if(!r.size()){
@@ -157,7 +158,11 @@ void db_create_test(std::string conn_str)
 		tx.exec("INSERT INTO user_x_server(user_id, server_id, role_id) VALUES($1, $2, $3)", pqxx::params(user_id_1, server_id_1, default_role_id_1));
 		tx.exec("INSERT INTO user_x_server(user_id, server_id, role_id) VALUES($1, $2, $3)", pqxx::params(user_id_1, server_id_2, default_role_id_2));
 		tx.exec("INSERT INTO user_x_server(user_id, server_id, role_id) VALUES($1, $2, $3)", pqxx::params(user_id_2, server_id_1, default_role_id_1));
+		tx.exec("INSERT INTO user_x_server(user_id, server_id, role_id) VALUES($1, $2, $3)", pqxx::params(user_id_1, server_id_1, test_role_id_1_1));
+		tx.exec("INSERT INTO user_x_server(user_id, server_id, role_id) VALUES($1, $2, $3)", pqxx::params(user_id_1, server_id_1, test_role_id_1_3));
 		tx.exec("INSERT INTO user_x_server(user_id, server_id, role_id) VALUES($1, $2, $3)", pqxx::params(user_id_2, server_id_1, test_role_id_1_1));
+		tx.exec("INSERT INTO user_x_server(user_id, server_id, role_id) VALUES($1, $2, $3)", pqxx::params(user_id_2, server_id_1, test_role_id_1_3));
+		tx.exec("INSERT INTO user_x_server(user_id, server_id, role_id) VALUES($1, $2, $3)", pqxx::params(user_id_2, server_id_1, test_role_id_1_2));
 		tx.exec("INSERT INTO user_x_server(user_id, server_id, role_id) VALUES($1, $2, $3)", pqxx::params(user_id_2, server_id_2, default_role_id_2));
 		tx.exec("INSERT INTO user_x_server(user_id, server_id, role_id) VALUES($1, $2, $3)", pqxx::params(user_id_3, server_id_1, default_role_id_1));
 		tx.exec("INSERT INTO user_x_server(user_id, server_id, role_id) VALUES($1, $2, $3)", pqxx::params(user_id_3, server_id_2, default_role_id_2));

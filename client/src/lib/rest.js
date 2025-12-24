@@ -25,7 +25,7 @@ export default class Rest {
 		if(typeof message_id === "undefined")
 			return route;
 		route += "/messages/" + message_id;
-		return route
+		return route;
 	}
 	static get_route_su(server_id, user_id)
 	{
@@ -36,7 +36,18 @@ export default class Rest {
 		if(typeof user_id === "undefined")
 			return route;
 		route += "/users/" + user_id;
-		return route
+		return route;
+	}
+	static get_route_sr(server_id, role_id)
+	{
+		let route = "";
+		if(typeof server_id === "undefined")
+			return route;
+		route += "servers/" + server_id;
+		if(typeof role_id === "undefined")
+			return route;
+		route += "/roles/" + role_id;
+		return route;
 	}
 
 	static get_base_url()
