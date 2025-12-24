@@ -4,6 +4,7 @@ import Message from "$lib/rest/message.js";
 import User from "$lib/rest/user.svelte.js";
 import Server from "$lib/rest/server.js";
 import Channel from "$lib/rest/channel.js";
+import Role from "$lib/rest/role.js";
 
 export default class MainSocket {
 	static host = "wss://127.0.0.1:444";
@@ -55,6 +56,10 @@ export default class MainSocket {
 			let idx = Channel.channel_list_cache.cache[data.server_id]?.findIndex((x) => x.id === data.id);
 			if(typeof idx !== "undefined" && idx !== -1)
 				Channel.channel_list_cache.cache[data.server_id].splice(idx, 1);
+		},
+
+		role_changed: function(data) {
+			Role.update_cache(data.server_id, data.id, Util.object_from_object(data, ["next_role_id", "color", "name", "perms1"]));
 		}
 	};
 

@@ -58,7 +58,6 @@
 					let role_list = state_roles.default_state.list.slice();
 					let changes = [];
 
-					console.log("begin", $state.snapshot(role_list));
 					for(let i = 0; i < state_roles.state.list.length; ++i){
 						const rol2 = state_roles.state.list[i];
 
@@ -75,12 +74,10 @@
 							role_list.splice(j, 1);
 							const j2 = typeof nextid2 === "undefined" ? 0 : role_list.findIndex((x) => x.id === nextid2) + 1;
 							role_list.splice(j2, 0, rol);
-							console.log("iter", $state.snapshot(role_list));
 
 							changes.push({id: rol.id, next_role_id: typeof nextid2 === "undefined" ? -1 : nextid2});
 						}
 					}
-					console.log("changes", changes);
 
 					let counter = 0; const counter_target = changes.length;
 					for(const ch of changes){
