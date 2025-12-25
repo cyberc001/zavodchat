@@ -64,7 +64,7 @@
 		<div class="user_role_list">
 			{#each user_roles as rol}
 				<div class="user_role">
-					<div class="user_role_color" style={Role.get_style(rol)}></div>
+					<div class="user_role_color" style={Role.get_background_style(rol)}></div>
 					{rol.name}
 				</div>
 			{/each}

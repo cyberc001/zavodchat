@@ -1,15 +1,18 @@
 <script>
 
-let {items = $bindable([]),
+let {items = $bindable([]), selected_idx = $bindable(-1),
 	check_drag = (dragged, dragged_idx) => true,
 	check_insert = (dragged, dragged_idx, hovered, hovered_idx) => true,
 	render_item} = $props();
 
 let div_items = $state([]);
 
-let dragged_idx = $state(-2);
+let dragged_idx = $state(-1);
 let hovered_idx = $state(-2);
 
+const onClick = (i) => {
+	selected_idx = i;
+};
 
 const getBeforeIdx = (y) => {
 	if(div_items.length === 0)
@@ -58,6 +61,7 @@ const onDragEnd = () => {
 		if(dragged_idx < hovered_idx)
 			--hovered_idx;
 		items.splice(hovered_idx + 1, 0, dragged_item);
+		selected_idx = hovered_idx + 1;
 	}
 	dragged_idx = hovered_idx = -2;
 };
@@ -69,19 +73,18 @@ const onDrag = (e) => {
 		hovered_idx = -2;
 };
 
-
 </script>
 
 {#each items as item, i}
-	<div draggable="true" class="hoverable"
+	<div draggable="true" class={"hoverable" + (i === selected_idx ? " selected" : "")}
+		onclick={() => onClick(i)}
 		ondragstart={onDragStart} ondragend={onDragEnd}
 		ondragover={onDrag}
 		bind:this={div_items[i]}
-		style={i === hovered_idx ? "border-style: none none solid none"
+		style={(i === hovered_idx ? "border-style: none none solid none"
 			: i === 0 && hovered_idx === -1 ? "border-style: solid none none none"
-			: ""}
+			: "")}
 	>
-
 		{@render render_item(item)}
 	</div>
 {/each}

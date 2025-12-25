@@ -61,13 +61,8 @@ std::shared_ptr<http_response> server_roles_resource::render_POST(const http_req
 		return create_response::string(req, "Empty role name", 400);
 
 	int color;
-	try{
-		color = std::stoi(std::string(req.get_arg("color")));
-	} catch(std::invalid_argument& e){
-		return create_response::string(req, "Invalid role color: '" + std::string(req.get_arg("next_role_id")) + "'", 400);
-	}
-	if(color > 0xFFFFFF || color < 0)
-		return create_response::string(req, "Invalid role color: '" + std::string(req.get_arg("next_role_id")) + "'", 400);
+	err = resource_utils::parse_color(req, "color", color);
+	if(err) return err;
 
 	long long perms1 = 0;
 	auto args = req.get_args();
@@ -93,7 +88,7 @@ std::shared_ptr<http_response> server_roles_resource::render_POST(const http_req
 	resource_utils::json_set_ids(ev.data, server_id);
 	ev.data["id"] = inserted_id;
 	ev.data["name"] = name;
-	ev.data["color"] = color;
+	ev.data["color"] = resource_utils::color_to_string(color);
 	ev.data["perms1"] = perms1;
 	ev.name = "role_created";
 	sserv.send_to_server(server_id, tx, ev);
@@ -171,15 +166,10 @@ std::shared_ptr<http_response> server_role_id_resource::render_PUT(const http_re
 	}
 	if(args.find(std::string_view("color")) != args.end()){
 		int color;
-		try{
-			color = std::stoi(std::string(req.get_arg("color")));
-		} catch(std::invalid_argument& e){
-			return create_response::string(req, "Invalid role color: '" + std::string(req.get_arg("next_role_id")) + "'", 400);
-		}
-		if(color > 0xFFFFFF || color < 0)
-			return create_response::string(req, "Invalid role color: '" + std::string(req.get_arg("next_role_id")) + "'", 400);
+		err = resource_utils::parse_color(req, "color", color);
+		if(err) return err;
 
-		ev.data["color"] = color;
+		ev.data["color"] = resource_utils::color_to_string(color);
 
 		tx.exec("UPDATE roles SET color = $1 WHERE role_id = $2", pqxx::params(color, server_role_id));
 	}

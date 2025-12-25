@@ -34,7 +34,7 @@
 				|| tabs[sel_tab].state.changes === SettingsTabState.ChangesState.Invalid}
 				<div class="tabbed_settings_actions">
 					<Button text="Apply changes" onclick={tabs[sel_tab].apply_changes} disabled={tabs[sel_tab].state.changes === SettingsTabState.ChangesState.Invalid}/>
-					<Button text="Discard changes" onclick={() => tabs[sel_tab].state.discard_changes()}/>
+					<Button text="Discard changes" onclick={tabs[sel_tab].discard_changes}/>
 				</div>
 			{/if}
 		{:else}

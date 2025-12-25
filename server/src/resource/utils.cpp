@@ -70,7 +70,7 @@ std::shared_ptr<http_response> resource_utils::parse_index(const http_request& r
 		return create_response::string(req, "Couldn't parse '" + arg_name + "', got: " + std::string(req.get_arg(arg_name)), 400);
 	}
 
-	return std::shared_ptr<http_response>(nullptr);
+	return nullptr;
 }
 std::shared_ptr<http_response> resource_utils::parse_index(const http_request& req, std::string arg_name, int& index, int lower_bound)
 {
@@ -80,7 +80,7 @@ std::shared_ptr<http_response> resource_utils::parse_index(const http_request& r
 	if(index < lower_bound)
 		return create_response::string(req, arg_name + " is invalid: " + std::to_string(index) + " is below " + std::to_string(lower_bound), 403);
 
-	return std::shared_ptr<http_response>(nullptr);
+	return nullptr;
 }
 
 std::shared_ptr<http_response> resource_utils::parse_index(const http_request& req, std::string arg_name, int& index, int lower_bound, int upper_bound)
@@ -93,7 +93,7 @@ std::shared_ptr<http_response> resource_utils::parse_index(const http_request& r
 	if(index > upper_bound)
 		return create_response::string(req, arg_name + " is invalid: " + std::to_string(index) + " is above " + std::to_string(upper_bound), 403);
 
-	return std::shared_ptr<http_response>(nullptr);
+	return nullptr;
 }
 
 std::shared_ptr<http_response> resource_utils::parse_session_token(const http_request& req, pqxx::work& tx, int& user_id)
@@ -107,7 +107,7 @@ std::shared_ptr<http_response> resource_utils::parse_session_token(const http_re
 	if(!r.size())
 		return create_response::string(req, "Expired or invalid token", 401);
 	user_id = r[0]["user_id"].as<int>();
-	return std::shared_ptr<http_response>(nullptr);
+	return nullptr;
 }
 
 std::shared_ptr<http_response> resource_utils::parse_timestamp(const http_request& req, std::string arg_name, std::string& ts)
@@ -118,6 +118,25 @@ std::shared_ptr<http_response> resource_utils::parse_timestamp(const http_reques
 	if(ts == "never")
 		ts = "";
 	return nullptr;
+}
+
+std::shared_ptr<http_response> resource_utils::parse_color(const http_request& req, std::string arg_name, int& color)
+{
+	std::string clr = std::string(req.get_arg(arg_name));
+	if(clr.size() != 7)
+		return create_response::string(req, "Color '" + arg_name + "' is not 7 characters long", 400);
+	try{
+		color = std::stoul(clr.substr(1), nullptr, 16);
+	} catch(std::invalid_argument& e){
+		return create_response::string(req, "Couldn't parse color '" + arg_name + "', got: " + clr, 400);
+	}
+	return nullptr;
+}
+std::string resource_utils::color_to_string(int color)
+{
+	std::stringstream ss;
+	ss << "#" << std::setfill('0') << std::setw(6) << std::hex << color;
+	return ss.str();
 }
 
 

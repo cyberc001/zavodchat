@@ -9,8 +9,12 @@ export default class Role {
 		let state = Role.role_list_cache.get_state(server_id);
 		let idx = state.findIndex((x) => x.id === role_id);
 		if(idx !== -1){
+			let role_data = state[idx];
+			for(const key in data)
+				if(key !== "next_role_id")
+					role_data[key] = data[key];
+
 			if(typeof data.next_role_id !== "undefined"){
-				let role_data = state[idx];
 				state.splice(idx, 1);
 				let idx2 = data.next_role_id === -1 ? 0 : state.findIndex((x) => x.id === data.next_role_id) + 1;
 				state.splice(idx2, 0, role_data);
@@ -26,15 +30,19 @@ export default class Role {
 				_catch);
 		});
 	}
+	static get_list_nocache(server_id, _then, _catch){
+		Rest.get(Rest.get_route_sr(server_id, ""),
+			(res) => _then(res.data), _catch);
+	}
 
 	static change(server_id, role_id, data, _then, _catch){
 		return Rest.put(Rest.get_route_sr(server_id, role_id),
-					Util.form_data_from_object(data, ["next_role_id"]),
+					Util.form_data_from_object(data, ["next_role_id", "color", "name", "perms1"]),
 					(res) => _then(res.data), _catch);
 	}
 
-	static get_style(role){
-		return typeof role !== "undefined" ? `background: #${role.color.toString(16).padStart(6, "0")}` : "";
+	static get_background_style(role){
+		return typeof role !== "undefined" ? `background: ${role.color}` : "";
 	}
 
 	static get_user_roles(user, server_id){
@@ -51,6 +59,6 @@ export default class Role {
 	};
 	// Assuming role_list are ordered from highest to lowest role
 	static get_username_style(role_list){
-		return (typeof role_list !== "undefined" && role_list.length > 0) ? `color: #${role_list[0].color.toString(16).padStart(6, "0")}` : "";
+		return (typeof role_list !== "undefined" && role_list.length > 0) ? `color: ${role_list[0].color}` : "";
 	}
 }

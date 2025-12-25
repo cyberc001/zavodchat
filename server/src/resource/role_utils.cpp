@@ -335,7 +335,7 @@ nlohmann::json role_utils::role_json_from_row(const pqxx::row r)
 {
 	nlohmann::json res = {{"id", r["role_id"].as<int>()},
 				{"name", r["name"].as<std::string>()},
-				{"color", r["color"].as<int>()},
+				{"color", resource_utils::color_to_string(r["color"].as<int>())},
 				{"perms1", r["perms1"].as<long long>()}};
 	return res;
 }
@@ -343,7 +343,7 @@ nlohmann::json role_utils::role_json_from_row(const pqxx::row&& r)
 {
 	nlohmann::json res = {{"id", r["role_id"].as<int>()},
 				{"name", r["name"].as<std::string>()},
-				{"color", r["color"].as<int>()},
+				{"color", resource_utils::color_to_string(r["color"].as<int>())},
 				{"perms1", r["perms1"].as<long long>()}};
 	return res;
 }

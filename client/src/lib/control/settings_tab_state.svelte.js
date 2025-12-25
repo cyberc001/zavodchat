@@ -1,15 +1,27 @@
+import Util from "$lib/util.js";
+
 export default class SettingsTabState {
 	state = $state({});
 	default_state = $state({});
 
 	copy_obj(obj){
-		if(Array.isArray(obj))
-			return obj.slice();
+		if(Array.isArray(obj)){
+			let new_arr = [];
+			for(const e of obj)
+				new_arr.push(this.copy_obj(e));
+			return new_arr;
+		}
+		if(typeof obj === "object" && obj){ // null is also an object
+			let new_obj = {};
+			for(const key in obj)
+				new_obj[key] = obj[key];
+			return new_obj;
+		}
 		return obj;
 	}
 
 	constructor(_default_state){
-		for(const key of Object.keys(_default_state)){
+		for(const key in _default_state){
 			this.default_state[key] = this.copy_obj(_default_state[key]);
 			this.state[key] = this.copy_obj(_default_state[key]);
 		}
@@ -19,19 +31,14 @@ export default class SettingsTabState {
 	changes = $derived.by(() => {
 		if(this.changes_override !== SettingsTabState.ChangesState.Inherit)
 			return this.changes_override;
-		for(const key of Object.keys(this.state))
+		for(const key in this.state)
 			if(this.is_changed(key))
 				return SettingsTabState.ChangesState.HasChanges;
 		return SettingsTabState.ChangesState.NoChanges;
 	});
 
 	is_changed(key){
-		const a = this.state[key];
-		const b = this.default_state[key];
-
-		if(Array.isArray(a) && Array.isArray(b))
-			return a.length !== b.length || a.some((v, i) => v !== b[i]);
-		return a !== b;
+		return !Util.deep_equals(this.state[key], this.default_state[key]);
 	}
 	get_dict_of_changes(allowed){
 		let dict = {};
@@ -53,7 +60,7 @@ export default class SettingsTabState {
 		}
 
 		for(const key of Object.keys(this.default_state))
-			this.state[key] = this.copyObj(this.default_state[key]);
+			this.state[key] = this.copy_obj(this.default_state[key]);
 	}
 
 
