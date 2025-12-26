@@ -58,8 +58,13 @@ export default class MainSocket {
 				Channel.channel_list_cache.cache[data.server_id].splice(idx, 1);
 		},
 
-		role_changed: function(data) {
-			Role.update_cache(data.server_id, data.id, Util.object_from_object(data, ["next_role_id", "color", "name", "perms1"]));
+		roles_updated: function(data) {
+			let list = Role.role_list_cache.cache[data.server_id];
+			if(list){
+				list.splice(0, list.length);
+				for(const rol of data.roles)
+					list.push(rol);
+			}
 		}
 	};
 

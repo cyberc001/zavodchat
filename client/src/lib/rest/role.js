@@ -35,16 +35,24 @@ export default class Role {
 			(res) => _then(res.data), _catch);
 	}
 
-	static change(server_id, role_id, data, _then, _catch){
-		return Rest.put(Rest.get_route_sr(server_id, role_id),
-					Util.form_data_from_object(data, ["next_role_id", "color", "name", "perms1"]),
+	static change_list(server_id, data, _then, _catch){
+		return Rest.put(Rest.get_route_sr(server_id, ""), data,
 					(res) => _then(res.data), _catch);
+	}
+
+	static last_dummy_id = -2;
+	static get_dummy_role(){
+		return {
+			color: "#AAAAAA",
+			name: "new role",
+			perms1: 0,
+			id: Role.last_dummy_id--
+		};
 	}
 
 	static get_background_style(role){
 		return typeof role !== "undefined" ? `background: ${role.color}` : "";
 	}
-
 	static get_user_roles(user, server_id){
 		if(!user || !user.roles)
 			return [];

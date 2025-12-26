@@ -45,8 +45,10 @@
 	let role_list_selected_idx = $state(-1);
 
 	$effect(() => {
-		if(server_id)
+		if(server_id){
+			role_list_selected_idx = -1;
 			state_roles.set_all_states("list", Role.get_list(server_id));
+		}
 	});
 
 	function perm_to_toggle_value(x){
@@ -84,58 +86,9 @@
 			},
 			{ name: "Roles", render: roles, state: state_roles,
 				apply_changes: () => {
-					let role_list = state_roles.default_state.list.slice();
-					let changes = [];
-
-					for(let i = 0; i < state_roles.state.list.length; ++i){
-						const rol2 = state_roles.state.list[i];
-
-						const j = role_list.findIndex((x) => x.id === rol2.id);
-						if(j === -1)
-							continue;
-
-						const rol = role_list[j];
-
-						let change;
-						
-						const nextid = role_list[j - 1]?.id;
-						const nextid2 = state_roles.state.list[i - 1]?.id;
-						if(nextid !== nextid2){
-							// Move rol2 to correct position in role_list
-							role_list.splice(j, 1);
-							const j2 = typeof nextid2 === "undefined" ? 0 : role_list.findIndex((x) => x.id === nextid2) + 1;
-							role_list.splice(j2, 0, rol);
-
-							changes.push({id: rol.id, next_role_id: typeof nextid2 === "undefined" ? -1 : nextid2});
-							change = changes[changes.length - 1];
-						}
-
-						if(!Util.deep_equals(rol2, rol)){
-							if(!change){
-								changes.push({id: rol.id});
-								change = changes[changes.length - 1];
-							}
-							for(const key in rol2)
-								if(rol2[key] !== rol[key])
-									change[key] = rol2[key];
-						}
-					}
-
-					let counter = 0; const counter_target = changes.length;
-					for(const ch of changes){
-						Role.change(server_id, ch.id, ch, () => {
-							if(++counter === counter_target){
-								state_roles.apply_changes();
-								role_list_selected_idx = -1;
-							}
-						}, () => {
-							state_roles.discard_changes();
-							Role.get_list_nocache(server_id, (list) => {
-								role_list_selected_idx = -1;
-								Role.role_list_cache.set_state(Role.role_list_cache.state_refs_id(server_id), list);
-							});
-						});
-					}
+					Role.change_list(server_id, state_roles.state.list,
+								() => state_general.apply_changes(),
+								() => state_general.discard_changes());
 				},
 				discard_changes: () => {
 					role_list_selected_idx = -1;
@@ -186,6 +139,17 @@ This cannot be reversed.
 									return hovered_idx !== state_roles.state.list.length - 1;}}
 	render_item={role_item}
 	/>
+	<div style="margin-bottom: 12px"></div>
+	<Button text="Create role" onclick={() => {
+		state_roles.state.list.splice(state_roles.state.list.length - 1, 0, Role.get_dummy_role());
+		role_list_selected_idx = state_roles.state.list.length - 2;
+	}}/>
+	{#if role_list_selected_idx > -1 && role_list_selected_idx < state_roles.state.list.length - 1}
+		<Button text="Delete role" onclick={() => {
+			state_roles.state.list.splice(role_list_selected_idx, 1);
+			role_list_selected_idx = -1;
+		}}/>
+	{/if}
 </Group>
 <Group name="Role settings">
 {#if role_list_selected_idx > -1}

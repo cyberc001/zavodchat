@@ -119,9 +119,6 @@ int main()
 	server_roles_resource server_roles(pool, sserv);
 	server_roles.max_per_server = cfg.max_roles_per_server;
 	ws.register_resource("/servers/{server_id}/roles", &server_roles);
-	server_role_id_resource server_role_id(pool, sserv);
-	ws.register_resource("/servers/{server_id}/roles/{server_role_id}", &server_role_id);
-
 
 	file_resource user_avatars(cfg.user_avatar_path);
 	ws.register_resource("/files/avatar/user/{fname}", &user_avatars);

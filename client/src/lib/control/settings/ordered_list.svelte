@@ -22,11 +22,11 @@ const getBeforeIdx = (y) => {
 	if(y < top_rect.top + top_rect.height / 2)
 		return -1;
 
-	const rect = div_items[div_items.length - 1].getBoundingClientRect();
+	const rect = div_items[items.length - 1].getBoundingClientRect();
 	if(y >= rect.top && y <= rect.bottom)
 		return div_items.length - 1;
 
-	for(let i = 0; i < div_items.length - 1; ++i){
+	for(let i = 0; i < items.length - 1; ++i){
 		const rect = div_items[i].getBoundingClientRect(),
 		      rect_next = div_items[i + 1].getBoundingClientRect();
 		if(y >= rect.top + rect.height / 2 && y < rect_next.top + rect.height / 2)
@@ -39,7 +39,7 @@ const getBeforeIdx = (y) => {
 	return -2;
 };
 const getIdx = (y) => {
-	for(let i = 0; i < div_items.length; ++i){
+	for(let i = 0; i < items.length; ++i){
 		const rect = div_items[i].getBoundingClientRect();
 		if(y >= rect.top && y <= rect.bottom)
 			return i;

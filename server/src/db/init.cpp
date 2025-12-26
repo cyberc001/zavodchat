@@ -130,10 +130,9 @@ void db_create_test(std::string conn_str)
 		r = tx.exec("INSERT INTO servers(name, owner_id) VALUES('server_test', $1) RETURNING server_id", pqxx::params(user_id_1));
 		int server_id_1 = r[0]["server_id"].as<int>();
 		int default_role_id_1 = role_utils::create_default_role_if_absent(tx, server_id_1);
-		int test_role_id_1_1 = role_utils::insert_role(tx, server_id_1, -1, "admin", 0xFF0000);
-		tx.exec("UPDATE roles SET perms1 = $1 WHERE role_id = $2", pqxx::params(65536, test_role_id_1_1));
-		int test_role_id_1_2 = role_utils::insert_role(tx, server_id_1, test_role_id_1_1, "moderator", 0x0000FF);
-		int test_role_id_1_3 = role_utils::insert_role(tx, server_id_1, test_role_id_1_2, "pleb", 0xFFFF00);
+		int test_role_id_1_1 = role_utils::insert_role(tx, server_id_1, -1, "admin", 0xFF0000, 65536);
+		int test_role_id_1_2 = role_utils::insert_role(tx, server_id_1, test_role_id_1_1, "moderator", 0x0000FF, 0);
+		int test_role_id_1_3 = role_utils::insert_role(tx, server_id_1, test_role_id_1_2, "pleb", 0xFFFF00, 0);
 
 		r = tx.exec("SELECT user_id FROM users WHERE name = 'test2'");
 		if(!r.size()){
@@ -144,8 +143,7 @@ void db_create_test(std::string conn_str)
 		r = tx.exec("INSERT INTO servers(name, owner_id) VALUES('server_test2', $1) RETURNING server_id", pqxx::params(user_id_2));
 		int server_id_2 = r[0]["server_id"].as<int>();
 		int default_role_id_2 = role_utils::create_default_role_if_absent(tx, server_id_2);
-		int test_role_id_2_1 = role_utils::insert_role(tx, server_id_2, -1, "admin", 0xFF0000);
-		tx.exec("UPDATE roles SET perms1 = $1 WHERE role_id = $2", pqxx::params(65536, test_role_id_2_1));
+		int test_role_id_2_1 = role_utils::insert_role(tx, server_id_2, -1, "admin", 0xFF0000, 65536);
 		int test_role_id_2_2 = role_utils::insert_role(tx, server_id_2, test_role_id_2_1, "moderator", 0x0000FF);
 
 		r = tx.exec("SELECT user_id FROM users WHERE name = 'test3'");

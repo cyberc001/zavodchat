@@ -63,6 +63,7 @@ public:
 	static void delete_role(pqxx::work&, int server_id, int role_id);
 
 	/* JSON */
+	static std::shared_ptr<http_response> check_role_json(const http_request&, const nlohmann::json&);
 	static nlohmann::json role_json_from_row(const pqxx::row r);
 	static nlohmann::json role_json_from_row(const pqxx::row&& r);
 };

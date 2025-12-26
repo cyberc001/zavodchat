@@ -120,15 +120,14 @@ std::shared_ptr<http_response> resource_utils::parse_timestamp(const http_reques
 	return nullptr;
 }
 
-std::shared_ptr<http_response> resource_utils::parse_color(const http_request& req, std::string arg_name, int& color)
+std::shared_ptr<http_response> resource_utils::string_to_color(const http_request& req, std::string str, int& color)
 {
-	std::string clr = std::string(req.get_arg(arg_name));
-	if(clr.size() != 7)
-		return create_response::string(req, "Color '" + arg_name + "' is not 7 characters long", 400);
+	if(str.size() != 7)
+		return create_response::string(req, "Color '" + str + "' is not 7 characters long", 400);
 	try{
-		color = std::stoul(clr.substr(1), nullptr, 16);
+		color = std::stoul(str.substr(1), nullptr, 16);
 	} catch(std::invalid_argument& e){
-		return create_response::string(req, "Couldn't parse color '" + arg_name + "', got: " + clr, 400);
+		return create_response::string(req, "Color '" + str + "' is not a valid hexadecimal number", 400);
 	}
 	return nullptr;
 }

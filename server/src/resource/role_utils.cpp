@@ -331,6 +331,19 @@ void role_utils::delete_role(pqxx::work& tx, int server_id, int role_id)
 }
 
 /* JSON */
+std::shared_ptr<http_response> role_utils::check_role_json(const http_request& req, const nlohmann::json& j)
+{
+	if(!j["id"].is_number_integer())
+		return create_response::string(req, "Invalid role JSON: id is not an integer", 400);
+	if(!j["name"].is_string())
+		return create_response::string(req, "Invalid role JSON: name is not a string", 400);
+	if(!j["color"].is_string())
+		return create_response::string(req, "Invalid role JSON: color is not a string", 400);
+	if(!j["perms1"].is_number_unsigned())
+		return create_response::string(req, "Invalid role JSON: perms1 is not an unsigned integer", 400);
+	return nullptr;
+}
+
 nlohmann::json role_utils::role_json_from_row(const pqxx::row r)
 {
 	nlohmann::json res = {{"id", r["role_id"].as<int>()},

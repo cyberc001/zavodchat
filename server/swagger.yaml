@@ -582,37 +582,17 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Role'
-    post:
-      summary: Создать новую роль
+    put:
+      summary: Изменить список ролей
       parameters:
         - $ref: "#/parameters/zavodchat_token"
-        - name: next_role_id
-          required: true
-          in: query
-          description: ID роли, перед (ниже) которой нужно вставить новую роль
-          schema:
-            type: integer
-            example: 6
-        - name: name
-          required: true
-          in: query
-          description: Имя роли
-          schema:
-            type: string
-            example: moderator
-        - name: color
-          required: true
-          in: query
-          description: Цвет роли в формате RGB
-          schema:
-            type: integer
-            example: moderator
-        - name: perms1
-          in: query
-          description: Набор разрешений 1. По умолчанию все разрешения 00 (унаследованы от младших ролей)
-          schema:
-            type: integer
-            example: 158377
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/Role'
       responses:
         '200':
           description: ID созданной роли
@@ -621,50 +601,6 @@ paths:
               example: 17
         '400':
           description: Неправильные параметры / попытка вставить роль перед default ролью
-  /servers/$server_id/roles/$role_id:
-    put:
-      summary: Изменить параметры роли
-      parameters:
-        - $ref: "#/parameters/zavodchat_token"
-        - name: next_role_id
-          required: true
-          in: query
-          description: ID роли, перед (ниже) которой нужно вставить новую роль
-          schema:
-            type: integer
-            example: 6
-        - name: name
-          required: true
-          in: query
-          description: Имя роли
-          schema:
-            type: string
-            example: moderator
-        - name: color
-          required: true
-          in: query
-          description: Цвет роли в формате RGB
-          schema:
-            type: integer
-            example: moderator
-        - name: perms1
-          in: query
-          description: Набор разрешений 1. По умолчанию все разрешения 00 (унаследованы от младших ролей)
-          schema:
-            type: integer
-            example: 158377
-      responses:
-        '200':
-          description: Роль успешно изменена
-        '400':
-          description: Неправильные параметры / попытка вставить роль перед default ролью
-    delete:
-      summary: Удалить роль
-      parameters:
-        - $ref: "#/parameters/zavodchat_token"
-      responses:
-        '200':
-          description: Роль успешно удалена
   /servers/$server_id/users/$user_id/roles/$role_id:
     post:
       summary: Назначить пользователю роль
@@ -876,8 +812,8 @@ components:
           type: integer
           example: 2
         color:
-          type: integer
-          example: 16711680
+          type: string
+          example: "#0EDDDD"
         name:
           type: string
           example: "admin"

@@ -337,59 +337,25 @@ wscat -nc 'wss://localhost:445?channel=2'
 
 # Роли на сервере
 
-### role_created
+### roles_updated
 
-На сервере была создана новая роль.
-
-Пример:
-```js
-{
-	"data":
-	{
-		"color": 3333,
-		"id": 7,
-		"name": "supreme cult leader",
-		"perms1": 2,
-		"server_id": 1
-	},
-	"name": "role_created"
-}
-```
-
-### role_deleted
-
-На сервере была удалена роль.
+На сервере изменился список ролей.
 
 Пример:
 ```js
 {
 	"data":
-	{
-		"id": 7,
+	{"
+		roles": [
+			{"color":"#ff0000","id":2,"name":"admin","perms1":65536},
+			{"color":"#000000","id":8,"name":"scum","perms1":0},
+			{"color":"#ffff00","id":4,"name":"pleb","perms1":158377},
+			{"color":"#655095","id":12,"name":"manya","perms1":0},
+			{"color":"#999999","id":1,"name":"default","perms1":158377}
+		],
 		"server_id": 1
 	},
-	"name": "role_deleted"
-}
-```
-
-### role_changed
-
-На сервере была изменена роль.
-
-Поля `color`, `name`, `next_role_id` и `perms1` могут отсутствовать в зависимости от того, какие параметры были изменены.
-
-Пример:
-```js
-{
-	"data": {
-		"color": 1111,
-		"id": 7,
-		"name": "gangster",
-		"next_role_id": 2,
-		"perms1": 169,
-		"server_id": 1
-	},
-	"name": "role_changed"
+	"name": "roles_updated"
 }
 ```
 

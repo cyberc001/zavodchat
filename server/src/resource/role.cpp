@@ -3,10 +3,12 @@
 #include "resource/utils.h"
 #include "resource/role_utils.h"
 
+#include <iostream>
+
 server_roles_resource::server_roles_resource(db_connection_pool& pool, socket_main_server& sserv) : base_resource(), pool{pool}, sserv{sserv}
 {
 	set_allowing("GET", true);
-	set_allowing("POST", true);
+	set_allowing("PUT", true);
 }
 
 std::shared_ptr<http_response> server_roles_resource::render_GET(const http_request& req)
@@ -26,84 +28,16 @@ std::shared_ptr<http_response> server_roles_resource::render_GET(const http_requ
 
 	return create_response::string(req, res.dump(), 200);
 }
-std::shared_ptr<http_response> server_roles_resource::render_POST(const http_request& req)
+
+int server_roles_resource::get_next_id(const std::vector<nlohmann::json>& list, int i)
 {
-	base_resource::render_POST(req);
-
-	int user_id, server_id;
-	db_connection conn = pool.hold();
-	pqxx::work tx{*conn};
-	auto err = resource_utils::parse_server_id(req, tx, user_id, server_id);
-	if(err) return err;
-
-	err = role_utils::check_permission1(req, tx, server_id, user_id, PERM1_MANAGE_ROLES);
-	if(err) return err;
-
-	pqxx::result r = tx.exec("SELECT role_id FROM roles WHERE server_id = $1", pqxx::params(server_id));
-	if(r.size() >= max_per_server)
-		return create_response::string(req, "Server has more than " + std::to_string(max_per_server) + " roles", 403);
-
-	int next_role_id;
-	try{
-		next_role_id = std::stoi(std::string(req.get_arg("next_role_id")));
-	} catch(std::invalid_argument& e){
-		return create_response::string(req, "Invalid next_role_id: '" + std::string(req.get_arg("next_role_id")) + "'", 400);
-	}
-	err = role_utils::check_server_role(req, next_role_id, server_id, tx);
-	if(err) return err;
-	err = role_utils::check_role_lower_than_user(req, tx, server_id, user_id, next_role_id, true);
-	if(err) return err;
-	err = role_utils::check_role_not_default(req, tx, server_id, next_role_id);
-	if(err) return err;
-
-	std::string name = req.get_arg("name");
-	if(!name.size())
-		return create_response::string(req, "Empty role name", 400);
-
-	int color;
-	err = resource_utils::parse_color(req, "color", color);
-	if(err) return err;
-
-	long long perms1 = 0;
-	auto args = req.get_args();
-	if(args.find(std::string_view("perms1")) != args.end()){
-		try{
-			perms1 = std::stoll(std::string(req.get_arg("perms1")));
-		} catch(std::invalid_argument& e){
-			return create_response::string(req, "Invalid perms1: '" + std::string(req.get_arg("perms1")) + "'", 400);
-		}
-		err = role_utils::check_validity_perms1(req, perms1);
-		if(err) return err;
-	}
-
-	int inserted_id = role_utils::insert_role(tx, server_id, next_role_id, name, color, perms1);
-	if(inserted_id == -1)
-		return create_response::string(req, "next_role_id does not exist", 400);
-	if(inserted_id == -2)
-		return create_response::string(req, "name is too long", 400);
-
-	tx.commit();
-
-	socket_event ev;
-	resource_utils::json_set_ids(ev.data, server_id);
-	ev.data["id"] = inserted_id;
-	ev.data["name"] = name;
-	ev.data["color"] = resource_utils::color_to_string(color);
-	ev.data["perms1"] = perms1;
-	ev.name = "role_created";
-	sserv.send_to_server(server_id, tx, ev);
-
-	return create_response::string(req, std::to_string(inserted_id), 200);
+	for(; i > -1; --i)
+		if(list[i]["id"] > -1)
+			return list[i]["id"];
+	return -1;
 }
 
-
-server_role_id_resource::server_role_id_resource(db_connection_pool& pool, socket_main_server& sserv) : base_resource(), pool{pool}, sserv{sserv}
-{
-	set_allowing("PUT", true);
-	set_allowing("DELETE", true);
-}
-
-std::shared_ptr<http_response> server_role_id_resource::render_PUT(const http_request& req)
+std::shared_ptr<http_response> server_roles_resource::render_PUT(const http_request& req)
 {
 	base_resource::render_PUT(req);
 
@@ -116,119 +50,145 @@ std::shared_ptr<http_response> server_role_id_resource::render_PUT(const http_re
 	err = role_utils::check_permission1(req, tx, server_id, user_id, PERM1_MANAGE_ROLES);
 	if(err) return err;
 
-	int server_role_id;
-	err = role_utils::parse_server_role_id(req, server_id, tx, server_role_id);
+	nlohmann::json list;
+	err = resource_utils::json_from_content(req, list);
 	if(err) return err;
 
-	err = role_utils::check_role_lower_than_user(req, tx, server_id, user_id, server_role_id);
-	if(err) return err;
-
-	socket_event ev;
-	ev.data["id"] = server_role_id;
-	resource_utils::json_set_ids(ev.data, server_id);
-
-	// Parse optional arguments
-	auto args = req.get_args();
-
-	if(args.find(std::string_view("next_role_id")) != args.end()){
-		err = role_utils::check_role_not_default(req, tx, server_id, server_role_id);
+	// Validate array
+	if(!list.is_array())
+		return create_response::string(req, "Content should be a JSON array", 400);
+	if(list.size() >= max_per_server)
+		return create_response::string(req, "Server has more than " + std::to_string(max_per_server) + " roles", 403);
+	for(nlohmann::json::iterator i = list.begin(); i != list.end(); ++i){
+		err = role_utils::check_role_json(req, *i);
 		if(err) return err;
-
-		int next_role_id;
-		try{
-			next_role_id = std::stoi(std::string(req.get_arg("next_role_id")));
-		} catch(std::invalid_argument& e){
-			return create_response::string(req, "Invalid next_role_id: '" + std::string(req.get_arg("next_role_id")) + "'", 400);
-		}
-		err = role_utils::check_server_role(req, next_role_id, server_id, tx);
-		if(err) return err;
-		err = role_utils::check_role_lower_than_user(req, tx, server_id, user_id, next_role_id, true);
-		if(err) return err;
-		err = role_utils::check_role_not_default(req, tx, server_id, next_role_id);
-		if(err) return err;
-
-		ev.data["next_role_id"] = next_role_id;
-
-		role_utils::move_role(tx, server_id, server_role_id, next_role_id);
 	}
-	if(args.find(std::string_view("name")) != args.end()){
-		std::string name = req.get_arg("name");
-		if(!name.size())
-			return create_response::string(req, "Empty role name", 400);
 
-		try{
-			tx.exec("UPDATE roles SET name = $1 WHERE role_id = $2", pqxx::params(name, server_role_id));
-		} catch(pqxx::data_exception& e){
-			return create_response::string(req, "name is too long", 400);
-		}
-
-		ev.data["name"] = name;
+	std::vector<pqxx::row> r = role_utils::get_role_list(tx, server_id);	
+	std::vector<nlohmann::json> roles;
+	for(size_t i = 0; i < r.size(); ++i){
+		nlohmann::json j = role_utils::role_json_from_row(r[i]);
+		roles.push_back(j);
 	}
-	if(args.find(std::string_view("color")) != args.end()){
-		int color;
-		err = resource_utils::parse_color(req, "color", color);
-		if(err) return err;
 
-		ev.data["color"] = resource_utils::color_to_string(color);
+	// Remove roles
+	for(size_t j = 0; j < roles.size(); ++j){
+		size_t i; for(i = 0; i < list.size(); ++i)
+			if(list[i]["id"] == roles[j]["id"])
+				break;
+		if(i == list.size()){
+			err = role_utils::check_role_lower_than_user(req, tx, server_id, user_id, roles[j]["id"]);
+			if(err) return err;
+			err = role_utils::check_role_not_default(req, tx, server_id, roles[j]["id"]);
+			if(err) return err;
 
-		tx.exec("UPDATE roles SET color = $1 WHERE role_id = $2", pqxx::params(color, server_role_id));
-	}
-	if(args.find(std::string_view("perms1")) != args.end()){
-		long long perms1;
-		try{
-			perms1 = std::stoll(std::string(req.get_arg("perms1")));
-		} catch(std::invalid_argument& e){
-			return create_response::string(req, "Invalid perms1: '" + std::string(req.get_arg("perms1")) + "'", 400);
+			role_utils::delete_role(tx, server_id, roles[j]["id"]);
+			roles.erase(roles.begin() + j--);
 		}
-		if(role_utils::find_default_role(tx, server_role_id) == server_role_id)
-			err = role_utils::check_default_validity_perms1(req, perms1);
-		else
+	}
+	for(size_t i = 0; i < list.size(); ++i){
+		// Try to find an existing role with the same ID
+		size_t j; for(j = 0; j < roles.size(); ++j)
+			if(list[i]["id"] == roles[j]["id"])
+				break;
+
+		if(j != roles.size()){
+			int role_next_id = get_next_id(roles, j - 1),
+			    list_role_next_id = get_next_id(list, i - 1);
+			bool ch_content = list[i] != roles[j], ch_pos = role_next_id != list_role_next_id;
+			if(!ch_content && !ch_pos)
+				continue;
+
+			// check that user can modify this role
+			err = role_utils::check_role_lower_than_user(req, tx, server_id, user_id, list[i]["id"]);
+			if(err) return err;
+
+			if(ch_content){
+				roles[j] = list[i];
+
+				int id = list[i]["id"].get<int>();
+				std::string name = list[i]["name"].get<std::string>();
+
+				unsigned long long perms1 = list[i]["perms1"].get<unsigned long long>();
+				if(role_utils::find_default_role(tx, list[i]["id"]) == list[i]["id"])
+					err = role_utils::check_default_validity_perms1(req, perms1);
+				else
+					err = role_utils::check_validity_perms1(req, perms1);
+				if(err) return err;
+		
+				int color;
+				err = resource_utils::string_to_color(req, list[i]["color"].get<std::string>(), color);
+				if(err) return err;
+
+				try{
+					tx.exec("UPDATE roles SET name = $2, color = $3, perms1 = $4 WHERE role_id = $1",
+							pqxx::params(id, name, color, perms1));
+				} catch(pqxx::data_exception& e){
+					return create_response::string(req, "Role name is too long", 400);
+				}
+			}
+
+			if(ch_pos){
+				// dont allow to move default role or to move below default role
+				err = role_utils::check_role_not_default(req, tx, server_id, list[i]["id"]);
+				if(err) return err;
+				err = role_utils::check_role_not_default(req, tx, server_id, list_role_next_id);
+				if(err) return err;
+				// check that user is not moving this role above his
+				err = role_utils::check_role_lower_than_user(req, tx, server_id, user_id, list_role_next_id, true);
+				if(err) return err;
+
+				nlohmann::json rol = roles[j];
+
+				roles.erase(roles.begin() + j);
+				if(list_role_next_id == -1)
+					roles.insert(roles.begin(), rol);
+				else{
+					size_t k; for(k = 0; k < roles.size(); ++k)
+						if(roles[k]["id"] == list_role_next_id)
+							break;
+					roles.insert(roles.begin() + k + 1, rol);
+				}
+				
+				role_utils::move_role(tx, server_id, list[i]["id"], list_role_next_id);
+			}
+		}
+	}
+	// Add new roles
+	for(int i = list.size() - 1; i > -1; --i)
+		if(list[i]["id"] < 0){
+			int list_role_next_id = get_next_id(list, i - 1);
+
+			// Check that new role is not inserted above higher role
+			err = role_utils::check_role_lower_than_user(req, tx, server_id, user_id, list_role_next_id, true);
+			if(err) return err;
+
+			std::string name = list[i]["name"].get<std::string>();
+			
+			unsigned long long perms1 = list[i]["perms1"].get<unsigned long long>();
 			err = role_utils::check_validity_perms1(req, perms1);
-		if(err) return err;
+			if(err) return err;
+		
+			int color;
+			err = resource_utils::string_to_color(req, list[i]["color"].get<std::string>(), color);
+			if(err) return err;
 
-		ev.data["perms1"] = perms1;
-
-		tx.exec("UPDATE roles SET perms1 = $1 WHERE role_id = $2", pqxx::params(perms1, server_role_id));
-	}
-
-	tx.commit();
-
-	ev.name = "role_changed";
-	sserv.send_to_server(server_id, tx, ev);
-
-	return create_response::string(req, "Changed", 200);
-}
-
-std::shared_ptr<http_response> server_role_id_resource::render_DELETE(const http_request& req)
-{
-	base_resource::render_DELETE(req);
-
-	int user_id, server_id;
-	db_connection conn = pool.hold();
-	pqxx::work tx{*conn};
-	auto err = resource_utils::parse_server_id(req, tx, user_id, server_id);
-	if(err) return err;
-
-	err = role_utils::check_permission1(req, tx, server_id, user_id, PERM1_MANAGE_ROLES);
-	if(err) return err;
-
-	int server_role_id;
-	err = role_utils::parse_server_role_id(req, server_id, tx, server_role_id);
-	if(err) return err;
-
-	err = role_utils::check_role_lower_than_user(req, tx, server_id, user_id, server_role_id);
-	if(err) return err;
-	err = role_utils::check_role_not_default(req, tx, server_id, server_role_id);
-	if(err) return err;
-
-	role_utils::delete_role(tx, server_id, server_role_id);
-	tx.commit();
+			int inserted_id = role_utils::insert_role(tx, server_id, list_role_next_id, name, color, perms1);
+			if(inserted_id == -1)
+				std::cerr << "INTERNAL ERROR: next_role_id " << list_role_next_id << " does not exist" << std::endl;
+			if(inserted_id == -2)
+				return create_response::string(req, "Role name is too long", 400);
+		}
 
 	socket_event ev;
+	r = role_utils::get_role_list(tx, server_id);
+	ev.data["roles"] = nlohmann::json::array();
+	for(size_t i = 0; i < r.size(); ++i)
+		ev.data["roles"] += role_utils::role_json_from_row(r[i]);
 	resource_utils::json_set_ids(ev.data, server_id);
-	ev.data["id"] = server_role_id;
-	ev.name = "role_deleted";
+	ev.name = "roles_updated";
 	sserv.send_to_server(server_id, tx, ev);
 
-	return create_response::string(req, "Deleted", 200);
+	tx.commit();
+	return create_response::string(req, "", 200);
 }

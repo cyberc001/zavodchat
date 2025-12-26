@@ -44,7 +44,7 @@ public:
 	static std::shared_ptr<http_response> parse_session_token(const http_request&, pqxx::work& tx, int& user_id);
 	static std::shared_ptr<http_response> parse_timestamp(const http_request&, std::string arg_name, std::string& ts);
 
-	static std::shared_ptr<http_response> parse_color(const http_request&, std::string arg_name, int& color);
+	static std::shared_ptr<http_response> string_to_color(const http_request&, std::string str, int& color);
 	static std::string color_to_string(int color);
 
 	// Checks if the server is accessible to the user.
