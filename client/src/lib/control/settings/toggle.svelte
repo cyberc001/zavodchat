@@ -60,7 +60,6 @@
 .settings_toggle_frame {
 	display: flex;
 	align-items: center;
-	margin-bottom: 12px;
 }
 .settings_toggle_button {
 	width: 64px;

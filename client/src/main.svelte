@@ -218,7 +218,7 @@
 
 {#if sel.settings_tabs}
 
-<div style="padding: 16px; height: 100%">
+<div style="padding: 16px; box-sizing: border-box; height: 100%">
 	<TabbedSettings tabs={sel.settings_tabs} close_settings={closeSettings}/>
 </div>
 	

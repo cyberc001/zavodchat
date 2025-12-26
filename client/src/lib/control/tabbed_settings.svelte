@@ -22,6 +22,7 @@
 		{/each}
 	</div>
 	<div class="tabbed_settings_tab">
+	<div class="tabbed_settings_inner_tab">
 		<div>{@render tabs[sel_tab].render(params, () => {
 				if(tabs[sel_tab].state.reset)
 					tabs[sel_tab].state.reset();
@@ -47,6 +48,7 @@
 				disabled={!tabs[sel_tab].state.valid}/>
 			</div>
 		{/if}
+	</div>
 	</div>
 	<div>
 		<button
@@ -77,6 +79,13 @@
 	width: 85%;
 	padding: 16px;
 }
+.tabbed_settings_inner_tab {
+	overflow: auto;
+	padding-right: 16px;
+
+	height: 100%;
+	width: 100%;
+}
 
 .tabbed_settings_sidebar {
 	border-style: none solid none none;
@@ -89,6 +98,7 @@
 .tabbed_settings_actions {
 	position: absolute;
 	bottom: 0%;
+	right: 5%;
 
 	margin-bottom: 32px;
 	padding: 8px;
@@ -96,5 +106,6 @@
 	border-style: solid;
 	border-width: 2px;
 	border-color: var(--clr_border);
+	background: var(--clr_bg_panel);
 }
 </style>
