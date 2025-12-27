@@ -20,8 +20,8 @@
 
 	$effect(() => {
 		if(channel.name){
-			state_general.set_all_states("name", channel.name);
-			state_general.set_all_states("type", channel.type);
+			state_general.set_default_state("name", channel.name);
+			state_general.set_default_state("type", channel.type);
 		} else {
 			state_general.set_all_states("name", "");
 			state_general.set_all_states("type", Channel.Type.Text);

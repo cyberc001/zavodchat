@@ -45,6 +45,7 @@
 .context_menu_panel {
 	position: absolute;
 	width: fit-content;
+	z-index: 20;
 }
 .context_menu_item {
 	width: 120%;

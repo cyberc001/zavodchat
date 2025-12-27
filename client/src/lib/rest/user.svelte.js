@@ -32,17 +32,20 @@ export default class User {
 			user_data[f] = data[f];
 
 		// for each server that user shared with the client
-		for(const server_id of user_data.servers){
-			if(User.user_server_cache.has_state([server_id, user_id])){
-				let st = User.user_server_cache.get_state([server_id, user_id]);
-				for(const f in data)
-					st[f] = data[f];
-			}
+		for(const server_id of user_data.servers)
+			User.update_cache_server(server_id, user_id, data);
+	}
 
-			let tree = User.user_server_range_cache.get_tree(server_id);
-			if(tree)
-				tree.update_one_id(user_id, data);
+	static update_cache_server(server_id, user_id, data){
+		if(User.user_server_cache.has_state([server_id, user_id])){
+			let st = User.user_server_cache.get_state([server_id, user_id]);
+			for(const f in data)
+				st[f] = data[f];
 		}
+
+		let tree = User.user_server_range_cache.get_tree(server_id);
+		if(tree)
+			tree.update_one_id(user_id, data);
 	}
 
 
@@ -62,7 +65,7 @@ export default class User {
 	static get_server(server_id, user_id, _catch){
 		return User.user_server_cache.get_state([server_id, user_id],
 			(cache, id) => {
-			Rest.get(Rest.get_route_su(server_id, user_id),
+			Rest.get(Rest.get_route_sur(server_id, user_id),
 				(res) => {
 					cache.set_state(id, res.data);
 					User.add_shared_server(user_id, server_id);

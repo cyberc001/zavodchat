@@ -1,11 +1,15 @@
 <script>
 	import User from '$lib/rest/user.svelte.js';
 	import Role from '$lib/rest/role.js';
+	import ContextMenu from '$lib/control/context_menu.svelte';
 
 	// rel_off - offset relative to size, in %
-	let {user, user_roles,
+	let {user, server_id,
 		pos = [0, 0], rel_off = [0, 0],
-		hide_profile} = $props();
+		hide_profile, assign_role} = $props();
+
+	let user_roles = $derived(Role.get_user_roles(user, server_id));
+	let server_roles = Role.get_list(server_id);
 
 	let self = $state();
 
@@ -37,6 +41,27 @@
 			return;
 		hide_profile();
 	};
+
+	let add_role_button = $state();
+	let show_add_role_menu = $state(false);
+	let add_role_menu_pos = $derived.by(() => {
+		pos; user_roles;
+		const rect = add_role_button.getBoundingClientRect();
+		const self_rect = self.getBoundingClientRect();
+		return [rect.left - self_rect.left, self_rect.height];
+	});
+	let add_role_actions = $derived.by(() => {
+		if(Object.keys(user).length === 0)
+			return [];
+
+		let role_list = [];
+		for(const rol of server_roles)
+			if(user_roles.findIndex((x) => x.id === rol.id) === -1)
+				role_list.push({text: rol.name, func: () => {
+					assign_role(rol.id);
+				}});
+		return role_list;
+	});
 </script>
 
 <svelte:window {onmouseup}/>
@@ -68,14 +93,25 @@
 					{rol.name}
 				</div>
 			{/each}
+			<button class="user_role transparent_button hoverable"
+				bind:this={add_role_button}
+				onclick={() => show_add_role_menu = true}
+			>
+				<img class="filter_icon_main role_add_icon" src="$lib/assets/icons/add_cross.svg"> add role
+			</button>
 		</div>
+	{/if}
+
+	{#if show_add_role_menu}
+		<ContextMenu pos={add_role_menu_pos} hide_ctx_menu={() => show_add_role_menu = false}
+			     actions={add_role_actions}/>
 	{/if}
 </div>
 
 <style>
 .user_profile_display {
 	position: absolute;
-	z-index: 100;
+	z-index: 10;
 
 	padding: 4px 6px 4px 6px;
 
@@ -131,9 +167,15 @@
 	border-style: solid;
 	border-radius: 6px;
 	border-color: var(--clr_border_item);
+	border-width: 3px;
+
+	display: flex;
+	align-items: center;
+
+	color: var(--clr_text);
 
 	padding: 2px 4px 2px 4px;
-	margin: 3px 6px 3px 6px;
+	margin: 3px 6px 3px 0px;
 }
 .user_role_color {
 	display: inline-block;
@@ -141,5 +183,14 @@
 	height: 8px;
 	background: yellow;
 	border-radius: 50%;
+
+	margin-right: 4px;
+}
+
+.role_add_icon {
+	width: 12px;
+	height: 12px;
+
+	margin-right: 4px;
 }
 </style>

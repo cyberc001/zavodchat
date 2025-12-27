@@ -68,6 +68,14 @@ export default class SettingsTabState {
 		this.default_state[key] = this.copy_obj(value);
 		this.state[key] = this.copy_obj(value);
 	}
+	set_default_state(key, value){
+		if(Util.deep_equals(this.default_state[key], value))
+			return;
+
+		if(!this.is_changed(key))
+			this.state[key] = this.copy_obj(value);
+		this.default_state[key] = this.copy_obj(value);
+	}
 
 
 	static ChangesState = {

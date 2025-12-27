@@ -32,7 +32,7 @@
 	$effect(() => {
 		if(server.name){
 			server_avatar_url = Server.get_avatar_path(server);
-			state_general.set_all_states("name", server.name);
+			state_general.set_default_state("name", server.name);
 		} else {
 			server_avatar_url = "";
 			state_general.set_all_states("name", "");
@@ -44,11 +44,17 @@
 
 	let role_list_selected_idx = $state(-1);
 
+	let prev_server_id = $state(server_id);
 	$effect(() => {
-		if(server_id){
+		if(server_id !== prev_server_id)
 			role_list_selected_idx = -1;
-			state_roles.set_all_states("list", Role.get_list(server_id));
-		}
+
+		if(server_id)
+			state_roles.set_default_state("list", Role.get_list(server_id));
+		else
+			state_roles.set_all_states("list", []);
+
+		prev_server_id = server_id;
 	});
 
 	function perm_to_toggle_value(x){

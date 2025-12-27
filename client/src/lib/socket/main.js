@@ -65,6 +65,24 @@ export default class MainSocket {
 				for(const rol of data.roles)
 					list.push(rol);
 			}
+		},
+
+		role_assigned: function(data) {
+			let new_roles;
+			if(User.user_server_cache.has_state([data.server_id, data.user_id]))
+				new_roles = User.user_server_cache.get_state([data.server_id, data.user_id]).roles;
+			else{
+				let tree = User.user_server_range_cache.get_tree(data.server_id);
+				if(tree){
+					let obj = tree.find_by_id(data.user_id);
+					new_roles = obj?.roles;
+				}
+			}
+
+			if(new_roles){
+				new_roles.push(data.role_id);
+				User.update_cache_server(data.server_id, data.user_id, {roles: new_roles});
+			}
 		}
 	};
 

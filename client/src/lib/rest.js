@@ -27,7 +27,7 @@ export default class Rest {
 		route += "/messages/" + message_id;
 		return route;
 	}
-	static get_route_su(server_id, user_id)
+	static get_route_sur(server_id, user_id, role_id)
 	{
 		let route = "";
 		if(typeof server_id === "undefined")
@@ -36,6 +36,9 @@ export default class Rest {
 		if(typeof user_id === "undefined")
 			return route;
 		route += "/users/" + user_id;
+		if(typeof role_id === "undefined")
+			return route;
+		route += "/roles/" + role_id;
 		return route;
 	}
 	static get_route_sr(server_id, role_id)

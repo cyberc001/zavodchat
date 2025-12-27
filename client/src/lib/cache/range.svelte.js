@@ -193,7 +193,17 @@ export class DataRangeTree {
 			if(enc_range.arr[i - enc_range.start].id === id)
 				return i;
 	}
-
+	find_by_id(id){
+		const r = new DataRange();
+		r.id_start = id;
+		r.id_end = id;
+		const enc_range = this.find_enclosing_range_id(r);
+		if(!enc_range)
+			return;
+		for(let i = enc_range.start; i < enc_range.end; ++i)
+			if(enc_range.arr[i - enc_range.start].id === id)
+				return enc_range.arr[i - enc_range.start];
+	}
 
 	insert_range(range){
 		if(this._tree.size === 0){
@@ -306,7 +316,6 @@ export class DataRangeTree {
 		if(typeof idx !== "undefined")
 			this.update_one(idx, data);
 	}
-
 };
 
 export default class RangeCache extends IDCache {

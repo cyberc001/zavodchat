@@ -4,6 +4,7 @@
 	import Message from '$lib/rest/message.js';
 	import User from '$lib/rest/user.svelte.js';
 	import Role from '$lib/rest/role.js';
+	import ServerUser from '$lib/rest/server_user.js';
 
 	import MainSocket from '$lib/socket/main.js';
 
@@ -43,7 +44,6 @@
 	let server = $state({});
 	let servers = Server.get_list(setError);
 	let channels = $state([]);
-	let roles = $state({});
 
 	const getUserRoles = (user) => {
 		if(!user || !user.roles)
@@ -136,7 +136,10 @@
 	const showCtxMenu = (pos, action_set, i) => {
 		sel.message = i;
 		ctx_menu_params.pos = pos;
-		ctx_menu_params.actions = action_sets[action_set];
+		if(typeof action_set === "string")
+			ctx_menu_params.actions = action_sets[action_set];
+		else
+			ctx_menu_params.actions = action_set;
 		ctx_menu_params.visible = true;
 	};
 	const hideCtxMenu = () => {
@@ -357,10 +360,6 @@
 				actions={sel.message_edit > -1 ? [{text: "Stop editing", func: stopEditing}] : []}/>
 		{/if}
 	</div>
-	{#if ctx_menu_params.visible}
-		<ContextMenu pos={ctx_menu_params.pos} hide_ctx_menu={hideCtxMenu}
-			     actions={ctx_menu_params.actions}/>
-	{/if}
 	{#if sel.server > -1}
 		<div class="panel sidebar_users">
 			{#snippet render_user(i, user)}
@@ -385,10 +384,17 @@
 
 {#if profile_display_user}
 	<UserProfileDisplay
-	user={profile_display_user} user_roles={Role.get_user_roles(profile_display_user, sel.server)}
+	user={profile_display_user} server_id={sel.server}
 	pos={sel_user_pos[0]} rel_off={sel_user_pos[1]}
 	hide_profile={() => showUser(-1, -1)}
+	assign_role={(role_id) => ServerUser.assign_role(sel.server, profile_display_user.id, role_id,
+								() => {}, setError)}
 	/>
+{/if}
+
+{#if ctx_menu_params.visible}
+	<ContextMenu pos={ctx_menu_params.pos} hide_ctx_menu={hideCtxMenu}
+		     actions={ctx_menu_params.actions}/>
 {/if}
 
 {/if}
