@@ -389,6 +389,8 @@
 	hide_profile={() => showUser(-1, -1)}
 	assign_role={(role_id) => ServerUser.assign_role(sel.server, profile_display_user.id, role_id,
 								() => {}, setError)}
+	disallow_role={(role_id) => ServerUser.disallow_role(sel.server, profile_display_user.id, role_id,
+								() => {}, setError)}
 	/>
 {/if}
 

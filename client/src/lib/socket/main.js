@@ -10,6 +10,13 @@ export default class MainSocket {
 	static host = "wss://127.0.0.1:444";
 	ws;
 
+	static _get_new_roles(data) {
+		if(User.user_server_cache.has_state([data.server_id, data.user_id]))
+			return User.user_server_cache.get_state([data.server_id, data.user_id]).roles;
+		else
+			return User.user_server_range_cache.get_tree(data.server_id)?.find_by_id(data.user_id)?.roles;
+	}
+
 	static socket_event_handlers = {
 		message_edited: function(data) {
 			let tree = Message.message_range_cache.get_tree([data.server_id, data.channel_id]);
@@ -68,20 +75,20 @@ export default class MainSocket {
 		},
 
 		role_assigned: function(data) {
-			let new_roles;
-			if(User.user_server_cache.has_state([data.server_id, data.user_id]))
-				new_roles = User.user_server_cache.get_state([data.server_id, data.user_id]).roles;
-			else{
-				let tree = User.user_server_range_cache.get_tree(data.server_id);
-				if(tree){
-					let obj = tree.find_by_id(data.user_id);
-					new_roles = obj?.roles;
-				}
-			}
-
+			let new_roles = MainSocket._get_new_roles(data);
 			if(new_roles){
 				new_roles.push(data.role_id);
 				User.update_cache_server(data.server_id, data.user_id, {roles: new_roles});
+			}
+		},
+		role_disallowed: function(data) {
+			let new_roles = MainSocket._get_new_roles(data);
+			if(new_roles){
+				const i = new_roles.findIndex((x) => x === data.role_id);
+				if(i !== -1){
+					new_roles.splice(i, 1);
+					User.update_cache_server(data.server_id, data.user_id, {roles: new_roles});
+				}
 			}
 		}
 	};

@@ -6,7 +6,8 @@
 	// rel_off - offset relative to size, in %
 	let {user, server_id,
 		pos = [0, 0], rel_off = [0, 0],
-		hide_profile, assign_role} = $props();
+		hide_profile,
+		assign_role, disallow_role} = $props();
 
 	let user_roles = $derived(Role.get_user_roles(user, server_id));
 	let server_roles = Role.get_list(server_id);
@@ -87,11 +88,17 @@
 			<b style={Role.get_username_style(user_roles)}>{user?.name}</b>
 		</div>
 		<div class="user_role_list">
-			{#each user_roles as rol}
-				<div class="user_role">
+			{#each user_roles as rol, i}
+				<button class={"user_role transparent_button hoverable" + (i === user_roles.length - 1 ? "" : " user_role_disallow")}
+				disabled={i === user_roles.length - 1}
+				onclick={(e) => {
+					e.target.blur();
+					disallow_role(rol.id);
+				}}
+				>
 					<div class="user_role_color" style={Role.get_background_style(rol)}></div>
 					{rol.name}
-				</div>
+				</button>
 			{/each}
 			<button class="user_role transparent_button hoverable"
 				bind:this={add_role_button}
@@ -176,6 +183,12 @@
 
 	padding: 2px 4px 2px 4px;
 	margin: 3px 6px 3px 0px;
+}
+.user_role_disallow:hover {
+	text-decoration: line-through;
+}
+.user_role_disallow:focus {
+	text-decoration: line-through;
 }
 .user_role_color {
 	display: inline-block;
