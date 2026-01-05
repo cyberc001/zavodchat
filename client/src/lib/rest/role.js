@@ -1,6 +1,6 @@
 import Rest from "$lib/rest";
 import Util from "$lib/util";
-import ListCache from "$lib/cache/list.svelte.js";
+import {ListCache} from "$lib/cache/list.svelte.js";
 
 export default class Role {
 	static role_list_cache = new ListCache();
@@ -53,12 +53,12 @@ export default class Role {
 	static get_background_style(role){
 		return typeof role !== "undefined" ? `background: ${role.color}` : "";
 	}
-	static get_user_roles(user, server_id){
+	static get_user_roles(user, server_roles){
 		if(!user || !user.roles)
 			return [];
 
 		let user_roles = [];
-		for(const rol of Role.get_list(server_id)){
+		for(const rol of server_roles){
 			const role_id = user.roles.find((x) => x === rol.id);
 			if(typeof role_id !== "undefined")
 				user_roles.push(rol);

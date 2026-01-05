@@ -1,5 +1,5 @@
 import Rest from "$lib/rest";
-import RangeCache from "$lib/cache/range.svelte.js";
+import {RangeCache} from "$lib/cache/range.svelte.js";
 
 export default class Message {
 	static message_range_cache = new RangeCache();

@@ -28,7 +28,7 @@
 							data.id = server_id;
 							if(server_avatar_url)
 								data.avatar = server_avatar_url;
-							Server.server_list_cache.cache[0].push(data);
+							Server.server_list_cache.cache[0].data.push(data);
 							close_settings();
 						},
 						() => {});

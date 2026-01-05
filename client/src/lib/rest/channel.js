@@ -1,7 +1,7 @@
 import Rest from "$lib/rest";
 import Util from "$lib/util";
-import IDCache from "$lib/cache/id.svelte.js";
-import ListCache from "$lib/cache/list.svelte.js";
+import {IDCache} from "$lib/cache/id.svelte.js";
+import {ListCache} from "$lib/cache/list.svelte.js";
 
 export default class Channel {
 	static channel_cache = new IDCache();
@@ -9,19 +9,19 @@ export default class Channel {
 
 	static add_channel_to_cache(server_id, data){
 		if(Channel.channel_list_cache.has_state(server_id))
-			Channel.channel_list_cache.get_state(server_id).push(data);
+			Channel.channel_list_cache.get_state(server_id).data.push(data);
 	}
 	static update_cache(server_id, channel_id, data){
 		if(Channel.channel_cache.has_state([server_id, channel_id])){
 			let channel_data = Channel.channel_cache.get_state([server_id, channel_id]);
 			for(const f in data)
-				channel_data[f] = data[f];
+				channel_data.data[f] = data[f];
 		}
 		if(Channel.channel_list_cache.has_state(server_id)){
 			let channel_list_data = Channel.channel_list_cache.cache[server_id].find((x) => x.id === channel_id);
 			if(channel_list_data)
 				for(const f in data)
-					channel_list_data[f] = data[f];
+					channel_list_data.data[f] = data[f];
 		}
 	}
 

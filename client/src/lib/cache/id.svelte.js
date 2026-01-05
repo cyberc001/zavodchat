@@ -1,7 +1,18 @@
-export default class {
-	cache = $state({});
+export class IDObserver {
+	data = $state({});
+	loaded = $state(false);
+
+	set_data(data){
+		for(const key in data)
+			this.data[key] = data[key];
+		this.loaded = true;
+	}
+}
+
+export class IDCache {
+	cache = {};
 	_default_state_constructor(){
-		return {};
+		return new IDObserver();
 	}
 
 	// ID: [int1, int2, ..., intN]
@@ -14,19 +25,26 @@ export default class {
 
 	get_state(_id, load_func){
 		let id = this.state_refs_id(_id);
-		if(typeof this.cache[id] === "undefined"){
-			this.cache[id] = this._default_state_constructor();
+		let obj = this.cache[id];
+		if(typeof obj === "undefined" || typeof obj.deref() === "undefined"){
+			obj = this._default_state_constructor();
+			this.cache[id] = new WeakRef(obj);
 			if(load_func)
 				load_func(this, id);
+			return obj;
 		}
-		return this.cache[id];
+		return obj.deref();
 	}
 	// Should be called from get_state(, load_func), therefore id is not parsed twice
 	set_state(id, data){
-		for(const key in data)
-			this.cache[id][key] = data[key];
+		let obj = this.cache[id].deref();
+		if(!obj){
+			obj = this._default_state_constructor();
+			this.cache[id] = new WeakRef(obj);	
+		}
+		obj.set_data(data);
 	}
 	has_state(_id){
-		return this.cache.hasOwnProperty(this.state_refs_id(_id));
+		return typeof this.cache[this.state_refs_id(_id)]?.deref() !== "undefined";
 	}
 }

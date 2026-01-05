@@ -5,6 +5,8 @@ export default class SettingsTabState {
 	default_state = $state({});
 
 	copy_obj(obj){
+		if(obj instanceof File)
+			return obj;
 		if(Array.isArray(obj)){
 			let new_arr = [];
 			for(const e of obj)

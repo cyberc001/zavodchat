@@ -38,13 +38,13 @@
 	});
 
 	$effect(() => {
-		if(!is_loading && items.length < range && index > (range - items.length))
+		if(items_range.loaded && items.length < range && index > (range - items.length)){
+			console.log("correcting index");
 			index -= (range - items.length);
+		}
 	});
 
 	let reverse_sign = $derived(reversed ? -1 : 1);
-
-	let is_loading = $derived(items.length > 0 && Object.keys(items[items.length - 1]).length === 0);
 
 	let last_scroll_top;
 	const is_scrolling_up = (scroll_top) => {
@@ -75,7 +75,7 @@
 	}
 
 	const on_scroll = (e) => {
-		if(is_loading)
+		if(!items_range.loaded)
 			return;
 
 		remember_scroll_pos();
@@ -117,7 +117,7 @@
 			{/if}
 		{/each}
 	</div>
-	{#if is_loading}
+	{#if !items_range.loaded}
 		<div class="item paginated_list_overlay">
 			<img src="$lib/assets/icons/loading.svg" alt="loading" class="filter_icon_main" style="width: 20px; margin-right: 8px"/>
 			<span class="paginated_list_overlay_text">{loading_text}</span>

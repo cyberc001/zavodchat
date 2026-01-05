@@ -1,6 +1,6 @@
 import Rest from "$lib/rest.js";
-import IDCache from "$lib/cache/id.svelte.js";
-import RangeCache from "$lib/cache/range.svelte.js";
+import {IDCache} from "$lib/cache/id.svelte.js";
+import {RangeCache} from "$lib/cache/range.svelte.js";
 
 export default class User {
 	static user_cache = new IDCache();
@@ -9,19 +9,19 @@ export default class User {
 
 	static add_shared_server(user_id, server_id){
 		let u = User.user_cache.get_state(user_id);
-		if(!u.hasOwnProperty("servers"))
-			u.servers = [server_id];
+		if(typeof u.data.servers === "undefined")
+			u.data.servers = [server_id];
 		else
-			u.servers.push(server_id);
+			u.data.servers.push(server_id);
 	}
 
 	static update_cache(user_id, data){
 		// try to update user_self
 		if(user_id !== -1 && User.user_cache.has_state(-1)
-			&& User.user_cache.get_state(-1).id === user_id){
+			&& User.user_cache.get_state(-1).data.id === user_id){
 			let user_data = User.user_cache.get_state(-1);
 			for(const f in data)
-				user_data[f] = data[f];
+				user_data.data[f] = data[f];
 		}
 
 		if(!User.user_cache.has_state(user_id))
@@ -29,10 +29,10 @@ export default class User {
 
 		let user_data = User.user_cache.get_state(user_id);
 		for(const f in data)
-			user_data[f] = data[f];
+			user_data.data[f] = data[f];
 
 		// for each server that user shared with the client
-		for(const server_id of user_data.servers)
+		for(const server_id of user_data.data.servers)
 			User.update_cache_server(server_id, user_id, data);
 	}
 

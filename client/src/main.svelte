@@ -43,14 +43,15 @@
 	let user_self = User.get(-1, setError);	
 	let server = $state({});
 	let servers = Server.get_list(setError);
-	let channels = $state([]);
+	let server_roles = $state([]);
+	let channels = $state({});
 
 	const getUserRoles = (user) => {
 		if(!user || !user.roles)
 			return [];
 
 		let user_roles = [];
-		for(const id of servers[sel.server].roles){
+		for(const id of servers.data[sel.server].roles){
 			const role_id = user.roles.find((x) => x === id);
 			if(typeof role_id !== "undefined")
 				user_roles.push(roles[role_id]);
@@ -158,6 +159,7 @@
 		settings_params = {};
 
 		server = Server.get(id);
+		server_roles = Role.get_list(id);
 		channels = Channel.get_list(id, setError);
 	};
 
@@ -231,10 +233,10 @@
 			<div style="display: flex; height: -webkit-fill-available">
 				<div style="display: flex; flex-direction: column">
 					<div class="panel sidebar_servers">
-						{#if servers.loading}
+						{#if !servers.loaded}
 						<img src="$lib/assets/icons/loading.svg" alt="loading" class="filter_icon_main" style="width: 48px"/>
 						{:else}
-						{#each servers as srv}
+						{#each servers.data as srv}
 							<button class={"item hoverable sidebar_server" + (sel.server == srv.id ? " selected" : "")}
 								onclick={() => showServer(srv.id)}
 								oncontextmenu={(e) => {
@@ -264,21 +266,21 @@
 				<div style="display: flex; flex-direction: column">
 					<div class="panel sidebar_channels">
 						<div class="sidebar_channel_name">
-							{#if server.name}
-								{server.name}
+							{#if server.data?.name}
+								{server.data?.name}
 							{/if}
 						</div>
 
-						{#if channels.loading}
+						{#if channels.loaded === false}
 							<div style="text-align: center; margin-top: 6px">
 							<img src="$lib/assets/icons/loading.svg" alt="loading" class="filter_icon_main" style="width: 48px"/>
 						</div>
 						{:else}
-						{#each channels as ch, i}
+						{#each channels.data as ch, i}
 							<div>
 								<button
 								class={"item hoverable transparent_button sidebar_channel_el" + (sel.channel == ch.id ? " selected" : "")}
-								style={i == channels.length - 1 ? "border-style: solid none solid none" : ""}
+								style={i == channels.data.length - 1 ? "border-style: solid none solid none" : ""}
 								onclick={() => showChannel(ch.id)}
 								oncontextmenu={(e) => {
 									event.preventDefault();
@@ -297,7 +299,7 @@
 						{/each}
 						{/if}
 					</div>
-					{#if typeof channels.loading !== "undefined" && !channels.loading}
+					{#if channels.loaded}
 					<div class="panel sidebar_channels sidebar_channel_actions">
 						<button
 						class="item hoverable transparent_button sidebar_channel_el"
@@ -313,12 +315,12 @@
 		</div>
 
 		<div class="panel profile_panel">
-			{#if Object.keys(user_self).length === 0}
+			{#if !user_self.loaded}
 				<img src="$lib/assets/icons/loading.svg" alt="loading" class="filter_icon_main" style="width: 24px"/>
 			{:else}
 				<div style="display: flex; align-items: center; margin-bottom: 6px">
-					<img src={User.get_avatar_path(user_self)} style="width: 32px; height: 32px; margin-right: 8px" alt="avatar"/>
-					{user_self.name}
+					<img src={User.get_avatar_path(user_self.data)} style="width: 32px; height: 32px; margin-right: 8px" alt="avatar"/>
+					{user_self.data.name}
 				</div>
 			{/if}
 
@@ -350,8 +352,8 @@
 			render_item={render_message} item_dom_id_prefix="message_display_"
 			load_items={(index, range) => Message.get_range(sel.server, sel.channel, index, range, setError)}
 			augment_item={(msg) => {
-							msg.author = User.get_server(sel.server, msg.author_id);
-							msg.author_roles = Role.get_user_roles(msg.author, sel.server);
+						msg.author = User.get_server(sel.server, msg.author_id);
+						msg.author_roles = Role.get_user_roles(msg.author.data, server_roles.data);
 			}}
 			}}/>
 			<MessageInput
@@ -376,7 +378,7 @@
 			bind:scrollTop={server_user_list_scroll_top}
 			render_item={render_user} item_dom_id_prefix="user_display_"
 			load_items={(index, range) => User.get_server_range(sel.server, index, range, setError)}
-			augment_item={(user) => {user.role_list = Role.get_user_roles(user, sel.server)}}
+			augment_item={(user) => {user.role_list = Role.get_user_roles(user, server_roles.data)}}
 			to_latest_text="Up"/>
 		</div>
 	{/if}
@@ -384,12 +386,12 @@
 
 {#if profile_display_user}
 	<UserProfileDisplay
-	user={profile_display_user} server_id={sel.server}
+	user={profile_display_user.data} server_roles={server_roles.data}
 	pos={sel_user_pos[0]} rel_off={sel_user_pos[1]}
 	hide_profile={() => showUser(-1, -1)}
-	assign_role={(role_id) => ServerUser.assign_role(sel.server, profile_display_user.id, role_id,
+	assign_role={(role_id) => ServerUser.assign_role(sel.server, profile_display_user.data.id, role_id,
 								() => {}, setError)}
-	disallow_role={(role_id) => ServerUser.disallow_role(sel.server, profile_display_user.id, role_id,
+	disallow_role={(role_id) => ServerUser.disallow_role(sel.server, profile_display_user.data.id, role_id,
 								() => {}, setError)}
 	/>
 {/if}

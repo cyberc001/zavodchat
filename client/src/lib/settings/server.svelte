@@ -30,9 +30,9 @@
 	let server_avatar_url = $state("");
 
 	$effect(() => {
-		if(server.name){
-			server_avatar_url = Server.get_avatar_path(server);
-			state_general.set_default_state("name", server.name);
+		if(server.loaded){
+			server_avatar_url = Server.get_avatar_path(server.data);
+			state_general.set_default_state("name", server.data.name);
 		} else {
 			server_avatar_url = "";
 			state_general.set_all_states("name", "");
@@ -50,7 +50,7 @@
 			role_list_selected_idx = -1;
 
 		if(server_id)
-			state_roles.set_default_state("list", Role.get_list(server_id));
+			state_roles.set_default_state("list", Role.get_list(server_id).data);
 		else
 			state_roles.set_all_states("list", []);
 

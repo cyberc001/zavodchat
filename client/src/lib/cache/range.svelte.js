@@ -1,9 +1,10 @@
-import IDCache from "$lib/cache/id.svelte.js";
-import { RBTree } from "bintrees";
+import {IDCache} from "$lib/cache/id.svelte.js";
+import {RBTree} from "bintrees";
 
 class RangeObserver {
 	data = $state([]);
 	start = 0; end = 0;
+	loaded = $state(false);
 
 	constructor(range, start, end){
 		this.start = start;
@@ -15,6 +16,7 @@ class RangeObserver {
 	update(range, start, end){
 		for(let i = start; i < end; ++i)
 			this.data[i - this.start] = range.arr[i - range.start];
+		this.loaded = true;
 	}
 }
 
@@ -109,8 +111,32 @@ export class DataRange {
 		return new_range;
 	}
 
+	trim(){
+		this.delete_gced_observers();
+
+		let start_oidx, end_oidx;
+		for(const ref of this.observers){
+			const obs = ref.deref();
+			if(!obs)
+				continue;
+			const init = typeof start_oidx !== "undefined";
+			if(!init || obs.start < start_oidx)
+				start_oidx = obs.start;
+			if(!init || obs.end > end_oidx)
+				end_oidx = obs.end;
+		}
+		if(typeof start_oidx === "undefined")
+			return;
+		this.arr.splice(0, start_oidx - this.start);
+		this.arr.splice(end_oidx - this.end, this.end - end_oidx);
+		this.start = start_oidx;
+		this.end = end_oidx;
+		this.id_start = this.arr[0].id;
+		this.id_end = this.arr[this.arr.length - 1].id;
+	}
+
 	delete_gced_observers(){
-		// Thanks JavaScript developers for making WeakMap non-iterable, Lua doesnt totally have a WeakMap that works for my purposes https://stackoverflow.com/questions/36760314/how-to-make-weak-set-or-weak-map-iterable-in-es6
+		// Probably could have used FinalizationRegistry
 		let new_obs = [];
 		for(const ref of this.observers){
 			const obs = ref.deref();
@@ -225,9 +251,9 @@ export class DataRangeTree {
 					range = range.union(r);
 				}
 		}
-		this._tree.insert(range);
 		for(const r of deleted_subranges)
 			this._tree.remove(r);
+		this._tree.insert(range);
 		return range;
 	}
 
@@ -316,15 +342,44 @@ export class DataRangeTree {
 		if(typeof idx !== "undefined")
 			this.update_one(idx, data);
 	}
+
+
+	trim(){
+		let toremove = [];
+		this.__trim_iter(this._tree._root, toremove);
+		for(const node of toremove)
+			this._tree.remove(node);
+	}
+	__trim_iter(node, toremove){
+		if(node === null)
+			return;
+		const left = node.left;
+		const right = node.right;
+
+		if(node.data.observers.length === 0)
+			toremove.push(node.data);
+		else
+			node.data.trim();
+
+		this.__trim_iter(left, toremove);
+		this.__trim_iter(right, toremove);
+	}
 };
 
-export default class RangeCache extends IDCache {
+export class RangeCache extends IDCache {
 	cache = {};
 
 	// RB-tree methods
 	_default_state_constructor(){
 		return new DataRangeTree();
 	}
+
+
+	intv = setInterval(() => {
+		for(const id in this.cache)
+			this.cache[id].trim();
+	}, 2000); // TODO change to a proper value
+
 
 	get_tree(_id){
 		const id = this.state_refs_id(_id);
@@ -347,6 +402,7 @@ export default class RangeCache extends IDCache {
 		}
 
 		let nobs = new RangeObserver(enc_range, start, start + count);
+		nobs.loaded = !load;
 		enc_range.observers.push(new WeakRef(nobs));
 
 		if(load)

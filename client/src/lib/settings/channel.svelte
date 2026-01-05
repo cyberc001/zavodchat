@@ -19,9 +19,9 @@
 	let state_general = new SettingsTabState({name: "", type: Channel.Type.Text});
 
 	$effect(() => {
-		if(channel.name){
-			state_general.set_default_state("name", channel.name);
-			state_general.set_default_state("type", channel.type);
+		if(channel.loaded){
+			state_general.set_default_state("name", channel.data.name);
+			state_general.set_default_state("type", channel.data.type);
 		} else {
 			state_general.set_all_states("name", "");
 			state_general.set_all_states("type", Channel.Type.Text);

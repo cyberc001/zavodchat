@@ -4,13 +4,12 @@
 	import ContextMenu from '$lib/control/context_menu.svelte';
 
 	// rel_off - offset relative to size, in %
-	let {user, server_id,
+	let {user, server_roles,
 		pos = [0, 0], rel_off = [0, 0],
 		hide_profile,
 		assign_role, disallow_role} = $props();
 
-	let user_roles = $derived(Role.get_user_roles(user, server_id));
-	let server_roles = Role.get_list(server_id);
+	let user_roles = $derived(Role.get_user_roles(user, server_roles));
 
 	let self = $state();
 

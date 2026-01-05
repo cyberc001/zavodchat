@@ -12,9 +12,9 @@ export default class MainSocket {
 
 	static _get_new_roles(data) {
 		if(User.user_server_cache.has_state([data.server_id, data.user_id]))
-			return User.user_server_cache.get_state([data.server_id, data.user_id]).roles;
+			return User.user_server_cache.get_state([data.server_id, data.user_id]).data.roles;
 		else
-			return User.user_server_range_cache.get_tree(data.server_id)?.find_by_id(data.user_id)?.roles;
+			return User.user_server_range_cache.get_tree(data.server_id)?.find_by_id(data.user_id)?.data.roles;
 	}
 
 	static socket_event_handlers = {
@@ -47,9 +47,9 @@ export default class MainSocket {
 		},
 		server_deleted: function(data) {
 			delete Server.server_cache.cache[data.id];
-			let idx = Server.server_list_cache.cache[0]?.findIndex((x) => x.id === data.id);
+			let idx = Server.server_list_cache.get_state(0).data.findIndex((x) => x.id === data.id);
 			if(typeof idx !== "undefined" && idx !== -1)
-				Server.server_list_cache.cache[0].splice(idx, 1);
+				Server.server_list_cache.cache[0].data.splice(idx, 1);
 		},
 
 		channel_created: function(data) {
@@ -60,17 +60,18 @@ export default class MainSocket {
 		},
 		channel_deleted: function(data) {
 			delete Channel.channel_cache.cache[data.id];
-			let idx = Channel.channel_list_cache.cache[data.server_id]?.findIndex((x) => x.id === data.id);
+			let st = Channel.channel_list_cache.get_state(data.server_id);
+			let idx = st?.data.findIndex((x) => x.id === data.id);
 			if(typeof idx !== "undefined" && idx !== -1)
-				Channel.channel_list_cache.cache[data.server_id].splice(idx, 1);
+				st.data.splice(idx, 1);
 		},
 
 		roles_updated: function(data) {
-			let list = Role.role_list_cache.cache[data.server_id];
-			if(list){
-				list.splice(0, list.length);
+			let list = Role.role_list_cache.get_state(data.server_id);
+			if(list && !list.loading){
+				list.data.splice(0, list.length);
 				for(const rol of data.roles)
-					list.push(rol);
+					list.data.push(rol);
 			}
 		},
 

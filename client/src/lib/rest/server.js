@@ -1,20 +1,20 @@
 let route = "servers";
 import Rest from "$lib/rest";
 import Util from "$lib/util";
-import IdCache from "$lib/cache/id.svelte.js";
-import ListCache from "$lib/cache/list.svelte.js";
+import {IDCache} from "$lib/cache/id.svelte.js";
+import {ListCache} from "$lib/cache/list.svelte.js";
 
 export default class Server {
-	static server_cache = new IdCache();
+	static server_cache = new IDCache();
 	static server_list_cache = new ListCache();
 
 	static update_cache(server_id, data){
 		if(Server.server_cache.has_state(server_id)){
 			let server_data = Server.server_cache.get_state(server_id);
 			for(const f in data)
-				server_data[f] = data[f];
+				server_data.data[f] = data[f];
 		}
-		let server_list_data = Server.server_list_cache.cache[0].find((x) => x.id === server_id);
+		let server_list_data = Server.server_list_cache.get_state(0)?.data.find((x) => x.id === server_id);
 		if(server_list_data)
 			for(const f in data)
 				server_list_data[f] = data[f];

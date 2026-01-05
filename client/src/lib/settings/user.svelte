@@ -25,9 +25,9 @@
 	});
 
 	$effect(() => {
-		if(self_user.name){
-			profile_avatar_url = User.get_avatar_path(self_user);
-			state_profile.set_all_states("displayname", self_user.name);
+		if(self_user.loaded){
+			profile_avatar_url = User.get_avatar_path(self_user.data);
+			state_profile.set_all_states("displayname", self_user.data.name);
 		}
 	});
 
@@ -43,7 +43,7 @@
 							state_profile.discard_changes(["username", "password"]);
 							state_profile.apply_changes();
 							profile_avatar_picker.reset();
-							profile_avatar_url = User.get_avatar_path(self_user);
+							profile_avatar_url = User.get_avatar_path(self_user.data);
 						},
 						() => state_profile.discard_changes());
 			}}
