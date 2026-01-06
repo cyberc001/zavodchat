@@ -125,14 +125,19 @@ export class DataRange {
 			if(!init || obs.end > end_oidx)
 				end_oidx = obs.end;
 		}
-		if(typeof start_oidx === "undefined")
+		if(typeof start_oidx === "undefined" || this.start === this.end)
 			return;
 		this.arr.splice(0, start_oidx - this.start);
 		this.arr.splice(end_oidx - this.end, this.end - end_oidx);
 		this.start = start_oidx;
 		this.end = end_oidx;
-		this.id_start = this.arr[0].id;
-		this.id_end = this.arr[this.arr.length - 1].id;
+		if(this.arr[0].id < this.arr[this.arr.length - 1].id){
+			this.id_start = this.arr[0].id;
+			this.id_end = this.arr[this.arr.length - 1].id;
+		} else {
+			this.id_start = this.arr[this.arr.length - 1].id;
+			this.id_end = this.arr[0].id;
+		}
 	}
 
 	delete_gced_observers(){
@@ -203,8 +208,8 @@ export class DataRangeTree {
 			return node.data;
 
 		if(range.id_end > node.data.id_end)
-			return __find_enclosing_range_id_iter(node.right, range);
-		return __find_enclosing_range_id_iter(node.left, range);
+			return this.__find_enclosing_range_id_iter(node.right, range);
+		return this.__find_enclosing_range_id_iter(node.left, range);
 	}
 
 

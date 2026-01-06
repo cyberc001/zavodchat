@@ -69,7 +69,7 @@ export default class MainSocket {
 		roles_updated: function(data) {
 			let list = Role.role_list_cache.get_state(data.server_id);
 			if(list && !list.loading){
-				list.data.splice(0, list.length);
+				list.data.splice(0, list.data.length);
 				for(const rol of data.roles)
 					list.data.push(rol);
 			}

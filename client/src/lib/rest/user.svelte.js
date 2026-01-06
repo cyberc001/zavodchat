@@ -13,6 +13,7 @@ export default class User {
 			u.data.servers = [server_id];
 		else
 			u.data.servers.push(server_id);
+		return u;
 	}
 
 	static update_cache(user_id, data){
@@ -40,7 +41,7 @@ export default class User {
 		if(User.user_server_cache.has_state([server_id, user_id])){
 			let st = User.user_server_cache.get_state([server_id, user_id]);
 			for(const f in data)
-				st[f] = data[f];
+				st.data[f] = data[f];
 		}
 
 		let tree = User.user_server_range_cache.get_tree(server_id);
@@ -67,8 +68,8 @@ export default class User {
 			(cache, id) => {
 			Rest.get(Rest.get_route_sur(server_id, user_id),
 				(res) => {
+					res.data.user_ref = User.add_shared_server(user_id, server_id);
 					cache.set_state(id, res.data);
-					User.add_shared_server(user_id, server_id);
 				},
 				_catch);
 		});
@@ -81,9 +82,9 @@ export default class User {
 			(cache, range, start, count) => {
 				Rest.get(Rest.get_route_scm(server_id) + "/users",
 				(res) => {
+					for(let user of res.data)
+						user.user_ref = User.add_shared_server(user.id, server_id);
 					cache.set_state(range, start, count, res.data);
-					for(const user of res.data)
-						User.add_shared_server(user.id, server_id);
 				},
 				_catch,
 				"start", start, "count", count);
