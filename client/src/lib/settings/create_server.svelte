@@ -12,22 +12,27 @@
 	class CreateTabStateGeneral extends CreateTabState {
 		valid = $derived(this.state.name.length > 0);
 	};
-	let state_general = new CreateTabStateGeneral({name: "", avatar: null});
+	let state_general = new CreateTabStateGeneral({name: "", avatar: ""});
 
-	let server_avatar_url = $state("");
+	let avatar_picker = $state();
 
 	export function tabs() {
 		return [
 			{ name: "General", render: general, state: state_general,
 				create: (close_settings) => {
 					let data = Util.object_from_object(state_general.state);
+					const avatar_url = data.avatar;
+					if(data.avatar)
+						data.avatar = avatar_picker.getFile();
+					else
+						delete data.avatar;
 					
-					Server.create(state_general.state,
+					Server.create(data,
 						(server_id) => {
 							data.id = server_id;
-							if(server_avatar_url)
-								data.avatar = server_avatar_url;
-							Server.server_list_cache.cache[0].data.push(data);
+							if(avatar_url)
+								data.avatar = avatar_url;
+							Server.server_list_cache.get_state(0).data.push(data);
 							close_settings();
 						},
 						() => {});
@@ -41,8 +46,8 @@
 <Group name="Profile settings">
 	<div style="display: flex">
 		<AvatarPicker
-		bind:file={state_general.state.avatar}
-		bind:display_url={server_avatar_url}
+		bind:this={avatar_picker}
+		bind:display_url={state_general.state.avatar}
 		/>
 		<div style="margin-left: 16px"></div>
 	<Textbox label_text="Server name" bind:value={state_general.state.name} --width="363px"/>

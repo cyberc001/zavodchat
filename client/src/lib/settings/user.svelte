@@ -12,11 +12,10 @@
 	let self_user = User.get(-1);
 
 	// Profile
-	let state_profile = new SettingsTabState({displayname: "", avatar: null,
+	let state_profile = new SettingsTabState({displayname: "", avatar: "",
 							username: "", password: "", password_repeat: ""});
 
 	let profile_avatar_picker = $state();
-	let profile_avatar_url = $state("");
 	let profile_passwords_match = $derived(state_profile.state.password === state_profile.state.password_repeat);
 
 	$effect(() => {
@@ -25,8 +24,8 @@
 
 	$effect(() => {
 		if(self_user.loaded){
-			profile_avatar_url = User.get_avatar_path(self_user.data);
 			state_profile.set_all_states("displayname", self_user.data.name);
+			state_profile.set_all_states("avatar", User.get_avatar_path(self_user.data));
 		}
 	});
 
@@ -37,15 +36,21 @@
 					if(!profile_passwords_match)
 						return;
 
-					Auth.change_user_data(state_profile.get_dict_of_changes(),
+					let changes = state_profile.get_dict_of_changes();
+					if(changes.avatar)
+						changes.avatar = avatar_picker.getFile();
+					else
+						delete changes.avatar;
+
+					Auth.change_user_data(changes,
 						() => {
 							state_profile.discard_changes(["username", "password"]);
 							state_profile.apply_changes();
-							profile_avatar_picker.reset();
-							profile_avatar_url = User.get_avatar_path(self_user.data);
 						},
 						() => state_profile.discard_changes());
-			}}
+				},
+				discard_changes: () => state_profile.discard_changes()
+			}
 		];
 	}
 </script>
@@ -54,8 +59,7 @@
 <Group name="Profile settings">
 	<div style="display: flex">
 		<AvatarPicker bind:this={profile_avatar_picker}
-		bind:file={state_profile.state.avatar}
-			bind:display_url={profile_avatar_url}
+		bind:display_url={state_profile.state.avatar}
 		/>
 		<div style="margin-left: 16px"></div>
 	<Textbox label_text="Displayed name" bind:value={state_profile.state.displayname} --width="363px"/>

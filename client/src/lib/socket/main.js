@@ -49,7 +49,7 @@ export default class MainSocket {
 			delete Server.server_cache.cache[data.id];
 			let idx = Server.server_list_cache.get_state(0).data.findIndex((x) => x.id === data.id);
 			if(typeof idx !== "undefined" && idx !== -1)
-				Server.server_list_cache.cache[0].data.splice(idx, 1);
+				Server.server_list_cache.get_state(0).data.splice(idx, 1);
 		},
 
 		channel_created: function(data) {

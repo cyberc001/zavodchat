@@ -23,17 +23,16 @@
 	});
 
 	// General
-	let state_general = new SettingsTabState({name: "", avatar: null});
+	let state_general = new SettingsTabState({name: "", avatar: ""});
 	let delete_confirm = $state();
-
-	let server_avatar_url = $state("");
+	let avatar_picker = $state();
 
 	$effect(() => {
 		if(server.loaded){
-			server_avatar_url = Server.get_avatar_path(server.data);
-			state_general.set_default_state("name", server.data.name);
+			state_general.set_all_states("avatar", Server.get_avatar_path(server.data));
+			state_general.set_all_states("name", server.data.name);
 		} else {
-			server_avatar_url = "";
+			state_general.set_all_states("avatar", "");
 			state_general.set_all_states("name", "");
 		}
 	});
@@ -83,7 +82,12 @@
 		return [
 			{ name: "General", render: general, state: state_general,
 				apply_changes: () => {
-					Server.change(server_id, state_general.get_dict_of_changes(),
+					let changes = state_general.get_dict_of_changes();
+					if(changes.avatar)
+						changes.avatar = avatar_picker.getFile();
+					else
+						delete changes.avatar;
+					Server.change(server_id, changes,
 						() => state_general.apply_changes(),
 						() => state_general.discard_changes());
 				},
@@ -107,7 +111,7 @@
 {#snippet general(params, close_settings)}
 <Dialog bind:this={delete_confirm}
 question="Delete the server?"
-buttons={[{text: "Delete", action: () => {Server.delete(server_id); close_settings();}},
+buttons={[{text: "Delete", action: () => {Server.delete(server_id, () => {}, () => {}); close_settings();}},
 	  {text: "Cancel"}]}
 >
 This cannot be reversed.
@@ -115,8 +119,8 @@ This cannot be reversed.
 <Group name="Profile settings">
 	<div style="display: flex">
 		<AvatarPicker
-		bind:file={state_general.state.avatar}
-		bind:display_url={server_avatar_url}
+		bind:this={avatar_picker}
+		bind:display_url={state_general.state.avatar}
 		/>
 		<div style="margin-left: 16px"></div>
 	<Textbox label_text="Server name" bind:value={state_general.state.name} --width="363px"/>
