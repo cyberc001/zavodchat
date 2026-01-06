@@ -1,12 +1,11 @@
 <script>
-	import Group from "$lib/control/settings/group.svelte";
-	import Textbox from "$lib/control/settings/textbox.svelte";
-	import Select from "$lib/control/settings/select.svelte";
+	import Group from '$lib/control/settings/group.svelte';
+	import Textbox from '$lib/control/settings/textbox.svelte';
+	import Select from '$lib/control/settings/select.svelte';
 
-	import SettingsTabState from "$lib/control/settings_tab_state.svelte.js";
+	import SettingsTabState from '$lib/control/settings_tab_state.svelte.js';
 
-	import Rest from "$lib/rest.js";
-	import Channel from "$lib/rest/channel.js";
+	import Channel from '$lib/rest/channel.js';
 
 	let { server_id, channel_id } = $props();
 

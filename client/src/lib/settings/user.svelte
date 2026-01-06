@@ -1,13 +1,12 @@
 <script>
-	import Group from "$lib/control/settings/group.svelte";
-	import Textbox from "$lib/control/settings/textbox.svelte";
-	import AvatarPicker from "$lib/control/settings/avatar_picker.svelte";	
+	import Group from '$lib/control/settings/group.svelte';
+	import Textbox from '$lib/control/settings/textbox.svelte';
+	import AvatarPicker from '$lib/control/settings/avatar_picker.svelte';
 
-	import SettingsTabState from "$lib/control/settings_tab_state.svelte.js";
+	import SettingsTabState from '$lib/control/settings_tab_state.svelte.js';
 
-	import Rest from "$lib/rest.js";
-	import Auth from "$lib/rest/auth.js";
-	import User from "$lib/rest/user.svelte.js";
+	import Auth from '$lib/rest/auth.js';
+	import User from '$lib/rest/user.svelte.js';
 
 
 	let self_user = User.get(-1);

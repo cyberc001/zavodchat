@@ -1,6 +1,6 @@
-import Rest from "$lib/rest";
-import Util from "$lib/util";
-import {ListCache} from "$lib/cache/list.svelte.js";
+import Rest from '$lib/rest.svelte.js';
+import Util from '$lib/util';
+import {ListCache} from '$lib/cache/list.svelte.js';
 
 export default class Role {
 	static role_list_cache = new ListCache();
@@ -25,18 +25,18 @@ export default class Role {
 
 	static get_list(server_id, _catch){
 		return Role.role_list_cache.get_state(server_id, (cache, id) => {
-			Rest.get(Rest.get_route_sr(server_id, ""),
+			Rest.get("", Rest.get_route_sr(server_id, ""),
 				(res) => cache.set_state(id, res.data),
 				_catch);
 		});
 	}
 	static get_list_nocache(server_id, _then, _catch){
-		Rest.get(Rest.get_route_sr(server_id, ""),
+		Rest.get("", Rest.get_route_sr(server_id, ""),
 			(res) => _then(res.data), _catch);
 	}
 
 	static change_list(server_id, data, _then, _catch){
-		return Rest.put(Rest.get_route_sr(server_id, ""), data,
+		return Rest.put("Changing roles", Rest.get_route_sr(server_id, ""), data,
 					(res) => _then(res.data), _catch);
 	}
 

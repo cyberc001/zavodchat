@@ -1,20 +1,19 @@
 <script>
-	import Util from "$lib/util.js";
+	import Util from '$lib/util.js';
 
-	import Group from "$lib/control/settings/group.svelte";
-	import Textbox from "$lib/control/settings/textbox.svelte";
-	import AvatarPicker from "$lib/control/settings/avatar_picker.svelte";	
-	import Button from "$lib/control/settings/button.svelte";
-	import OrderedList from "$lib/control/settings/ordered_list.svelte";
-	import ColorPicker from "$lib/control/settings/color_picker.svelte";
-	import Toggle from "$lib/control/settings/toggle.svelte";
-	import Dialog from "$lib/control/dialog.svelte";
+	import Group from '$lib/control/settings/group.svelte';
+	import Textbox from '$lib/control/settings/textbox.svelte';
+	import AvatarPicker from '$lib/control/settings/avatar_picker.svelte';
+	import Button from '$lib/control/settings/button.svelte';
+	import OrderedList from '$lib/control/settings/ordered_list.svelte';
+	import ColorPicker from '$lib/control/settings/color_picker.svelte';
+	import Toggle from '$lib/control/settings/toggle.svelte';
+	import Dialog from '$lib/control/dialog.svelte';
 
-	import SettingsTabState from "$lib/control/settings_tab_state.svelte.js";
+	import SettingsTabState from '$lib/control/settings_tab_state.svelte.js';
 
-	import Rest from "$lib/rest.js";
-	import Server from "$lib/rest/server.js";
-	import Role from "$lib/rest/role.js";
+	import Server from '$lib/rest/server.js';
+	import Role from '$lib/rest/role.js';
 
 	let { server_id } = $props();
 

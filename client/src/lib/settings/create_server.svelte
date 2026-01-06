@@ -1,13 +1,12 @@
 <script>
-	import Group from "$lib/control/settings/group.svelte";
-	import Textbox from "$lib/control/settings/textbox.svelte";
-	import AvatarPicker from "$lib/control/settings/avatar_picker.svelte";
+	import Group from '$lib/control/settings/group.svelte';
+	import Textbox from '$lib/control/settings/textbox.svelte';
+	import AvatarPicker from '$lib/control/settings/avatar_picker.svelte';
 
-	import CreateTabState from "$lib/control/create_tab_state.svelte.js";
+	import CreateTabState from '$lib/control/create_tab_state.svelte.js';
 
-	import Util from "$lib/util.js";
-	import Rest from "$lib/rest.js";
-	import Server from "$lib/rest/server.js";
+	import Util from '$lib/util.js';
+	import Server from '$lib/rest/server.js';
 
 	// General
 	class CreateTabStateGeneral extends CreateTabState {

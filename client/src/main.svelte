@@ -28,6 +28,7 @@
 	import MessageDisplay from '$lib/display/message.svelte';
 	import MessageInput from '$lib/control/message_input.svelte';
 	import ContextMenu from '$lib/control/context_menu.svelte';
+	import NotifDisplay from '$lib/display/notif.svelte';
 
 	let { setPage } = $props();
 
@@ -38,11 +39,10 @@
 			window.alert(err.status + " " + err.data);
 	};
 
-
 	// Backend data
-	let user_self = User.get(-1, setError);	
+	let user_self = User.get(-1);
 	let server = $state({});
-	let servers = Server.get_list(setError);
+	let servers = Server.get_list();
 	let server_roles = $state([]);
 	let channels = $state({});
 
@@ -113,7 +113,7 @@
 				let msg = message_list.getItem(sel.message);
 				msg.status = Message.Status.Deleting;
 				Message.delete(sel.server, sel.channel, msg.id,
-						() => {}, setError);
+						() => {}, () => msg.status = Message.Status.None);
 			    }}],
 
 		"server": [{text: "Settings", icon: "settings.svg", func: () => {
@@ -125,7 +125,7 @@
 			    }},
 			    {text: "Delete", icon: "delete.svg", func: () => {
 				Channel.delete(sel.server, settings_params.channel_id,
-						() => {}, setError);
+						() => {});
 			    }}],
 	};
 
@@ -160,7 +160,7 @@
 
 		server = Server.get(id);
 		server_roles = Role.get_list(id);
-		channels = Channel.get_list(id, setError);
+		channels = Channel.get_list(id);
 	};
 
 	const showChannel = (id) => {
@@ -185,7 +185,7 @@
 				() => {
 					message_text = "";
 					message_status = undefined;
-				}, setError);
+				});
 	};
 	const editMessage = (text) => {
 		let msg = message_list.getItem(sel.message_edit);
@@ -196,7 +196,10 @@
 		message_text = "";
 
 		Message.edit(sel.server, sel.channel, msg.id, text,
-				() => {}, setError);
+				() => {}, () => {
+						msg.status = Message.Status.None;
+						msg.text = prev_text;
+		});
 	};
 
 	const stopEditing = () => {
@@ -350,7 +353,7 @@
 			reversed={true}
 			loading_text="Loading messages..." to_latest_text="To latest messages"
 			render_item={render_message} item_dom_id_prefix="message_display_"
-			load_items={(index, range) => Message.get_range(sel.server, sel.channel, index, range, setError)}
+			load_items={(index, range) => Message.get_range(sel.server, sel.channel, index, range)}
 			augment_item={(msg) => {
 						msg.author = User.get_server(sel.server, msg.author_id);
 						msg.author_roles = Role.get_user_roles(msg.author.data, server_roles.data);
@@ -377,7 +380,7 @@
 			<PaginatedList bind:this={server_user_list}
 			bind:scrollTop={server_user_list_scroll_top}
 			render_item={render_user} item_dom_id_prefix="user_display_"
-			load_items={(index, range) => User.get_server_range(sel.server, index, range, setError)}
+			load_items={(index, range) => User.get_server_range(sel.server, index, range)}
 			augment_item={(user) => {user.role_list = Role.get_user_roles(user, server_roles.data)}}
 			to_latest_text="Up"/>
 		</div>
@@ -390,9 +393,9 @@
 	pos={sel_user_pos[0]} rel_off={sel_user_pos[1]}
 	hide_profile={() => showUser(-1, -1)}
 	assign_role={(role_id) => ServerUser.assign_role(sel.server, profile_display_user.data.id, role_id,
-								() => {}, setError)}
+								() => {})}
 	disallow_role={(role_id) => ServerUser.disallow_role(sel.server, profile_display_user.data.id, role_id,
-								() => {}, setError)}
+								() => {})}
 	/>
 {/if}
 
@@ -402,3 +405,5 @@
 {/if}
 
 {/if}
+
+<NotifDisplay/>
