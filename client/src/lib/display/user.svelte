@@ -3,7 +3,8 @@
 	import Role from '$lib/rest/role.js';
 
 	let {user, user_roles,
-		selected = false, onclick = () => {}, hide_profile,
+		selected = false,
+		onclick = () => {}, hide_profile, show_ctx_menu,
 		display_status = true,
 		div_classes = "", create_id = true} = $props();
 
@@ -12,8 +13,12 @@
 
 <button class={"user_display hoverable " + (selected ? "selected " : "") + div_classes}
 	id={create_id ? (user ? "user_display_" + user.id : "") : ""}
-	onclick={onclick}
 	bind:this={self}
+	onclick={onclick}
+	oncontextmenu={(e) => {
+		event.preventDefault();
+		show_ctx_menu([e.clientX, e.clientY], "user");
+	}}
 >
 	{#if !user || Object.keys(user).length === 0}
 		<img src="$lib/assets/icons/loading.svg" alt="loading" class="filter_icon_main" style="width: 24px"/>

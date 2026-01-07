@@ -48,6 +48,12 @@ export default class User {
 		if(tree)
 			tree.update_one_id(user_id, data);
 	}
+	static delete_cache_server(server_id, user_id){
+		User.user_server_cache.remove_state([server_id, user_id]);
+		let tree = User.user_server_range_cache.get_tree(server_id);
+		if(tree)
+			tree.remove_one_id(user_id);
+	}
 
 
 	static get(user_id, _catch){
@@ -80,7 +86,7 @@ export default class User {
 
 		return User.user_server_range_cache.get_state(server_id, start, count,
 			(cache, range, start, count) => {
-				Rest.get("", Rest.get_route_scm(server_id) + "/users",
+				Rest.get("", Rest.get_route_sur(server_id, ""),
 				(res) => {
 					for(let user of res.data)
 						user.user_ref = User.add_shared_server(user.id, server_id);
@@ -89,6 +95,11 @@ export default class User {
 				_catch,
 				"start", start, "count", count);
 			});
+	}
+
+	static kick(server_id, user_id, _then, _catch){
+		Rest.delete("Kicking user", Rest.get_route_sur(server_id, user_id),
+						_then, _catch);
 	}
 
 	static dummy(){

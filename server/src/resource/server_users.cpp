@@ -96,7 +96,7 @@ std::shared_ptr<http_response> server_user_id_resource::render_DELETE(const http
 
 	socket_event ev;
 	resource_utils::json_set_ids(ev.data, server_id);
-	ev.data["id"] = user_id;
+	ev.data["id"] = server_user_id;
 	ev.name = "user_left";
 	sserv.send_to_server(server_id, tx, ev);
 

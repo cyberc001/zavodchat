@@ -71,9 +71,12 @@
 
 	let sel = $state({
 		server: -1, channel: -1,
-		message: -1, message_edit: -1,
+		message_edit: -1,
 		user: {
 			id: -1, message_id: -1
+		},
+		ctx: {
+			message: -1, user_id: -1
 		}
 	});
 
@@ -105,12 +108,12 @@
 
 	const action_sets = {
 		"message": [{text: "Edit", icon: "edit.svg", func: () => {
-				sel.message_edit = sel.message;
+				sel.message_edit = sel.ctx.message;
 				prev_message_text = message_text;
-				message_text = message_list.getItem(sel.message).text;
+				message_text = message_list.getItem(sel.ctx.message).text;
 			    }},
 			    {text: "Delete", icon: "delete.svg", func: () => {
-				let msg = message_list.getItem(sel.message);
+				let msg = message_list.getItem(sel.ctx.message);
 				msg.status = Message.Status.Deleting;
 				Message.delete(sel.server, sel.channel, msg.id,
 						() => {}, () => msg.status = Message.Status.None);
@@ -125,8 +128,12 @@
 			    }},
 			    {text: "Delete", icon: "delete.svg", func: () => {
 				Channel.delete(sel.server, settings_params.channel_id,
-						() => {});
+						() => {}, () => {});
 			    }}],
+
+		"user": [{text: "Kick", icon: "kick.svg", func: () => {
+				User.kick(sel.server, sel.ctx.user_id, () => {}, () => {});
+			 }}]
 	};
 
 	let ctx_menu_params = $state({
@@ -134,8 +141,7 @@
 		pos: [1000, 0],
 		actions: []
 	});
-	const showCtxMenu = (pos, action_set, i) => {
-		sel.message = i;
+	const showCtxMenu = (pos, action_set) => {
 		ctx_menu_params.pos = pos;
 		if(typeof action_set === "string")
 			ctx_menu_params.actions = action_sets[action_set];
@@ -144,7 +150,8 @@
 		ctx_menu_params.visible = true;
 	};
 	const hideCtxMenu = () => {
-		sel.message = -1;
+		sel.ctx.message = -1;
+		sel.ctx.user_id = -1;
 		ctx_menu_params.visible = false;
 	};
 
@@ -342,7 +349,10 @@
 				author_roles={item.author_roles}
 				time_sent={new Date(item.sent)} time_edited={new Date(item.edited)}
 				status={item.status}
-				show_ctx_menu={(pos, action_set) => showCtxMenu(pos, action_set, i)}
+				show_ctx_menu={(pos, action_set) => {
+					sel.ctx.message = i;
+					showCtxMenu(pos, action_set)
+				}}
 				selected_user={item.id == sel.user.message_id && item.author_id == sel.user.id}
 				onclick_user={() => showUser(item.author_id, item.id)}
 				hide_profile={() => showUser(-1, -1)}
@@ -369,12 +379,14 @@
 		<div class="panel sidebar_users">
 			{#snippet render_user(i, user)}
 				<UserDisplay
-				user={user}
-				user_roles={user.role_list}
+				user={user} user_roles={user.role_list}
 				div_classes="sidebar_user_display"
 				selected={sel.user.message_id == -1 && user.id == sel.user.id}
-				onclick={() => showUser(user.id, -1)}
-				hide_profile={() => showUser(-1, -1)}
+				onclick={() => showUser(user.id, -1)} hide_profile={() => showUser(-1, -1)}
+				show_ctx_menu={(pos, action_set) => {
+					sel.ctx.user_id = user.id;
+					showCtxMenu(pos, action_set);
+				}}
 				/>
 			{/snippet}
 			<PaginatedList bind:this={server_user_list}

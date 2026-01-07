@@ -24,7 +24,7 @@ export class IDCache {
 	}
 
 	get_state(_id, load_func){
-		let id = this.state_refs_id(_id);
+		const id = this.state_refs_id(_id);
 		let obj = this.cache[id];
 		if(typeof obj === "undefined" || typeof obj.deref() === "undefined"){
 			obj = this._default_state_constructor();
@@ -46,5 +46,10 @@ export class IDCache {
 	}
 	has_state(_id){
 		return typeof this.cache[this.state_refs_id(_id)]?.deref() !== "undefined";
+	}
+	remove_state(_id){
+		const id = this.state_refs_id(_id);
+		if(this.cache.hasOwnProperty(id))
+			delete this.cache[id];
 	}
 }

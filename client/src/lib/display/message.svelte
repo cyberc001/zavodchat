@@ -27,8 +27,7 @@
 	create_id={false}
 	display_status={false}
 	selected={selected_user}
-	onclick={onclick_user}
-	hide_profile={hide_profile}
+	onclick={onclick_user} hide_profile={hide_profile} show_ctx_menu={show_ctx_menu}
 	/>
 	{#if status_msg !== ""}
 		{#if typeof status === "string"}

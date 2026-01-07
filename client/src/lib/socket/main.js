@@ -1,10 +1,10 @@
-import { DataRange } from "$lib/cache/range.svelte.js";
-import Util from "$lib/util";
-import Message from "$lib/rest/message.js";
-import User from "$lib/rest/user.svelte.js";
-import Server from "$lib/rest/server.js";
-import Channel from "$lib/rest/channel.js";
-import Role from "$lib/rest/role.js";
+import {DataRange} from '$lib/cache/range.svelte.js';
+import Util from '$lib/util';
+import Message from '$lib/rest/message.js';
+import User from '$lib/rest/user.svelte.js';
+import Server from '$lib/rest/server.js';
+import Channel from '$lib/rest/channel.js';
+import Role from '$lib/rest/role.js';
 
 export default class MainSocket {
 	static host = "wss://127.0.0.1:444";
@@ -46,7 +46,7 @@ export default class MainSocket {
 			Server.update_cache(data.id, Util.object_from_object(data, ["name", "avatar"]));
 		},
 		server_deleted: function(data) {
-			delete Server.server_cache.cache[data.id];
+			Server.server_cache.remove_state(data.id);
 			let idx = Server.server_list_cache.get_state(0).data.findIndex((x) => x.id === data.id);
 			if(typeof idx !== "undefined" && idx !== -1)
 				Server.server_list_cache.get_state(0).data.splice(idx, 1);
@@ -59,11 +59,15 @@ export default class MainSocket {
 			Channel.update_cache(data.server_id, data.id, Util.object_from_object(data, ["name", "type"]));
 		},
 		channel_deleted: function(data) {
-			delete Channel.channel_cache.cache[data.id];
+			Channel.channel_cache.remove_state(data.id);
 			let st = Channel.channel_list_cache.get_state(data.server_id);
 			let idx = st?.data.findIndex((x) => x.id === data.id);
 			if(typeof idx !== "undefined" && idx !== -1)
 				st.data.splice(idx, 1);
+		},
+
+		user_left: function(data) {
+			User.delete_cache_server(data.server_id, data.id);
 		},
 
 		roles_updated: function(data) {
