@@ -18,6 +18,8 @@
 		: ""
 	);
 
+	let self = $state();
+
 	const padnum = (x, n) => x.toString().padStart(n, '0');
 	const formatTimeHHMM = (date) => `${padnum(date.getHours(), 2)}:${padnum(date.getMinutes(), 2)}`;
 </script>
@@ -42,13 +44,15 @@
 		{/if}
 	{/if}
 	<div class={"message_content_panel hoverable" + (selected ? " selected" : "")}
+	style="anchor-name: --{"message_display_" + id}"
 	role="listitem"
 	title={`Sent: ${time_sent}\nLast edited: ${is_edited ? time_edited : "never"}`}
+	bind:this={self}
 	oncontextmenu={(e) => {
 		event.preventDefault();
-		show_ctx_menu([e.clientX, e.clientY], "message");
-	}
-	}>
+		show_ctx_menu(self, e, "message");
+	}}
+	>
 		<div>
 			<div class="message_time">{formatTimeHHMM(time_sent)}</div>
 			{#if is_edited}

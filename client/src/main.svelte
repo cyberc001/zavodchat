@@ -67,6 +67,9 @@
 					});
 
 	// UI state
+	let server_buttons = $state({});
+	let channel_buttons = $state({});
+
 	let wnd_width = $state(), wnd_height = $state();
 
 	let sel = $state({
@@ -137,12 +140,17 @@
 	};
 
 	let ctx_menu_params = $state({
+		anchor: null,
 		visible: false,
-		pos: [1000, 0],
+		off: [0, 0],
 		actions: []
 	});
-	const showCtxMenu = (pos, action_set) => {
-		ctx_menu_params.pos = pos;
+	const showCtxMenu = (anchor, e, action_set) => {
+		ctx_menu_params.anchor = anchor;
+		ctx_menu_params.off = [50, 50];
+		const rect = anchor.getBoundingClientRect();
+		ctx_menu_params.off = [e.clientX - rect.left, e.clientY - rect.top];
+
 		if(typeof action_set === "string")
 			ctx_menu_params.actions = action_sets[action_set];
 		else
@@ -246,13 +254,15 @@
 						{#if !servers.loaded}
 						<img src="$lib/assets/icons/loading.svg" alt="loading" class="filter_icon_main" style="width: 48px"/>
 						{:else}
-						{#each servers.data as srv}
+						{#each servers.data as srv, i}
 							<button class={"item hoverable sidebar_server" + (sel.server == srv.id ? " selected" : "")}
+								style="anchor-name: --{"server_" + srv.id}"
 								onclick={() => showServer(srv.id)}
+								bind:this={server_buttons[i]}
 								oncontextmenu={(e) => {
 									event.preventDefault();
 									settings_params.server_id = srv.id;
-									showCtxMenu([e.clientX, e.clientY], "server");
+									showCtxMenu(server_buttons[i], e, "server");
 								}}
 							>
 							{#if srv.avatar === undefined}
@@ -290,12 +300,14 @@
 							<div>
 								<button
 								class={"item hoverable transparent_button sidebar_channel_el" + (sel.channel == ch.id ? " selected" : "")}
-								style={i == channels.data.length - 1 ? "border-style: solid none solid none" : ""}
+								style={(i == channels.data.length - 1 ? "border-style: solid none solid none" : "")
+									+ "; anchor-name: --channel_" + ch.id}
 								onclick={() => showChannel(ch.id)}
+								bind:this={channel_buttons[i]}
 								oncontextmenu={(e) => {
 									event.preventDefault();
 									settings_params.channel_id = ch.id;
-									showCtxMenu([e.clientX, e.clientY], "channel");
+									showCtxMenu(channel_buttons[i], e, "channel");
 								}}
 								>
 									{#if ch.type === 1}
@@ -349,9 +361,9 @@
 				author_roles={item.author_roles}
 				time_sent={new Date(item.sent)} time_edited={new Date(item.edited)}
 				status={item.status}
-				show_ctx_menu={(pos, action_set) => {
+				show_ctx_menu={(anchor, e, action_set) => {
 					sel.ctx.message = i;
-					showCtxMenu(pos, action_set)
+					showCtxMenu(anchor, e, action_set)
 				}}
 				selected_user={item.id == sel.user.message_id && item.author_id == sel.user.id}
 				onclick_user={() => showUser(item.author_id, item.id)}
@@ -383,9 +395,9 @@
 				div_classes="sidebar_user_display"
 				selected={sel.user.message_id == -1 && user.id == sel.user.id}
 				onclick={() => showUser(user.id, -1)} hide_profile={() => showUser(-1, -1)}
-				show_ctx_menu={(pos, action_set) => {
+				show_ctx_menu={(anchor, e, action_set) => {
 					sel.ctx.user_id = user.id;
-					showCtxMenu(pos, action_set);
+					showCtxMenu(anchor, e, action_set);
 				}}
 				/>
 			{/snippet}
@@ -412,8 +424,9 @@
 {/if}
 
 {#if ctx_menu_params.visible}
-	<ContextMenu pos={ctx_menu_params.pos} hide_ctx_menu={hideCtxMenu}
-		     actions={ctx_menu_params.actions}/>
+	<ContextMenu anchor={ctx_menu_params.anchor} off={ctx_menu_params.off}
+		hide_ctx_menu={hideCtxMenu}
+		actions={ctx_menu_params.actions}/>
 {/if}
 
 {/if}

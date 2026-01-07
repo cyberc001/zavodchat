@@ -9,15 +9,17 @@
 		div_classes = "", create_id = true} = $props();
 
 	let self = $state();
+	let anchor_name = $derived("user_display_" + user?.id);
 </script>
 
 <button class={"user_display hoverable " + (selected ? "selected " : "") + div_classes}
-	id={create_id ? (user ? "user_display_" + user.id : "") : ""}
+	style="anchor-name: --{"user_display_" + user?.id}"
+	id={create_id ? "user_display_" + user?.id : ""}
 	bind:this={self}
 	onclick={onclick}
 	oncontextmenu={(e) => {
 		event.preventDefault();
-		show_ctx_menu([e.clientX, e.clientY], "user");
+		show_ctx_menu(self, e, "user");
 	}}
 >
 	{#if !user || Object.keys(user).length === 0}

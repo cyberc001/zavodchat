@@ -18,10 +18,10 @@ export default class Channel {
 				channel_data.data[f] = data[f];
 		}
 		if(Channel.channel_list_cache.has_state(server_id)){
-			let channel_list_data = Channel.channel_list_cache.cache[server_id].find((x) => x.id === channel_id);
+			let channel_list_data = Channel.channel_list_cache.get_state(server_id).data.find((x) => x.id === channel_id);
 			if(channel_list_data)
 				for(const f in data)
-					channel_list_data.data[f] = data[f];
+					channel_list_data[f] = data[f];
 		}
 	}
 

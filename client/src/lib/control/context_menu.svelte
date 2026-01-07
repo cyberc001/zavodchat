@@ -1,5 +1,6 @@
 <script>
-	const { pos, hide_ctx_menu,
+	const { anchor, off,
+		hide_ctx_menu,
 		actions } = $props();
 
 	let pointer_on_menu = false;
@@ -19,7 +20,8 @@
 </script>
 
 <svelte:window {onmouseup}/>
-<div class="item context_menu_panel" style="left: {pos[0]}px; top: {pos[1]}px"
+<div class="item context_menu_panel" style="position-anchor: {getComputedStyle(anchor).getPropertyValue("anchor-name")};
+						left: calc(anchor(left, 10000px) + {off[0]}px); top: calc(anchor(top, -10000px) + {off[1]}px)"
 	role="list"
 	onmouseenter={() => pointer_on_menu = true}
 	onmouseleave={() => pointer_on_menu = false}
@@ -43,7 +45,8 @@
 
 <style>
 .context_menu_panel {
-	position: absolute;
+	position: fixed;
+	position-visibility: no-overflow;
 	width: fit-content;
 	z-index: 20;
 }
