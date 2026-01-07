@@ -357,6 +357,7 @@
 				time_sent={new Date(item.sent)} time_edited={new Date(item.edited)}
 				status={item.status}
 				show_ctx_menu={(anchor, e, action_set) => {
+					sel.ctx.user_id = item.author.data.id;
 					sel.ctx.message = i;
 					showCtxMenu(anchor, e, action_set)
 				}}
