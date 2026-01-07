@@ -59,25 +59,32 @@ export default class User {
 	static get(user_id, _catch){
 		return User.user_cache.get_state(user_id,
 			(cache, id) => {
-				Rest.get("", "users/" + user_id,
+				Rest.get("users/" + user_id,
 					(res) => cache.set_state(id, res.data),
 					_catch);
 		});
 	}
 	static get_nocache(user_id, _then, _catch){
-		Rest.get("", "users/" + user_id, (res) => _then(res.data), _catch);
+		Rest.get("users/" + user_id, (res) => _then(res.data), _catch);
 	}
 
 
 	static get_server(server_id, user_id, _catch){
 		return User.user_server_cache.get_state([server_id, user_id],
 			(cache, id) => {
-			Rest.get("", Rest.get_route_sur(server_id, user_id),
+			Rest.get(Rest.get_route_sur(server_id, user_id),
 				(res) => {
 					res.data.user_ref = User.add_shared_server(user_id, server_id);
 					cache.set_state(id, res.data);
 				},
-				_catch);
+				(err) => {
+					if(err.status === 404)
+						Rest.get("users/" + user_id,
+							(res) => cache.set_state(id, res.data),
+							_catch);
+					else
+						_catch(err);
+				});
 		});
 	}
 	static get_server_range(server_id, start, count, _catch){
@@ -86,7 +93,7 @@ export default class User {
 
 		return User.user_server_range_cache.get_state(server_id, start, count,
 			(cache, range, start, count) => {
-				Rest.get("", Rest.get_route_sur(server_id, ""),
+				Rest.get(Rest.get_route_sur(server_id, ""),
 				(res) => {
 					for(let user of res.data)
 						user.user_ref = User.add_shared_server(user.id, server_id);

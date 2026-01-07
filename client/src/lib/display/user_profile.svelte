@@ -78,12 +78,14 @@
 					{rol.name}
 				</button>
 			{/each}
-			<button class="user_role transparent_button hoverable"
-				bind:this={add_role_button}
-				onclick={() => show_add_role_menu = true}
-			>
-				<img class="filter_icon_main role_add_icon" src="$lib/assets/icons/add_cross.svg"> add role
-			</button>
+			{#if user_roles.length > 0}
+				<button class="user_role transparent_button hoverable"
+					bind:this={add_role_button}
+					onclick={() => show_add_role_menu = true}
+				>
+					<img class="filter_icon_main role_add_icon" src="$lib/assets/icons/add_cross.svg"> add role
+				</button>
+			{/if}
 		</div>
 	{/if}
 

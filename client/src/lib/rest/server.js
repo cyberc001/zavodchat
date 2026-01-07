@@ -21,7 +21,7 @@ export default class Server {
 
 	static get(server_id, _catch){
 		return Server.server_cache.get_state(server_id, (cache, id) => {
-			Rest.get("", Rest.get_route_scm(server_id),
+			Rest.get(Rest.get_route_scm(server_id),
 				(res) => cache.set_state(id, res.data),
 				_catch);
 		});
@@ -43,13 +43,13 @@ export default class Server {
 
 	static get_list(_catch){
 		return Server.server_list_cache.get_state(0, (cache, id) => {
-			Rest.get("", Rest.get_route_scm(""),
+			Rest.get(Rest.get_route_scm(""),
 				(res) => cache.set_state(id, res.data),
 				_catch);
 		});
 	}
 	static get_list_nocache(_then, _catch){ // version for login.svelte to test token for validity
-		Rest.get("", Rest.get_route_scm(""), (res) => _then(res.data), _catch);
+		Rest.get(Rest.get_route_scm(""), (res) => _then(res.data), _catch);
 	}
 
 	static get_avatar_path(srv){

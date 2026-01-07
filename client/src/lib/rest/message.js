@@ -10,7 +10,7 @@ export default class Message {
 
 		return Message.message_range_cache.get_state([server_id, channel_id], start, count,
 			(cache, range, start, count) => {
-				Rest.get("", Rest.get_route_scm(server_id, channel_id) + "/messages",
+				Rest.get(Rest.get_route_scm(server_id, channel_id) + "/messages",
 				(res) => cache.set_state(range, start, count, res.data),
 				_catch,
 				"start", start, "count", count);

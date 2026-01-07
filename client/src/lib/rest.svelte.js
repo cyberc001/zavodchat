@@ -107,19 +107,14 @@ export default class Rest {
 	}
 
 
-	static get(msg, route, _then, _catch, ...params)
+	static get(route, _then, _catch, ...params)
 	{
-		let reqi = Rest.add_notif(msg);
 		let headers = Rest.get_headers(params);
 		axios.get(Rest.get_base_url() + route + Rest.params_to_query(params), headers)
-			.then((data) => {
-				Rest.remove_notif(reqi);
-				_then(data);
-			})
+			.then(_then)
 			.catch((err) => {
 				if(err.response === undefined)
 					throw err;
-				Rest.remove_notif(reqi, Rest.err_to_str(err.response), msg);
 				_catch(err.response);
 			});
 	}
