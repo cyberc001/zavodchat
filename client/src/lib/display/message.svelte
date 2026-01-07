@@ -26,7 +26,7 @@
 
 <div id={"message_display_" + id} class="message_panel" tabindex=0 role="group">
 	<UserDisplay user={author?.data} user_roles={author_roles}
-	create_id={false}
+	message_id={id}
 	display_status={false}
 	selected={selected_user}
 	onclick={onclick_user} hide_profile={hide_profile} show_ctx_menu={show_ctx_menu}

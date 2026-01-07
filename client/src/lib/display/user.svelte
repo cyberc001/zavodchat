@@ -6,15 +6,15 @@
 		selected = false,
 		onclick = () => {}, hide_profile, show_ctx_menu,
 		display_status = true,
-		div_classes = "", create_id = true} = $props();
+		message_id = -1} = $props();
 
 	let self = $state();
-	let anchor_name = $derived("user_display_" + user?.id);
+	let name = $derived("user_display_" + user?.id + (message_id > -1 ? "_" + message_id : ""));
 </script>
 
-<button class={"user_display hoverable " + (selected ? "selected " : "") + div_classes}
-	style="anchor-name: --{"user_display_" + user?.id}"
-	id={create_id ? "user_display_" + user?.id : ""}
+<button class={"user_display hoverable " + (selected ? "selected " : "") + (message_id > -1 ? "" : " sidebar_user_display")}
+	style="anchor-name: --{name}"
+	id={name}
 	bind:this={self}
 	onclick={onclick}
 	oncontextmenu={(e) => {

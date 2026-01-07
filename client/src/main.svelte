@@ -83,21 +83,6 @@
 		}
 	});
 
-	let sel_user_pos = $derived.by(() => {
-		wnd_width; wnd_height;
-		message_list_scroll_top; server_user_list_scroll_top;
-
-		if(sel.user.id < 0)
-			return [[0, 0], [0, 0]];
-		let el = document.getElementById(sel.user.message_id > -1
-						? "message_display_" + sel.user.message_id
-						: "user_display_" + sel.user.id);
-		let brect = el.getBoundingClientRect();
-		if(sel.user.message_id > -1)
-			return [[brect.left, brect.top], [0, 0]];
-		return [[brect.left, brect.top], [-100, 0]];
-	});
-
 	let message_text = $state("");
 	let message_status = $state();
 	let prev_message_text = "";
@@ -184,14 +169,24 @@
 		settings_params = {};
 	};
 
-	let profile_display_user = $state();
+
+	let profile_display_params = $state({
+		user: null, anchor: null, anchor_side_x: "left"
+	});
+
 	const showUser = (id, message_id) => {
 		sel.user.id = id;
 		sel.user.message_id = message_id;
-		if(id > -1)
-			profile_display_user = User.get_server(sel.server, sel.user.id);
-		else
-			profile_display_user = undefined;
+		if(id > -1){
+			profile_display_params.user = User.get_server(sel.server, sel.user.id);
+			profile_display_params.anchor = document.getElementById(message_id > -1
+						? "user_display_" + id + "_" + message_id
+						: "user_display_" + id);
+			profile_display_params.anchor_side_x = message_id > -1 ? "left" : "right";
+		} else {
+			profile_display_params.user = null;
+			profile_display_params.anchor = null;
+		}
 	};
 
 	const sendMessage = (text) => {
@@ -392,7 +387,6 @@
 			{#snippet render_user(i, user)}
 				<UserDisplay
 				user={user} user_roles={user.role_list}
-				div_classes="sidebar_user_display"
 				selected={sel.user.message_id == -1 && user.id == sel.user.id}
 				onclick={() => showUser(user.id, -1)} hide_profile={() => showUser(-1, -1)}
 				show_ctx_menu={(anchor, e, action_set) => {
@@ -411,20 +405,21 @@
 	{/if}
 </div>
 
-{#if profile_display_user}
+{#if profile_display_params.user}
 	<UserProfileDisplay
-	user={profile_display_user.data} server_roles={server_roles.data}
-	pos={sel_user_pos[0]} rel_off={sel_user_pos[1]}
+	anchor={profile_display_params.anchor} anchor_side_x={profile_display_params.anchor_side_x}
+	user={profile_display_params.user.data} server_roles={server_roles.data}
 	hide_profile={() => showUser(-1, -1)}
-	assign_role={(role_id) => ServerUser.assign_role(sel.server, profile_display_user.data.id, role_id,
+	assign_role={(role_id) => ServerUser.assign_role(sel.server, profile_display_params.user.data.id, role_id,
 								() => {})}
-	disallow_role={(role_id) => ServerUser.disallow_role(sel.server, profile_display_user.data.id, role_id,
+	disallow_role={(role_id) => ServerUser.disallow_role(sel.server, profile_display_params.user.data.id, role_id,
 								() => {})}
 	/>
 {/if}
 
 {#if ctx_menu_params.visible}
-	<ContextMenu anchor={ctx_menu_params.anchor} off={ctx_menu_params.off}
+	<ContextMenu
+		anchor={ctx_menu_params.anchor} off={ctx_menu_params.off}
 		hide_ctx_menu={hideCtxMenu}
 		actions={ctx_menu_params.actions}/>
 {/if}

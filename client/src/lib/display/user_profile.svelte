@@ -3,37 +3,14 @@
 	import Role from '$lib/rest/role.js';
 	import ContextMenu from '$lib/control/context_menu.svelte';
 
-	// rel_off - offset relative to size, in %
 	let {user, server_roles,
-		pos = [0, 0], rel_off = [0, 0],
+		anchor, anchor_side_x = "left",
 		hide_profile,
 		assign_role, disallow_role} = $props();
 
 	let user_roles = $derived(Role.get_user_roles(user, server_roles));
 
 	let self = $state();
-
-	const pos_margin_top = 14, pos_margin_bottom = 64;
-	let pos_off = $derived.by(() => {
-		pos;
-		let po = [0, 0];
-		if(typeof self !== "undefined"){
-			let brect = self.getBoundingClientRect();
-			if(pos[1] + brect.height > document.documentElement.clientHeight - pos_margin_bottom)
-				po[1] = document.documentElement.clientHeight - pos_margin_bottom - (pos[1] + brect.height);
-			if(pos[1] < pos_margin_top)
-				po[1] = pos_margin_top - pos[1];
-		}
-		return po;
-	});
-	$effect(() => {
-		if(typeof self !== "undefined"){
-			let brect = self.getBoundingClientRect();
-			// close profile if scrolled too far
-			if(Math.abs(pos_off[1]) >= brect.height)
-				hide_profile();
-		}
-	});
 
 	let pointer_on_profile = false;
 	const onmouseup = () => {
@@ -65,7 +42,9 @@
 </script>
 
 <svelte:window {onmouseup}/>
-<div class="item user_profile_display" style="left: {pos[0] + pos_off[0]}px; top: {pos[1] + pos_off[1]}px; transform: translate({rel_off[0]}%, {rel_off[1]}%);"
+<div class="item user_profile_display"
+	style="position-anchor: {getComputedStyle(anchor).getPropertyValue("anchor-name")};
+						{anchor_side_x}: anchor(left, 10000px); top: anchor(top, -10000px)"
 	tabindex=0
 	role="dialog"
 	onmouseenter={() => pointer_on_profile = true}
