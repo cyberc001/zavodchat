@@ -1,10 +1,13 @@
 <script>
+	import Util from '$lib/util.js';
+
 	import Server from '$lib/rest/server.js';
 	import Channel from '$lib/rest/channel.js';
 	import Message from '$lib/rest/message.js';
 	import User from '$lib/rest/user.svelte.js';
 	import Role from '$lib/rest/role.js';
 	import ServerUser from '$lib/rest/server_user.js';
+	import Ban from '$lib/rest/ban.js';
 
 	import MainSocket from '$lib/socket/main.js';
 
@@ -21,6 +24,10 @@
 	let create_server = $state();
 	import CreateChannel from '$lib/settings/create_channel.svelte';
 	let create_channel = $state();
+
+	import Textbox from '$lib/control/settings/textbox.svelte';
+	import Select from '$lib/control/settings/select.svelte';
+	import Dialog from '$lib/control/dialog.svelte';
 
 	import PaginatedList from '$lib/display/paginated_list.svelte';
 	import UserDisplay from '$lib/display/user.svelte';
@@ -97,12 +104,22 @@
 	let message_status = $state();
 	let prev_message_text = "";
 	let message_list = $state(), server_user_list = $state();
-	let message_list_scroll_top = $state(0), server_user_list_scroll_top = $state(0);
 
-	const is_message_fake = (msg_id) => {
-		return pg_messages[msg_id].status === Message.Status.Sending
-			|| typeof pg_messages[msg_id].status === "string";
-	};
+	let ban = $state({
+		user_id: -1,
+		dialog: null,
+		duration: "", duration_units: ""
+	});
+	let ban_duration_error = $derived.by(() => {
+		if(!ban.duration)
+			return "";
+		let d = parseInt(ban.duration, 10);
+		if(isNaN(d))
+			return "Invalid number";
+		if(d < 1)
+			return "Non-positive number";
+		return "";
+	});
 
 	const action_sets = {
 		"message": [{text: "Edit", icon: "edit.svg", func: () => {
@@ -131,6 +148,12 @@
 
 		"user": [{text: "Kick", icon: "kick.svg", func: () => {
 				User.kick(sel.server, sel.ctx.user_id, () => {}, () => {});
+			 }},
+			 {text: "Ban", icon: "ban.svg", func: () => {
+				ban.user_id = sel.ctx.user_id;
+				ban.duration = "";
+				ban.duration_units = Util.TimeUnits.Minutes;
+				ban.dialog.show();
 			 }}]
 	};
 
@@ -386,7 +409,6 @@
 				/>
 			{/snippet}
 			<PaginatedList bind:this={message_list}
-			bind:scrollTop={message_list_scroll_top}
 			reversed={true}
 			loading_text="Loading messages..." to_latest_text="To latest messages"
 			render_item={render_message} item_dom_id_prefix="message_display_"
@@ -416,7 +438,6 @@
 				/>
 			{/snippet}
 			<PaginatedList bind:this={server_user_list}
-			bind:scrollTop={server_user_list_scroll_top}
 			render_item={render_user} item_dom_id_prefix="user_display_"
 			load_items={(index, range) => User.get_server_range(sel.server, index, range)}
 			augment_item={(user) => {user.role_list = Role.get_user_roles(user, server_roles.data)}}
@@ -447,3 +468,24 @@
 {/if}
 
 <NotifDisplay/>
+
+<Dialog bind:this={ban.dialog}
+question="Ban user?"
+buttons={[{text: ban.duration ? "Ban" : "Ban forever", disabled: ban_duration_error,
+		action: () => {
+			Ban.ban(sel.server, ban.user_id,
+				ban.duration ? Util.date_add(Date.now(), parseInt(ban.duration, 10), ban.duration_units) : "never",
+				() => {}, () => {})
+		}},
+	  {text: "Cancel"}]}
+>
+{#snippet render_ban_duration_select()}
+	<Select options={[Util.TimeUnits.Minutes, Util.TimeUnits.Hours, Util.TimeUnits.Days]} option_labels={["min", "hr", "days"]}
+		bind:value={ban.duration_units}
+		--margin-bottom="0px" --width="96px"/>
+{/snippet}
+<Textbox label_text="Ban duration" error={ban_duration_error}
+	bind:value={ban.duration}
+	render_after={render_ban_duration_select} --width="128px"
+/>
+</Dialog>

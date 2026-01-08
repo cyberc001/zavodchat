@@ -52,6 +52,17 @@ export default class Rest {
 		route += "/roles/" + role_id;
 		return route;
 	}
+	static get_route_sb(server_id, ban_id)
+	{
+		let route = "";
+		if(typeof server_id === "undefined")
+			return route;
+		route += "servers/" + server_id;
+		if(typeof ban_id === "undefined")
+			return route;
+		route += "/bans/" + ban_id;
+		return route;
+	}
 
 	static get_base_url()
 	{

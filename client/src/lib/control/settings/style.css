@@ -30,6 +30,6 @@
 .settings_control_label {
 	text-align: left;
 	margin: 0;
-	margin-bottom: 4px;
+	/*margin-bottom: 4px;*/
 	font-size: 16px;
 }

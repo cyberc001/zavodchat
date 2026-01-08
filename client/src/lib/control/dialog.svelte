@@ -20,6 +20,7 @@
 		<div class="dialog_buttons">
 			{#each buttons as butn}
 				<Button text={butn.text} --margin="0 8px 0 0"
+					disabled={butn.disabled}
 					onclick={() => {if(butn.action) butn.action(); dialog.close();}}
 				/>
 			{/each}

@@ -103,11 +103,11 @@ int main()
 	server_invite_id_resource server_invite_id(pool);
 	ws.register_resource("/servers/{server_id}/invites/{invite_id}", &server_invite_id);
 
-	server_bans_resource server_bans(pool, sserv);
+	server_bans_resource server_bans(pool);
 	server_bans.max_get_count = cfg.max_get_count;
 	server_bans.cleanup_period = cfg.cleanup_period;
 	ws.register_resource("/servers/{server_id}/bans", &server_bans);
-	server_ban_id_resource server_ban_id(pool);
+	server_ban_id_resource server_ban_id(pool, sserv);
 	ws.register_resource("/servers/{server_id}/bans/{server_ban_id}", &server_ban_id);
 
 	user_id_resource user_id(pool);

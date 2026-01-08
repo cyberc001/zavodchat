@@ -531,6 +531,7 @@ paths:
                   $ref: '#/components/schemas/User'
         '403':
           description: Неправильный start (< 0, >= количеству банов) / слишком большой count
+  /servers/$server_id/bans/$ban_id:
     post:
       summary: Забанить пользователя
       parameters:
@@ -542,12 +543,6 @@ paths:
             type: string
             format: date
             example: "2024-11-13 12:50:15+03"
-        - name: ban_user_id
-          in: query
-          description: ID пользователя
-          schema:
-            type: integer
-            example: 6
       responses:
         '200':
           description: Пользователь успешно забанен
@@ -557,6 +552,24 @@ paths:
           description: Неправильная дата и время expires
         '403':
           description: Нет прав на управление банами / попытка забанить >= роль
+    put:
+      summary: Изменить параметры бана
+      parameters:
+        - $ref: "#/parameters/zavodchat_token"
+        - name: expires
+          in: query
+          description: Дата и время истечения бана (автоматически удаляется из базы данных через некоторый промежуток). Может быть "never" - бан навсегда
+          schema:
+            type: string
+            format: date
+            example: "2024-11-13 12:50:15+03"
+      responses:
+        '200':
+          description: Бан успешно изменён
+        '400':
+          description: Неправильная дата и время expires
+        '404':
+          description: Пользовавтель не забанен
     delete:
       summary: Разбанить пользователя
       parameters:

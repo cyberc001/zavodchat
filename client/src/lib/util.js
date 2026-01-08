@@ -34,4 +34,20 @@ export default class Util {
 		}
 		return a === b;
 	}
+
+
+	static TimeUnits = {
+		Seconds: 0,
+		Minutes: 1,
+		Hours: 2,
+		Days: 3
+	}
+	static date_add(date, interval, units){
+		switch(units){
+			case Util.TimeUnits.Seconds: return new Date(date + interval * 1000);
+			case Util.TimeUnits.Minutes: return new Date(date + interval * 60000);
+			case Util.TimeUnits.Hours: return new Date(date + interval * 3600000);
+			case Util.TimeUnits.Days: return new Date(date + interval * 86400000);
+		}
+	}
 };

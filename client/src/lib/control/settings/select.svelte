@@ -1,11 +1,14 @@
 <script>
 	let {label_text, options = [], option_labels,
 		value = $bindable("")} = $props();
-</script>
+
+	if(options.length > 0)
+		value = options[0];
+	</script>
 
 <div class="settings_select_frame">
 	<p class="settings_control_label">{label_text}</p>
-	<select class="settings_control" style="width:var(--width, 512px)"
+	<select class="settings_control" style="width:var(--width, 512px); margin-bottom:var(--margin-bottom, 12px)"
 	bind:value={value}>
 		{#if typeof option_labels === "undefined"}
 			{#each options as o}
@@ -24,6 +27,5 @@
 .settings_select_frame {
 	display: flex;
 	flex-direction: column;
-	margin-bottom: 12px;
 }
 </style>
