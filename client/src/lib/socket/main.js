@@ -67,6 +67,9 @@ export default class MainSocket {
 		},
 
 		user_left: function(data) {
+			if(User.user_cache.has_state(-1) && User.user_cache.get_state(-1).data.id === data.id)
+				// client got kicked/banned
+				Server.remove_cache(data.server_id);
 			User.delete_cache_server(data.server_id, data.id);
 		},
 

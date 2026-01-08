@@ -30,7 +30,7 @@
 	import ContextMenu from '$lib/control/context_menu.svelte';
 	import NotifDisplay from '$lib/display/notif.svelte';
 
-	let { setPage } = $props();
+	let {setPage} = $props();
 
 	const setError = (err) => {
 		if(err.reason)
@@ -44,7 +44,7 @@
 	let server = $state({});
 	let servers = Server.get_list();
 	let server_roles = $state([]);
-	let channels = $state({});
+	let channels = $state([]);
 
 	const getUserRoles = (user) => {
 		if(!user || !user.roles)
@@ -62,8 +62,18 @@
 	// Sockets
 	let socket_main = new MainSocket(setError, setError,
 					(name, data) => {
-						if(name === "server_deleted" && settings_params.server_id === data.id)
-							delete settings_params.server_id;
+						if(name === "server_deleted"){
+							if(settings_params.server_id === data.id)
+								delete settings_params.server_id;
+							if(server.id === sel.server)
+								hideServer();
+						}
+						else if(name === "user_left" && data.id === user_self.data.id){
+							if(settings_params.server_id === data.id)
+								delete settings_params.server_id;
+							if(data.server_id === sel.server)
+								hideServer();
+						}
 					});
 
 	// UI state
@@ -153,6 +163,15 @@
 	}
 
 	// Events
+	const hideServer = (id) => {
+		sel.server = -1;
+		sel.channel = -1;
+		settings_params = {};
+
+		server = {};
+		server_roles = [];
+		channels = [];
+	};
 	const showServer = (id) => {
 		sel.server = id;
 		sel.channel = -1;

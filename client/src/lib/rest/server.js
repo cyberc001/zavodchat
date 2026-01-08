@@ -13,10 +13,18 @@ export default class Server {
 			for(const f in data)
 				server_data.data[f] = data[f];
 		}
-		let server_list_data = Server.server_list_cache.get_state(0)?.data.find((x) => x.id === server_id);
+		let server_list_data = Server.server_list_cache.get_state(0).data.find((x) => x.id === server_id);
 		if(server_list_data)
 			for(const f in data)
 				server_list_data[f] = data[f];
+	}
+	static remove_cache(server_id){
+		Server.server_cache.remove_state(server_id);
+
+		let list_state = Server.server_list_cache.get_state(0);
+		let server_list_idx = list_state.data.findIndex((x) => x.id === server_id);
+		if(server_list_idx !== -1)
+			list_state.data.splice(server_list_idx, 1);
 	}
 
 	static get(server_id, _catch){
