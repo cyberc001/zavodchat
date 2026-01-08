@@ -522,13 +522,13 @@ paths:
             example: 50
       responses:
         '200':
-          description: Список забаненных пользователей (может быть < count - означает конец массива банов)
+          description: Список забаненных пользователей с полем expires (может быть < count - означает конец массива банов)
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/User'
+                  $ref: '#/components/schemas/UserBan'
         '403':
           description: Неправильный start (< 0, >= количеству банов) / слишком большой count
   /servers/$server_id/bans/$ban_id:
@@ -732,6 +732,25 @@ components:
         status:
           type: integer
           example: 0
+    UserBan:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 412
+        name:
+          type: string
+          example: cyb3rc001
+        avatar:
+          type: string
+          example: avatar_453912.png
+        status:
+          type: integer
+          example: 0
+        expires:
+          type: string
+          format: date
+          example: "2026-01-08T05:05:48.638Z"
     ServerUser:
       type: object
       properties:

@@ -16,7 +16,7 @@ export default class SettingsTabState {
 		if(typeof obj === "object" && obj){ // null is also an object
 			let new_obj = {};
 			for(const key in obj)
-				new_obj[key] = obj[key];
+				new_obj[key] = this.copy_obj(obj[key]);
 			return new_obj;
 		}
 		return obj;

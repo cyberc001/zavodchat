@@ -30,9 +30,12 @@ std::shared_ptr<http_response> server_bans_resource::render_GET(const http_reque
 	if(err) return err;
 
 	nlohmann::json res = nlohmann::json::array();
-	pqxx::result r = tx.exec("SELECT user_id, name, avatar, status FROM server_bans NATURAL JOIN users WHERE server_id = $1 LIMIT $2 OFFSET $3", pqxx::params(server_id, count, start));
-	for(size_t i = 0; i < r.size(); ++i)
-		res += resource_utils::user_json_from_row(r[i]);
+	pqxx::result r = tx.exec("SELECT expiration_time, user_id, name, avatar, status FROM server_bans NATURAL JOIN users WHERE server_id = $1 LIMIT $2 OFFSET $3", pqxx::params(server_id, count, start));
+	for(size_t i = 0; i < r.size(); ++i){
+		nlohmann::json ban = resource_utils::user_json_from_row(r[i]);
+		ban["expires"] = r[i]["expiration_time"].is_null() ? "never" : r[i]["expiration_time"].as<std::string>();
+		res += ban;
+	}
 
 	return create_response::string(req, res.dump(), 200);
 }

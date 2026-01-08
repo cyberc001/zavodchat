@@ -6,14 +6,18 @@
 	import AvatarPicker from '$lib/control/settings/avatar_picker.svelte';
 	import Button from '$lib/control/settings/button.svelte';
 	import OrderedList from '$lib/control/settings/ordered_list.svelte';
+	import PaginatedList from '$lib/display/paginated_list.svelte';
 	import ColorPicker from '$lib/control/settings/color_picker.svelte';
+	import Select from '$lib/control/settings/select.svelte';
 	import Toggle from '$lib/control/settings/toggle.svelte';
 	import Dialog from '$lib/control/dialog.svelte';
+	import UserDisplay from '$lib/display/user.svelte';
 
 	import SettingsTabState from '$lib/control/settings_tab_state.svelte.js';
 
 	import Server from '$lib/rest/server.js';
 	import Role from '$lib/rest/role.js';
+	import Ban from '$lib/rest/ban.js';
 
 	let { server_id } = $props();
 
@@ -78,6 +82,35 @@
 		};
 	}
 
+
+	// Bans
+	let state_bans = new SettingsTabState({changed_bans: {}});
+
+	let ban_list = $state();
+	let ban_duration_units = $state("");
+	let ban_button_text = $derived.by(() => {
+		if(state_bans.state.changed_bans[ban_select_id] === null)
+			return "Ban";
+		return "Unban";
+	});
+
+	let ban_select = $state(-1);
+	let ban_select_id = $derived(ban_select > -1 && ban_list ? ban_list.getItem(ban_select).id : -1);
+	let ban_select_expire = $derived(state_bans.state.changed_bans[ban_select_id]);
+	$effect(() => {
+		if(ban_list && ban_select > -1){
+			let ban = ban_list.getItem(ban_select);
+			if(typeof state_bans.state.changed_bans[ban.id] === "undefined"){
+				let changed_bans = state_bans.state.changed_bans;
+				let expires = "never";
+				if(ban.expires !== "never")
+					expires = Math.floor((new Date(ban.expires) - Date.now()) / 1000);
+				changed_bans[ban.id] = expires;
+				state_bans.set_all_states("changed_bans", changed_bans);
+			}
+		}
+	});
+
 	export function tabs() {
 		return [
 			{ name: "General", render: general, state: state_general,
@@ -103,6 +136,30 @@
 					role_list_selected_idx = -1;
 					state_roles.discard_changes();
 				}
+			},
+			{ name: "Bans", render: bans, state: state_bans,
+				apply_changes: () => {
+					let ban_changes = [];
+					for(const id in state_bans.state.changed_bans){
+						const expires = state_bans.state.changed_bans[id];
+						if(expires !== state_bans.default_state.changed_bans[id])
+							ban_changes.push({id, expires});
+					}
+
+					let counter = ban_changes.length;
+					const _then = () => { if(--counter === 0) state_bans.apply_changes(); };
+					const _catch = () => state_bans.discard_changes();	
+
+					for(const ch of ban_changes){
+						if(ch.expires !== null)
+							Ban.change(server_id, ch.id,
+									ch.expires === "never" ? ch.expires : new Date(Date.now() + ch.expires * 1000),
+									_then, _catch);
+						else
+							Ban.unban(server_id, ch.id, _then, _catch);
+					}
+				},
+				discard_changes: () => state_bans.discard_changes()
 			}
 		];
 	}
@@ -193,5 +250,54 @@ This cannot be reversed.
 		bind:value={role_perm_get_fabric(1, 8), role_perm_set_fabric(1, 8)}
 	/>
 {/if}
+</Group>
+{/snippet}
+
+{#snippet render_ban(i, item)}
+	<div id={"ban_display_" + item.id}>
+		<UserDisplay user={item} display_status={false}
+				selected={ban_select === i}
+				onclick={() => ban_select = i}
+		/>
+	</div>
+{/snippet}
+
+{#snippet bans(params, close_settings)}
+<Group name="Ban list">
+	<PaginatedList
+		render_item={render_ban} item_dom_id_prefix="ban_display_"
+		load_items={(index, range) => Ban.get_range(server_id, index, range)}
+		bind:this={ban_list}
+	/>
+</Group>
+<Group>
+	{#if ban_select > -1}
+		<Button text={ban_button_text}
+			onclick={() => state_bans.state.changed_bans[ban_select_id] =
+						ban_select_expire === null ? state_bans.default_state.changed_bans[ban_select_id]
+						: null}
+		/>
+		{#if typeof ban_select_expire !== "undefined" && ban_select_expire !== null}
+			{#snippet render_ban_duration_select()}
+				<Select options={[Util.TimeUnits.Minutes, Util.TimeUnits.Hours, Util.TimeUnits.Days]} option_labels={["min", "hr", "days"]}
+					bind:value={ban_duration_units}
+					--margin-bottom="0px" --width="96px"/>
+			{/snippet}
+			<Textbox label_text="Ban duration" error=""
+				render_after={render_ban_duration_select} --width="128px"
+				bind:value={() => {
+							if(ban_select_expire === "never")
+									return "";
+							return Math.floor(ban_select_expire / Util.time_unit_mul(ban_duration_units));
+						},
+					    (x) => {
+							if(typeof ban_select_expire !== "undefined")
+								state_bans.state.changed_bans[ban_select_id] = x === "" ? "never"
+									: parseInt(x, 10) * Util.time_unit_mul(ban_duration_units);
+						}
+					}
+			/>
+		{/if}
+	{/if}
 </Group>
 {/snippet}

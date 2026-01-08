@@ -38,10 +38,8 @@
 	});
 
 	$effect(() => {
-		if(items_range.loaded && items.length < range && index > (range - items.length)){
-			console.log("correcting index");
+		if(items_range.loaded && items.length < range && index > range - items.length)
 			index -= (range - items.length);
-		}
 	});
 
 	let reverse_sign = $derived(reversed ? -1 : 1);
@@ -86,7 +84,8 @@
 		if(reverse_sign * next_scroll_top >= max_scroll || reverse_sign * next_scroll_top < 0){
 			let dir = Math.sign(e.deltaY);
 
-			if(dir !== 0 && index + reverse_sign * dir >= 0){
+			if(dir !== 0 && index + reverse_sign * dir >= 0
+				&& (reverse_sign * dir < 0 || items.length >= range) /* dont allow to scroll past the last page */){
 				index += reverse_sign * dir * advance;
 				if(index < 0) index = 0;
 			}

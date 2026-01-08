@@ -4,7 +4,7 @@
 
 	let {user, user_roles,
 		selected = false,
-		onclick = () => {}, hide_profile, show_ctx_menu,
+		onclick = () => {}, show_ctx_menu = () => {},
 		display_status = true,
 		message_id = -1} = $props();
 

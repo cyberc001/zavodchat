@@ -430,7 +430,7 @@
 				<UserDisplay
 				user={user} user_roles={user.role_list}
 				selected={sel.user.message_id == -1 && user.id == sel.user.id}
-				onclick={() => showUser(user.id, -1)} hide_profile={() => showUser(-1, -1)}
+				onclick={() => showUser(user.id, -1)}
 				show_ctx_menu={(anchor, e, action_set) => {
 					sel.ctx.user_id = user.id;
 					showCtxMenu(anchor, e, action_set);

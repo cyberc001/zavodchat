@@ -42,12 +42,15 @@ export default class Util {
 		Hours: 2,
 		Days: 3
 	}
-	static date_add(date, interval, units){
-		switch(units){
-			case Util.TimeUnits.Seconds: return new Date(date + interval * 1000);
-			case Util.TimeUnits.Minutes: return new Date(date + interval * 60000);
-			case Util.TimeUnits.Hours: return new Date(date + interval * 3600000);
-			case Util.TimeUnits.Days: return new Date(date + interval * 86400000);
+	static time_unit_mul(unit){
+		switch(unit){
+			case Util.TimeUnits.Seconds: return 1;
+			case Util.TimeUnits.Minutes: return 60;
+			case Util.TimeUnits.Hours: return 3600;
+			case Util.TimeUnits.Days: return 86400;
 		}
+	}
+	static date_add(date, interval, units){
+		return new Date(date + interval * 1000 * Util.time_unit_mul(units));
 	}
 };

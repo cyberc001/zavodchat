@@ -21,8 +21,11 @@ export default class Ban {
 		Rest.post("Banning user", Rest.get_route_sb(server_id, user_id), undefined,
 				_then, _catch, "expires", expires === "never" ? expires : expires.toISOString());
 	}
+	static change(server_id, user_id, expires, _then, _catch){
+		Rest.put("Changing ban", Rest.get_route_sb(server_id, user_id), undefined,
+				_then, _catch, "expires", expires === "never" ? expires : expires.toISOString());
+	}
 	static unban(server_id, user_id, _then, _catch){
-		Rest.delete("Unbanning user", Rest.get_route_sb(server_id, user_id), undefined,
-				_then, _catch);
+		Rest.delete("Unbanning user", Rest.get_route_sb(server_id, user_id), _then, _catch);
 	}
 }
