@@ -15,6 +15,9 @@
 	export function getItem(idx){
 		return items[idx];
 	}
+	export function findItem(filter){
+		return items.find(filter);
+	}
 
 	// A method for loading additional information into items. Its useful, because:
 	// 1. You cannot use cached REST methods in snippets that PaginatedList uses to render items, since it makes PaginatedList mutate static state (i.e. cache) that Main owns

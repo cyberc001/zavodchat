@@ -94,14 +94,14 @@ std::shared_ptr<http_response> server_user_id_resource::render_DELETE(const http
 		if(err) return err;
 	}
 
+	tx.exec("DELETE FROM user_x_server WHERE user_id = $1 AND server_id = $2", pqxx::params(server_user_id, server_id));
+	tx.commit();
+
 	socket_event ev;
 	resource_utils::json_set_ids(ev.data, server_id);
 	ev.data["id"] = server_user_id;
-	ev.name = "user_left";
+	ev.name = "user_kicked";
 	sserv.send_to_server(server_id, tx, ev);
-
-	tx.exec("DELETE FROM user_x_server WHERE user_id = $1 AND server_id = $2", pqxx::params(server_user_id, server_id));
-	tx.commit();
 
 	return create_response::string(req, "Kicked", 200);
 }

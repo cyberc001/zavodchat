@@ -5,6 +5,7 @@ import User from '$lib/rest/user.svelte.js';
 import Server from '$lib/rest/server.js';
 import Channel from '$lib/rest/channel.js';
 import Role from '$lib/rest/role.js';
+import Ban from '$lib/rest/ban.js';
 
 export default class MainSocket {
 	static host = "wss://127.0.0.1:444";
@@ -66,11 +67,32 @@ export default class MainSocket {
 				st.data.splice(idx, 1);
 		},
 
-		user_left: function(data) {
+		user_kicked: function(data) {
 			if(User.user_cache.has_state(-1) && User.user_cache.get_state(-1).data.id === data.id)
-				// client got kicked/banned
 				Server.remove_cache(data.server_id);
 			User.delete_cache_server(data.server_id, data.id);
+		},
+		user_banned: function(data) {
+			if(User.user_cache.has_state(-1) && User.user_cache.get_state(-1).data.id === data.id)
+				Server.remove_cache(data.server_id);
+			User.delete_cache_server(data.server_id, data.id);
+
+			let tree = Ban.ban_range_cache.get_tree(data.server_id);
+			if(tree)
+				User.get_nocache(data.id, (user_data) => {
+						user_data.expires = data.expires;
+						tree.insert_last(user_data);
+				}, () => {});
+		},
+		user_unbanned: function(data) {
+			let tree = Ban.ban_range_cache.get_tree(data.server_id);
+			if(tree)
+				tree.remove_one_id(data.id);
+		},
+		ban_changed: function(data) {
+			let tree = Ban.ban_range_cache.get_tree(data.server_id);
+			if(tree)
+				tree.update_one_id(data.id, {expires: data.expires});
 		},
 
 		roles_updated: function(data) {

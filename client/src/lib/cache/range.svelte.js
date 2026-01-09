@@ -268,7 +268,7 @@ export class DataRangeTree {
 
 		const iter = this._tree.lowerBound(range);
 		let containing_range = iter.data();
-		if(!containing_range.contains(range))
+		if(containing_range && !containing_range.contains(range))
 			containing_range = undefined;
 		if(containing_range){
 			++containing_range.end;
@@ -276,11 +276,10 @@ export class DataRangeTree {
 				containing_range.id_end = data.id;
 			containing_range.arr.unshift(data);
 			containing_range.inc_observers_end();
-			//containing_range.update_observers();
-		}
 
-		// shift everything right by 1 except the containing range
-		this.__insert_last_iter(this._tree._root, containing_range);
+			// shift everything right by 1 except the containing range
+			this.__insert_last_iter(this._tree._root, containing_range);
+		}
 	}
 	__insert_last_iter(node, r){
 		if(node === null || node.data === r)

@@ -6,6 +6,7 @@
 		selected = false,
 		onclick = () => {}, show_ctx_menu = () => {},
 		display_status = true,
+		style = "",
 		message_id = -1} = $props();
 
 	let self = $state();
@@ -13,7 +14,7 @@
 </script>
 
 <button class={"user_display hoverable " + (selected ? "selected " : "") + (message_id > -1 ? "" : " sidebar_user_display")}
-	style="anchor-name: --{name}"
+	style="anchor-name: --{name}; {style}"
 	id={name}
 	bind:this={self}
 	onclick={onclick}

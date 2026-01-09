@@ -19,7 +19,7 @@ std::shared_ptr<http_response> server_bans_resource::render_GET(const http_reque
 	auto err = resource_utils::parse_server_id(req, tx, user_id, server_id);
 	if(err) return err;
 
-	err = resource_utils::check_server_owner(req, user_id, server_id, tx);
+	err = role_utils::check_permission1(req, tx, server_id, user_id, PERM1_BAN_MEMBERS);
 	if(err) return err;
 
 	int start;
@@ -95,15 +95,16 @@ std::shared_ptr<http_response> server_ban_id_resource::render_POST(const http_re
 		return create_response::string(req, "Invalid date/time format", 400);
 	}
 
-	socket_event ev;
-	resource_utils::json_set_ids(ev.data, server_id);
-	ev.data["id"] = server_ban_id;
-	ev.name = "user_left";
-	sserv.send_to_server(server_id, tx, ev);
-
 	// delete user from server
 	tx.exec("DELETE FROM user_x_server WHERE user_id = $1 AND server_id = $2", pqxx::params(server_ban_id, server_id));
 	tx.commit();
+
+	socket_event ev;
+	resource_utils::json_set_ids(ev.data, server_id);
+	ev.data["id"] = server_ban_id;
+	ev.data["expires"] = req.get_arg("expires");
+	ev.name = "user_banned";
+	sserv.send_to_server(server_id, tx, ev);
 
 	return create_response::string(req, "Banned", 200);
 }
@@ -125,17 +126,27 @@ std::shared_ptr<http_response> server_ban_id_resource::render_PUT(const http_req
 	if(err) return err;
 
 	auto args = req.get_args();
+	bool changed = false;
 	if(args.find(std::string_view("expires")) != args.end()){
-		std::string expires = std::string(req.get_arg("expires"));
-		if(expires == "never")
-			expires = "";
+		std::string expires;
+		err = resource_utils::parse_timestamp(req, "expires", expires);
 		try{
 			tx.exec("UPDATE server_bans SET expiration_time = $1 WHERE user_id = $2", pqxx::params(expires.size() ? expires.c_str() : nullptr, server_ban_id));
 		} catch(pqxx::data_exception& e){
 			return create_response::string(req, "Invalid date/time format", 400);
 		}
+		changed = true;
 	}
 	tx.commit();
+
+	if(changed){
+		socket_event ev;
+		resource_utils::json_set_ids(ev.data, server_id);
+		ev.data["id"] = server_ban_id;
+		ev.data["expires"] = args["expires"];
+		ev.name = "ban_changed";
+		sserv.send_to_server(server_id, tx, ev);
+	}
 
 	return create_response::string(req, "Changed ban", 200);
 }
@@ -159,5 +170,12 @@ std::shared_ptr<http_response> server_ban_id_resource::render_DELETE(const http_
 
 	tx.exec("DELETE FROM server_bans WHERE user_id = $1 AND server_id = $2", pqxx::params(server_ban_id, server_id));
 	tx.commit();
+
+	socket_event ev;
+	resource_utils::json_set_ids(ev.data, server_id);
+	ev.data["id"] = server_ban_id;
+	ev.name = "user_unbanned";
+	sserv.send_to_server(server_id, tx, ev);
+
 	return create_response::string(req, "Unbanned", 200);
 }

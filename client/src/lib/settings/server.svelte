@@ -86,26 +86,33 @@
 	// Bans
 	let state_bans = new SettingsTabState({changed_bans: {}});
 
+	const BanState = {
+		Unchanged: 0,
+		Changed: 1,
+		Removed: 2
+	};
+
 	let ban_list = $state();
 	let ban_duration_units = $state("");
 	let ban_button_text = $derived.by(() => {
-		if(state_bans.state.changed_bans[ban_select_id] === null)
+		if(ban_select_change?.state === BanState.Removed)
 			return "Ban";
 		return "Unban";
 	});
 
-	let ban_select = $state(-1);
-	let ban_select_id = $derived(ban_select > -1 && ban_list ? ban_list.getItem(ban_select).id : -1);
-	let ban_select_expire = $derived(state_bans.state.changed_bans[ban_select_id]);
+	let ban_select_id = $state(-1);
+	let ban_select_change = $derived(state_bans.state.changed_bans[ban_select_id]);
 	$effect(() => {
-		if(ban_list && ban_select > -1){
-			let ban = ban_list.getItem(ban_select);
-			if(typeof state_bans.state.changed_bans[ban.id] === "undefined"){
+		if(!ban_list ||
+			(ban_select_id > -1 && !ban_list.findItem((x) => x.id === ban_select_id)))
+			ban_select_id = -1;
+	});
+	$effect(() => {
+		if(ban_list && ban_select_id > -1){
+			if(typeof state_bans.state.changed_bans[ban_select_id] === "undefined"){
+				// Initialize ban change object
 				let changed_bans = state_bans.state.changed_bans;
-				let expires = "never";
-				if(ban.expires !== "never")
-					expires = Math.floor((new Date(ban.expires) - Date.now()) / 1000);
-				changed_bans[ban.id] = expires;
+				changed_bans[ban_select_id] = {state: BanState.Unchanged};
 				state_bans.set_all_states("changed_bans", changed_bans);
 			}
 		}
@@ -141,25 +148,29 @@
 				apply_changes: () => {
 					let ban_changes = [];
 					for(const id in state_bans.state.changed_bans){
-						const expires = state_bans.state.changed_bans[id];
-						if(expires !== state_bans.default_state.changed_bans[id])
-							ban_changes.push({id, expires});
+						const change = state_bans.state.changed_bans[id];
+						if(change.state !== BanState.Unchanged){
+							change.id = id;
+							ban_changes.push(change);
+						}
 					}
 
 					let counter = ban_changes.length;
-					const _then = () => { if(--counter === 0) state_bans.apply_changes(); };
+					// Changes should be discarded either way, because actual changes are already applied to Ban cache
+					// thanks to socket events
+					const _then = () => { if(--counter === 0) state_bans.discard_changes(); };
 					const _catch = () => state_bans.discard_changes();
 
 					for(const ch of ban_changes){
-						if(ch.expires !== null)
+						if(ch.state === BanState.Changed)
 							Ban.change(server_id, ch.id,
-									ch.expires === "never" ? ch.expires : new Date(Date.now() + ch.expires * 1000),
+									ch.expires === "never" ? ch.expires : new Date(Date.now() + ch.expires),
 									_then, _catch);
 						else
 							Ban.unban(server_id, ch.id, _then, _catch);
 					}
 				},
-				discard_changes: () => state_bans.discard_changes()
+				discard_changes: () => state_bans.set_all_states("changed_bans", {})
 			}
 		];
 	}
@@ -256,8 +267,9 @@ This cannot be reversed.
 {#snippet render_ban(i, item)}
 	<div id={"ban_display_" + item.id}>
 		<UserDisplay user={item} display_status={false}
-				selected={ban_select === i}
-				onclick={() => ban_select = i}
+				style={state_bans.state.changed_bans[item.id]?.state === BanState.Removed ? "text-decoration: line-through" : ""}
+				selected={ban_select_id === item.id}
+				onclick={() => ban_select_id = item.id}
 		/>
 	</div>
 {/snippet}
@@ -271,13 +283,16 @@ This cannot be reversed.
 	/>
 </Group>
 <Group>
-	{#if ban_select > -1}
+	{#if ban_select_id > -1}
 		<Button text={ban_button_text}
-			onclick={() => state_bans.state.changed_bans[ban_select_id] =
-						ban_select_expire === null ? state_bans.default_state.changed_bans[ban_select_id]
-						: null}
+			onclick={() => {
+				if(ban_select_change.state === BanState.Removed)
+					ban_select_change.state = ban_select_change.expires ? BanState.Changed : BanState.Unchanged;
+				else
+					ban_select_change.state = BanState.Removed;
+			}}
 		/>
-		{#if typeof ban_select_expire !== "undefined" && ban_select_expire !== null}
+		{#if ban_select_change?.state === BanState.Changed || ban_select_change?.state === BanState.Unchanged}
 			{#snippet render_ban_duration_select()}
 				<Select options={[Util.TimeUnits.Minutes, Util.TimeUnits.Hours, Util.TimeUnits.Days]} option_labels={["min", "hr", "days"]}
 					bind:value={ban_duration_units}
@@ -286,14 +301,31 @@ This cannot be reversed.
 			<Textbox label_text="Ban duration" error=""
 				render_after={render_ban_duration_select} --width="128px"
 				bind:value={() => {
-							if(ban_select_expire === "never")
+							let expires;
+							if(ban_select_change.state === BanState.Unchanged){
+								const ban = ban_list.findItem((x) => x.id === ban_select_id);
+								if(!ban)
 									return "";
-							return Math.floor(ban_select_expire / Util.time_unit_mul(ban_duration_units));
+								expires = ban.expires;
+								if(expires === "never")
+									return "";
+								expires = new Date(expires) - Date.now();
+							}
+							else{ // BanState.Changed
+								expires = ban_select_change.expires;
+								if(expires === "never")
+									return "";
+							}
+
+							return Math.floor(expires / Util.time_unit_mul(ban_duration_units));
 						},
 					    (x) => {
-							if(typeof ban_select_expire !== "undefined")
-								state_bans.state.changed_bans[ban_select_id] = x === "" ? "never"
+							const expires = x === "" ? "never"
 									: parseInt(x, 10) * Util.time_unit_mul(ban_duration_units);
+
+							if(ban_select_change.state === BanState.Unchanged)
+								ban_select_change.state = BanState.Changed;
+							ban_select_change.expires = expires;
 						}
 					}
 			/>
