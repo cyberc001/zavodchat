@@ -3,8 +3,10 @@
 
 	import Group from '$lib/control/settings/group.svelte';
 	import Textbox from '$lib/control/settings/textbox.svelte';
+	import DurationPicker from '$lib/control/settings/duration_picker.svelte';
 	import AvatarPicker from '$lib/control/settings/avatar_picker.svelte';
 	import Button from '$lib/control/settings/button.svelte';
+	import List from '$lib/control/settings/list.svelte';
 	import OrderedList from '$lib/control/settings/ordered_list.svelte';
 	import PaginatedList from '$lib/display/paginated_list.svelte';
 	import ColorPicker from '$lib/control/settings/color_picker.svelte';
@@ -18,6 +20,7 @@
 	import Server from '$lib/rest/server.js';
 	import Role from '$lib/rest/role.js';
 	import Ban from '$lib/rest/ban.js';
+	import Invite from '$lib/rest/invite.js';
 
 	let { server_id } = $props();
 
@@ -99,6 +102,10 @@
 			return "Ban";
 		return "Unban";
 	});
+	let ban_duration_error = $state("");
+	$effect(() => {
+		state_bans.changes_override = ban_duration_error ? SettingsTabState.ChangesState.Invalid : SettingsTabState.ChangesState.Inherit;
+	});
 
 	let ban_select_id = $state(-1);
 	let ban_select_change = $derived(state_bans.state.changed_bans[ban_select_id]);
@@ -116,6 +123,18 @@
 				state_bans.set_all_states("changed_bans", changed_bans);
 			}
 		}
+	});
+
+	// Invites
+	let state_invites = new SettingsTabState({list: []});
+	let invite_list_selected_idx = $state(-1);
+	$effect(() => {
+		if(server_id > -1){
+			Invite.get_list_nocache(server_id,
+						(list) => state_invites.set_all_states("list", list),
+						() => {});
+		} else
+			state_invites.set_all_states("list", []);
 	});
 
 	export function tabs() {
@@ -163,14 +182,17 @@
 
 					for(const ch of ban_changes){
 						if(ch.state === BanState.Changed)
-							Ban.change(server_id, ch.id,
-									ch.expires === "never" ? ch.expires : new Date(Date.now() + ch.expires),
+							Ban.change(server_id, ch.id, ch.expires,
 									_then, _catch);
 						else
 							Ban.unban(server_id, ch.id, _then, _catch);
 					}
 				},
 				discard_changes: () => state_bans.set_all_states("changed_bans", {})
+			},
+			{ name: "Invites", render: invites, state: state_invites,
+				apply_changes: () => {},
+				discard_changes: () => {}
 			}
 		];
 	}
@@ -200,7 +222,7 @@ This cannot be reversed.
 {/snippet}
 
 
-{#snippet role_item(rol)}
+{#snippet role_item(i, rol)}
 <div style="display: flex; align-items: center; padding: 3px 0 3px 3px">
 	<div class="user_role_circle_big" style={Role.get_background_style(rol)}></div>
 	<div style="margin-left: 6px; font-size: 18px">{rol.name}</div>
@@ -280,7 +302,7 @@ This cannot be reversed.
 		bind:this={ban_list}
 	/>
 </Group>
-<Group>
+<Group name="Ban settings">
 	{#if ban_select_id > -1}
 		<Button text={ban_button_text}
 			onclick={() => {
@@ -291,43 +313,47 @@ This cannot be reversed.
 			}}
 		/>
 		{#if ban_select_change?.state === BanState.Changed || ban_select_change?.state === BanState.Unchanged}
-			{#snippet render_ban_duration_select()}
-				<Select options={[Util.TimeUnits.Minutes, Util.TimeUnits.Hours, Util.TimeUnits.Days]} option_labels={["min", "hr", "days"]}
-					bind:value={ban_duration_units}
-					--margin-bottom="0px" --width="96px"/>
-			{/snippet}
-			<Textbox label_text="Ban duration" error=""
-				render_after={render_ban_duration_select} --width="128px"
-				bind:value={() => {
-							let expires;
-							if(ban_select_change.state === BanState.Unchanged){
-								const ban = ban_list.findItem((x) => x.id === ban_select_id);
-								if(!ban)
-									return "";
-								expires = ban.expires;
-								if(expires === "never")
-									return "";
-								expires = new Date(expires) - Date.now();
-							}
-							else{ // BanState.Changed
-								expires = ban_select_change.expires;
-								if(expires === "never")
-									return "";
-							}
-
-							return Math.floor(expires / Util.time_unit_mul(ban_duration_units));
-						},
-					    (x) => {
-							const expires = x === "" ? "never"
-									: parseInt(x, 10) * Util.time_unit_mul(ban_duration_units);
-
-							if(ban_select_change.state === BanState.Unchanged)
-								ban_select_change.state = BanState.Changed;
-							ban_select_change.expires = expires;
+			<DurationPicker label_text="Ban duration"
+			bind:expires={() => {
+						if(ban_select_change.state === BanState.Unchanged){
+							const ban = ban_list.findItem((x) => x.id === ban_select_id);
+							if(!ban)
+								return "";
+							return ban.expires;
 						}
+						// else: BanState.Changed
+						return ban_select_change.expires;
+					},
+				      (expires) => {
+						if(ban_select_change.state === BanState.Unchanged)
+							ban_select_change.state = BanState.Changed;
+						ban_select_change.expires = expires;
 					}
+			}
+			bind:error={ban_duration_error}
 			/>
 		{/if}
+	{/if}
+</Group>
+{/snippet}
+
+
+{#snippet render_invite(i, item)}
+	<div style="font-size: 18px">
+		{item.id}
+	</div>
+{/snippet}
+
+{#snippet invites(params, close_settings)}
+<Group name="Invite list">
+<List items={state_invites.state.list}
+	render_item={render_invite}
+	bind:selected_idx={invite_list_selected_idx}
+/>
+</Group>
+<Group name="Invite settings">
+	{#if invite_list_selected_idx > -1}
+		bleegh
 	{/if}
 </Group>
 {/snippet}

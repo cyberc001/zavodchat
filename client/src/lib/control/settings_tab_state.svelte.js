@@ -7,6 +7,8 @@ export default class SettingsTabState {
 	copy_obj(obj){
 		if(obj instanceof File)
 			return obj;
+		if(obj instanceof Date)
+			return new Date(obj.getTime());
 		if(Array.isArray(obj)){
 			let new_arr = [];
 			for(const e of obj)

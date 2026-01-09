@@ -26,6 +26,7 @@
 	let create_channel = $state();
 
 	import Textbox from '$lib/control/settings/textbox.svelte';
+	import DurationPicker from '$lib/control/settings/duration_picker.svelte';
 	import Select from '$lib/control/settings/select.svelte';
 	import Dialog from '$lib/control/dialog.svelte';
 
@@ -108,17 +109,7 @@
 	let ban = $state({
 		user_id: -1,
 		dialog: null,
-		duration: "", duration_units: ""
-	});
-	let ban_duration_error = $derived.by(() => {
-		if(!ban.duration)
-			return "";
-		let d = parseInt(ban.duration, 10);
-		if(isNaN(d))
-			return "Invalid number";
-		if(d < 1)
-			return "Non-positive number";
-		return "";
+		expires: "never", error: ""
 	});
 
 	const action_sets = {
@@ -471,21 +462,13 @@
 
 <Dialog bind:this={ban.dialog}
 question="Ban user?"
-buttons={[{text: ban.duration ? "Ban" : "Ban forever", disabled: ban_duration_error,
+buttons={[{text: ban.duration ? "Ban" : "Ban forever", disabled: ban.error,
 		action: () => {
-			Ban.ban(sel.server, ban.user_id,
-				ban.duration ? Util.date_add(Date.now(), parseInt(ban.duration, 10), ban.duration_units) : "never",
-				() => {}, () => {})
+			Ban.ban(sel.server, ban.user_id, ban.expires, () => {}, () => {})
 		}},
 	  {text: "Cancel"}]}
 >
-{#snippet render_ban_duration_select()}
-	<Select options={[Util.TimeUnits.Minutes, Util.TimeUnits.Hours, Util.TimeUnits.Days]} option_labels={["min", "hr", "days"]}
-		bind:value={ban.duration_units}
-		--margin-bottom="0px" --width="96px"/>
-{/snippet}
-<Textbox label_text="Ban duration" error={ban_duration_error}
-	bind:value={ban.duration}
-	render_after={render_ban_duration_select} --width="128px"
+<DurationPicker label_text="Ban duration"
+	bind:expires={ban.expires} bind:error={ban.error}
 />
 </Dialog>

@@ -63,6 +63,17 @@ export default class Rest {
 		route += "/bans/" + ban_id;
 		return route;
 	}
+	static get_route_si(server_id, invite_id)
+	{
+		let route = "";
+		if(typeof server_id === "undefined")
+			return route;
+		route += "servers/" + server_id;
+		if(typeof invite_id === "undefined")
+			return route;
+		route += "/invites/" + invite_id;
+		return route;
+	}
 
 	static get_base_url()
 	{

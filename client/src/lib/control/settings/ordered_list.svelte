@@ -85,6 +85,6 @@ const onDrag = (e) => {
 			: i === 0 && hovered_idx === -1 ? "border-style: solid none none none"
 			: "")}
 	>
-		{@render render_item(item)}
+		{@render render_item(i, item)}
 	</div>
 {/each}
