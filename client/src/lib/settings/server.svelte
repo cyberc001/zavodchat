@@ -129,8 +129,8 @@
 			{ name: "Roles", render: roles, state: state_roles,
 				apply_changes: () => {
 					Role.change_list(server_id, state_roles.state.list,
-								() => state_general.apply_changes(),
-								() => state_general.discard_changes());
+								() => state_roles.apply_changes(),
+								() => state_roles.discard_changes());
 				},
 				discard_changes: () => {
 					role_list_selected_idx = -1;
@@ -148,7 +148,7 @@
 
 					let counter = ban_changes.length;
 					const _then = () => { if(--counter === 0) state_bans.apply_changes(); };
-					const _catch = () => state_bans.discard_changes();	
+					const _catch = () => state_bans.discard_changes();
 
 					for(const ch of ban_changes){
 						if(ch.expires !== null)
