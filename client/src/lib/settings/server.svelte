@@ -265,19 +265,17 @@ This cannot be reversed.
 {/snippet}
 
 {#snippet render_ban(i, item)}
-	<div id={"ban_display_" + item.id}>
-		<UserDisplay user={item} display_status={false}
-				style={state_bans.state.changed_bans[item.id]?.state === BanState.Removed ? "text-decoration: line-through" : ""}
-				selected={ban_select_id === item.id}
-				onclick={() => ban_select_id = item.id}
-		/>
-	</div>
+	<UserDisplay user={item} display_status={false}
+			style={state_bans.state.changed_bans[item.id]?.state === BanState.Removed ? "text-decoration: line-through" : ""}
+			selected={ban_select_id === item.id}
+			onclick={() => ban_select_id = item.id}
+	/>
 {/snippet}
 
 {#snippet bans(params, close_settings)}
 <Group name="Ban list">
 	<PaginatedList
-		render_item={render_ban} item_dom_id_prefix="ban_display_"
+		render_item={render_ban}
 		load_items={(index, range) => Ban.get_range(server_id, index, range)}
 		bind:this={ban_list}
 	/>

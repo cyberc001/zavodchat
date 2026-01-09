@@ -411,7 +411,7 @@
 			<PaginatedList bind:this={message_list}
 			reversed={true}
 			loading_text="Loading messages..." to_latest_text="To latest messages"
-			render_item={render_message} item_dom_id_prefix="message_display_"
+			render_item={render_message}
 			load_items={(index, range) => Message.get_range(sel.server, sel.channel, index, range)}
 			augment_item={(msg) => {
 						msg.author = User.get_server(sel.server, msg.author_id);
@@ -438,7 +438,7 @@
 				/>
 			{/snippet}
 			<PaginatedList bind:this={server_user_list}
-			render_item={render_user} item_dom_id_prefix="user_display_"
+			render_item={render_user}
 			load_items={(index, range) => User.get_server_range(sel.server, index, range)}
 			augment_item={(user) => {user.role_list = Role.get_user_roles(user, server_roles.data)}}
 			to_latest_text="Up"/>

@@ -3,7 +3,6 @@
 
 	let {index = $bindable(0), scrollTop = $bindable(0),
 		range = 30, advance = 10, reversed = false,
-		item_dom_id_prefix,
 		render_item, load_items, augment_item = () => {},
 		loading_text = "Loading...", to_latest_text = "To latest"
 		} = $props();
@@ -63,11 +62,7 @@
 	let anchor_id = -1;
 	let anchor_top_before;
 	let list_scroll_top_before;
-	const get_anchor = (id) => {
-		for(const el of list_div.getElementsByTagName("*"))
-			if(el.id === item_dom_id_prefix + id)
-				return el;
-	};
+	const get_anchor = (id) => list_div.querySelector("#paginated_list_item_" + id);
 	const remember_scroll_pos = () => {
 		scrollTop = list_div.scrollTop;
 		anchor_id = items[Math.floor(items.length / 2)].id;
@@ -115,7 +110,9 @@
 	<div class="paginated_list" style={reversed ? "flex-direction: column-reverse" : ""} onwheel={on_scroll} bind:this={list_div}>
 		{#each items as item, i}
 			{#if Object.keys(item).length > 0}
-				{@render render_item(i, item)}
+				<div id={"paginated_list_item_" + item.id}>
+					{@render render_item(i, item)}
+				</div>
 			{/if}
 		{/each}
 	</div>
