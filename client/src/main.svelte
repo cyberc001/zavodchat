@@ -76,7 +76,7 @@
 							if(server.id === sel.server)
 								hideServer();
 						}
-						else if(name === "user_left" && data.id === user_self.data.id){
+						else if((name === "user_kicked" || name === "user_banned") && data.id === user_self.data.id){
 							if(settings_params.server_id === data.id)
 								delete settings_params.server_id;
 							if(data.server_id === sel.server)

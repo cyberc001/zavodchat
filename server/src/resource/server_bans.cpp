@@ -105,6 +105,7 @@ std::shared_ptr<http_response> server_ban_id_resource::render_POST(const http_re
 	ev.data["expires"] = req.get_arg("expires");
 	ev.name = "user_banned";
 	sserv.send_to_server(server_id, tx, ev);
+	sserv.send_to_user(server_ban_id, tx, ev);
 
 	return create_response::string(req, "Banned", 200);
 }

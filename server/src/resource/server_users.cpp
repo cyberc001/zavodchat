@@ -102,6 +102,7 @@ std::shared_ptr<http_response> server_user_id_resource::render_DELETE(const http
 	ev.data["id"] = server_user_id;
 	ev.name = "user_kicked";
 	sserv.send_to_server(server_id, tx, ev);
+	sserv.send_to_user(server_user_id, tx, ev);
 
 	return create_response::string(req, "Kicked", 200);
 }
