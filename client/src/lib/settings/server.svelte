@@ -198,45 +198,18 @@
 				discard_changes: () => state_bans.set_all_states("changed_bans", {})
 			},
 			{ name: "Invites", render: invites, state: state_invites,
-				apply_changes: () => {	
-					let invite_changes = [];
-
-					for(const invite2 of state_invites.state.list){
-						const invite1 = state_invites.default_state.list.find((x) => x.id === invite2.id);
-						if(!invite1)
-							invite_changes.push({state: InviteState.Added, id: invite2.id, expires: invite2.expires});
-						else if(invite1.expires !== invite2.expires)
-							invite_changes.push({state: InviteState.Changed, id: invite2.id, expires: invite2.expires});
-					}
-					for(const invite1 of state_invites.default_state.list)
-						if(!state_invites.state.list.find((x) => x.id === invite1.id))
-							invite_changes.push({state: InviteState.Removed, id: invite1.id});
-
-					let counter = invite_changes.length;
-					const _then = () => {
-						if(--counter === 0)
-							Invite.get_list_nocache(server_id,
+				apply_changes: () => {
+					state_invites.execute_list_changes("list",
+						(inv, _then, _catch) => Invite.create(server_id, inv.expires, _then, _catch),
+						(inv, _then, _catch) => Invite.change(server_id, inv.id, inv.expires, _then, _catch),
+						(inv, _then, _catch) => Invite.delete(server_id, inv.id, _then, _catch),
+						() => Invite.get_list_nocache(server_id,
 										(list) => state_invites.set_all_states("list", list),
-										() => {});
-					};
-					const _catch = () => {
-						Invite.get_list_nocache(server_id,
-								(list) => state_invites.set_all_states("list", list),
-								() => {});
-					}
-
-					for(const ch of invite_changes)
-						switch(ch.state){
-							case InviteState.Added:
-								Invite.create(server_id, ch.expires, _then, _catch);
-								break;
-							case InviteState.Changed:
-								Invite.change(server_id, ch.id, ch.expires, _then, _catch);
-								break;
-							case InviteState.Removed:
-								Invite.delete(server_id, ch.id, _then, _catch);
-								break;
-						}
+										() => {}),
+						() => Invite.get_list_nocache(server_id,
+										(list) => state_invites.set_all_states("list", list),
+										() => {})
+					);
 				},
 				discard_changes: () => {
 					invite_list_selected_idx = -1;

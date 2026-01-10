@@ -88,4 +88,46 @@ export default class SettingsTabState {
 		HasChanges: 2,
 		NoChanges: 3
 	}
+
+
+	// Utils
+	execute_list_changes(key, cb_add, cb_change, cb_remove,
+					_then, _catch){
+		const State = {
+			Added: 0,
+			Changed: 1,
+			Removed: 2
+		};
+
+		let changes = [];
+		for(const o2 of this.state[key]){
+			const o1 = this.default_state[key].find((x) => x.id === o2.id);
+			if(!o1 && cb_add)
+				changes.push({state: State.Added, obj: o2});
+			else if(!Util.deep_equals(o1, o2) && cb_change)
+				changes.push({state: State.Changed, obj: o2});
+		}
+		for(const o1 of this.default_state[key])
+			if(!this.state[key].find((x) => x.id === o1.id) && cb_remove)
+				changes.push({state: State.Removed, obj: o1});
+
+		let counter = changes.length;
+		const __then = () => {
+			if(--counter === 0)
+				_then();
+		};
+
+		for(const ch of changes)
+			switch(ch.state){
+				case State.Added:
+					cb_add(ch.obj, __then, _catch);
+					break;
+				case State.Changed:
+					cb_change(ch.obj, __then, _catch);
+					break;
+				case State.Removed:
+					cb_remove(ch.obj, __then, _catch);
+					break;
+			}
+	}
 }
