@@ -1,3 +1,5 @@
+import {PUBLIC_BASE_SOCKET} from '$env/static/public';
+
 import {DataRange} from '$lib/cache/range.svelte.js';
 import Util from '$lib/util';
 import Message from '$lib/rest/message.js';
@@ -8,7 +10,6 @@ import Role from '$lib/rest/role.js';
 import Ban from '$lib/rest/ban.js';
 
 export default class MainSocket {
-	static host = "wss://127.0.0.1:444";
 	ws;
 
 	static _get_new_roles(data) {
@@ -124,7 +125,7 @@ export default class MainSocket {
 	};
 
 	constructor(onclose, onerror, onmessage) {
-		this.ws = new WebSocket(MainSocket.host);
+		this.ws = new WebSocket(PUBLIC_BASE_SOCKET);
 		this.ws.onclose = onclose;
 		this.ws.onerror = onerror;
 

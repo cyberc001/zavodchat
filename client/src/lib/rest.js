@@ -1,11 +1,11 @@
+import {PUBLIC_BASE_REST} from '$env/static/public';
+
 import axios from 'axios';
 axios.defaults.withCredentials = true;
 
 import Notifs from '$lib/notifs.svelte.js';
 
 export default class Rest {
-	static host = "https://127.0.0.1";
-
 	static err_to_str(res)
 	{
 		let str = "";
@@ -77,10 +77,6 @@ export default class Rest {
 		return route;
 	}
 
-	static get_base_url()
-	{
-		return Rest.host + "/";
-	}
 	static params_to_query(params)
 	{
 		let query = "";
@@ -102,7 +98,7 @@ export default class Rest {
 	static get(route, _then, _catch, ...params)
 	{
 		let headers = Rest.get_headers(params);
-		axios.get(Rest.get_base_url() + route + Rest.params_to_query(params), headers)
+		axios.get(PUBLIC_BASE_REST + route + Rest.params_to_query(params), headers)
 			.then(_then)
 			.catch((err) => {
 				if(err.response === undefined)
@@ -114,7 +110,7 @@ export default class Rest {
 	{
 		let reqi = Notifs.add_notif(msg, Notifs.Types.Ongoing);
 		let headers = Rest.get_headers(params);
-		axios.post(Rest.get_base_url() + route + Rest.params_to_query(params),
+		axios.post(PUBLIC_BASE_REST + route + Rest.params_to_query(params),
 				content, headers)
 			.then((data) => {
 				Notifs.remove_notif(reqi);
@@ -131,7 +127,7 @@ export default class Rest {
 	{
 		let reqi = Notifs.add_notif(msg, Notifs.Types.Ongoing);
 		let headers = Rest.get_headers(params);
-		axios.put(Rest.get_base_url() + route + Rest.params_to_query(params),
+		axios.put(PUBLIC_BASE_REST + route + Rest.params_to_query(params),
 				content, headers)
 			.then((data) => {
 				Notifs.remove_notif(reqi);
@@ -149,7 +145,7 @@ export default class Rest {
 	{
 		let reqi = Notifs.add_notif(msg, Notifs.Types.Ongoing);
 		let headers = Rest.get_headers(params);
-		axios.delete(Rest.get_base_url() + route + Rest.params_to_query(params), headers)
+		axios.delete(PUBLIC_BASE_REST + route + Rest.params_to_query(params), headers)
 			.then((data) => {
 				Notifs.remove_notif(reqi);
 				_then(data);
