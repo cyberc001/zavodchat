@@ -3,7 +3,7 @@
 	import {goto} from '$app/navigation';
 	import Server from '$lib/rest/server.js';
 	import Invite from '$lib/rest/invite.js';
-	import Button from '$lib/control/settings/button.svelte';
+	import Button from '$lib/control/button.svelte';
 	
 	let server = $state();
 	Invite.get_nocache(page.params.slug,
@@ -44,7 +44,7 @@
 </div>
 
 <style>
-@import "../../../main.css";
+@import "../../main.css";
 
 .center_frame {
 	margin: auto;

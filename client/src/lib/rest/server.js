@@ -1,3 +1,4 @@
+import {PUBLIC_BASE_REST} from '$env/static/public';
 import Rest from '$lib/rest.js';
 import Util from '$lib/util';
 import {IDCache} from '$lib/cache/id.svelte.js';
@@ -65,6 +66,6 @@ export default class Server {
 			return "/src/lib/assets/default_avatar.png";
 		if(srv.avatar.startsWith("data:image"))
 			return srv.avatar;
-		return Rest.get_base_url() + "files/avatar/server/" + srv.avatar;
+		return PUBLIC_BASE_REST + "files/avatar/server/" + srv.avatar;
 	}
 }
