@@ -1,19 +1,21 @@
 <script>
-	import Login from '../login.svelte';
-	import Register from '../register.svelte';
-	import Main from '../main.svelte';
+	import {goto} from '$app/navigation';
 
-	import Rest from '$lib/rest.js';
-	import MainSocket from '$lib/socket/main.js';
+	import Main from './main.svelte';
+	import Server from '$lib/rest/server.js';
 
-	let page = $state(0);
-	let setPage = (p) => page = p;
+	let display_main = $state(false);
+	
+	// Check if authentificated
+	Server.get_list_nocache(() => display_main = true,
+				() => goto("/login")
+	);
 </script>
 
-{#if page == 0}
-	<Login setPage={setPage}/>
-{:else if page == 1}
-	<Register setPage={setPage}/>
-{:else if page == 2}
-	<Main setPage={setPage}/>
+{#if display_main}
+<Main />
 {/if}
+
+<style>
+@import "main.css";
+</style>

@@ -1,11 +1,11 @@
 <script>
+	import {goto} from '$app/navigation';
+
 	import TextBox from '$lib/control/login/textbox.svelte';
 	import Button from '$lib/control/login/button.svelte';
 	import StatusBox from '$lib/control/login/statusbox.svelte';
 	import Rest from '$lib/rest.js';
 	import Auth from '$lib/rest/auth.js';
-
-	let { setPage } = $props();
 
 	let username = $state(""), displayname = $state(""),
 		password = $state(""), password_repeat = $state("");
@@ -41,7 +41,7 @@
 <TextBox label_text="password" bind:value={password} is_password=true/>
 <p style="margin: 0; margin-bottom: 6px;"></p>
 <TextBox label_text="repeat password" bind:value={password_repeat} is_password=true/>
-<p class="suggestion_text"><button class="suggestion_button_link" onclick={() => setPage(0)}>Click here</button> to log in.</p>
+<p class="suggestion_text"><button class="suggestion_button_link" onclick={() => goto("/login")}>Click here</button> to log in.</p>
 
 <StatusBox text={status_text} is_error={is_error}/>
 
@@ -49,5 +49,5 @@
 </div>
 
 <style>
-	@import "login.css";
+	@import "../login.css";
 </style>
