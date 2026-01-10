@@ -407,6 +407,15 @@ paths:
           description: Сообщение успешно удалено
   /server_invites/$invite_id:
     get:
+      summary: Получить информацию о сервере приглашения
+      responses:
+        '200':
+          description: "Информация о сервере"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Server'
+    post:
       summary: Вступить на сервер по приглашению
       parameters:
         - $ref: "#/parameters/zavodchat_token"

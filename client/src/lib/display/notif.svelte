@@ -1,5 +1,5 @@
 <script>
-	import Rest from '$lib/rest.svelte.js';
+	import Notifs from '$lib/notifs.svelte.js';
 
 	import {fade} from 'svelte/transition';
 
@@ -8,7 +8,7 @@
 	} = $props();
 
 	let sorted_notifs = $derived.by(() => {
-		let notifs = Object.values(Rest._inst.notifs);
+		let notifs = Object.values(Notifs._inst.notifs);
 		notifs.sort(function(a, b){
 			if(a.timestamp < b.timestamp)
 				return -1;
@@ -24,14 +24,14 @@
 	setInterval(() => {
 		let now = Date.now();
 
-		const keys = Object.keys(Rest._inst.notifs);
+		const keys = Object.keys(Notifs._inst.notifs);
 		for(const k of keys){
-			let notif = Rest._inst.notifs[k];
-			if(notif.type !== Rest.NotifTypes.Error)
+			let notif = Notifs._inst.notifs[k];
+			if(notif.type === Notifs.Types.Ongoing)
 				continue;
 
 			if(now - notif.timestamp >= fade_out_delay + fade_out_duration)
-				delete Rest._inst.notifs[k];
+				delete Notifs._inst.notifs[k];
 			else if(now - notif.timestamp >= fade_out_delay)
 				notif.opacity = 1 - (now - notif.timestamp - fade_out_delay) / (fade_out_duration);
 		}
@@ -42,10 +42,10 @@
 <div class="notif_display">
 	{#each sorted_notifs as notif}
 		<div
-			class={"item notif_notif" + (notif.type === Rest.NotifTypes.Error ? " notif_notif_error" : "")}
+			class={"item notif_notif" + (notif.type === Notifs.Types.Error ? " notif_notif_error" : "")}
 			style={typeof notif.opacity !== "undefined" ? `opacity: ${notif.opacity}` : ""}
 		>
-			{#if notif.type === Rest.NotifTypes.Ongoing}
+			{#if notif.type === Notifs.Types.Ongoing}
 				<img src="$lib/assets/icons/loading.svg" alt="loading" class="filter_icon_main" style="width: 16px"/>
 			{/if}
 			{notif.message}

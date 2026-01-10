@@ -1,4 +1,4 @@
-import Rest from '$lib/rest.svelte.js';
+import Rest from '$lib/rest.js';
 
 export default class Invite {
 	static get_list_nocache(server_id, _then, _catch){
@@ -6,10 +6,15 @@ export default class Invite {
 			(res) => _then(res.data), _catch);
 	}
 
-	static get_nocache(server_id, invite_id, _then, _catch){
-		Rest.get(Rest.get_route_si(server_id, invite_id),
+	static get_nocache(invite_id, _then, _catch){
+		Rest.get("server_invites/" + invite_id,
 			(res) => _then(res.data), _catch);
 	}
+	static accept(invite_id, _then, _catch){
+		Rest.post("Accepting invite", "server_invites/" + invite_id, undefined,
+			_then, _catch);
+	}
+	
 	static create(server_id, expires, _then, _catch){
 		Rest.post("Creating invite", Rest.get_route_si(server_id, ""), undefined,
 				(res) => _then(res.data), _catch, "expires", expires === "never" ? expires : expires.toISOString());

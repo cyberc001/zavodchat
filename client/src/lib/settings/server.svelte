@@ -1,5 +1,8 @@
 <script>
+	import {page} from '$app/state';
+
 	import Util from '$lib/util.js';
+	import Notifs from '$lib/notifs.svelte.js';
 
 	import Group from '$lib/control/settings/group.svelte';
 	import Textbox from '$lib/control/settings/textbox.svelte';
@@ -260,11 +263,12 @@ This cannot be reversed.
 									return hovered_idx !== state_roles.state.list.length - 1;}}
 	render_item={role_item}
 	/>
-	<div style="margin-bottom: 12px"></div>
 	<Button text="Create role" onclick={() => {
 		state_roles.state.list.splice(state_roles.state.list.length - 1, 0, Role.get_dummy_role());
 		role_list_selected_idx = state_roles.state.list.length - 2;
-	}}/>
+	}}
+	--margin-bottom="0px" --margin-top="14px"
+	/>
 	{#if role_list_selected_idx > -1 && role_list_selected_idx < state_roles.state.list.length - 1}
 		<Button text="Delete role" onclick={() => {
 			state_roles.state.list.splice(role_list_selected_idx, 1);
@@ -373,6 +377,7 @@ This cannot be reversed.
 	bind:selected_idx={invite_list_selected_idx}
 />
 <Button text="Create invite"
+	--margin-bottom="0px" --margin-top="14px"
 	onclick={() => {
 		state_invites.state.list.push(Invite.get_dummy_invite());
 	}}
@@ -380,6 +385,13 @@ This cannot be reversed.
 </Group>
 <Group name="Invite settings">
 	{#if invite_list_selected_idx > -1}
+		<Button text="Get link"
+			onclick={() => {
+				navigator.clipboard.writeText(page.url + "server_invites/" + state_invites.state.list[invite_list_selected_idx].id)
+								.then(() => Notifs.add_notif("Copied invite link to buffer", Notifs.Types.Normal)
+				);
+			}}
+		/>
 		<Button text="Remove invite"
 			onclick={() => {
 				state_invites.state.list.splice(invite_list_selected_idx, 1);

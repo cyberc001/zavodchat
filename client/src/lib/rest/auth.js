@@ -1,4 +1,4 @@
-import Rest from '$lib/rest.svelte.js';
+import Rest from '$lib/rest.js';
 import Util from '$lib/util';
 
 export default class {

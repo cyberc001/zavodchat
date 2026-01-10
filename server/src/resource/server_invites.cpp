@@ -7,11 +7,29 @@ server_invites_resource::server_invites_resource(db_connection_pool& pool, socke
 	invite_time_thr = std::thread(server_invites_resource::invite_time_func, std::ref(*this));
 
 	set_allowing("GET", true);
+	set_allowing("POST", true);
 }
 
 std::shared_ptr<http_response> server_invites_resource::render_GET(const http_request& req)
 {
 	base_resource::render_GET(req);
+
+	db_connection conn = pool.hold();
+	pqxx::work tx{*conn};
+
+	std::string invite_id;
+	auto err = resource_utils::parse_invite_id(req, tx, invite_id);
+	if(err) return err;
+
+	pqxx::result r = tx.exec("SELECT server_id, name, avatar FROM server_invites NATURAL JOIN servers WHERE invite_id = $1 AND expiration_time IS NULL OR expiration_time > now()", pqxx::params(invite_id));
+	if(!r.size())
+		return create_response::string(req, "Invite has expired", 403);
+
+	return create_response::string(req, resource_utils::server_json_from_row(r[0]).dump(), 200);
+}
+std::shared_ptr<http_response> server_invites_resource::render_POST(const http_request& req)
+{
+	base_resource::render_POST(req);
 
 	db_connection conn = pool.hold();
 	pqxx::work tx{*conn};

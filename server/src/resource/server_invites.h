@@ -12,7 +12,8 @@ class server_invites_resource : public base_resource
 public:
 	server_invites_resource(db_connection_pool& pool, socket_main_server& sserv);
 
-	std::shared_ptr<http_response> render_GET(const http_request&); // user calls this method to join the server
+	std::shared_ptr<http_response> render_GET(const http_request&);
+	std::shared_ptr<http_response> render_POST(const http_request&);
 
 	/* CONFIG PARAMETERS */
 	size_t cleanup_period = 3600;

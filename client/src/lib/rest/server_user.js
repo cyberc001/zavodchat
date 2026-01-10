@@ -1,4 +1,4 @@
-import Rest from '$lib/rest.svelte.js';
+import Rest from '$lib/rest.js';
 
 export default class ServerUser {
 	static assign_role(server_id, user_id, role_id, _then, _catch){

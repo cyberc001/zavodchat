@@ -1,6 +1,8 @@
 import axios from 'axios';
 axios.defaults.withCredentials = true;
 
+import Notifs from '$lib/notifs.svelte.js';
+
 export default class Rest {
 	static host = "https://127.0.0.1";
 
@@ -97,38 +99,6 @@ export default class Rest {
 		return {};
 	}
 
-
-	notifs = $state({});
-	static _last_notif_id = 0;
-	static _inst = new Rest();
-
-	static NotifTypes = {
-		Ongoing: 0,
-		Error: 1
-	};
-
-	static add_notif(msg)
-	{
-		if(!msg || msg[0] === "!")
-			return -1;
-		Rest._inst.notifs[Rest._last_notif_id] = {message: msg, timestamp: Date.now(), type: Rest.NotifTypes.Ongoing};
-		return Rest._last_notif_id++;
-	}
-	static remove_notif(i, error, msg)
-	{
-		if(error){
-			if(msg){
-				if(msg[0] === "!")
-					msg = msg.slice(1);
-				error = msg + " failed: " + error;
-			}
-			Rest._inst.notifs[Rest._last_notif_id++] = {message: error, timestamp: Date.now(), type: Rest.NotifTypes.Error};
-		}
-		if(i !== -1)
-			delete Rest._inst.notifs[i];
-	}
-
-
 	static get(route, _then, _catch, ...params)
 	{
 		let headers = Rest.get_headers(params);
@@ -142,52 +112,52 @@ export default class Rest {
 	}
 	static post(msg, route, content, _then, _catch, ...params)
 	{
-		let reqi = Rest.add_notif(msg);
+		let reqi = Notifs.add_notif(msg, Notifs.Types.Ongoing);
 		let headers = Rest.get_headers(params);
 		axios.post(Rest.get_base_url() + route + Rest.params_to_query(params),
 				content, headers)
 			.then((data) => {
-				Rest.remove_notif(reqi);
+				Notifs.remove_notif(reqi);
 				_then(data);
 			})
 			.catch((err) => {
 				if(err.response === undefined)
 					throw err;
-				Rest.remove_notif(reqi, Rest.err_to_str(err.response), msg);
+				Notifs.remove_notif(reqi, Rest.err_to_str(err.response), msg);
 				_catch(err.response);
 			});
 	}
 	static put(msg, route, content, _then, _catch, ...params)
 	{
-		let reqi = Rest.add_notif(msg);
+		let reqi = Notifs.add_notif(msg, Notifs.Types.Ongoing);
 		let headers = Rest.get_headers(params);
 		axios.put(Rest.get_base_url() + route + Rest.params_to_query(params),
 				content, headers)
 			.then((data) => {
-				Rest.remove_notif(reqi);
+				Notifs.remove_notif(reqi);
 				_then(data);
 			})
 			.catch((err) => {
 				if(err.response === undefined)
 					throw err;
-				Rest.remove_notif(reqi, Rest.err_to_str(err.response), msg);
+				Notifs.remove_notif(reqi, Rest.err_to_str(err.response), msg);
 				_catch(err.response);
 			}
 		);
 	}
 	static delete(msg, route, _then, _catch, ...params)
 	{
-		let reqi = Rest.add_notif(msg);
+		let reqi = Notifs.add_notif(msg, Notifs.Types.Ongoing);
 		let headers = Rest.get_headers(params);
 		axios.delete(Rest.get_base_url() + route + Rest.params_to_query(params), headers)
 			.then((data) => {
-				Rest.remove_notif(reqi);
+				Notifs.remove_notif(reqi);
 				_then(data);
 			})
 			.catch((err) => {
 				if(err.response === undefined)
 					throw err;
-				Rest.remove_notif(reqi, Rest.err_to_str(err.response), msg);
+				Notifs.remove_notif(reqi, Rest.err_to_str(err.response), msg);
 				_catch(err.response);
 			}
 		);

@@ -1,4 +1,4 @@
-import Rest from '$lib/rest.svelte.js';
+import Rest from '$lib/rest.js';
 import {RangeCache} from '$lib/cache/range.svelte.js';
 
 export default class Ban {

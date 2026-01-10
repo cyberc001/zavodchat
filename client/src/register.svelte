@@ -2,7 +2,7 @@
 	import TextBox from '$lib/control/login/textbox.svelte';
 	import Button from '$lib/control/login/button.svelte';
 	import StatusBox from '$lib/control/login/statusbox.svelte';
-	import Rest from '$lib/rest.svelte.js';
+	import Rest from '$lib/rest.js';
 	import Auth from '$lib/rest/auth.js';
 
 	let { setPage } = $props();

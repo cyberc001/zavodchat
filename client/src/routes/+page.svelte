@@ -3,7 +3,7 @@
 	import Register from '../register.svelte';
 	import Main from '../main.svelte';
 
-	import Rest from '$lib/rest.svelte.js';
+	import Rest from '$lib/rest.js';
 	import MainSocket from '$lib/socket/main.js';
 
 	let page = $state(0);

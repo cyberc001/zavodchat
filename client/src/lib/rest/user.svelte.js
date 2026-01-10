@@ -1,4 +1,4 @@
-import Rest from '$lib/rest.svelte.js';
+import Rest from '$lib/rest.js';
 import {IDCache} from '$lib/cache/id.svelte.js';
 import {RangeCache} from '$lib/cache/range.svelte.js';
 

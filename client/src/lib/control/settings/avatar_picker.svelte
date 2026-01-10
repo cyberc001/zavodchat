@@ -45,7 +45,9 @@
 	<img src={display_url} class="avatar_picker_img"/>
 	<input style="display: none" type="file" accept=".png,.jpg,.bmp"
 		bind:this={file_picker} bind:files bind:value/>
-	<Button text="Choose file" onclick={() => file_picker.click()}/>
+	<Button text="Choose file" onclick={() => file_picker.click()}
+	--margin-bottom="0px"
+	/>
 </div>
 
 <style>
