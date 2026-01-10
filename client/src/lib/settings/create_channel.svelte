@@ -1,7 +1,7 @@
 <script>
-	import Group from '$lib/control/settings/group.svelte';
-	import Textbox from '$lib/control/settings/textbox.svelte';
-	import Select from '$lib/control/settings/select.svelte';
+	import Group from '$lib/control/group.svelte';
+	import Textbox from '$lib/control/textbox.svelte';
+	import Select from '$lib/control/select.svelte';
 
 	import CreateTabState from '$lib/control/create_tab_state.svelte.js';
 

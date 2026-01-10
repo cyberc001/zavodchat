@@ -4,17 +4,17 @@
 	import Util from '$lib/util.js';
 	import Notifs from '$lib/notifs.svelte.js';
 
-	import Group from '$lib/control/settings/group.svelte';
-	import Textbox from '$lib/control/settings/textbox.svelte';
-	import DurationPicker from '$lib/control/settings/duration_picker.svelte';
-	import AvatarPicker from '$lib/control/settings/avatar_picker.svelte';
-	import Button from '$lib/control/settings/button.svelte';
-	import List from '$lib/control/settings/list.svelte';
-	import OrderedList from '$lib/control/settings/ordered_list.svelte';
+	import Group from '$lib/control/group.svelte';
+	import Textbox from '$lib/control/textbox.svelte';
+	import DurationPicker from '$lib/control/duration_picker.svelte';
+	import AvatarPicker from '$lib/control/avatar_picker.svelte';
+	import Button from '$lib/control/button.svelte';
+	import List from '$lib/control/list.svelte';
+	import OrderedList from '$lib/control/ordered_list.svelte';
 	import PaginatedList from '$lib/display/paginated_list.svelte';
-	import ColorPicker from '$lib/control/settings/color_picker.svelte';
-	import Select from '$lib/control/settings/select.svelte';
-	import Toggle from '$lib/control/settings/toggle.svelte';
+	import ColorPicker from '$lib/control/color_picker.svelte';
+	import Select from '$lib/control/select.svelte';
+	import Toggle from '$lib/control/toggle.svelte';
 	import Dialog from '$lib/control/dialog.svelte';
 	import UserDisplay from '$lib/display/user.svelte';
 

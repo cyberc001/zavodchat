@@ -25,9 +25,9 @@
 	import CreateChannel from '$lib/settings/create_channel.svelte';
 	let create_channel = $state();
 
-	import Textbox from '$lib/control/settings/textbox.svelte';
-	import DurationPicker from '$lib/control/settings/duration_picker.svelte';
-	import Select from '$lib/control/settings/select.svelte';
+	import Textbox from '$lib/control/textbox.svelte';
+	import DurationPicker from '$lib/control/duration_picker.svelte';
+	import Select from '$lib/control/select.svelte';
 	import Dialog from '$lib/control/dialog.svelte';
 
 	import PaginatedList from '$lib/display/paginated_list.svelte';

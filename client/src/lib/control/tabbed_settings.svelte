@@ -1,6 +1,6 @@
 <script>
 	import SettingsTabState from "$lib/control/settings_tab_state.svelte.js";
-	import Button from "$lib/control/settings/button.svelte";
+	import Button from "$lib/control/button.svelte";
 
 	let {tabs, params, close_settings} = $props();
 

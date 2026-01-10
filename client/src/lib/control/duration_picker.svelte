@@ -1,7 +1,7 @@
 <script>
 	import Util from '$lib/util.js';
-	import Textbox from '$lib/control/settings/textbox.svelte';
-	import Select from '$lib/control/settings/select.svelte';
+	import Textbox from '$lib/control/textbox.svelte';
+	import Select from '$lib/control/select.svelte';
 
 	let {label_text = "", error = $bindable(""),
 		value = $bindable(""), expires = $bindable("")} = $props();

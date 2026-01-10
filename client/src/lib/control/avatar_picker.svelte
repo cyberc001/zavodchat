@@ -1,7 +1,7 @@
 <script>
 	let {display_url = $bindable("")} = $props();
 
-	import Button from "$lib/control/settings/button.svelte";
+	import Button from "$lib/control/button.svelte";
 
 	let file_picker = $state();
 	let value = $state("");

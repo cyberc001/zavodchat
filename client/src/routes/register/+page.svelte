@@ -1,53 +1,52 @@
 <script>
 	import {goto} from '$app/navigation';
 
-	import TextBox from '$lib/control/login/textbox.svelte';
-	import Button from '$lib/control/login/button.svelte';
-	import StatusBox from '$lib/control/login/statusbox.svelte';
+	import Textbox from '$lib/control/textbox.svelte';
+	import Button from '$lib/control/button.svelte';
 	import Rest from '$lib/rest.js';
 	import Auth from '$lib/rest/auth.js';
+	
+	import NotifDisplay from '$lib/display/notif.svelte';
+	import Notifs from '$lib/notifs.svelte.js';
 
 	let username = $state(""), displayname = $state(""),
 		password = $state(""), password_repeat = $state("");
 
-	let status_text = $state("");
-	let is_error = $state(true);
+	let error = $state("");
+	let passwords_match = $derived(password === password_repeat);
 	
 	let register = function(){
-		if(password != password_repeat){
-			is_error = true;
-			status_text = "Repeated password mismatch";
-			return;
-		}
-
+		error = "";
 		Auth.register(username, displayname, password,
 				() => {
-					is_error = false;
-					status_text = "Successfully registered";
+					Notifs.add_notif("Successfuly registered", Notifs.Types.Normal);
 				},
 				(res) => {
-					is_error = true;
-					status_text = Rest.err_to_str(res);
+					error = Rest.err_to_str(res);
 				});
 	}
 </script>
 
 <div class="center_frame">
 <p style="margin: 0; margin-bottom: 20px;">Register</p>
-<TextBox label_text="username" bind:value={username}/>
+<Textbox label_text="username" bind:value={username} error={error}/>
 <p style="margin: 0; margin-bottom: 6px;"></p>
-<TextBox label_text="display name" bind:value={displayname}/>
+<Textbox label_text="display name" bind:value={displayname}/>
 <p style="margin: 0; margin-bottom: 6px;"></p>
-<TextBox label_text="password" bind:value={password} is_password=true/>
+<Textbox label_text="password" bind:value={password} is_password=true/>
 <p style="margin: 0; margin-bottom: 6px;"></p>
-<TextBox label_text="repeat password" bind:value={password_repeat} is_password=true/>
+<Textbox label_text="repeat password" bind:value={password_repeat} is_password=true
+	error={passwords_match ? "" : "Passwords do not match"}
+/>
 <p class="suggestion_text"><button class="suggestion_button_link" onclick={() => goto("/login")}>Click here</button> to log in.</p>
 
-<StatusBox text={status_text} is_error={is_error}/>
-
-<Button text="Register" onClick={register}/>
+<Button text="Register" onclick={register} --margin-bottom="0px" disabled={!passwords_match}/>
 </div>
 
+<NotifDisplay/>
+
+
 <style>
-	@import "../login.css";
+	@import "../main.css";
+	@import "../auth.css";
 </style>

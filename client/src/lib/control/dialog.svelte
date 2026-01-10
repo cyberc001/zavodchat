@@ -1,5 +1,5 @@
 <script>
-	import Button from "$lib/control/settings/button.svelte";
+	import Button from "$lib/control/button.svelte";
 
 	let {question, buttons} = $props();
 	let dialog = $state();

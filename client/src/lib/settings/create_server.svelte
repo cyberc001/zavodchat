@@ -1,7 +1,7 @@
 <script>
-	import Group from '$lib/control/settings/group.svelte';
-	import Textbox from '$lib/control/settings/textbox.svelte';
-	import AvatarPicker from '$lib/control/settings/avatar_picker.svelte';
+	import Group from '$lib/control/group.svelte';
+	import Textbox from '$lib/control/textbox.svelte';
+	import AvatarPicker from '$lib/control/avatar_picker.svelte';
 
 	import CreateTabState from '$lib/control/create_tab_state.svelte.js';
 

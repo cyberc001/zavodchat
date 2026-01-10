@@ -1,32 +1,40 @@
 <script>
 	import {goto} from '$app/navigation';
 
-	import TextBox from '$lib/control/login/textbox.svelte';
-	import Button from '$lib/control/login/button.svelte';
-	import StatusBox from '$lib/control/login/statusbox.svelte';
+	import Textbox from '$lib/control/textbox.svelte';
+	import Button from '$lib/control/button.svelte';
 	import Rest from '$lib/rest.js';
 	import Auth from '$lib/rest/auth.js';
+	
+	import NotifDisplay from '$lib/display/notif.svelte';
 
 	let username = $state(""), password = $state("");
 
-	let error_text = $state("");
+	let error = $state("");
 </script>
 
 <div class="center_frame">
 <p style="margin: 0; margin-bottom: 20px;">Log in</p>
-<TextBox label_text="username" bind:value={username}/>
+<Textbox label_text="username" bind:value={username} error={error}/>
 <p style="margin: 0; margin-bottom: 6px;"></p>
-<TextBox label_text="password" bind:value={password} is_password=true/>
+<Textbox label_text="password" bind:value={password} is_password=true/>
 <p class="suggestion_text"><button class="suggestion_button_link" onclick={() => goto("/register")}>Click here</button> to set up an account.</p>
 
-<StatusBox text={error_text}/>
-
-<Button text="Log in" onClick={() => Auth.login(username, password,
-					() => goto("/"),
-					(res) => error_text = Rest.err_to_str(res))}/>
+<Button text="Log in" --margin-bottom="0px"
+	onclick={() => {
+			error = "";
+			Auth.login(username, password,
+				() => goto("/"),
+				(res) => error = Rest.err_to_str(res));
+			}}
+/>
 
 </div>
 
+<NotifDisplay/>
+
+
 <style>
-	@import "../login.css";
+	@import "../main.css";
+	@import "../auth.css";
 </style>
