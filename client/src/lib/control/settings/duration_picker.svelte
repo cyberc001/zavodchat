@@ -38,7 +38,7 @@
 		--margin-bottom="0px" --width="96px"/>
 {/snippet}
 
-<Textbox label_text="Ban duration" error={error}
+<Textbox label_text={label_text} error={error}
 		render_after={duration_select} --width="128px"
 		bind:value={() => value,
 			    (x) => {

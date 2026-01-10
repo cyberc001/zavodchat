@@ -136,6 +136,13 @@
 		} else
 			state_invites.set_all_states("list", []);
 	});
+	
+	const InviteState = {
+		Added: 0,
+		Changed: 1,
+		Removed: 2
+	};
+
 
 	export function tabs() {
 		return [
@@ -191,8 +198,50 @@
 				discard_changes: () => state_bans.set_all_states("changed_bans", {})
 			},
 			{ name: "Invites", render: invites, state: state_invites,
-				apply_changes: () => {},
-				discard_changes: () => {}
+				apply_changes: () => {	
+					let invite_changes = [];
+
+					for(const invite2 of state_invites.state.list){
+						const invite1 = state_invites.default_state.list.find((x) => x.id === invite2.id);
+						if(!invite1)
+							invite_changes.push({state: InviteState.Added, id: invite2.id, expires: invite2.expires});
+						else if(invite1.expires !== invite2.expires)
+							invite_changes.push({state: InviteState.Changed, id: invite2.id, expires: invite2.expires});
+					}
+					for(const invite1 of state_invites.default_state.list)
+						if(!state_invites.state.list.find((x) => x.id === invite1.id))
+							invite_changes.push({state: InviteState.Removed, id: invite1.id});
+
+					let counter = invite_changes.length;
+					const _then = () => {
+						if(--counter === 0)
+							Invite.get_list_nocache(server_id,
+										(list) => state_invites.set_all_states("list", list),
+										() => {});
+					};
+					const _catch = () => {
+						Invite.get_list_nocache(server_id,
+								(list) => state_invites.set_all_states("list", list),
+								() => {});
+					}
+
+					for(const ch of invite_changes)
+						switch(ch.state){
+							case InviteState.Added:
+								Invite.create(server_id, ch.expires, _then, _catch);
+								break;
+							case InviteState.Changed:
+								Invite.change(server_id, ch.id, ch.expires, _then, _catch);
+								break;
+							case InviteState.Removed:
+								Invite.delete(server_id, ch.id, _then, _catch);
+								break;
+						}
+				},
+				discard_changes: () => {
+					invite_list_selected_idx = -1;
+					state_invites.discard_changes();
+				}
 			}
 		];
 	}
@@ -350,10 +399,22 @@ This cannot be reversed.
 	render_item={render_invite}
 	bind:selected_idx={invite_list_selected_idx}
 />
+<Button text="Create invite"
+	onclick={() => {
+		state_invites.state.list.push(Invite.get_dummy_invite());
+	}}
+/>
 </Group>
 <Group name="Invite settings">
 	{#if invite_list_selected_idx > -1}
-		bleegh
+		<Button text="Remove invite"
+			onclick={() => {
+				state_invites.state.list.splice(invite_list_selected_idx, 1);
+				invite_list_selected_idx = -1;
+			}}
+		/>
+		<DurationPicker label_text="Invite duration"
+			bind:expires={state_invites.state.list[invite_list_selected_idx].expires}/>
 	{/if}
 </Group>
 {/snippet}
