@@ -2,15 +2,19 @@ import {IDCache} from "$lib/cache/id.svelte.js";
 import {RBTree} from "bintrees";
 
 class RangeObserver {
-	data = $state([]);
+	data = $state([]); loaded = $state(false);
 	start = 0; end = 0;
-	loaded = $state(false);
 
-	constructor(range, start, end){
+	state; load_func;
+
+	constructor(range, start, end, state, load_func){
 		this.start = start;
 		this.end = end;
 		for(let i = start; i < end; ++i)
 			this.data.push(range.arr[i - range.start]);
+
+		this.state = state;
+		this.load_func = load_func;
 	}
 
 	update(range, start, end){
@@ -162,11 +166,15 @@ export class DataRange {
 			const obs = ref.deref();
 			if(obs){ // in case an object gets garbage collected after new_obs is formed
 				if(obs.end > this.end){
+					obs.loaded = false;
+
 					let m = obs.end - this.end;
-					obs.end = this.end;
 					obs.data.splice(obs.data.length - m, m);
-				}
-				obs.update(this, start, end);
+					obs.update(this, start, end);
+
+					obs.load_func(obs.state, this, obs.start, obs.end - obs.start);
+				} else
+					obs.update(this, start, end);
 			}
 		}
 	}
@@ -405,7 +413,8 @@ export class RangeCache extends IDCache {
 			load = true;
 		}
 
-		let nobs = new RangeObserver(enc_range, start, start + count);
+		let nobs = new RangeObserver(enc_range, start, start + count,
+						this, load_func);
 		nobs.loaded = !load;
 		enc_range.observers.push(new WeakRef(nobs));
 
