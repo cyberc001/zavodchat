@@ -156,6 +156,7 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 
 			if(msg->type == ix::WebSocketMessageType::Open){
 				/**** check database validity ****/
+				int ch_type;
 				{
 					auto query = parse_query(msg->openInfo.uri);
 					db_connection db_conn = pool.hold();
@@ -189,25 +190,32 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 						return;
 					}
 					conn.server_id = r[0]["server_id"].as<int>();
-					int ch_type = r[0]["type"].as<int>();
+					ch_type = r[0]["type"].as<int>();
 					if(!resource_utils::check_server_member(conn.user_id, conn.server_id, tx)){
 						conn.sock.lock()->close(ix::WebSocketCloseConstants::kNormalClosureCode, "User has no access to the channel or it doesn't exist");
 						return;
 					}
-					if(ch_type != CHANNEL_VOICE){
-						conn.sock.lock()->close(ix::WebSocketCloseConstants::kNormalClosureCode, "Isn't a voice channel");
+				}
+
+				if(ch_type != CHANNEL_VOICE){
+					conn.sock.lock()->close(ix::WebSocketCloseConstants::kNormalClosureCode, "Isn't a voice channel");
+					return;
+				}
+
+				// check if user isn't already connected
+				{
+					std::unique_lock lock(channels_mutex);
+					if(channels[conn.channel_id].has_user(conn.user_id)){
+						conn.sock.lock()->close(ix::WebSocketCloseConstants::kNormalClosureCode, "User is already connected");
 						return;
 					}
-
-					// check if user isn't already connected
-					{
-						std::unique_lock lock(channels_mutex);
-						if(channels[conn.channel_id].has_user(conn.user_id)){
-							conn.sock.lock()->close(ix::WebSocketCloseConstants::kNormalClosureCode, "User is already connected");
-							return;
-						}
-					}
 				}
+				{
+					std::unique_lock lock(users_mutex);
+					if(users.find(conn.user_id) != users.end() && !users[conn.user_id].lock()->sock.expired())
+						users[conn.user_id].lock()->sock.lock()->close(ix::WebSocketCloseConstants::kNormalClosureCode, "User connected to a different channel");
+				}
+				users[conn.user_id] = std::dynamic_pointer_cast<socket_vc_connection>(_conn);
 
 				/**** connect RTC ****/
 				auto conf = rtc::Configuration();
@@ -342,7 +350,7 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 						resource_utils::json_set_ids(ev.data, conn->server_id, conn->channel_id);
 						ev.data["id"] = conn->user_id;
 						ev.name = "user_joined_vc";
-						sserv.send_to_channel(conn->channel_id, tx, ev);	
+						sserv.send_to_channel(conn->channel_id, tx, ev);
 					} else if(state == rtc::PeerConnection::State::Failed){
 						if(!conn->sock.expired())
 							conn->sock.lock()->close(ix::WebSocketCloseConstants::kNormalClosureCode, "ICE failed");
@@ -377,6 +385,11 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 						ev.data["id"] = conn.user_id;
 						ev.name = "user_left_vc";
 						sserv.send_to_channel(conn.channel_id, tx, ev);
+					}
+
+					if(msg->closeInfo.reason != "User connected to a different channel"){
+						std::unique_lock lock(users_mutex);
+						users.erase(conn.user_id);
 					}
 				}
 			} else if(msg->type == ix::WebSocketMessageType::Message){

@@ -67,6 +67,7 @@ public:
 	void get_channel_users(int channel_id, std::vector<int>& users); // get users connected to voice channel
 
 	std::unordered_map<int, socket_vc_channel> channels;
+	std::unordered_map<int, std::weak_ptr<socket_vc_connection>> users;
 
 	/* CONFIG PARAMETERS */
 	unsigned max_video_bitrate = 10240000;
@@ -84,6 +85,7 @@ private:
 	std::uniform_int_distribution<std::mt19937::result_type> rndist;
 
 	std::shared_mutex channels_mutex;
+	std::shared_mutex users_mutex;
 };
 
 #endif
