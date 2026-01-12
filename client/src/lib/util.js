@@ -1,4 +1,5 @@
 export default class Util {
+	// Objects
 	static form_data_from_object(obj, allowed_props){
 		if(typeof allowed_props === "undefined")
 			allowed_props = Object.keys(obj);
@@ -36,6 +37,7 @@ export default class Util {
 	}
 
 
+	// Time
 	static TimeUnits = {
 		Seconds: 0,
 		Minutes: 1,
@@ -52,5 +54,12 @@ export default class Util {
 	}
 	static date_add(date, interval, units){
 		return new Date(date + interval * Util.time_unit_mul(units));
+	}
+
+	// Formatting
+	static padded_hex(num, ln){
+		if(!ln)
+			ln = 2;
+		return Math.round(num).toString(16).padStart(ln, "0");
 	}
 };

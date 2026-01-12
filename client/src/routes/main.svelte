@@ -10,7 +10,7 @@
 	import Ban from '$lib/rest/ban.js';
 
 	import MainSocket from '$lib/socket/main.js';
-	import VCSocket from '$lib/socket/vc.js';
+	import VCSocket from '$lib/socket/vc.svelte.js';
 
 	import TabbedSettings from '$lib/control/tabbed_settings.svelte';
 	let settings_params = $state({});
@@ -73,7 +73,7 @@
 								hideServer();
 						}
 					});
-	let socket_vc;
+	let socket_vc = $state();
 
 	// UI state
 	let server_buttons = $state({});
@@ -189,7 +189,11 @@
 
 	const showChannel = (id, i) => {
 		if(channels.data[i].type === Channel.Type.Voice){
-			socket_vc = new VCSocket(id, (close) => console.log(close));
+			let old_socket_vc = socket_vc;
+			socket_vc = new VCSocket(user_self.data.id, id, (close) => {
+				if(close.reason === "User is already connected")
+					socket_vc = old_socket_vc;
+			});
 		} else {
 			showUser(-1, -1);
 			sel.channel = id;
@@ -274,6 +278,7 @@
 			<div style="display: flex; height: -webkit-fill-available">
 				<div style="display: flex; flex-direction: column">
 					<div class="panel sidebar_servers">
+
 						{#if !servers.loaded}
 						<img src="$lib/assets/icons/loading.svg" alt="loading" class="filter_icon_main" style="width: 48px"/>
 						{:else}
@@ -343,7 +348,14 @@
 								{#if ch.type === Channel.Type.Voice}
 									{#each Object.values(ch.vc_users) as vc_user}
 										<div style="display: flex; align-items: center; margin: 3px 0 3px 6px; font-size: 22px">
-											<img src={User.get_avatar_path(user_self.data)} style="width: 32px; height: 32px; margin-right: 8px" alt="avatar"/>
+											<img src={User.get_avatar_path(user_self.data)}
+												alt="avatar"
+												style={"width: 32px; height: 32px; margin-right: 8px; border-style: solid; border-size: 2px; border-color: #00FF00"
+													+ (socket_vc && socket_vc.track_volumes[vc_user.data.id] ?
+														Util.padded_hex(Math.min(socket_vc.track_volumes[vc_user.data.id] / 10, 1) * 255)
+														: "00")
+												}
+											/>
 											{vc_user.data.name}
 										</div>
 									{/each}
