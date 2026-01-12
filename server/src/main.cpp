@@ -83,7 +83,7 @@ int main()
 	server_user_role_id_resource server_user_role_id(pool, sserv);
 	ws.register_resource("/servers/{server_id}/users/{server_user_id}/roles/{server_role_id}", &server_user_role_id);
 
-	server_channel_resource server_channels(pool, sserv);
+	server_channel_resource server_channels(pool, sserv, vcserv);
 	server_channels.max_per_server = cfg.max_channels_per_server;
 	ws.register_resource("/servers/{server_id}/channels", &server_channels);
 	server_channel_id_resource server_channel_id(pool, sserv, vcserv);

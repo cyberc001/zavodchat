@@ -10,6 +10,7 @@
 	import Ban from '$lib/rest/ban.js';
 
 	import MainSocket from '$lib/socket/main.js';
+	import VCSocket from '$lib/socket/vc.js';
 
 	import TabbedSettings from '$lib/control/tabbed_settings.svelte';
 	let settings_params = $state({});
@@ -49,23 +50,12 @@
 
 	// Backend data
 	let user_self = User.get(-1);
-	let server = $state({});
 	let servers = Server.get_list();
+
+	let server = $state({});
 	let server_roles = $state([]);
+
 	let channels = $state([]);
-
-	const getUserRoles = (user) => {
-		if(!user || !user.roles)
-			return [];
-
-		let user_roles = [];
-		for(const id of servers.data[sel.server].roles){
-			const role_id = user.roles.find((x) => x === id);
-			if(typeof role_id !== "undefined")
-				user_roles.push(roles[role_id]);
-		}
-		return user_roles;
-	};
 
 	// Sockets
 	let socket_main = new MainSocket(setError, setError,
@@ -83,6 +73,7 @@
 								hideServer();
 						}
 					});
+	let socket_vc;
 
 	// UI state
 	let server_buttons = $state({});
@@ -196,10 +187,14 @@
 		channels = Channel.get_list(id);
 	};
 
-	const showChannel = (id) => {
-		showUser(-1, -1);
-		sel.channel = id;
-		settings_params = {};
+	const showChannel = (id, i) => {
+		if(channels.data[i].type === Channel.Type.Voice){
+			socket_vc = new VCSocket(id, (close) => console.log(close));
+		} else {
+			showUser(-1, -1);
+			sel.channel = id;
+			settings_params = {};
+		}
 	};
 
 
@@ -330,7 +325,7 @@
 								class={"item hoverable transparent_button sidebar_channel_el" + (sel.channel == ch.id ? " selected" : "")}
 								style={(i == channels.data.length - 1 ? "border-style: solid none solid none" : "")
 									+ "; anchor-name: --channel_" + ch.id}
-								onclick={() => showChannel(ch.id)}
+								onclick={() => showChannel(ch.id, i)}
 								bind:this={channel_buttons[i]}
 								oncontextmenu={(e) => {
 									event.preventDefault();
@@ -338,13 +333,21 @@
 									showCtxMenu(channel_buttons[i], e, "channel");
 								}}
 								>
-									{#if ch.type === 1}
+									{#if ch.type === Channel.Type.Voice}
 									<img src="$lib/assets/icons/channel_vc.svg" alt="voice" class="filter_icon_main sidebar_channel_el_icon"/>
 									{:else}
 									<img src="$lib/assets/icons/channel_text.svg" alt="text" class="filter_icon_main sidebar_channel_el_icon"/>
 									{/if}
 									{ch.name}
 								</button>
+								{#if ch.type === Channel.Type.Voice}
+									{#each Object.values(ch.vc_users) as vc_user}
+										<div style="display: flex; align-items: center; margin: 3px 0 3px 6px; font-size: 22px">
+											<img src={User.get_avatar_path(user_self.data)} style="width: 32px; height: 32px; margin-right: 8px" alt="avatar"/>
+											{vc_user.data.name}
+										</div>
+									{/each}
+								{/if}
 							</div>
 						{/each}
 						{/if}

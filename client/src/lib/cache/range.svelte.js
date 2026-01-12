@@ -168,8 +168,8 @@ export class DataRange {
 				if(obs.end > this.end){
 					obs.loaded = false;
 
-					let m = obs.end - this.end;
-					obs.data.splice(obs.data.length - m, m);
+					/*let m = obs.end - this.end;
+					obs.data.splice(obs.data.length - m, m);*/
 					obs.update(this, start, end);
 
 					obs.load_func(obs.state, this, obs.start, obs.end - obs.start);
@@ -444,6 +444,13 @@ export class RangeCache extends IDCache {
 		if(missing > 0 && start + count === range.end){
 			range.end -= missing;
 			range.arr.splice(range.arr.length - missing, missing);
+			for(const ref of range.observers){
+				const obs = ref.deref();
+				if(obs && obs.end > range.end){
+					obs.data.splice(obs.end, range.end - obs.end);
+					obs.end = range.end;
+				}
+			}
 		}
 		range.update_observers(start, Math.min(start + count, range.end), missing > 0);
 

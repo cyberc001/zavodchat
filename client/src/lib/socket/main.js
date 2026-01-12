@@ -121,6 +121,23 @@ export default class MainSocket {
 					User.update_cache_server(data.server_id, data.user_id, {roles: new_roles});
 				}
 			}
+		},
+
+		user_joined_vc: function(data) {
+			if(Channel.channel_list_cache.has_state(data.server_id)){
+				let list = Channel.channel_list_cache.get_state(data.server_id);
+				let channel_list_data = Channel.channel_list_cache.get_state(data.server_id).data.find((x) => x.id === data.channel_id);
+				if(channel_list_data && channel_list_data.vc_users)
+					channel_list_data.vc_users[data.id] = User.get_server(data.server_id, data.id);
+			}
+		},
+		user_left_vc: function(data) {
+			if(Channel.channel_list_cache.has_state(data.server_id)){
+				let list = Channel.channel_list_cache.get_state(data.server_id);
+				let channel_list_data = Channel.channel_list_cache.get_state(data.server_id).data.find((x) => x.id === data.channel_id);
+				if(channel_list_data && channel_list_data.vc_users)
+					delete channel_list_data.vc_users[data.id];
+			}
 		}
 	};
 

@@ -109,7 +109,7 @@
 <div class="paginated_list">
 	<div class="paginated_list" style={reversed ? "flex-direction: column-reverse" : ""} onwheel={on_scroll} bind:this={list_div}>
 		{#each items as item, i}
-			{#if Object.keys(item).length > 0}
+			{#if item && Object.keys(item).length > 0}
 				<div id={"paginated_list_item_" + item.id}>
 					{@render render_item(i, item)}
 				</div>

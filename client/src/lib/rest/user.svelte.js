@@ -1,3 +1,4 @@
+import {PUBLIC_BASE_REST} from '$env/static/public';
 import Rest from '$lib/rest.js';
 import {IDCache} from '$lib/cache/id.svelte.js';
 import {RangeCache} from '$lib/cache/range.svelte.js';
@@ -121,7 +122,7 @@ export default class User {
 	static get_avatar_path(usr){
 		if(typeof usr.avatar === "undefined")
 			return "/src/lib/assets/default_avatar.png";
-		return Rest.get_base_url() + "files/avatar/user/" + usr.avatar;
+		return PUBLIC_BASE_REST + "files/avatar/user/" + usr.avatar;
 	}
 
 	static Status = {

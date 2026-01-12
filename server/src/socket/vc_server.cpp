@@ -157,7 +157,6 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 			if(msg->type == ix::WebSocketMessageType::Open){
 				/**** check database validity ****/
 				{
-					std::cerr << "url " << conn.sock.lock()->getUrl() << std::endl;
 					auto query = parse_query(msg->openInfo.uri);
 					db_connection db_conn = pool.hold();
 					pqxx::work tx{*db_conn};
@@ -191,7 +190,7 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 					}
 					conn.server_id = r[0]["server_id"].as<int>();
 					int ch_type = r[0]["type"].as<int>();
-					if(resource_utils::check_server_member(conn.user_id, conn.server_id, tx)){
+					if(!resource_utils::check_server_member(conn.user_id, conn.server_id, tx)){
 						conn.sock.lock()->close(ix::WebSocketCloseConstants::kNormalClosureCode, "User has no access to the channel or it doesn't exist");
 						return;
 					}
@@ -311,7 +310,7 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 					auto& chan = channels[conn.channel_id];
 					auto recv_conn = std::dynamic_pointer_cast<socket_vc_connection>(_conn);
 					std::unique_lock conn_lock(chan.connections_mutex);
-					std::cerr << "AUDIO FROM " << recv_conn->user_id << " " << ssrc << std::endl;
+					//std::cerr << "AUDIO FROM " << recv_conn->user_id << " " << ssrc << std::endl;
 					for(auto it = chan.connections_begin(); it != chan.connections_end(); ++it){
 						std::shared_ptr<socket_vc_connection> conn = it->second.lock();
 						if(conn->user_id == recv_conn->user_id)
@@ -330,6 +329,7 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 				// add to connections map when connection is established
 				conn.rtc_conn->onStateChange([&, _conn](rtc::PeerConnection::State state){
 					auto conn = std::dynamic_pointer_cast<socket_vc_connection>(_conn);
+					std::cerr << "STATE CHANGE FOR VC USER " << conn->user_id << " TO " << state << std::endl;
 					if(state == rtc::PeerConnection::State::Connected){
 						{
 							std::unique_lock lock(channels_mutex);

@@ -2,7 +2,7 @@
 #include "resource/utils.h"
 #include "resource/role_utils.h"
 
-server_channel_resource::server_channel_resource(db_connection_pool& pool, socket_main_server& sserv): base_resource(), pool{pool}, sserv{sserv}
+server_channel_resource::server_channel_resource(db_connection_pool& pool, socket_main_server& sserv, socket_vc_server& vcserv): base_resource(), pool{pool}, sserv{sserv}, vcserv{vcserv}
 {
 	set_allowing("GET", true);
 	set_allowing("POST", true);
@@ -21,8 +21,17 @@ std::shared_ptr<http_response> server_channel_resource::render_GET(const http_re
 	nlohmann::json res = nlohmann::json::array();
 	pqxx::result r = tx.exec("SELECT channel_id, name, type FROM channels WHERE server_id = $1", pqxx::params(server_id));
 
-	for(size_t i = 0; i < r.size(); ++i)
-		res += resource_utils::channel_json_from_row(r[i]);
+	for(size_t i = 0; i < r.size(); ++i){
+		nlohmann::json channel_json = resource_utils::channel_json_from_row(r[i]);
+		if(channel_json["type"] == CHANNEL_VOICE){ // send users currently speaking in channel
+			std::vector<int> users;
+			vcserv.get_channel_users(channel_json["id"], users);
+			channel_json["vc_users"] = nlohmann::json::array();
+			for(auto it = users.begin(); it != users.end(); ++it)
+				channel_json["vc_users"] += *it;
+		}
+		res += channel_json;
+	}
 
 	return create_response::string(req, res.dump(), 200);
 }

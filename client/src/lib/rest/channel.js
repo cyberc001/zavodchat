@@ -2,6 +2,7 @@ import Rest from '$lib/rest.js';
 import Util from '$lib/util';
 import {IDCache} from '$lib/cache/id.svelte.js';
 import {ListCache} from '$lib/cache/list.svelte.js';
+import User from '$lib/rest/user.svelte.js';
 
 export default class Channel {
 	static channel_cache = new IDCache();
@@ -51,8 +52,18 @@ export default class Channel {
 	static get_list(server_id, _catch){
 		return Channel.channel_list_cache.get_state(server_id, (cache, id) => {
 			Rest.get(Rest.get_route_scm(server_id, ""),
-				(res) => cache.set_state(id, res.data),
-				_catch);
+				(res) => {
+					let list = res.data;
+					for(const ch of list){
+						let vc_users = {};
+						if(ch.vc_users){
+							for(const id of ch.vc_users)
+								vc_users[id] = User.get_server(server_id, id, _catch);
+							ch.vc_users = vc_users;
+						}
+					}
+					cache.set_state(id, list);
+				}, _catch);
 		});
 	}
 
