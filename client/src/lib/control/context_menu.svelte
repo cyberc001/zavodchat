@@ -1,7 +1,7 @@
 <script>
 	const { anchor, off,
 		hide_ctx_menu,
-		actions } = $props();
+		items } = $props();
 
 	let pointer_on_menu = false;
 	let first_mouse_up = true;
@@ -12,11 +12,6 @@
 		}
 		hide_ctx_menu();
 	};
-
-	const init_focus = (el, i) => {
-		if(i == 0)
-			el.focus();
-	};
 </script>
 
 <svelte:window {onmouseup}/>
@@ -26,20 +21,10 @@
 	onmouseenter={() => pointer_on_menu = true}
 	onmouseleave={() => pointer_on_menu = false}
 >
-{#each actions as a, i}
-	<button class="item context_menu_item hoverable" use:init_focus={i}
-		onclick={() => {
-			a.func();
-			hide_ctx_menu();
-		}} onblur={(e) => {
-			if(e.relatedTarget === null || !e.relatedTarget.classList.contains("context_menu_item"))
-				hide_ctx_menu();
-	}}>
-		{#if typeof a.icon !== "undefined"}
-			<img src={"/src/lib/assets/icons/actions/" + a.icon} class="filter_icon_main" alt={a.text}/>
-		{/if}
-		<div style="margin-left: 4px">{a.text}</div>
-	</button>
+{#each items as item}
+	<div class="item context_menu_item hoverable">
+		{@render item(hide_ctx_menu)}
+	</div>
 {/each}
 </div>
 
@@ -51,11 +36,9 @@
 	z-index: 20;
 }
 .context_menu_item {
-	width: 120%;
+	width: 100%;
 	display: flex;
 	align-items: center;
-
-	padding: 2px;
 
 	border: none;
 

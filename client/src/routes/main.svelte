@@ -1,6 +1,5 @@
 <script>
 	import Util from '$lib/util.js';
-
 	import Server from '$lib/rest/server.js';
 	import Channel from '$lib/rest/channel.js';
 	import Message from '$lib/rest/message.js';
@@ -29,14 +28,18 @@
 	import Textbox from '$lib/control/textbox.svelte';
 	import DurationPicker from '$lib/control/duration_picker.svelte';
 	import Select from '$lib/control/select.svelte';
-	import Dialog from '$lib/control/dialog.svelte';
+	import Slider from '$lib/control/slider.svelte';
 
 	import PaginatedList from '$lib/display/paginated_list.svelte';
 	import UserDisplay from '$lib/display/user.svelte';
 	import UserProfileDisplay from '$lib/display/user_profile.svelte';
 	import MessageDisplay from '$lib/display/message.svelte';
 	import MessageInput from '$lib/control/message_input.svelte';
+
 	import ContextMenu from '$lib/control/context_menu.svelte';
+	import ContextMenuAction from '$lib/control/context_menu_action.svelte';
+
+	import Dialog from '$lib/control/dialog.svelte';
 	import NotifDisplay from '$lib/display/notif.svelte';
 
 	let {setPage} = $props();
@@ -78,8 +81,7 @@
 	// UI state
 	let server_buttons = $state({});
 	let channel_buttons = $state({});
-
-	let wnd_width = $state(), wnd_height = $state();
+	let vc_user_divs = $state({});
 
 	let sel = $state({
 		server: -1, channel: -1,
@@ -103,58 +105,18 @@
 		expires: "never", error: ""
 	});
 
-	const action_sets = {
-		"message": [{text: "Edit", icon: "edit.svg", func: () => {
-				sel.message_edit = sel.ctx.message;
-				prev_message_text = message_text;
-				message_text = message_list.getItem(sel.ctx.message).text;
-			    }},
-			    {text: "Delete", icon: "delete.svg", func: () => {
-				let msg = message_list.getItem(sel.ctx.message);
-				msg.status = Message.Status.Deleting;
-				Message.delete(sel.server, sel.channel, msg.id,
-						() => {}, () => msg.status = Message.Status.None);
-			    }}],
-
-		"server": [{text: "Settings", icon: "settings.svg", func: () => {
-				sel.settings_tabs = settings_server.tabs();
-			    }}],
-
-		"channel": [{text: "Settings", icon: "settings.svg", func: () => {
-				sel.settings_tabs = settings_channel.tabs();
-			    }},
-			    {text: "Delete", icon: "delete.svg", func: () => {
-				Channel.delete(sel.server, settings_params.channel_id,
-						() => {}, () => {});
-			    }}],
-
-		"user": [{text: "Kick", icon: "kick.svg", func: () => {
-				User.kick(sel.server, sel.ctx.user_id, () => {}, () => {});
-			 }},
-			 {text: "Ban", icon: "ban.svg", func: () => {
-				ban.user_id = sel.ctx.user_id;
-				ban.duration = "";
-				ban.duration_units = Util.TimeUnits.Minutes;
-				ban.dialog.show();
-			 }}]
-	};
-
 	let ctx_menu_params = $state({
 		anchor: null,
 		visible: false,
 		off: [0, 0],
-		actions: []
+		items: []
 	});
-	const showCtxMenu = (anchor, e, action_set) => {
+	const showCtxMenu = (anchor, e, items) => {
 		ctx_menu_params.anchor = anchor;
-		ctx_menu_params.off = [50, 50];
 		const rect = anchor.getBoundingClientRect();
 		ctx_menu_params.off = [e.clientX - rect.left, e.clientY - rect.top];
 
-		if(typeof action_set === "string")
-			ctx_menu_params.actions = action_sets[action_set];
-		else
-			ctx_menu_params.actions = action_set;
+		ctx_menu_params.items = items;
 		ctx_menu_params.visible = true;
 	};
 	const hideCtxMenu = () => {
@@ -256,7 +218,80 @@
 </style>
 
 
-<svelte:window bind:innerWidth={wnd_width} bind:innerHeight={wnd_height}/>
+{#snippet action_edit_message(hide_ctx_menu)}
+	<ContextMenuAction icon="src/lib/assets/icons/edit.svg" text="Edit"
+		hide_ctx_menu={hide_ctx_menu}
+		onclick={() => {
+				sel.message_edit = sel.ctx.message;
+				prev_message_text = message_text;
+				message_text = message_list.getItem(sel.ctx.message).text;
+		}}
+	/>
+{/snippet}
+{#snippet action_delete_message(hide_ctx_menu)}
+	<ContextMenuAction icon="src/lib/assets/icons/delete.svg" text="Delete"
+		hide_ctx_menu={hide_ctx_menu}
+		onclick={() => {
+				let msg = message_list.getItem(sel.ctx.message);
+				msg.status = Message.Status.Deleting;
+				Message.delete(sel.server, sel.channel, msg.id,
+						() => {}, () => msg.status = Message.Status.None);
+		}}
+	/>
+{/snippet}
+
+{#snippet action_settings_server(hide_ctx_menu)}
+	<ContextMenuAction icon="src/lib/assets/icons/settings.svg" text="Settings"
+		hide_ctx_menu={hide_ctx_menu}
+		onclick={() => {
+				sel.settings_tabs = settings_server.tabs();
+		}}
+	/>
+{/snippet}
+
+{#snippet action_settings_channel(hide_ctx_menu)}
+	<ContextMenuAction icon="src/lib/assets/icons/settings.svg" text="Settings"
+		hide_ctx_menu={hide_ctx_menu}
+		onclick={() => {
+				sel.settings_tabs = settings_channel.tabs();
+		}}
+	/>
+{/snippet}
+{#snippet action_delete_channel(hide_ctx_menu)}
+	<ContextMenuAction icon="src/lib/assets/icons/delete.svg" text="Delete"
+		hide_ctx_menu={hide_ctx_menu}
+		onclick={() => {
+				Channel.delete(sel.server, settings_params.channel_id,
+						() => {}, () => {});
+		}}
+	/>
+{/snippet}
+
+{#snippet action_kick_user(hide_ctx_menu)}
+	<ContextMenuAction icon="src/lib/assets/icons/kick.svg" text="Kick"
+		hide_ctx_menu={hide_ctx_menu}
+		onclick={() => {
+				User.kick(sel.server, sel.ctx.user_id, () => {}, () => {});
+		}}
+	/>
+{/snippet}
+{#snippet action_ban_user(hide_ctx_menu)}
+	<ContextMenuAction icon="src/lib/assets/icons/ban.svg" text="Ban"
+		hide_ctx_menu={hide_ctx_menu}
+		onclick={() => {
+				ban.user_id = sel.ctx.user_id;
+				ban.duration = "";
+				ban.duration_units = Util.TimeUnits.Minutes;
+				ban.dialog.show();
+		}}
+	/>
+{/snippet}
+
+{#snippet user_volume()}
+	<Slider text="User volume" bind:value={() => Math.floor(socket_vc.get_volume(sel.ctx.user_id) * 100),
+						(x) => socket_vc.set_volume(sel.ctx.user_id, x / 100)}
+			display_value={(value) => value + "%"}/>
+{/snippet}
 
 
 <SettingsUser bind:this={settings_user}/>
@@ -290,7 +325,7 @@
 								oncontextmenu={(e) => {
 									event.preventDefault();
 									settings_params.server_id = srv.id;
-									showCtxMenu(server_buttons[i], e, "server");
+									showCtxMenu(server_buttons[i], e, [action_settings_server]);
 								}}
 							>
 							{#if srv.avatar === undefined}
@@ -335,7 +370,7 @@
 								oncontextmenu={(e) => {
 									event.preventDefault();
 									settings_params.channel_id = ch.id;
-									showCtxMenu(channel_buttons[i], e, "channel");
+									showCtxMenu(channel_buttons[i], e, [action_settings_channel, action_delete_channel]);
 								}}
 								>
 									{#if ch.type === Channel.Type.Voice}
@@ -347,12 +382,23 @@
 								</button>
 								{#if ch.type === Channel.Type.Voice}
 									{#each Object.values(ch.vc_users) as vc_state}
-										<div style="display: flex; align-items: center; margin: 3px 0 3px 6px; font-size: 22px">
+										<div class="hoverable"
+											style="display: flex; align-items: center; margin: 3px 0 3px 6px; font-size: 22px; anchor-name: --{"vc_user_" + vc_state.id}"
+
+											bind:this={vc_user_divs[vc_state.id]}
+											oncontextmenu={(e) => {
+												event.preventDefault();
+												if(vc_state.id === user_self.data.id)
+													return;
+												sel.ctx.user_id = vc_state.id;
+												showCtxMenu(vc_user_divs[vc_state.id], e, [user_volume]);
+											}}
+										>
 											<img src={User.get_avatar_path(vc_state.user.data)}
 												alt="avatar"
 												style={"width: 32px; height: 32px; margin-right: 8px; border-style: solid; border-size: 2px; border-color: #00FF00"
-													+ (socket_vc && socket_vc.track_volumes[vc_state.user.data.id] ?
-														Util.padded_hex(Math.min(socket_vc.track_volumes[vc_state.user.data.id] / 10, 1) * 255)
+													+ (socket_vc && socket_vc.user_id_to_track[vc_state.user.data.id] ?
+														Util.padded_hex(Math.min(socket_vc.user_id_to_track[vc_state.user.data.id].amplitude / 10, 1) * 255)
 														: "00")
 												}
 											/>
@@ -446,10 +492,11 @@
 				author_roles={item.author_roles}
 				time_sent={new Date(item.sent)} time_edited={new Date(item.edited)}
 				status={item.status}
-				show_ctx_menu={(anchor, e, action_set) => {
+				show_ctx_menu={(anchor, e, for_message) => {
 					sel.ctx.user_id = item.author.data.id;
 					sel.ctx.message = i;
-					showCtxMenu(anchor, e, action_set)
+					showCtxMenu(anchor, e, for_message ? [action_edit_message, action_delete_message]
+								: [action_kick_user, action_ban_user]);
 				}}
 				selected_user={item.id == sel.user.message_id && item.author_id == sel.user.id}
 				onclick_user={() => showUser(item.author_id, item.id)}
@@ -479,9 +526,9 @@
 				user={user} user_roles={user.role_list}
 				selected={sel.user.message_id == -1 && user.id == sel.user.id}
 				onclick={() => showUser(user.id, -1)}
-				show_ctx_menu={(anchor, e, action_set) => {
+				show_ctx_menu={(anchor, e) => {
 					sel.ctx.user_id = user.id;
-					showCtxMenu(anchor, e, action_set);
+					showCtxMenu(anchor, e, [action_kick_user, action_ban_user]);
 				}}
 				/>
 			{/snippet}
@@ -510,7 +557,7 @@
 	<ContextMenu
 		anchor={ctx_menu_params.anchor} off={ctx_menu_params.off}
 		hide_ctx_menu={hideCtxMenu}
-		actions={ctx_menu_params.actions}/>
+		items={ctx_menu_params.items}/>
 {/if}
 
 {/if}

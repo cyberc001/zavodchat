@@ -50,7 +50,7 @@
 	bind:this={self}
 	oncontextmenu={(e) => {
 		event.preventDefault();
-		show_ctx_menu(self, e, "message");
+		show_ctx_menu(self, e, true);
 	}}
 	>
 		<div>

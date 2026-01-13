@@ -20,7 +20,7 @@
 	onclick={onclick}
 	oncontextmenu={(e) => {
 		event.preventDefault();
-		show_ctx_menu(self, e, "user");
+		show_ctx_menu(self, e);
 	}}
 >
 	{#if !user || Object.keys(user).length === 0}

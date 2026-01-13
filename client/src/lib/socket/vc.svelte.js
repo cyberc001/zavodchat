@@ -1,6 +1,25 @@
 import {PUBLIC_BASE_SOCKET_VC} from '$env/static/public';
 import Channel from '$lib/rest/channel.js';
 
+class VCTrack {
+	user_id;
+
+	media;
+	analyser; analyser_src;
+
+	amplitude = $state(0); volume = $state(1);
+
+	add_analyser(src){
+		if(!src)
+			src = this.media.srcObject;
+		this.ctx = new AudioContext();
+		this.analyser = this.ctx.createAnalyser();
+		this.analyser_src = this.ctx.createMediaStreamSource(src);
+		this.analyser.smoothingTimeConstant = 0.1;
+		this.analyser_src.connect(this.analyser);
+	}
+};
+
 export default class VCSocket {
 	user_self_id;
 	channel;
@@ -11,8 +30,7 @@ export default class VCSocket {
 	my_audio_track;
 
 	tracks = {};
-	track_to_user_id = [];
-	track_volumes = $state({});
+	user_id_to_track = $state({});
 
 	static _sockets = [];
 	static track_volume_intv = setInterval(() => {
@@ -34,7 +52,7 @@ export default class VCSocket {
 					sum += samples[k];
 				sum /= samples.length;
 
-				sock.track_volumes[track.user_id] = sum > 1 ? sum : 0;
+				track.amplitude = sum > 1 ? sum : 0;
 			}
 		}
 	}, 100);
@@ -85,6 +103,14 @@ export default class VCSocket {
 		this.ws.send(JSON.stringify({"name": "change_state", "data": {"deaf": this.is_deaf ? 1 : 0}}));
 	}
 
+	get_volume(user_id, volume){
+		return this.user_id_to_track[user_id].volume;
+	}
+	set_volume(user_id, volume){
+		this.user_id_to_track[user_id].volume = volume;
+		this.user_id_to_track[user_id].media.volume = volume;
+	}
+
 	// Helper methods
 	async handle_offer(offer){
 		if(!this.rtc){
@@ -96,13 +122,13 @@ export default class VCSocket {
 
 				e.track.enabled = !this.is_deaf;
 
-				this.tracks[id] = {};
+				this.tracks[id] = new VCTrack();
 				let track = this.tracks[id];
 				switch(e.track.kind){
 					case "audio":
 						track.media = new Audio();
 						track.media.srcObject = new MediaStream([e.track]);
-						this.add_track_analyser(track);
+						track.add_analyser();
 						break;
 					default:
 						console.warn(`Unsupported track kind '${e.track.kind}'`);
@@ -123,10 +149,11 @@ export default class VCSocket {
 			for(const new_track of media.getTracks()){
 				this.rtc.addTrack(new_track, media);
 				this.my_audio_track = new_track;
-
-				this.tracks[-1] = {user_id: this.user_self_id};
+				
+				this.user_id_to_track[this.user_self_id] = this.tracks[-1] = new VCTrack();
 				let track = this.tracks[-1];
-				this.add_track_analyser(track, new MediaStream([new_track]));
+				track.user_id = this.user_self_id;
+				track.add_analyser(new MediaStream([new_track]));
 				break;
 			}
 
@@ -143,17 +170,9 @@ export default class VCSocket {
 		console.log("set counteroffer", answer);
 	}
 
-	add_track_analyser(track, src){
-		if(!src)
-			src = track.media.srcObject;
-		track.ctx = new AudioContext();
-		track.analyser = track.ctx.createAnalyser();
-		track.analyser_src = track.ctx.createMediaStreamSource(src);
-		track.analyser.smoothingTimeConstant = 0.1;
-		track.analyser_src.connect(track.analyser);
-	}
+	parse_sdp_user_ids(sdp){
+		this.user_id_to_track = {[this.user_self_id]: this.tracks[-1]};
 
-	parse_sdp_user_ids(sdp){	
 		// присутствуют атрибуты mid и user_id -> дорожка используется
 		let lines = sdp.split('\n');
 		let mid = null;
@@ -162,7 +181,10 @@ export default class VCSocket {
 			let l = lines[i];
 			if(l[0] == 'm' || i == lines.length - 1){
 				if(mid !== null && user_id !== null){
-					this.tracks[Number(mid)].user_id = parseInt(user_id);
+					mid = Number(mid);
+					user_id = parseInt(user_id);
+					this.tracks[mid].user_id = user_id;
+					this.user_id_to_track[user_id] = this.tracks[mid];
 					mid = null;
 					user_id = null;
 				}
