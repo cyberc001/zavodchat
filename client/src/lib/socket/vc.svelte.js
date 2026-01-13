@@ -1,9 +1,14 @@
 import {PUBLIC_BASE_SOCKET_VC} from '$env/static/public';
+import Channel from '$lib/rest/channel.js';
 
 export default class VCSocket {
 	user_self_id;
+	channel;
+
 	ws;
 	rtc; rtc_init = false;
+
+	my_audio_track;
 
 	tracks = {};
 	track_to_user_id = [];
@@ -35,9 +40,10 @@ export default class VCSocket {
 	}, 100);
 
 
-	constructor(user_self_id, channel_id,
-			onclose, onerror) {
+	constructor(user_self_id, server_id, channel_id,
+			onclose, onerror){
 		this.user_self_id = user_self_id;
+		this.channel = Channel.get(server_id, channel_id);
 
 		this.ws = new WebSocket(PUBLIC_BASE_SOCKET_VC + "?channel=" + channel_id);
 		this.ws.onclose = onclose;
@@ -57,6 +63,25 @@ export default class VCSocket {
 		VCSocket._sockets.push(new WeakRef(this));
 	}
 
+	end_call(){
+		this.rtc.close();
+		this.ws.close();
+	}
+
+	is_muted = $state(false);
+	toggle_mute(){
+		this.my_audio_track.enabled = !this.my_audio_track.enabled;
+		this.is_muted = !this.my_audio_track.enabled;
+	}
+	is_deaf = $state(false);
+	toggle_deaf(){
+		this.is_deaf = !this.is_deaf;
+		for(const recv of this.rtc.getReceivers())
+			if(recv.track)
+				recv.track.enabled = !this.is_deaf;
+	}
+
+	// Helper methods
 	async handle_offer(offer){
 		if(!this.rtc){
 			this.rtc = new RTCPeerConnection({bundlePolicy: "max-bundle"});
@@ -64,6 +89,8 @@ export default class VCSocket {
 			// Handle new tracks added to connection
 			this.rtc.ontrack = (e) => {
 				const id = e.transceiver.mid;
+
+				e.track.enabled = !this.is_deaf;
 
 				this.tracks[id] = {};
 				let track = this.tracks[id];
@@ -91,6 +118,7 @@ export default class VCSocket {
 			const media = await navigator.mediaDevices.getUserMedia({audio: true});
 			for(const new_track of media.getTracks()){
 				this.rtc.addTrack(new_track, media);
+				this.my_audio_track = new_track;
 
 				this.tracks[-1] = {user_id: this.user_self_id};
 				let track = this.tracks[-1];

@@ -190,7 +190,7 @@
 	const showChannel = (id, i) => {
 		if(channels.data[i].type === Channel.Type.Voice){
 			let old_socket_vc = socket_vc;
-			socket_vc = new VCSocket(user_self.data.id, id, (close) => {
+			socket_vc = new VCSocket(user_self.data.id, sel.server, id, (close) => {
 				if(close.reason === "User is already connected")
 					socket_vc = old_socket_vc;
 			});
@@ -379,6 +379,40 @@
 				</div>
 		</div>
 
+		{#if socket_vc}
+			<div class="panel profile_panel" style="border-bottom: none">
+				<div style="display: flex; align-items: center; margin-bottom: 6px">
+					{socket_vc.channel.data.name}
+
+					<button class="hoverable transparent_button"
+						onclick={() => {
+							socket_vc.toggle_mute();
+						}}
+					>
+						<img src={"/src/lib/assets/icons/" + (socket_vc.is_muted ? "" : "not_") + "muted.svg"}
+							alt={(socket_vc.is_muted ? "un" : "") + "mute"} class="filter_icon_main" style="width: 24px">
+					</button>
+
+					<button class="hoverable transparent_button"
+						onclick={() => {
+							socket_vc.toggle_deaf();
+						}}
+					>
+						<img src={"/src/lib/assets/icons/" + (socket_vc.is_deaf ? "" : "not_") + "deaf.svg"}
+							alt={(socket_vc.is_deaf ? "un" : "") + "deafen"} class="filter_icon_main" style="width: 24px">
+					</button>
+
+					<button class="hoverable transparent_button"
+						onclick={() => {
+							socket_vc.end_call();
+							socket_vc = undefined;
+						}}
+					>
+						<img src="$lib/assets/icons/hang.svg" alt="end call" class="filter_icon_main" style="width: 24px">
+					</button>
+				</div>
+			</div>
+		{/if}
 		<div class="panel profile_panel">
 			{#if !user_self.loaded}
 				<img src="$lib/assets/icons/loading.svg" alt="loading" class="filter_icon_main" style="width: 24px"/>
@@ -386,14 +420,14 @@
 				<div style="display: flex; align-items: center; margin-bottom: 6px">
 					<img src={User.get_avatar_path(user_self.data)} style="width: 32px; height: 32px; margin-right: 8px" alt="avatar"/>
 					{user_self.data.name}
+					<button class="hoverable transparent_button"
+						style="margin-left:auto"
+						onclick={() => sel.settings_tabs = settings_user.tabs()}
+					>
+						<img src="$lib/assets/icons/settings.svg" alt="profile settings" class="filter_icon_main" style="width: 32px"/>
+					</button>
 				</div>
 			{/if}
-
-			<button class="hoverable transparent_button"
-			onclick={() => sel.settings_tabs = settings_user.tabs()}
-			>
-				<img src="$lib/assets/icons/settings.svg" alt="profile settings" class="filter_icon_main" style="width: 32px"/>
-			</button>
 		</div>
 	</div>
 	<div class="panel sidebar_messages">
