@@ -127,8 +127,10 @@ export default class MainSocket {
 			if(Channel.channel_list_cache.has_state(data.server_id)){
 				let list = Channel.channel_list_cache.get_state(data.server_id);
 				let channel_list_data = Channel.channel_list_cache.get_state(data.server_id).data.find((x) => x.id === data.channel_id);
-				if(channel_list_data && channel_list_data.vc_users)
-					channel_list_data.vc_users[data.id] = User.get_server(data.server_id, data.id);
+				if(channel_list_data && channel_list_data.vc_users){
+					channel_list_data.vc_users[data.id] = Util.object_from_object(data, ["mute", "deaf"]);
+					channel_list_data.vc_users[data.id].user = User.get_server(data.server_id, data.id);
+				}
 			}
 		},
 		user_left_vc: function(data) {
@@ -137,6 +139,16 @@ export default class MainSocket {
 				let channel_list_data = Channel.channel_list_cache.get_state(data.server_id).data.find((x) => x.id === data.channel_id);
 				if(channel_list_data && channel_list_data.vc_users)
 					delete channel_list_data.vc_users[data.id];
+			}
+		},
+		user_changed_vc_state: function(data) {
+			if(Channel.channel_list_cache.has_state(data.server_id)){
+				let list = Channel.channel_list_cache.get_state(data.server_id);
+				let channel_list_data = Channel.channel_list_cache.get_state(data.server_id).data.find((x) => x.id === data.channel_id);
+				if(channel_list_data && channel_list_data.vc_users){
+					channel_list_data.vc_users[data.id].mute = data.mute;
+					channel_list_data.vc_users[data.id].deaf = data.deaf;
+				}
 			}
 		}
 	};

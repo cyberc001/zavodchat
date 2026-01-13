@@ -7,6 +7,10 @@
 #include <stack>
 #include <random>
 
+enum vc_state {
+	NO, SELF, BY_ADMIN
+};
+
 class socket_vc_connection : public socket_connection
 {
 public:
@@ -34,6 +38,9 @@ public:
 	unsigned recv_video_track_bitrate;
 	std::set<size_t> users_needing_keyframe; // user IDs that, after appearing in connections list, should be generated keyframes for. If -1 is present, a keyframe should be generated regardless of receiving user (ex. on video re-open)
 	bool recv_video_track_closed = true;
+
+	// User voice state
+	vc_state mute = vc_state::NO, deaf = vc_state::NO;
 };
 class socket_vc_channel
 {
@@ -64,7 +71,7 @@ public:
 
 	void send_to_channel(int channel_id, pqxx::work& tx, socket_event event); // only sends event to users currently connected to voice channel
 	
-	void get_channel_users(int channel_id, std::vector<int>& users); // get users connected to voice channel
+	nlohmann::json get_channel_users(int channel_id); // get users connected to voice channel
 
 	std::unordered_map<int, socket_vc_channel> channels;
 	std::unordered_map<int, std::weak_ptr<socket_vc_connection>> users;
@@ -72,6 +79,9 @@ public:
 	/* CONFIG PARAMETERS */
 	unsigned max_video_bitrate = 10240000;
 private:
+	bool parse_vc_state(std::unordered_map<std::string, std::string>& query, std::string arg_name, vc_state& out);
+	bool check_vc_state(unsigned state);
+
 	db_connection_pool& pool;
 	socket_main_server& sserv;
 

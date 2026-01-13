@@ -51,7 +51,7 @@ export default class VCSocket {
 
 		this.ws.onmessage = (e) => {
 			const _data = JSON.parse(e.data);
-			console.log("data", _data);
+			console.log("message", _data);
 
 			switch(_data.name){
 				case "offer":
@@ -72,6 +72,8 @@ export default class VCSocket {
 	toggle_mute(){
 		this.my_audio_track.enabled = !this.my_audio_track.enabled;
 		this.is_muted = !this.my_audio_track.enabled;
+
+		this.ws.send(JSON.stringify({"name": "change_state", "data": {"mute": this.is_muted ? 1 : 0}}));
 	}
 	is_deaf = $state(false);
 	toggle_deaf(){
@@ -79,6 +81,8 @@ export default class VCSocket {
 		for(const recv of this.rtc.getReceivers())
 			if(recv.track)
 				recv.track.enabled = !this.is_deaf;
+
+		this.ws.send(JSON.stringify({"name": "change_state", "data": {"deaf": this.is_deaf ? 1 : 0}}));
 	}
 
 	// Helper methods

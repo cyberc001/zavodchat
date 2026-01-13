@@ -783,6 +783,18 @@ components:
           example:
           - 3
           - 7
+    VCState:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 412
+        mute:
+          type: integer
+          example: 1
+        deaf:
+          type: integer
+          example: 0
     Server:
       type: object
       properties:
@@ -809,10 +821,7 @@ components:
           description: user_id пользователей, которые подключены к голосовому каналу
           type: array
           items:
-            type: integer
-          example:
-          - 1
-          - 2
+              $ref: '#/components/schemas/VCState'
     Message:
       type: object
       properties:

@@ -346,17 +346,25 @@
 									{ch.name}
 								</button>
 								{#if ch.type === Channel.Type.Voice}
-									{#each Object.values(ch.vc_users) as vc_user}
+									{#each Object.values(ch.vc_users) as vc_state}
 										<div style="display: flex; align-items: center; margin: 3px 0 3px 6px; font-size: 22px">
-											<img src={User.get_avatar_path(user_self.data)}
+											<img src={User.get_avatar_path(vc_state.user.data)}
 												alt="avatar"
 												style={"width: 32px; height: 32px; margin-right: 8px; border-style: solid; border-size: 2px; border-color: #00FF00"
-													+ (socket_vc && socket_vc.track_volumes[vc_user.data.id] ?
-														Util.padded_hex(Math.min(socket_vc.track_volumes[vc_user.data.id] / 10, 1) * 255)
+													+ (socket_vc && socket_vc.track_volumes[vc_state.user.data.id] ?
+														Util.padded_hex(Math.min(socket_vc.track_volumes[vc_state.user.data.id] / 10, 1) * 255)
 														: "00")
 												}
 											/>
-											{vc_user.data.name}
+											{vc_state.user.data.name}
+											<div style="margin-left: auto">
+												{#if vc_state.mute}
+													<img src={"/src/lib/assets/icons/muted.svg"} alt="muted" class="filter_icon_main" style="width: 24px"/>
+												{/if}
+												{#if vc_state.deaf}
+													<img src={"/src/lib/assets/icons/deaf.svg"} alt="deaf" class="filter_icon_main" style="width: 24px"/>
+												{/if}
+											</div>
 										</div>
 									{/each}
 								{/if}
@@ -384,32 +392,32 @@
 				<div style="display: flex; align-items: center; margin-bottom: 6px">
 					{socket_vc.channel.data.name}
 
-					<button class="hoverable transparent_button"
-						onclick={() => {
-							socket_vc.toggle_mute();
-						}}
-					>
-						<img src={"/src/lib/assets/icons/" + (socket_vc.is_muted ? "" : "not_") + "muted.svg"}
-							alt={(socket_vc.is_muted ? "un" : "") + "mute"} class="filter_icon_main" style="width: 24px">
-					</button>
-
-					<button class="hoverable transparent_button"
-						onclick={() => {
-							socket_vc.toggle_deaf();
-						}}
-					>
-						<img src={"/src/lib/assets/icons/" + (socket_vc.is_deaf ? "" : "not_") + "deaf.svg"}
-							alt={(socket_vc.is_deaf ? "un" : "") + "deafen"} class="filter_icon_main" style="width: 24px">
-					</button>
-
-					<button class="hoverable transparent_button"
-						onclick={() => {
-							socket_vc.end_call();
-							socket_vc = undefined;
-						}}
-					>
-						<img src="$lib/assets/icons/hang.svg" alt="end call" class="filter_icon_main" style="width: 24px">
-					</button>
+					<div style="margin-left: auto">
+						<button class="hoverable transparent_button"
+							onclick={() => {
+								socket_vc.toggle_mute();
+							}}
+						>
+							<img src={"/src/lib/assets/icons/" + (socket_vc.is_muted ? "" : "not_") + "muted.svg"}
+								alt={(socket_vc.is_muted ? "un" : "") + "mute"} class="filter_icon_main" style="width: 24px">
+						</button>
+						<button class="hoverable transparent_button"
+							onclick={() => {
+								socket_vc.toggle_deaf();
+							}}
+						>
+							<img src={"/src/lib/assets/icons/" + (socket_vc.is_deaf ? "" : "not_") + "deaf.svg"}
+								alt={(socket_vc.is_deaf ? "un" : "") + "deafen"} class="filter_icon_main" style="width: 24px">
+						</button>
+						<button class="hoverable transparent_button"
+							onclick={() => {
+								socket_vc.end_call();
+								socket_vc = undefined;
+							}}
+						>
+							<img src="$lib/assets/icons/hang.svg" alt="end call" class="filter_icon_main" style="width: 24px">
+						</button>
+					</div>
 				</div>
 			</div>
 		{/if}

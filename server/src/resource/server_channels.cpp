@@ -23,13 +23,8 @@ std::shared_ptr<http_response> server_channel_resource::render_GET(const http_re
 
 	for(size_t i = 0; i < r.size(); ++i){
 		nlohmann::json channel_json = resource_utils::channel_json_from_row(r[i]);
-		if(channel_json["type"] == CHANNEL_VOICE){ // send users currently speaking in channel
-			std::vector<int> users;
-			vcserv.get_channel_users(channel_json["id"], users);
-			channel_json["vc_users"] = nlohmann::json::array();
-			for(auto it = users.begin(); it != users.end(); ++it)
-				channel_json["vc_users"] += *it;
-		}
+		if(channel_json["type"] == CHANNEL_VOICE)
+			channel_json["vc_users"] = vcserv.get_channel_users(channel_json["id"]);
 		res += channel_json;
 	}
 
@@ -99,13 +94,8 @@ std::shared_ptr<http_response> server_channel_id_resource::render_GET(const http
 	pqxx::result r = tx.exec("SELECT channel_id, name, type FROM channels WHERE channel_id = $1", pqxx::params(channel_id));
 	nlohmann::json channel_json = resource_utils::channel_json_from_row(r[0]);
 
-	if(channel_json["type"] == CHANNEL_VOICE){ // send users currently speaking in channel
-		std::vector<int> users;
-		vcserv.get_channel_users(channel_id, users);
-		channel_json["vc_users"] = nlohmann::json::array();
-		for(auto it = users.begin(); it != users.end(); ++it)
-			channel_json["vc_users"] += *it;
-	}
+	if(channel_json["type"] == CHANNEL_VOICE)
+		channel_json["vc_users"] = vcserv.get_channel_users(channel_id);
 
 	return create_response::string(req, channel_json.dump(), 200);
 }

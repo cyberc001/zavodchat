@@ -155,10 +155,10 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 			socket_vc_connection& conn = dynamic_cast<socket_vc_connection&>(*_conn);
 
 			if(msg->type == ix::WebSocketMessageType::Open){
-				/**** check database validity ****/
+				auto query = parse_query(msg->openInfo.uri);
+				
 				int ch_type;
 				{
-					auto query = parse_query(msg->openInfo.uri);
 					db_connection db_conn = pool.hold();
 					pqxx::work tx{*db_conn};
 					pqxx::result r;
@@ -215,6 +215,17 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 					if(users.find(conn.user_id) != users.end() && !users[conn.user_id].lock()->sock.expired())
 						users[conn.user_id].lock()->sock.lock()->close(ix::WebSocketCloseConstants::kNormalClosureCode, "User connected to a different channel");
 				}
+
+
+				if(!parse_vc_state(query, "mute", conn.mute)){
+					conn.sock.lock()->close(ix::WebSocketCloseConstants::kNormalClosureCode, "Invalid mute state '" + query["mute"] + "'");
+					return;
+				}
+				if(!parse_vc_state(query, "deaf", conn.deaf)){
+					conn.sock.lock()->close(ix::WebSocketCloseConstants::kNormalClosureCode, "Invalid deaf state '" + query["deaf"] + "'");
+					return;
+				}
+	
 				users[conn.user_id] = std::dynamic_pointer_cast<socket_vc_connection>(_conn);
 
 				/**** connect RTC ****/
@@ -349,6 +360,8 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 						socket_event ev;
 						resource_utils::json_set_ids(ev.data, conn->server_id, conn->channel_id);
 						ev.data["id"] = conn->user_id;
+						ev.data["mute"] = conn->mute;
+						ev.data["deaf"] = conn->deaf;
 						ev.name = "user_joined_vc";
 						sserv.send_to_channel(conn->channel_id, tx, ev);
 					} else if(state == rtc::PeerConnection::State::Failed){
@@ -501,11 +514,68 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 						}
 						conn.recv_video_track_closed = true;
 					}
+				} else if(ev.name == "change_state"){
+					bool changed = false;
+					if(ev.data.contains("mute")){
+						if(!ev.data["mute"].is_number_unsigned() || !check_vc_state(ev.data["mute"])){
+							socket_event ev;
+							ev.name = "error";
+							ev.data = "invalid mute state";
+							conn.sock.lock()->send(ev.dump());
+							return;
+						}
+						if(ev.data["mute"] != conn.mute)
+							changed = true;
+						conn.mute = ev.data["mute"];
+					}
+					if(ev.data.contains("deaf")){
+						if(!ev.data["deaf"].is_number_unsigned() || !check_vc_state(ev.data["deaf"])){
+							socket_event ev;
+							ev.name = "error";
+							ev.data = "invalid deaf state";
+							conn.sock.lock()->send(ev.dump());
+							return;
+						}
+						if(ev.data["deaf"] != conn.deaf)
+							changed = true;
+						conn.deaf = ev.data["deaf"];
+					}
+
+					if(changed){
+						db_connection db_conn = pool.hold();
+						pqxx::work tx{*db_conn};
+
+						socket_event ev;
+						resource_utils::json_set_ids(ev.data, conn.server_id, conn.channel_id);
+						ev.data["id"] = conn.user_id;
+						ev.data["mute"] = conn.mute;
+						ev.data["deaf"] = conn.deaf;
+						ev.name = "user_changed_vc_state";
+						sserv.send_to_channel(conn.channel_id, tx, ev);
+					}
 				}
 			}
 		});
 	});
 }
+
+
+bool socket_vc_server::parse_vc_state(std::unordered_map<std::string, std::string>& query, std::string arg_name, vc_state& out)
+{
+	if(query.find(arg_name) == query.end())
+		return true;
+	try{
+		out = static_cast<vc_state>(std::stol(query[arg_name]));
+	} catch(std::invalid_argument& e){
+		return false;
+	}
+	return check_vc_state(out);
+}
+bool socket_vc_server::check_vc_state(unsigned state)
+{
+	return state >= vc_state::NO && state <= vc_state::BY_ADMIN;
+}
+
 
 void socket_vc_server::send_to_channel(int channel_id, pqxx::work& tx, socket_event event)
 {
@@ -521,11 +591,20 @@ void socket_vc_server::send_to_channel(int channel_id, pqxx::work& tx, socket_ev
 	}
 }
 
-void socket_vc_server::get_channel_users(int channel_id, std::vector<int>& users)
+nlohmann::json socket_vc_server::get_channel_users(int channel_id)
 {
+	nlohmann::json out = nlohmann::json::array();
+
 	std::shared_lock lock(channels_mutex);
 	socket_vc_channel& chan = channels[channel_id];
 	std::unique_lock conn_lock(chan.connections_mutex);
-	for(auto it = chan.connections_begin(); it != chan.connections_end(); ++it)
-		users.push_back(it->first);
+
+	for(auto it = chan.connections_begin(); it != chan.connections_end(); ++it){
+		nlohmann::json user;
+		user["id"] = it->first;
+		user["mute"] = it->second.lock()->mute;
+		user["deaf"] = it->second.lock()->deaf;
+		out += user;
+	}
+	return out;
 }

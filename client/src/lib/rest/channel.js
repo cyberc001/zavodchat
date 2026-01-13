@@ -57,10 +57,12 @@ export default class Channel {
 					for(const ch of list){
 						let vc_users = {};
 						if(ch.vc_users){
-							for(const id of ch.vc_users)
-								vc_users[id] = User.get_server(server_id, id, _catch);
-							ch.vc_users = vc_users;
+							for(const state of ch.vc_users){
+								vc_users[state.id] = state;
+								vc_users[state.id].user = User.get_server(server_id, state.id, _catch);
+							}
 						}
+						ch.vc_users = vc_users;
 					}
 					cache.set_state(id, list);
 				}, _catch);

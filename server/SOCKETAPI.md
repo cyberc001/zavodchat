@@ -251,6 +251,9 @@ wscat -nc 'wss://localhost:445?channel=2'
 }
 ```
 
+
+## Пользователи в голосовых каналах
+
 ### user_joined_vc
 
 Пользователь присоединился к голосовому каналу.
@@ -262,7 +265,9 @@ wscat -nc 'wss://localhost:445?channel=2'
 	{
 		"channel_id": 2,
 		"id": 2,
-		"server_id": 1
+		"server_id": 1,
+		"mute": 0,
+		"deaf": 0
 	},
 	"name": "user_joined_vc"
 }
@@ -284,6 +289,28 @@ wscat -nc 'wss://localhost:445?channel=2'
 	"name": "user_left_vc"
 }
 ```
+
+### user_changed_vc_state
+
+У пользователя изменилось состояние в голосовом канале.
+
+Пример:
+```js
+{
+	"data":
+	{
+		"channel_id": 2,
+		"deaf": 0,
+		"id": 1,
+		"mute": 1,
+		"server_id": 1
+	},
+	"name": "user_changed_vc_state"
+}
+```
+
+
+## Роли пользователей
 
 ### role_assigned
 
