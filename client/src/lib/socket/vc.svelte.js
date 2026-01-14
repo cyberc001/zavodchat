@@ -64,7 +64,16 @@ export default class VCSocket {
 		this.channel = Channel.get(server_id, channel_id);
 
 		this.ws = new WebSocket(PUBLIC_BASE_SOCKET_VC + "?channel=" + channel_id);
-		this.ws.onclose = onclose;
+		this.ws.onclose = (e) => {
+			if(this.rtc)
+				this.rtc.close();
+			// close all streams to make socket GC properly and prevent audio duplication
+			for(const track of Object.values(this.tracks))
+				if(track.media)
+					track.media.srcObject = null;
+			console.log("closed");
+			onclose(e);
+		}
 		this.ws.onerror = onerror;
 
 		this.ws.onmessage = (e) => {
@@ -82,7 +91,6 @@ export default class VCSocket {
 	}
 
 	end_call(){
-		this.rtc.close();
 		this.ws.close();
 	}
 

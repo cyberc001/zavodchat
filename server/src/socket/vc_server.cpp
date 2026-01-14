@@ -292,6 +292,7 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 				desc.addSSRC(ssrc, "my_voice");
 				conn.tracks.push_back(conn.rtc_conn->addTrack(desc));
 				// create send tracks for all already established connections
+				std::cerr << "ADDING SEND TRACKS FOR " << conn.user_id << std::endl;
 				{
 					std::unique_lock lock(channels_mutex);
 					socket_vc_channel& chan = channels[conn.channel_id];
@@ -309,7 +310,9 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 						other_conn->users_needing_keyframe.insert(conn.user_id);
 					}
 				}
+				std::cerr << "FINISHED ADDING SEND TRACKS FOR " << conn.user_id << std::endl;
 
+				std::cerr << "ADDING RECEIVE TRACKS FROM " << conn.user_id << " CHANNEL " << conn.channel_id << std::endl;
 				// renegotiate a new send track for all known connections
 				{
 					std::unique_lock lock(channels_mutex);
@@ -322,6 +325,7 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 						std::cerr << "NEW LOCAL DESC " << std::endl;
 					}
 				}
+				std::cerr << "FINISHED ADDING RECEIVE TRACKS FROM " << conn.user_id << std::endl;
 
 				conn.tracks[0]->setMediaHandler(session_recv);
 				conn.tracks[0]->onMessage([&, _conn, ssrc](rtc::binary message){
