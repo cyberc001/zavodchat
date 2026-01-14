@@ -1,5 +1,5 @@
 <script>
-	const { anchor, off,
+	const { anchor, off = [0, 0],
 		hide_ctx_menu,
 		items } = $props();
 
@@ -21,9 +21,9 @@
 	onmouseenter={() => pointer_on_menu = true}
 	onmouseleave={() => pointer_on_menu = false}
 >
-{#each items as item}
+{#each items as item, i}
 	<div class="item context_menu_item hoverable">
-		{@render item(hide_ctx_menu)}
+		{@render item(hide_ctx_menu, i)}
 	</div>
 {/each}
 </div>

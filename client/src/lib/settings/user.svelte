@@ -15,7 +15,7 @@
 	let state_profile = new SettingsTabState({displayname: "", avatar: "",
 							username: "", password: "", password_repeat: ""});
 
-	let profile_avatar_picker = $state();
+	let avatar_picker = $state();
 	let profile_passwords_match = $derived(state_profile.state.password === state_profile.state.password_repeat);
 
 	$effect(() => {
@@ -58,7 +58,7 @@
 {#snippet profile()}
 <Group name="Profile settings">
 	<div style="display: flex">
-		<AvatarPicker bind:this={profile_avatar_picker}
+		<AvatarPicker bind:this={avatar_picker}
 		bind:display_url={state_profile.state.avatar}
 		/>
 		<div style="margin-left: 16px"></div>

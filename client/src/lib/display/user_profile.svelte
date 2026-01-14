@@ -2,6 +2,7 @@
 	import User from '$lib/rest/user.svelte.js';
 	import Role from '$lib/rest/role.js';
 	import ContextMenu from '$lib/control/context_menu.svelte';
+	import ContextMenuAction from '$lib/control/context_menu_action.svelte';
 
 	let {user, server_roles,
 		anchor, anchor_side_x = "left",
@@ -20,26 +21,28 @@
 	};
 
 	let add_role_button = $state();
+	let add_role_ctx_off = $state([0, 0]);
 	let show_add_role_menu = $state(false);
-	let add_role_menu_pos = $derived.by(() => {
-		pos; user_roles;
-		const rect = add_role_button.getBoundingClientRect();
-		const self_rect = self.getBoundingClientRect();
-		return [rect.left - self_rect.left, self_rect.height];
-	});
-	let add_role_actions = $derived.by(() => {
+	let add_role_items = $derived.by(() => {
 		if(Object.keys(user).length === 0)
 			return [];
 
-		let role_list = [];
+		let items = [[], []];
 		for(const rol of server_roles)
-			if(user_roles.findIndex((x) => x.id === rol.id) === -1)
-				role_list.push({text: rol.name, func: () => {
-					assign_role(rol.id);
-				}});
-		return role_list;
+			if(user_roles.findIndex((x) => x.id === rol.id) === -1){
+				items[0].push(item_add_role);
+				items[1].push(rol);
+			}
+		return items;
 	});
 </script>
+
+{#snippet item_add_role(hide_ctx_menu, i)}
+	<ContextMenuAction text={add_role_items[1][i].name}
+		hide_ctx_menu={hide_ctx_menu}
+		onclick={() => assign_role(add_role_items[1][i].id)}
+	/>
+{/snippet}
 
 <svelte:window {onmouseup}/>
 <div class="item user_profile_display"
@@ -81,7 +84,12 @@
 			{#if user_roles.length > 0}
 				<button class="user_role transparent_button hoverable"
 					bind:this={add_role_button}
-					onclick={() => show_add_role_menu = true}
+					onclick={(e) => {
+						const rect = add_role_button.getBoundingClientRect();
+						add_role_ctx_off = [e.clientX - rect.left, e.clientY - rect.top];
+						show_add_role_menu = true;
+					}}
+					style="anchor-name: --add_role_button"
 				>
 					<img class="filter_icon_main role_add_icon" src="$lib/assets/icons/add_cross.svg"> add role
 				</button>
@@ -90,8 +98,10 @@
 	{/if}
 
 	{#if show_add_role_menu}
-		<ContextMenu pos={add_role_menu_pos} hide_ctx_menu={() => show_add_role_menu = false}
-			     actions={add_role_actions}/>
+		<ContextMenu anchor={add_role_button} off={add_role_ctx_off}
+			hide_ctx_menu={() => show_add_role_menu = false}
+			items={add_role_items[0]}
+		/>
 	{/if}
 </div>
 

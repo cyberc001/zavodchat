@@ -292,7 +292,7 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 				desc.addSSRC(ssrc, "my_voice");
 				conn.tracks.push_back(conn.rtc_conn->addTrack(desc));
 				// create send tracks for all already established connections
-				std::cerr << "ADDING SEND TRACKS FOR " << conn.user_id << std::endl;
+				std::cerr << "ADDING SEND TRACKS FOR " << conn.user_id << " CHANNEL " << conn.channel_id << std::endl;
 				{
 					std::unique_lock lock(channels_mutex);
 					socket_vc_channel& chan = channels[conn.channel_id];
@@ -315,9 +315,11 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 				std::cerr << "ADDING RECEIVE TRACKS FROM " << conn.user_id << " CHANNEL " << conn.channel_id << std::endl;
 				// renegotiate a new send track for all known connections
 				{
+					std::cerr << "AQUIRING CHANNELS MUTEX" << std::endl;
 					std::unique_lock lock(channels_mutex);
 					socket_vc_channel& chan = channels[conn.channel_id];
 					for(auto it = chan.connections_begin(); it != chan.connections_end(); ++it){
+						std::cerr << "AQUIRING CONN MUTEX" << std::endl;
 						auto other_conn = it->second.lock();
 						other_conn->add_audio_track(ssrc, conn.user_id);
 						std::cerr << "ADDED AUDIO TRACK " << other_conn->user_id << " " << conn.user_id << " " << other_conn->tracks[other_conn->user_to_audio_track[conn.user_id]]->description().getSSRCs()[0] << std::endl;

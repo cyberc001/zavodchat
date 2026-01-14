@@ -41,6 +41,7 @@
 
 	import Dialog from '$lib/control/dialog.svelte';
 	import NotifDisplay from '$lib/display/notif.svelte';
+	import Video from '$lib/display/video.svelte';
 
 	let {setPage} = $props();
 
@@ -382,7 +383,7 @@
 								</button>
 								{#if ch.type === Channel.Type.Voice}
 									{#each Object.values(ch.vc_users) as vc_state}
-										<div class="hoverable"
+										<div
 											style="display: flex; align-items: center; margin: 3px 0 3px 6px; font-size: 22px; anchor-name: --{"vc_user_" + vc_state.id}"
 
 											bind:this={vc_user_divs[vc_state.id]}
@@ -397,18 +398,27 @@
 											<img src={User.get_avatar_path(vc_state.user.data)}
 												alt="avatar"
 												style={"width: 32px; height: 32px; margin-right: 8px; border-style: solid; border-size: 2px; border-color: #00FF00"
-													+ (socket_vc && socket_vc.user_id_to_track[vc_state.user.data.id] ?
-														Util.padded_hex(Math.min(socket_vc.user_id_to_track[vc_state.user.data.id].amplitude / 10, 1) * 255)
+													+ (socket_vc && socket_vc.user_id_to_audio[vc_state.user.data.id] ?
+														Util.padded_hex(Math.min(socket_vc.user_id_to_audio[vc_state.user.data.id].amplitude / 10, 1) * 255)
 														: "00")
 												}
 											/>
 											{vc_state.user.data.name}
 											<div style="margin-left: auto">
+												{#if socket_vc && socket_vc.user_id_to_video[vc_state.user.data.id]}
+												<button class="hoverable transparent_button"
+														onclick={() => {
+															socket_vc.watch_video(vc_state.user.data.id);
+														}}
+												>
+													<img src={"/src/lib/assets/icons/watch.svg"} alt="watch" class="filter_icon_main" style="width: 24px"/>
+												</button>
+												{/if}
 												{#if vc_state.mute}
-													<img src={"/src/lib/assets/icons/muted.svg"} alt="muted" class="filter_icon_main" style="width: 24px"/>
+												<img src="/src/lib/assets/icons/muted.svg" alt="muted" class="filter_icon_main" style="width: 24px"/>
 												{/if}
 												{#if vc_state.deaf}
-													<img src={"/src/lib/assets/icons/deaf.svg"} alt="deaf" class="filter_icon_main" style="width: 24px"/>
+												<img src="/src/lib/assets/icons/deaf.svg" alt="deaf" class="filter_icon_main" style="width: 24px"/>
 												{/if}
 											</div>
 										</div>
@@ -438,7 +448,18 @@
 				<div style="display: flex; align-items: center; margin-bottom: 6px">
 					{socket_vc.channel.data.name}
 
-					<div style="margin-left: auto">
+					<div style="margin-left: auto; display: flex">
+						<button class="hoverable transparent_button"
+							onclick={() => {
+								socket_vc.set_video_state(socket_vc.video_state === VCSocket.VideoState.Disabled ?
+												VCSocket.VideoState.Screen : VCSocket.VideoState.Disabled);
+							}}
+						>
+							<img src={"/src/lib/assets/icons/screen_share" + (socket_vc.video_state === VCSocket.VideoState.Screen ? "_stop" : "") + ".svg"}
+								alt={socket_vc.video_state === VCSocket.VideoState.Screen ? "stop sharing screen" : "share screen"} class="filter_icon_main" style="width: 24px">
+						</button>
+
+
 						<button class="hoverable transparent_button"
 							onclick={() => {
 								socket_vc.toggle_mute();
@@ -562,6 +583,12 @@
 
 {/if}
 
+{#if socket_vc && socket_vc.watched_video}
+	<Video track={socket_vc.watched_video}
+		close_video={() => socket_vc.unwatch_video()}
+	/>
+{/if}
+
 <NotifDisplay/>
 
 <Dialog bind:this={ban.dialog}
@@ -572,7 +599,7 @@ buttons={[{text: ban.duration ? "Ban" : "Ban forever", disabled: ban.error,
 		}},
 	  {text: "Cancel"}]}
 >
-<DurationPicker label_text="Ban duration"
-	bind:expires={ban.expires} bind:error={ban.error}
-/>
+	<DurationPicker label_text="Ban duration"
+		bind:expires={ban.expires} bind:error={ban.error}
+	/>
 </Dialog>
