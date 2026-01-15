@@ -16,6 +16,20 @@ std::string socket_event::dump()
 }
 
 
+void socket_connection::send(const std::string& data)
+{
+	std::shared_ptr<ix::WebSocket> ptr = sock.lock();
+	if(ptr)
+		ptr->send(data);
+}
+void socket_connection::close(uint16_t code, const std::string& reason)
+{
+	std::shared_ptr<ix::WebSocket> ptr = sock.lock();
+	if(ptr)
+		ptr->close(code, reason);
+}
+
+
 socket_server::socket_server(std::string https_key, std::string https_cert, int port,
 				db_connection_pool& pool): srv{port, "0.0.0.0"}, pool{pool}
 {

@@ -25,6 +25,9 @@ class socket_connection : public ix::ConnectionState
 public:
 	int user_id = -1;
 	std::weak_ptr<ix::WebSocket> sock;
+
+	void send(const std::string& data);
+	void close(uint16_t code, const std::string& reason);
 };
 
 class socket_server

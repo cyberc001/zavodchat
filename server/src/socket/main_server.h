@@ -23,7 +23,7 @@ public:
 private:
 	void try_send_to_conn(int user_id, const std::string& data);
 
-	phmap::parallel_flat_hash_map<int, std::weak_ptr<ix::WebSocket>> connections;
+	phmap::parallel_flat_hash_map<int, std::shared_ptr<socket_connection>> connections;
 	std::vector<main_server_recv_cb> recv_cbs;
 };
 
