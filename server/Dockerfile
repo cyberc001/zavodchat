@@ -19,6 +19,11 @@ RUN git clone https://github.com/paullouisageneau/libdatachannel.git /3rdparty/l
 	cmake -B build -DUSE_GNUTLS=1 -DUSE_NICE=0 -DCMAKE_BUILD_TYPE=Debug;\
 	cd build; make -j 4; make install
 
+RUN git clone https://github.com/greg7mdp/parallel-hashmap.git /3rdparty/phmap;
+
+
+RUN mkdir -p /build/src/parallel_hashmap; cp -r /3rdparty/phmap/parallel_hashmap /build/src
+
 COPY *.key *.pem /build/
 COPY CMakeLists.txt /build/
 COPY ./src /build/src

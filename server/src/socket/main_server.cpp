@@ -44,11 +44,7 @@ socket_main_server::socket_main_server(std::string https_key, std::string https_
 					}
 				}
 
-				// add user to connections map
-				{
-					std::unique_lock lock(connections_mutex);
-					connections[conn.user_id] = conn.sock;
-				}
+				connections[conn.user_id] = conn.sock;
 
 				socket_event ev;
 				ev.data["id"] = conn.user_id;
@@ -63,11 +59,7 @@ socket_main_server::socket_main_server(std::string https_key, std::string https_
 				db_connection db_conn = pool.hold();
 				pqxx::work tx{*db_conn};
 
-				// remove user from connections map
-				{
-					std::unique_lock lock(connections_mutex);
-					connections.erase(conn.user_id);
-				}
+				connections.erase(conn.user_id);
 
 				socket_event ev;
 				ev.data["id"] = conn.user_id;
@@ -77,12 +69,18 @@ socket_main_server::socket_main_server(std::string https_key, std::string https_
 
 				tx.exec("UPDATE users SET status = 0 WHERE user_id = $1", pqxx::params(conn.user_id));
 				tx.commit();
-			} else if(msg->type == ix::WebSocketMessageType::Message){
-				for(auto it = recv_cbs.begin(); it != recv_cbs.end(); ++it){
-					(*it)(conn.user_id, socket_event(msg->str));
-				}
 			}
 		});
+	});
+}
+
+
+void socket_main_server::try_send_to_conn(int user_id, const std::string& data)
+{
+	connections.if_contains(user_id, [&data](std::pair<int, std::weak_ptr<ix::WebSocket>> o){
+		std::shared_ptr<ix::WebSocket> sock = o.second.lock();
+		if(sock)
+			sock->send(data);
 	});
 }
 
@@ -91,14 +89,9 @@ void socket_main_server::send_to_server(int server_id, pqxx::work& tx, socket_ev
 	std::string dumped = event.dump();
 	pqxx::result r = tx.exec("SELECT user_id FROM user_x_server WHERE server_id = $1 GROUP BY user_id", pqxx::params(server_id));
 
-	std::shared_lock lock(connections_mutex);
 	for(size_t i = 0; i < r.size(); ++i){
 		int user_id = r[i]["user_id"].as<int>();
-		if(connections.find(user_id) != connections.end()){
-			std::shared_ptr<ix::WebSocket> sock = connections[user_id].lock();
-			if(sock)
-				sock->send(dumped);
-		}
+		try_send_to_conn(user_id, dumped);
 	}
 }
 void socket_main_server::send_to_channel(int channel_id, pqxx::work& tx, socket_event event)
@@ -108,44 +101,23 @@ void socket_main_server::send_to_channel(int channel_id, pqxx::work& tx, socket_
 	int server_id = r[0]["server_id"].as<int>();
 	r = tx.exec("SELECT user_id FROM user_x_server WHERE server_id = $1 GROUP BY user_id", pqxx::params(server_id));
 
-	std::shared_lock lock(connections_mutex);
 	for(size_t i = 0; i < r.size(); ++i){
 		int user_id = r[i]["user_id"].as<int>();
-		if(connections.find(user_id) != connections.end()){
-			std::shared_ptr<ix::WebSocket> sock = connections[user_id].lock();
-			if(sock)
-				sock->send(dumped);
-		}
+		try_send_to_conn(user_id, dumped);
 	}
 }
 void socket_main_server::send_to_user(int user_id, pqxx::work& tx, socket_event event)
 {
 	std::string dumped = event.dump();
-
-	std::shared_lock lock(connections_mutex);
-	if(connections.find(user_id) != connections.end()){
-		std::shared_ptr<ix::WebSocket> sock = connections[user_id].lock();
-		if(sock)
-			sock->send(dumped);
-	}
+	try_send_to_conn(user_id, dumped);
 }
 void socket_main_server::send_to_user_observers(int user_id, pqxx::work& tx, socket_event event)
 {
+	std::string dumped = event.dump();
 	pqxx::result r = tx.exec("SELECT DISTINCT ON(user_id) user_id, server_id FROM user_x_server WHERE server_id IN (SELECT server_id FROM user_x_server WHERE user_id = $1)", pqxx::params(user_id));
 
-	std::shared_lock lock(connections_mutex);
 	for(size_t i = 0; i < r.size(); ++i){
 		int user_id = r[i]["user_id"].as<int>();
-		if(connections.find(user_id) != connections.end()){
-			std::shared_ptr<ix::WebSocket> sock = connections[user_id].lock();
-			if(sock)
-				sock->send(event.dump());
-		}
+		try_send_to_conn(user_id, dumped);
 	}
-}
-
-
-void socket_main_server::add_recv_cb(main_server_recv_cb cb)
-{
-	recv_cbs.push_back(cb);
 }

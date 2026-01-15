@@ -4,6 +4,7 @@
 #include "socket/server.h"
 #include <shared_mutex>
 #include <functional>
+#include "parallel_hashmap/phmap.h"
 
 using main_server_recv_cb = std::function<void(int user_id, socket_event ev)>;
 
@@ -19,10 +20,10 @@ public:
 	// sends an event to everyone in the same servers as user
 	void send_to_user_observers(int user_id, pqxx::work& tx, socket_event event);
 
-	void add_recv_cb(main_server_recv_cb cb);
 private:
-	std::shared_mutex connections_mutex;
-	std::unordered_map<int, std::weak_ptr<ix::WebSocket>> connections;
+	void try_send_to_conn(int user_id, const std::string& data);
+
+	phmap::parallel_flat_hash_map<int, std::weak_ptr<ix::WebSocket>> connections;
 	std::vector<main_server_recv_cb> recv_cbs;
 };
 
