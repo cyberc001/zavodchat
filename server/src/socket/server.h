@@ -7,7 +7,6 @@
 #include <ixwebsocket/IXWebSocketServer.h>
 
 #include "db/conn_pool.h"
-#include "socket/thread_queue.h"
 
 struct socket_event
 {
