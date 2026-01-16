@@ -134,6 +134,7 @@ export default class MainSocket {
 			}
 		},
 		user_left_vc: function(data) {
+			console.log("user_left_vc", data);
 			if(Channel.channel_list_cache.has_state(data.server_id)){
 				let list = Channel.channel_list_cache.get_state(data.server_id);
 				let channel_list_data = Channel.channel_list_cache.get_state(data.server_id).data.find((x) => x.id === data.channel_id);

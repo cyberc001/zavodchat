@@ -8,7 +8,7 @@ RUN git clone https://github.com/etr/libhttpserver.git /3rdparty/libhttpserver;\
 	cd /3rdparty/libhttpserver; ./bootstrap; mkdir build; cd build;\
 	../configure; make -j 4; make install
 
-RUN git clone https://github.com/jtv/libpqxx.git /3rdparty/pqxx;\
+RUN git clone https://github.com/jtv/libpqxx.git /3rdparty/pqxx --branch 7.10.4;\
 	cd /3rdparty/pqxx; cmake . -DBUILD_SHARED_LIBS=on; make -j 4; make install
 
 RUN git clone https://github.com/machinezone/IXWebSocket.git /3rdparty/ixws;\

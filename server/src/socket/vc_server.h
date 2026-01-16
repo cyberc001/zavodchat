@@ -3,68 +3,92 @@
 
 #include "socket/main_server.h"
 #include "rtc/rtc.hpp"
-#include <shared_mutex>
-#include <stack>
+#include <unordered_map>
+#include <functional>
+#include <mutex>
+#include <memory>
+#include <queue>
 #include <random>
-
-enum vc_state {
-	NO, SELF, BY_ADMIN
-};
-
-class socket_vc_connection : public socket_connection
-{
-public:
-	int server_id = -1;
-	int channel_id = -1;
-
-	std::shared_ptr<rtc::PeerConnection> rtc_conn;
-
-	// tracks are re-used, and vector is never shrunk, otherwise tracks are gonna be rejected until PeerConnection is re-opened.
-	std::vector<std::shared_ptr<rtc::Track>> tracks; // 0 - voice track receiver
-	
-	size_t add_audio_track(rtc::SSRC ssrc, int user_id);
-	void remove_audio_track(int user_id);
-	std::stack<size_t> unused_audio_tracks;
-	std::unordered_map<int, size_t> user_to_audio_track; // user id to track index
-	
-	size_t add_recv_video_track(rtc::SSRC ssrc);
-	bool has_active_recv_video_track();
-	size_t add_video_track(rtc::SSRC ssrc, int user_id);
-	void remove_video_track(int user_id);
-	std::stack<size_t> unused_video_tracks;
-	std::unordered_map<int, size_t> user_to_video_track; // -1 - this user (recv track) - optional
-	
-	bool recv_video_track_requested_bitrate = false;
-	unsigned recv_video_track_bitrate;
-	std::set<size_t> users_needing_keyframe; // user IDs that, after appearing in connections list, should be generated keyframes for. If -1 is present, a keyframe should be generated regardless of receiving user (ex. on video re-open)
-	bool recv_video_track_closed = true;
-
-	// User voice state
-	vc_state mute = vc_state::NO, deaf = vc_state::NO;
-};
-class socket_vc_channel
-{
-public:
-	// these functions use connections_mutex:
-	void add_user(int user_id, std::shared_ptr<socket_vc_connection> conn);
-	void remove_user(int user_id);
-	bool has_user(int user_id);
-
-	// connections_mutex 
-	std::unordered_map<int, std::weak_ptr<socket_vc_connection>>::const_iterator connections_begin() const;
-	std::unordered_map<int, std::weak_ptr<socket_vc_connection>>::const_iterator connections_end() const;
-
-	std::shared_mutex connections_mutex;
-private:
-	std::unordered_map<int, std::weak_ptr<socket_vc_connection>> connections;
-};
 
 #define RTC_PAYLOAD_TYPE_VOICE 96
 #define RTC_PAYLOAD_TYPE_VIDEO 97
 
-class socket_vc_server: public socket_server
+enum vc_state
+{
+	NO, SELF, BY_ADMIN
+};
+
+
+class socket_vc_connection : public socket_connection
 {
 public:
+	int server_id = -1, channel_id = -1;
+	std::shared_ptr<rtc::PeerConnection> rtc_conn;
+
+
+	void init_rtc(std::string rtc_addr, int rtc_port, std::string rtc_cert, std::string rtc_key);
+
+	void add_audio_track(rtc::SSRC, int user_id);
+	void remove_audio_track(int user_id);
+	std::shared_ptr<rtc::Track> get_audio_track(int user_id);
+
+	void add_video_track(rtc::SSRC, int user_id, int bitrate);
+	void remove_video_track(int user_id);
+	std::shared_ptr<rtc::Track> get_video_track(int user_id);
+
+	void add_recv_video_track(int bitrate);
+	void remove_recv_video_track();
+	// Returns nullptr if recv track does not exist or is closed
+	std::shared_ptr<rtc::Track> get_recv_video_track();
+	void set_recv_video_bitrate(int bitrate);
+
+	rtc::SSRC get_ssrc(std::shared_ptr<rtc::Track>);
+	std::mutex& get_mutex();
+
+	vc_state mute = vc_state::NO, deaf = vc_state::NO;
+
+private:
+	void send_offer(std::string rtc_addr);
+
+	std::mutex mut;
+
+	std::string get_new_mid();
+	size_t last_mid = 0;
+	void change_track_desc(std::shared_ptr<rtc::Track>, rtc::SSRC, int user_id);
+
+	// key: user_id; key == -1 -> recv track
+	std::unordered_map<int, std::shared_ptr<rtc::Track>> audio_tracks;
+	std::unordered_map<int, std::shared_ptr<rtc::Track>> video_tracks;
+	std::queue<std::shared_ptr<rtc::Track>> removed_audio_tracks;
+	std::queue<std::shared_ptr<rtc::Track>> removed_video_tracks;
+	
+	// This track shouldnt be removed
+	void add_recv_audio_track();
+
+	int video_recv_bitrate = -1;
+	bool video_recv_is_open = false;
+};
+
+class socket_vc_channel
+{
+public:
+	void add_user(std::shared_ptr<socket_vc_connection>);
+	void remove_user(std::shared_ptr<socket_vc_connection>);
+	std::shared_ptr<socket_vc_connection> get_user(int user_id);
+
+	void enable_user_video(int user_id);
+
+	void for_each(std::function<void (int, std::shared_ptr<socket_vc_connection>)>);
+private:
+	std::mutex mut;
+	std::unordered_map<int, std::shared_ptr<socket_vc_connection>> users;
+};
+
+class socket_vc_server : public socket_server
+{
+public:
+	static thread_local std::mt19937 rng;
+
 	socket_vc_server(std::string https_key, std::string https_cert, int port,
 				db_connection_pool& pool, socket_main_server& sserv,
 				std::string rtc_addr, int rtc_port);
@@ -73,14 +97,20 @@ public:
 	
 	nlohmann::json get_channel_users(int channel_id); // get users connected to voice channel
 
-	std::unordered_map<int, socket_vc_channel> channels;
-	std::unordered_map<int, std::weak_ptr<socket_vc_connection>> users;
 
-	/* CONFIG PARAMETERS */
-	unsigned max_video_bitrate = 10240000;
+	int max_video_bitrate = 10240000;
 private:
 	bool parse_vc_state(std::unordered_map<std::string, std::string>& query, std::string arg_name, vc_state& out);
 	bool check_vc_state(unsigned state);
+
+	phmap::parallel_flat_hash_map<int, std::shared_ptr<socket_vc_channel>,
+					phmap::priv::hash_default_hash<int>, phmap::priv::hash_default_eq<int>,
+					phmap::priv::Allocator<std::pair<const int, std::shared_ptr<socket_vc_connection>>>, 4,
+					std::mutex> channels;
+	phmap::parallel_flat_hash_map<int, std::shared_ptr<socket_vc_connection>,
+					phmap::priv::hash_default_hash<int>, phmap::priv::hash_default_eq<int>,
+					phmap::priv::Allocator<std::pair<const int, std::shared_ptr<socket_vc_connection>>>, 4,
+					std::mutex> users;
 
 	db_connection_pool& pool;
 	socket_main_server& sserv;
@@ -88,14 +118,6 @@ private:
 	std::string rtc_addr;
 	int rtc_port;
 	std::string rtc_cert, rtc_key;
-
-	// for generating SSRC
-	std::random_device rndev;
-	std::mt19937 rneng;
-	std::uniform_int_distribution<std::mt19937::result_type> rndist;
-
-	std::shared_mutex channels_mutex;
-	std::shared_mutex users_mutex;
 };
 
 #endif

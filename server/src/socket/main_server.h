@@ -23,8 +23,10 @@ public:
 private:
 	void try_send_to_conn(int user_id, const std::string& data);
 
-	phmap::parallel_flat_hash_map<int, std::shared_ptr<socket_connection>> connections;
-	std::vector<main_server_recv_cb> recv_cbs;
+	phmap::parallel_flat_hash_map<int, std::shared_ptr<socket_connection>,
+					phmap::priv::hash_default_hash<int>, phmap::priv::hash_default_eq<int>,
+					phmap::priv::Allocator<std::pair<const int, std::shared_ptr<socket_connection>>>, 4,
+					std::mutex> connections;
 };
 
 #endif
