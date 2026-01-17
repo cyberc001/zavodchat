@@ -166,7 +166,6 @@ void socket_vc_connection::add_recv_audio_track()
 {
 	std::uniform_int_distribution<rtc::SSRC> dist(1, (rtc::SSRC)-1);
 	const rtc::SSRC ssrc = dist(socket_vc_server::rng);
-	std::cerr << "generated ssrc " << ssrc << std::endl;
 	auto rtp_conf = std::make_shared<rtc::RtpPacketizationConfig>(ssrc, "audio", RTC_PAYLOAD_TYPE_VOICE, rtc::OpusRtpPacketizer::DefaultClockRate);
 	auto session_recv = std::make_shared<rtc::RtcpReceivingSession>();
 	auto session_send = std::make_shared<rtc::RtcpSrReporter>(rtp_conf);
@@ -256,14 +255,22 @@ void socket_vc_channel::add_user(std::shared_ptr<socket_vc_connection> conn)
 	{
 		std::shared_ptr<rtc::Track> recv_audio = conn->get_audio_track(-1);
 		recv_audio->onMessage([this, conn, recv_audio](rtc::binary message){
-			for_each([conn, &message, recv_audio](int other_user_id, std::shared_ptr<socket_vc_connection> other_conn){
-				if(conn == other_conn)
-					return;
-				std::shared_ptr<rtc::Track> send_track = other_conn->get_audio_track(conn->user_id);
-				auto rtp = reinterpret_cast<rtc::RtpHeader*>(message.data());
-				rtp->setSsrc(conn->get_ssrc(recv_audio));
-				send_track->send(message.data(), message.size());
-			});
+			std::thread thr = std::thread([this, conn, recv_audio](rtc::binary message) {
+				std::cerr << "dispatching audio from " << conn->user_id << std::endl;
+				for_each([conn, &message, recv_audio](int other_user_id, std::shared_ptr<socket_vc_connection> other_conn){
+					if(conn == other_conn)
+						return;
+					std::shared_ptr<rtc::Track> send_track = other_conn->get_audio_track(conn->user_id);
+					if(send_track){
+						auto rtp = reinterpret_cast<rtc::RtpHeader*>(message.data());
+						rtp->setSsrc(conn->get_ssrc(recv_audio));
+						if(send_track->isOpen())
+							send_track->send(message.data(), message.size());
+					}
+				});
+				std::cerr << "dispatched audio from " << conn->user_id << std::endl;
+			}, message);
+			thr.detach();
 		}, nullptr);
 	}
 
@@ -272,7 +279,10 @@ void socket_vc_channel::add_user(std::shared_ptr<socket_vc_connection> conn)
 }
 void socket_vc_channel::remove_user(std::shared_ptr<socket_vc_connection> conn)
 {
+	std::cerr << "REMOVING " << conn.get() << std::endl;
 	for_each([conn](int other_user_id, std::shared_ptr<socket_vc_connection> other_conn){
+		if(other_conn == conn)
+			return;
 		other_conn->remove_audio_track(conn->user_id);
 		other_conn->remove_video_track(conn->user_id);
 		other_conn->rtc_conn->setLocalDescription();
@@ -280,6 +290,7 @@ void socket_vc_channel::remove_user(std::shared_ptr<socket_vc_connection> conn)
 
 	std::lock_guard lock(mut);
 	users.erase(conn->user_id);
+	std::cerr << "REMOVED " << conn.get() << std::endl;
 }
 std::shared_ptr<socket_vc_connection> socket_vc_channel::get_user(int user_id)
 {
@@ -303,14 +314,22 @@ void socket_vc_channel::enable_user_video(int user_id)
 	{
 		std::shared_ptr<rtc::Track> recv_video = conn->get_recv_video_track();
 		recv_video->onMessage([this, conn, recv_video](rtc::binary message){
-			for_each([conn, recv_video, &message](int other_user_id, std::shared_ptr<socket_vc_connection> other_conn){
-				if(conn == other_conn)
-					return;
-				std::shared_ptr<rtc::Track> send_track = other_conn->get_video_track(conn->user_id);
-				auto rtp = reinterpret_cast<rtc::RtpHeader*>(message.data());
-				rtp->setSsrc(conn->get_ssrc(recv_video));
-				send_track->send(message.data(), message.size());
-			});
+			std::thread thr = std::thread([this, conn, recv_video](rtc::binary message) {
+				std::cerr << "dispatching video from " << conn->user_id << std::endl;
+				for_each([conn, recv_video, &message](int other_user_id, std::shared_ptr<socket_vc_connection> other_conn){
+					if(conn == other_conn)
+						return;
+						std::shared_ptr<rtc::Track> send_track = other_conn->get_video_track(conn->user_id);
+					if(send_track){
+						auto rtp = reinterpret_cast<rtc::RtpHeader*>(message.data());
+						rtp->setSsrc(conn->get_ssrc(recv_video));
+						if(send_track->isOpen())
+							send_track->send(message.data(), message.size());
+					}
+				});
+			}, message);
+			thr.detach();
+			std::cerr << "dispatched video from " << conn->user_id << std::endl;
 		}, nullptr);
 	}	
 }
@@ -448,7 +467,9 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 				if(msg->closeInfo.reason == "User is already connected to this channel")
 					return;
 				
+				std::cerr << "removing user " << conn->user_id << std::endl;
 				channels[conn->channel_id]->remove_user(conn);
+				std::cerr << "removed user " << conn->user_id << std::endl;
 
 				db_connection db_conn = this->pool.hold();
 				pqxx::work tx{*db_conn};
@@ -477,6 +498,47 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 						rtc::Description answer(ev.data["sdp"].get<std::string>(), ev.data["type"].get<std::string>());
 						conn->rtc_conn->setRemoteDescription(answer);
 					}
+				} else if(ev.name == "change_state"){
+					bool changed = false;
+					if(ev.data.contains("mute")){
+						if(!ev.data["mute"].is_number_unsigned() || !check_vc_state(ev.data["mute"])){
+							socket_event ev;
+							ev.name = "error";
+							ev.data = "invalid mute state";
+							conn->send(ev.dump());
+							return;
+						}
+						if(ev.data["mute"] != conn->mute){
+							changed = true;
+							conn->mute = ev.data["mute"];
+						}
+					}
+					if(ev.data.contains("deaf")){
+						if(!ev.data["deaf"].is_number_unsigned() || !check_vc_state(ev.data["deaf"])){
+							socket_event ev;
+							ev.name = "error";
+							ev.data = "invalid deaf state";
+							conn->send(ev.dump());
+							return;
+						}
+						if(ev.data["deaf"] != conn->deaf){
+							changed = true;
+							conn->deaf = ev.data["deaf"];
+						}
+					}
+
+					if(changed){
+						db_connection db_conn = this->pool.hold();
+						pqxx::work tx{*db_conn};
+
+						socket_event ev;
+						resource_utils::json_set_ids(ev.data, conn->server_id, conn->channel_id);
+						ev.data["id"] = conn->user_id;
+						ev.data["mute"] = conn->mute;
+						ev.data["deaf"] = conn->deaf;
+						ev.name = "user_changed_vc_state";
+						this->sserv.send_to_channel(conn->channel_id, tx, ev);
+					}
 				}
 			}
 		});
@@ -497,10 +559,11 @@ void socket_vc_server::send_to_channel(int channel_id, pqxx::work& tx, socket_ev
 
 nlohmann::json socket_vc_server::get_channel_users(int channel_id)
 {
+	std::cerr << "getting channel users for " << channel_id << std::endl;
 	nlohmann::json out = nlohmann::json::array();
 	channels.if_contains(channel_id, [&out](std::pair<int, std::shared_ptr<socket_vc_channel>> p){
 		p.second->for_each([&out](int user_id, std::shared_ptr<socket_vc_connection> conn){
-			std::lock_guard(conn->get_mutex());
+			//std::lock_guard(conn->get_mutex());
 			nlohmann::json user = {
 				{"id", user_id},
 				{"mute", conn->mute},
@@ -509,6 +572,7 @@ nlohmann::json socket_vc_server::get_channel_users(int channel_id)
 			out += user;
 		});
 	});
+	std::cerr << "got users for " << channel_id << std::endl;
 	return out;
 }
 
@@ -525,5 +589,5 @@ bool socket_vc_server::parse_vc_state(std::unordered_map<std::string, std::strin
 }
 bool socket_vc_server::check_vc_state(unsigned state)
 {
-	return state >= vc_state::NO && state <= vc_state::BY_ADMIN;
+	return state >= vc_state::NO && state < vc_state::BY_ADMIN;
 }
