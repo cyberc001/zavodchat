@@ -154,7 +154,7 @@
 		if(channels.data[i].type === Channel.Type.Voice){
 			let old_socket_vc = socket_vc;
 			socket_vc = new VCSocket(user_self.data.id, sel.server, id, (close) => {
-				if(close.reason === "User is already connected")
+				if(close.reason === "User is already connected to this channel")
 					socket_vc = old_socket_vc;
 			});
 		} else {
@@ -398,14 +398,14 @@
 											<img src={User.get_avatar_path(vc_state.user.data)}
 												alt="avatar"
 												style={"width: 32px; height: 32px; margin-right: 8px; border-style: solid; border-size: 2px; border-color: #00FF00"
-													+ (socket_vc && socket_vc.user_id_to_audio[vc_state.user.data.id] ?
-														Util.padded_hex(Math.min(socket_vc.user_id_to_audio[vc_state.user.data.id].amplitude / 10, 1) * 255)
+													+ (socket_vc && socket_vc.audio[vc_state.user.data.id] ?
+														Util.padded_hex(Math.min(socket_vc.audio[vc_state.user.data.id].amplitude / 10, 1) * 255)
 														: "00")
 												}
 											/>
 											{vc_state.user.data.name}
 											<div style="margin-left: auto">
-												{#if socket_vc && socket_vc.user_id_to_video[vc_state.user.data.id]}
+												{#if socket_vc && socket_vc.video[vc_state.user.data.id]}
 												<button class="hoverable transparent_button"
 														onclick={() => {
 															socket_vc.watch_video(vc_state.user.data.id);
@@ -465,16 +465,16 @@
 								socket_vc.toggle_mute();
 							}}
 						>
-							<img src={"/src/lib/assets/icons/" + (socket_vc.is_muted ? "" : "not_") + "muted.svg"}
-								alt={(socket_vc.is_muted ? "un" : "") + "mute"} class="filter_icon_main" style="width: 24px">
+							<img src={"/src/lib/assets/icons/" + (socket_vc.mute == VCSocket.AudioState.None ? "not_" : "") + "muted.svg"}
+								alt={(socket_vc.mute == VCSocket.AudioState.None ? "" : "un") + "mute"} class="filter_icon_main" style="width: 24px">
 						</button>
 						<button class="hoverable transparent_button"
 							onclick={() => {
 								socket_vc.toggle_deaf();
 							}}
 						>
-							<img src={"/src/lib/assets/icons/" + (socket_vc.is_deaf ? "" : "not_") + "deaf.svg"}
-								alt={(socket_vc.is_deaf ? "un" : "") + "deafen"} class="filter_icon_main" style="width: 24px">
+							<img src={"/src/lib/assets/icons/" + (socket_vc.deaf == VCSocket.AudioState.None ? "not_" : "") + "deaf.svg"}
+								alt={(socket_vc.deaf == VCSocket.AudioState.None ? "" : "un") + "deafen"} class="filter_icon_main" style="width: 24px">
 						</button>
 						<button class="hoverable transparent_button"
 							onclick={() => {
@@ -486,6 +486,7 @@
 						</button>
 					</div>
 				</div>
+				{socket_vc.state.text}
 			</div>
 		{/if}
 		<div class="panel profile_panel">

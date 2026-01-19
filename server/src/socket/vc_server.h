@@ -4,6 +4,7 @@
 #include "socket/main_server.h"
 #include "rtc/rtc.hpp"
 #include <unordered_map>
+#include <unordered_set>
 #include <functional>
 #include <mutex>
 #include <memory>
@@ -42,6 +43,11 @@ public:
 	std::shared_ptr<rtc::Track> get_recv_video_track();
 	void set_recv_video_bitrate(int bitrate);
 
+	// Queues a keyframe request for next frame outgoing to this user
+	void request_keyframe(int user_id);
+	// Erases user_id from requested keyframes
+	bool is_keyframe_requested(int user_id);
+
 	rtc::SSRC get_ssrc(std::shared_ptr<rtc::Track>);
 	std::mutex& get_mutex();
 
@@ -54,13 +60,15 @@ private:
 
 	std::string get_new_mid();
 	size_t last_mid = 0;
-	void change_track_desc(std::shared_ptr<rtc::Track>, rtc::SSRC, int user_id);
+	void change_track_desc(std::shared_ptr<rtc::Track>, rtc::SSRC, int user_id = -1);
 
 	// key: user_id; key == -1 -> recv track
 	std::unordered_map<int, std::shared_ptr<rtc::Track>> audio_tracks;
 	std::unordered_map<int, std::shared_ptr<rtc::Track>> video_tracks;
 	std::queue<std::shared_ptr<rtc::Track>> removed_audio_tracks;
 	std::queue<std::shared_ptr<rtc::Track>> removed_video_tracks;
+
+	std::unordered_set<int> requested_keyframes; // key: user_id
 	
 	// This track shouldnt be removed
 	void add_recv_audio_track();
@@ -76,7 +84,8 @@ public:
 	void remove_user(std::shared_ptr<socket_vc_connection>);
 	std::shared_ptr<socket_vc_connection> get_user(int user_id);
 
-	void enable_user_video(int user_id);
+	void enable_user_video(std::shared_ptr<socket_vc_connection>);
+	void disable_user_video(std::shared_ptr<socket_vc_connection>);
 
 	void for_each(std::function<void (int, std::shared_ptr<socket_vc_connection>)>);
 private:
