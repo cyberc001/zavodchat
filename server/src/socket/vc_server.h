@@ -2,6 +2,7 @@
 #define SOCKET_VC_SERVER_H
 
 #include "socket/main_server.h"
+#include "thread_pool.h"
 #include "rtc/rtc.hpp"
 #include <unordered_map>
 #include <unordered_set>
@@ -80,11 +81,11 @@ private:
 class socket_vc_channel
 {
 public:
-	void add_user(std::shared_ptr<socket_vc_connection>);
+	void add_user(std::shared_ptr<socket_vc_connection>, thread_pool& thr_pool);
 	void remove_user(std::shared_ptr<socket_vc_connection>);
 	std::shared_ptr<socket_vc_connection> get_user(int user_id);
 
-	void enable_user_video(std::shared_ptr<socket_vc_connection>);
+	void enable_user_video(std::shared_ptr<socket_vc_connection>, thread_pool& thr_pool);
 	void disable_user_video(std::shared_ptr<socket_vc_connection>);
 
 	void for_each(std::function<void (int, std::shared_ptr<socket_vc_connection>)>);
@@ -127,6 +128,8 @@ private:
 	std::string rtc_addr;
 	int rtc_port;
 	std::string rtc_cert, rtc_key;
+
+	thread_pool thr_pool;
 };
 
 #endif

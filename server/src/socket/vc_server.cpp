@@ -252,7 +252,7 @@ std::mutex& socket_vc_connection::get_mutex()
 
 /*** socket_vc_channel ***/
 
-void socket_vc_channel::add_user(std::shared_ptr<socket_vc_connection> conn)
+void socket_vc_channel::add_user(std::shared_ptr<socket_vc_connection> conn, thread_pool& thr_pool)
 {
 	for_each([conn](int other_user_id, std::shared_ptr<socket_vc_connection> other_conn){
 		// Create send tracks for this connection
@@ -273,8 +273,8 @@ void socket_vc_channel::add_user(std::shared_ptr<socket_vc_connection> conn)
 
 	{
 		std::shared_ptr<rtc::Track> recv_audio = conn->get_audio_track(-1);
-		recv_audio->onMessage([this, conn, recv_audio](rtc::binary message){
-			std::thread thr = std::thread([this, conn, recv_audio](rtc::binary message) {
+		recv_audio->onMessage([this, conn, recv_audio, &thr_pool](rtc::binary message) mutable {
+			thr_pool.execute([this, conn, recv_audio, &thr_pool, message]() mutable {
 				for_each([conn, &message, recv_audio](int other_user_id, std::shared_ptr<socket_vc_connection> other_conn){
 					if(conn == other_conn)
 						return;
@@ -286,8 +286,7 @@ void socket_vc_channel::add_user(std::shared_ptr<socket_vc_connection> conn)
 							send_track->send(message.data(), message.size());
 					}
 				});
-			}, message);
-			thr.detach();
+			});
 		}, nullptr);
 	}
 
@@ -315,7 +314,7 @@ std::shared_ptr<socket_vc_connection> socket_vc_channel::get_user(int user_id)
 	return users.find(user_id) == users.end() ? nullptr : users[user_id];
 }
 
-void socket_vc_channel::enable_user_video(std::shared_ptr<socket_vc_connection> conn)
+void socket_vc_channel::enable_user_video(std::shared_ptr<socket_vc_connection> conn, thread_pool& thr_pool)
 {
 	for_each([conn](int other_user_id, std::shared_ptr<socket_vc_connection> other_conn){
 		if(conn == other_conn)
@@ -329,9 +328,9 @@ void socket_vc_channel::enable_user_video(std::shared_ptr<socket_vc_connection> 
 
 	{
 		std::shared_ptr<rtc::Track> recv_video = conn->get_recv_video_track();
-		recv_video->onMessage([this, conn, recv_video](rtc::binary message){
-			std::thread thr = std::thread([this, conn, recv_video](rtc::binary message) {
-				for_each([conn, recv_video, &message](int other_user_id, std::shared_ptr<socket_vc_connection> other_conn){
+		recv_video->onMessage([this, conn, recv_video, &thr_pool](rtc::binary message){
+			thr_pool.execute([this, conn, recv_video, &thr_pool, message]() mutable {
+				for_each([conn, recv_video, &message](int other_user_id, std::shared_ptr<socket_vc_connection> other_conn) mutable {
 					if(conn == other_conn)
 						return;
 					std::shared_ptr<rtc::Track> send_track = other_conn->get_video_track(conn->user_id);
@@ -340,15 +339,12 @@ void socket_vc_channel::enable_user_video(std::shared_ptr<socket_vc_connection> 
 						rtp->setSsrc(conn->get_ssrc(recv_video));
 						if(send_track->isOpen()){
 							send_track->send(message.data(), message.size());
-							if(conn->is_keyframe_requested(other_conn->user_id)){
-								std::cerr << "SENDING KEYFRAME FROM " << conn->user_id << " TO " << other_conn->user_id << std::endl;
+							if(conn->is_keyframe_requested(other_conn->user_id))
 								recv_video->requestKeyframe();
-							}
 						}
 					}
 				});
-			}, message);
-			thr.detach();
+			});
 		}, nullptr);
 	}
 }
@@ -466,7 +462,7 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 				std::cerr << "initialized rtc" << std::endl;
 
 				channels.emplace(conn->channel_id, std::make_shared<socket_vc_channel>());
-				channels[conn->channel_id]->add_user(conn);
+				channels[conn->channel_id]->add_user(conn, thr_pool);
 				std::cerr << "added user to channel" << std::endl;
 
 				conn->rtc_conn->onStateChange([this, conn](rtc::PeerConnection::State state){
@@ -577,7 +573,7 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 					}
 
 					conn->add_recv_video_track(bitrate);
-					channels[conn->channel_id]->enable_user_video(conn);
+					channels[conn->channel_id]->enable_user_video(conn, thr_pool);
 				} else if(ev.name == "disable_video") {
 					conn->remove_recv_video_track();
 					channels[conn->channel_id]->disable_user_video(conn);
