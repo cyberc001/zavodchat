@@ -15,11 +15,14 @@
 #define RTC_PAYLOAD_TYPE_VOICE 96
 #define RTC_PAYLOAD_TYPE_VIDEO 97
 
-enum vc_state
+enum audio_state
 {
 	NO, SELF, BY_ADMIN
 };
-
+enum video_state
+{
+	DISABLED, SCREEN
+};
 
 class socket_vc_connection : public socket_connection
 {
@@ -27,6 +30,8 @@ public:
 	int server_id = -1, channel_id = -1;
 	std::shared_ptr<rtc::PeerConnection> rtc_conn;
 
+
+	nlohmann::json get_vc_state();
 
 	void init_rtc(std::string rtc_addr, int rtc_port, std::string rtc_cert, std::string rtc_key);
 
@@ -52,7 +57,7 @@ public:
 	rtc::SSRC get_ssrc(std::shared_ptr<rtc::Track>);
 	std::mutex& get_mutex();
 
-	vc_state mute = vc_state::NO, deaf = vc_state::NO;
+	audio_state mute = audio_state::NO, deaf = audio_state::NO;
 
 private:
 	void send_offer(std::string rtc_addr);
@@ -110,8 +115,8 @@ public:
 
 	int max_video_bitrate = 10240000;
 private:
-	bool parse_vc_state(std::unordered_map<std::string, std::string>& query, std::string arg_name, vc_state& out);
-	bool check_vc_state(unsigned state);
+	bool parse_audio_state(std::unordered_map<std::string, std::string>& query, std::string arg_name, audio_state& out);
+	bool check_audio_state(unsigned state);
 
 	phmap::parallel_flat_hash_map<int, std::shared_ptr<socket_vc_channel>,
 					phmap::priv::hash_default_hash<int>, phmap::priv::hash_default_eq<int>,

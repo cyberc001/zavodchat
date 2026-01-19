@@ -21,6 +21,17 @@ void socket_vc_connection::change_track_desc(std::shared_ptr<rtc::Track> track, 
 	track->setDescription(desc);
 }
 
+
+nlohmann::json socket_vc_connection::get_vc_state()
+{	
+	return {
+		{"id", user_id},
+		{"mute", mute},
+		{"deaf", deaf},
+		{"video", get_recv_video_track() ? video_state::SCREEN : video_state::DISABLED}
+	};
+}
+
 void socket_vc_connection::init_rtc(std::string rtc_addr, int rtc_port, std::string rtc_cert, std::string rtc_key)
 {
 	auto conf = rtc::Configuration();
@@ -448,11 +459,11 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 				std::cerr << "checked for existing connections" << std::endl;
 
 				// Parse state
-				if(!parse_vc_state(query, "mute", conn->mute)){
+				if(!parse_audio_state(query, "mute", conn->mute)){
 					conn->close(ix::WebSocketCloseConstants::kNormalClosureCode, "Invalid mute state '" + query["mute"] + "'");
 					return;
 				}
-				if(!parse_vc_state(query, "deaf", conn->deaf)){
+				if(!parse_audio_state(query, "deaf", conn->deaf)){
 					conn->close(ix::WebSocketCloseConstants::kNormalClosureCode, "Invalid deaf state '" + query["deaf"] + "'");
 					return;
 				}
@@ -470,10 +481,8 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 						db_connection db_conn = this->pool.hold();
 						pqxx::work tx{*db_conn};
 						socket_event ev;
+						ev.data = conn->get_vc_state();
 						resource_utils::json_set_ids(ev.data, conn->server_id, conn->channel_id);
-						ev.data["id"] = conn->user_id;
-						ev.data["mute"] = conn->mute;
-						ev.data["deaf"] = conn->deaf;
 						ev.name = "user_joined_vc";
 						this->sserv.send_to_channel(conn->channel_id, tx, ev);
 					} else if(state == rtc::PeerConnection::State::Failed){
@@ -521,7 +530,7 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 				} else if(ev.name == "change_state"){
 					bool changed = false;
 					if(ev.data.contains("mute")){
-						if(!ev.data["mute"].is_number_unsigned() || !check_vc_state(ev.data["mute"])){
+						if(!ev.data["mute"].is_number_unsigned() || !check_audio_state(ev.data["mute"])){
 							socket_event ev;
 							ev.name = "error";
 							ev.data = "invalid mute state";
@@ -534,7 +543,7 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 						}
 					}
 					if(ev.data.contains("deaf")){
-						if(!ev.data["deaf"].is_number_unsigned() || !check_vc_state(ev.data["deaf"])){
+						if(!ev.data["deaf"].is_number_unsigned() || !check_audio_state(ev.data["deaf"])){
 							socket_event ev;
 							ev.name = "error";
 							ev.data = "invalid deaf state";
@@ -552,14 +561,15 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 						pqxx::work tx{*db_conn};
 
 						socket_event ev;
+						ev.data = conn->get_vc_state();
 						resource_utils::json_set_ids(ev.data, conn->server_id, conn->channel_id);
-						ev.data["id"] = conn->user_id;
-						ev.data["mute"] = conn->mute;
-						ev.data["deaf"] = conn->deaf;
 						ev.name = "user_changed_vc_state";
 						this->sserv.send_to_channel(conn->channel_id, tx, ev);
 					}
 				} else if(ev.name == "enable_video"){
+					if(conn->get_recv_video_track())
+						return;
+
 					int bitrate = max_video_bitrate;
 					if(ev.data.contains("bitrate")){
 						if(!ev.data["bitrate"].is_number_unsigned()){
@@ -574,9 +584,28 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 
 					conn->add_recv_video_track(bitrate);
 					channels[conn->channel_id]->enable_user_video(conn, thr_pool);
+
+					db_connection db_conn = this->pool.hold();
+					pqxx::work tx{*db_conn};
+					socket_event ev;
+					ev.data = conn->get_vc_state();
+					resource_utils::json_set_ids(ev.data, conn->server_id, conn->channel_id);
+					ev.name = "user_changed_vc_state";
+					this->sserv.send_to_channel(conn->channel_id, tx, ev);
 				} else if(ev.name == "disable_video") {
+					if(!conn->get_recv_video_track())
+						return;
+
 					conn->remove_recv_video_track();
 					channels[conn->channel_id]->disable_user_video(conn);
+
+					db_connection db_conn = this->pool.hold();
+					pqxx::work tx{*db_conn};
+					socket_event ev;
+					ev.data = conn->get_vc_state();
+					resource_utils::json_set_ids(ev.data, conn->server_id, conn->channel_id);
+					ev.name = "user_changed_vc_state";
+					this->sserv.send_to_channel(conn->channel_id, tx, ev);
 				}
 			}
 		});
@@ -601,31 +630,25 @@ nlohmann::json socket_vc_server::get_channel_users(int channel_id)
 	nlohmann::json out = nlohmann::json::array();
 	channels.if_contains(channel_id, [&out](std::pair<int, std::shared_ptr<socket_vc_channel>> p){
 		p.second->for_each([&out](int user_id, std::shared_ptr<socket_vc_connection> conn){
-			//std::lock_guard(conn->get_mutex());
-			nlohmann::json user = {
-				{"id", user_id},
-				{"mute", conn->mute},
-				{"deaf", conn->deaf}
-			};
-			out += user;
+			out += conn->get_vc_state();
 		});
 	});
 	std::cerr << "got users for " << channel_id << std::endl;
 	return out;
 }
 
-bool socket_vc_server::parse_vc_state(std::unordered_map<std::string, std::string>& query, std::string arg_name, vc_state& out)
+bool socket_vc_server::parse_audio_state(std::unordered_map<std::string, std::string>& query, std::string arg_name, audio_state& out)
 {
 	if(query.find(arg_name) == query.end())
 		return true;
 	try{
-		out = static_cast<vc_state>(std::stol(query[arg_name]));
+		out = static_cast<audio_state>(std::stol(query[arg_name]));
 	} catch(std::invalid_argument& e){
 		return false;
 	}
-	return check_vc_state(out);
+	return check_audio_state(out);
 }
-bool socket_vc_server::check_vc_state(unsigned state)
+bool socket_vc_server::check_audio_state(unsigned state)
 {
-	return state >= vc_state::NO && state < vc_state::BY_ADMIN;
+	return state >= audio_state::NO && state < audio_state::BY_ADMIN;
 }

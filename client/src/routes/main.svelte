@@ -404,7 +404,12 @@
 												}
 											/>
 											{vc_state.user.data.name}
-											<div style="margin-left: auto">
+											<div style="margin-left: auto; margin-right: 4px; display: flex; align-items: center">
+												{#if vc_state.video > VCSocket.VideoState.Disabled}
+													<div style="background: red; border-radius: 4px; font-size: 18px; padding: 0 3px 0 3px; margin-right: 3px; display: inline-block">
+														STREAM
+													</div>
+												{/if}
 												{#if socket_vc && socket_vc.video[vc_state.user.data.id]}
 												<button class="hoverable transparent_button"
 														onclick={() => {
@@ -414,6 +419,7 @@
 													<img src={"/src/lib/assets/icons/watch.svg"} alt="watch" class="filter_icon_main" style="width: 24px"/>
 												</button>
 												{/if}
+
 												{#if vc_state.mute}
 												<img src="/src/lib/assets/icons/muted.svg" alt="muted" class="filter_icon_main" style="width: 24px"/>
 												{/if}

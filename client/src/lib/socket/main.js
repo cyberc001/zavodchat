@@ -149,6 +149,7 @@ export default class MainSocket {
 				if(channel_list_data && channel_list_data.vc_users){
 					channel_list_data.vc_users[data.id].mute = data.mute;
 					channel_list_data.vc_users[data.id].deaf = data.deaf;
+					channel_list_data.vc_users[data.id].video = data.video;
 				}
 			}
 		}
