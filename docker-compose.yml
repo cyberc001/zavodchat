@@ -33,5 +33,12 @@ services:
       - 445:445 # VC socket
       - 49000:49000/udp # WebRTC
 
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    ports:
+      - 5173:5173
+
 volumes:
   upload-volume:
