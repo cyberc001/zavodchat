@@ -1,0 +1,13 @@
+diff --git a/download_model.sh b/download_model.sh
+index 0ee5552..5f8e459 100755
+--- a/download_model.sh
++++ b/download_model.sh
+@@ -6,7 +6,7 @@ model=rnnoise_data-$hash.tar.gz
+ 
+ if [ ! -f $model ]; then
+         echo "Downloading latest model"
+-        wget https://media.xiph.org/rnnoise/models/$model
++        curl https://media.xiph.org/rnnoise/models/$model -o $model
+ fi
+ 
+ if command -v sha256sum

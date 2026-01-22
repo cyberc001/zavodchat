@@ -13,7 +13,7 @@ class VCTrack {
 		}
 	}
 
-	init(track){
+	async init(track){
 		this.track = track;
 	}
 	destroy(){
@@ -25,10 +25,12 @@ class VCTrack {
 }
 
 class VCAudioTrack extends VCTrack {
-	analyser; analyser_src;
+	ctx; analyser;
+	ctx_src; ctx_dest;
+	denoiser;
 	amplitude = $state(0);
 
-	init(track, mic){
+	async init(track, mic){
 		super.init(track);
 		if(!mic){
 			this.media = new Audio();
@@ -37,9 +39,18 @@ class VCAudioTrack extends VCTrack {
 
 		this.ctx = new AudioContext();
 		this.analyser = this.ctx.createAnalyser();
-		this.analyser_src = this.ctx.createMediaStreamSource(mic ? new MediaStream([track]) : this.media.srcObject);
+		this.ctx_src = this.ctx.createMediaStreamSource(mic ? new MediaStream([track]) : this.media.srcObject);
 		this.analyser.smoothingTimeConstant = 0.1;
-		this.analyser_src.connect(this.analyser);
+		this.ctx_src.connect(this.analyser);
+
+		if(mic){
+			console.log("adding module");
+			await this.ctx.audioWorklet.addModule("/src/lib/socket/vc_mic_processor.js");
+			console.log("added");
+			this.processor = new AudioWorkletNode(this.ctx, "vc_mic_processor");
+			this.ctx_dest = this.ctx.createMediaStreamDestination();
+			this.ctx_src.connect(this.processor).connect(this.ctx_dest);
+		}
 
 		VCAudioTrack._glbl_tracks[this.track.id] = this;
 
@@ -138,7 +149,7 @@ export default class VCSocket {
 	mute = $state(VCSocket.AudioState.None);
 	toggle_mute(){
 		this.mute = VCSocket.AudioState.toggled(this.mute);
-		this.audio[this.user_id].track.enabled = this.mute == VCSocket.AudioState.None;
+		this.audio[this.user_id].ctx_dest.stream.getTracks()[0].enabled = this.mute == VCSocket.AudioState.None;
 		this.ws.send(JSON.stringify({"name": "change_state", "data": {"mute": this.mute}}));
 	}
 	deaf = $state(VCSocket.AudioState.None);
@@ -233,7 +244,7 @@ export default class VCSocket {
 			};
 
 			// Handle new tracks added to connection
-			this.rtc.ontrack = (e) => {
+			this.rtc.ontrack = async (e) => {
 				const id = e.transceiver.mid;
 
 				e.track.enabled = this.deaf == VCSocket.AudioState.None;
@@ -251,7 +262,7 @@ export default class VCSocket {
 						break;
 				
 				}
-				track.init(e.track);
+				await track.init(e.track);
 				console.log("added track", track);
 			};
 
@@ -267,11 +278,13 @@ export default class VCSocket {
 			try {
 				const media = await navigator.mediaDevices.getUserMedia({audio: true});
 				const new_track = media.getTracks()[0];
-				this.rtc.addTrack(new_track, media);
+				//this.rtc.addTrack(new_track, media);
 				
 				let track = this.audio[this.user_id] = this.tracks[-1] = new VCAudioTrack();
 				track.user_id = this.user_id;
-				track.init(new_track, true);
+				await track.init(new_track, true);
+				console.log("adding", track.ctx_dest.stream);
+				this.rtc.addTrack(track.ctx_dest.stream.getTracks()[0], track.ctx_dest.stream);
 			} catch {
 			}
 
