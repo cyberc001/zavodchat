@@ -4,9 +4,6 @@
 #include <string.h>
 #include "rnnoise.h"
 
-DenoiseState *denoise;
-size_t frame_ln;
-float* frame_buf;
 
 struct buffer {
 	float* mem;
@@ -101,36 +98,46 @@ void buf_pop(struct buffer* buf, float* out, size_t out_ln)
 	buf_adv_begin(buf, out_ln);
 }
 
+
+DenoiseState *denoise;
+size_t frame_ln;
+float* frame_buf;
+
+EMSCRIPTEN_KEEPALIVE void* get_buf()
+{
+	return frame_buf;
+}
+
 int main()
 {
-	printf("creating denoise state\n");
 	denoise = rnnoise_create(NULL);
 	frame_ln = rnnoise_get_frame_size();
 	frame_buf = malloc(sizeof(float) * frame_ln);
-	printf("frame ln %lu\n", frame_ln);
 
 	buf_init(&buf_in, frame_ln * 2);
-	buf_init(&buf_out, frame_ln * 2);	
+	buf_init(&buf_out, frame_ln * 2);
 
 	return 0;
 }
 
+// Data is set in frame_buf
 // Assume that always (data_ln < frame_ln)
-EMSCRIPTEN_KEEPALIVE void process(float* data, size_t data_ln)
+EMSCRIPTEN_KEEPALIVE void process(size_t data_ln)
 {
-	//printf("process() begin\n");
-	//buf_print(&buf_in);
+	buf_push(&buf_in, frame_buf, data_ln);
 
-	buf_push(&buf_in, data, data_ln);
 	while(buf_size(&buf_in) >= frame_ln){
 		buf_pop(&buf_in, frame_buf, frame_ln);
-		//rnnoise_process_frame(denoise, frame_buf, frame_buf);
+		for(size_t i = 0; i < frame_ln; ++i)
+			frame_buf[i] *= 32768;
+		rnnoise_process_frame(denoise, frame_buf, frame_buf);
+		for(size_t i = 0; i < frame_ln; ++i)
+			frame_buf[i] /= 32768;
 		buf_push(&buf_out, frame_buf, frame_ln);
 	}
 
 	if(buf_size(&buf_out) >= data_ln)
-		buf_pop(&buf_out, data, data_ln);
+		buf_pop(&buf_out, frame_buf, data_ln);
 
-	//printf("process() end\n");
 	return;
 }

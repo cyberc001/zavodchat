@@ -27,10 +27,9 @@ class VCTrack {
 class VCAudioTrack extends VCTrack {
 	ctx; analyser;
 	ctx_src; ctx_dest;
-	denoiser;
 	amplitude = $state(0);
 
-	async init(track, mic){
+	async init(track, mic, denoise){
 		super.init(track);
 		if(!mic){
 			this.media = new Audio();
@@ -38,19 +37,23 @@ class VCAudioTrack extends VCTrack {
 		}
 
 		this.ctx = new AudioContext();
-		this.analyser = this.ctx.createAnalyser();
 		this.ctx_src = this.ctx.createMediaStreamSource(mic ? new MediaStream([track]) : this.media.srcObject);
-		this.analyser.smoothingTimeConstant = 0.1;
-		this.ctx_src.connect(this.analyser);
+
+		this.analyser = this.ctx.createAnalyser();
+		this.analyser.smoothingTimeConstant = 0;
 
 		if(mic){
-			console.log("adding module");
-			await this.ctx.audioWorklet.addModule("/src/lib/socket/vc_mic_processor.js");
-			console.log("added");
-			this.processor = new AudioWorkletNode(this.ctx, "vc_mic_processor");
 			this.ctx_dest = this.ctx.createMediaStreamDestination();
-			this.ctx_src.connect(this.processor).connect(this.ctx_dest);
-		}
+			if(denoise){
+				await this.ctx.audioWorklet.addModule("/src/lib/socket/vc_mic_processor.js");
+				this.processor = new AudioWorkletNode(this.ctx, "vc_mic_processor");
+				this.ctx_src.connect(this.processor).connect(this.ctx_dest);
+				this.processor.connect(this.analyser);
+			} else {
+				this.ctx_src.connect(this.ctx_dest);
+			}
+		} else
+			this.ctx_src.connect(this.analyser);
 
 		VCAudioTrack._glbl_tracks[this.track.id] = this;
 
@@ -64,6 +67,12 @@ class VCAudioTrack extends VCTrack {
 			let track = VCAudioTrack._glbl_tracks[id];
 
 			if(track.analyser){
+				if(track.processor && !track.ctx_dest.stream.getTracks()[0].enabled){
+					// Muted microphone track
+					track.amplitude = 0;
+					continue;
+				}
+
 				const samples = new Uint8Array(track.analyser.frequencyBinCount);
 				track.analyser.getByteFrequencyData(samples);
 				let sum = 0;
@@ -78,6 +87,13 @@ class VCAudioTrack extends VCTrack {
 
 	destroy(){
 		delete VCAudioTrack._glbl_tracks[this.track.id];
+
+		// Dereference all AudioNodes before closing AudioContext so they get released
+		// TODO Chromium still leaks memory due to a bug
+		this.analyser = this.ctx_src = this.ctx_dest = null;
+		if(this.ctx)
+			this.ctx.close();
+
 		super.destroy();
 	}
 }
@@ -276,14 +292,16 @@ export default class VCSocket {
 
 			// Add microphone track
 			try {
-				const media = await navigator.mediaDevices.getUserMedia({audio: true});
+				const media = await navigator.mediaDevices.getUserMedia({audio: {
+					echoCancellation: false,
+					autoGainControl: false,
+					noiseSupression: false
+				}});
 				const new_track = media.getTracks()[0];
-				//this.rtc.addTrack(new_track, media);
 				
 				let track = this.audio[this.user_id] = this.tracks[-1] = new VCAudioTrack();
 				track.user_id = this.user_id;
-				await track.init(new_track, true);
-				console.log("adding", track.ctx_dest.stream);
+				await track.init(new_track, true, true);
 				this.rtc.addTrack(track.ctx_dest.stream.getTracks()[0], track.ctx_dest.stream);
 			} catch {
 			}
