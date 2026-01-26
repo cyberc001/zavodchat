@@ -22,6 +22,10 @@ class RangeObserver {
 			this.data[i - this.start] = range.arr[i - range.start];
 		this.loaded = true;
 	}
+
+	contains(idx){
+		return idx >= this.start && idx <= this.end;
+	}
 }
 
 export class DataRange {
@@ -165,19 +169,16 @@ export class DataRange {
 		for(const ref of this.observers){
 			const obs = ref.deref();
 			if(obs){ // in case an object gets garbage collected after new_obs is formed
-				if(obs.end > this.end){
+				if(obs.end > this.end){ // observer requires more items than range, try to load more
 					obs.loaded = false;
-
-					/*let m = obs.end - this.end;
-					obs.data.splice(obs.data.length - m, m);*/
 					obs.update(this, start, end);
-
 					obs.load_func(obs.state, this, obs.start, obs.end - obs.start);
 				} else
 					obs.update(this, start, end);
 			}
 		}
 	}
+
 	inc_observers_end(){
 		this.delete_gced_observers();
 
@@ -186,6 +187,20 @@ export class DataRange {
 			if(obs){
 				++obs.end;
 				obs.update(this, this.start, this.end);
+			}
+		}
+	}
+
+	remove(idx){
+		this.delete_gced_observers();
+		--this.end;
+		this.arr.splice(idx - this.start, 1);
+
+		for(const ref of this.observers){
+			const obs = ref.deref();
+			if(obs && obs.contains(idx)){
+				--obs.end;
+				obs.data.splice(idx - obs.start, 1);
 			}
 		}
 	}
@@ -311,9 +326,7 @@ export class DataRangeTree {
 			return;
 		}
 
-		containing_range.arr.splice(idx - containing_range.start, 1);
-		--containing_range.end;
-		containing_range.update_observers();
+		containing_range.remove(idx);
 		this.__remove_one_iter(this._tree._root, idx);
 	}
 	__remove_one_iter(node, idx){
@@ -439,20 +452,20 @@ export class RangeCache extends IDCache {
 		if(range.id_end < max_id)
 			range.id_end = max_id;
 	
-		let missing = count - data.length;
 		// If we were loading the end of range and server underdelivered, remove dummy items
-		if(missing > 0 && start + count === range.end){
-			range.end -= missing;
-			range.arr.splice(range.arr.length - missing, missing);
+		if(count > data.length && start + data.length <= range.end){
+			const end_diff = range.end - start - data.length;
+			range.end = start + data.length;
+			range.arr.splice(range.arr.length - end_diff, end_diff);
 			for(const ref of range.observers){
 				const obs = ref.deref();
 				if(obs && obs.end > range.end){
-					obs.data.splice(obs.end, range.end - obs.end);
+					obs.data.splice(range.end, obs.end - range.end);
 					obs.end = range.end;
 				}
 			}
 		}
-		range.update_observers(start, Math.min(start + count, range.end), missing > 0);
+		range.update_observers(start, Math.min(start + count, range.end));
 
 		range.t = performance.now();
 	}
