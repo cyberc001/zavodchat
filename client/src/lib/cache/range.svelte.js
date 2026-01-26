@@ -91,6 +91,7 @@ export class DataRange {
 
 	union(other){
 		let new_range = new DataRange(Math.min(this.start, other.start), Math.max(this.end, other.end));
+		new_range.tree = this.tree;
 
 		// Solo beginning
 		if(this.start < other.start)
@@ -199,8 +200,8 @@ export class DataRange {
 		for(const ref of this.observers){
 			const obs = ref.deref();
 			if(obs && obs.contains(idx)){
-				--obs.end;
 				obs.data.splice(idx - obs.start, 1);
+				obs.data.push({});
 			}
 		}
 	}
@@ -260,6 +261,8 @@ export class DataRangeTree {
 	}
 
 	insert_range(range){
+		range.tree = this;
+
 		if(this._tree.size === 0){
 			this._tree.insert(range);
 			return range;
@@ -327,6 +330,7 @@ export class DataRangeTree {
 		}
 
 		containing_range.remove(idx);
+		containing_range.update_observers();
 		this.__remove_one_iter(this._tree._root, idx);
 	}
 	__remove_one_iter(node, idx){
@@ -438,6 +442,9 @@ export class RangeCache extends IDCache {
 	}
 	// Should be called from get_state(, load_func), therefore id is not parsed twice
 	set_state(range, start, count, data){
+		if(range.end < start + data.length)
+			range = range.tree.insert_range(new DataRange(start, start + data.length));
+
 		let min_id = data[0]?.id, max_id = data[0]?.id;
 		for(let i = start; i < start + count && i - start < data.length; ++i){
 			let dat = data[i - start];
@@ -460,7 +467,7 @@ export class RangeCache extends IDCache {
 			for(const ref of range.observers){
 				const obs = ref.deref();
 				if(obs && obs.end > range.end){
-					obs.data.splice(range.end, obs.end - range.end);
+					obs.data.splice(range.end - obs.start, obs.end - range.end);
 					obs.end = range.end;
 				}
 			}

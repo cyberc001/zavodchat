@@ -2,7 +2,7 @@
 	import SettingsTabState from "$lib/control/settings_tab_state.svelte.js";
 	import Button from "$lib/control/button.svelte";
 
-	let {tabs, params, close_settings} = $props();
+	let {tabs, close_settings} = $props();
 
 	let sel_tab = $state(0);
 </script>
@@ -23,7 +23,7 @@
 	</div>
 	<div class="tabbed_settings_tab">
 	<div class="tabbed_settings_inner_tab">
-		<div>{@render tabs[sel_tab].render(params, () => {
+		<div>{@render tabs[sel_tab].render(() => {
 				if(tabs[sel_tab].state.reset)
 					tabs[sel_tab].state.reset();
 				close_settings();
@@ -54,7 +54,7 @@
 		<button
 		class="hoverable transparent_button"
 		onclick={() => {
-			if(tabs[sel_tab].state.constructor.name !== "SettingsTabState")
+			if(tabs[sel_tab].state.reset)
 				tabs[sel_tab].state.reset();
 			close_settings();
 		}}

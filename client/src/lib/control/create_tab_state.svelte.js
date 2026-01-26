@@ -1,7 +1,7 @@
 export default class CreateTabState {
 	state = $state({});
 	default_state = $state({});
-	valid = $derived(true);
+	valid = $state(true);
 
 	constructor(_default_state){
 		for(const key of Object.keys(_default_state))

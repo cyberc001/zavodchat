@@ -39,11 +39,6 @@
 		keep_scroll_pos = true;
 	});
 
-	$effect(() => {
-		if(items_range.loaded && items.length < range && index > range - items.length)
-			index -= (range - items.length);
-	});
-
 	let reverse_sign = $derived(reversed ? -1 : 1);
 
 	let last_scroll_top;
@@ -83,7 +78,7 @@
 			let dir = Math.sign(e.deltaY);
 
 			if(dir !== 0 && index + reverse_sign * dir >= 0
-				&& (reverse_sign * dir < 0 || items.length >= range) /* dont allow to scroll past the last page */){
+				&& (reverse_sign * dir < 0 || items_range.end - items_range.start >= range) /* dont allow to scroll past the last page */){
 				index += reverse_sign * dir * advance;
 				if(index < 0) index = 0;
 			}

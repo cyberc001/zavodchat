@@ -25,12 +25,10 @@
 	import Ban from '$lib/rest/ban.js';
 	import Invite from '$lib/rest/invite.js';
 
-	let { server_id } = $props();
+	let {server_id} = $props();
 
-	let server = $state({});
-	$effect(() => {
-		server = server_id ? Server.get(server_id) : {};
-	});
+	let server = Server.get(server_id);
+	let server_roles = Role.get_list(server_id);
 
 	// General
 	let state_general = new SettingsTabState({name: "", avatar: ""});
@@ -52,17 +50,11 @@
 
 	let role_list_selected_idx = $state(-1);
 
-	let prev_server_id = $state(server_id);
 	$effect(() => {
-		if(server_id !== prev_server_id)
-			role_list_selected_idx = -1;
-
-		if(server_id)
-			state_roles.set_default_state("list", Role.get_list(server_id).data);
+		if(server_roles.loaded)
+			state_roles.set_default_state("list", server_roles.data);
 		else
 			state_roles.set_all_states("list", []);
-
-		prev_server_id = server_id;
 	});
 
 	function perm_to_toggle_value(x){
@@ -132,12 +124,9 @@
 	let state_invites = new SettingsTabState({list: []});
 	let invite_list_selected_idx = $state(-1);
 	$effect(() => {
-		if(server_id > -1){
-			Invite.get_list_nocache(server_id,
-						(list) => state_invites.set_all_states("list", list),
-						() => {});
-		} else
-			state_invites.set_all_states("list", []);
+		Invite.get_list_nocache(server_id,
+					(list) => state_invites.set_all_states("list", list),
+					() => {});
 	});
 	
 	const InviteState = {
@@ -223,7 +212,7 @@
 	}
 </script>
 
-{#snippet general(params, close_settings)}
+{#snippet general(close_settings)}
 <Dialog bind:this={delete_confirm}
 question="Delete the server?"
 buttons={[{text: "Delete", action: () => {Server.delete(server_id, () => {}, () => {}); close_settings();}},
@@ -254,7 +243,7 @@ This cannot be reversed.
 </div>
 {/snippet}
 
-{#snippet roles(params, close_settings)}
+{#snippet roles()}
 <Group name="Role priority">
 	<OrderedList bind:items={state_roles.state.list} bind:selected_idx={role_list_selected_idx}
 	check_drag={(dragged, dragged_idx) => { /* disallow to drag lowest (default) role */
@@ -320,7 +309,7 @@ This cannot be reversed.
 	/>
 {/snippet}
 
-{#snippet bans(params, close_settings)}
+{#snippet bans()}
 <Group name="Ban list">
 	<PaginatedList
 		render_item={render_ban}
@@ -370,7 +359,7 @@ This cannot be reversed.
 	</div>
 {/snippet}
 
-{#snippet invites(params, close_settings)}
+{#snippet invites()}
 <Group name="Invite list">
 <List items={state_invites.state.list}
 	render_item={render_invite}

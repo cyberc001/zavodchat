@@ -42,7 +42,7 @@
 	}
 </script>
 
-{#snippet general(params, close_settings)}
+{#snippet general()}
 <Group name="Profile settings">
 	<div style="display: flex">
 		<AvatarPicker

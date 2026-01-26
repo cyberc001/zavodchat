@@ -1,4 +1,6 @@
 <script>
+	import {tick} from 'svelte';
+
 	import Util from '$lib/util.js';
 	import Server from '$lib/rest/server.js';
 	import Channel from '$lib/rest/channel.js';
@@ -13,6 +15,13 @@
 
 	import TabbedSettings from '$lib/control/tabbed_settings.svelte';
 	let settings_params = $state({});
+	const setSettingsParams = (params) => {
+		settings_params = {};
+		tick().then(() => {
+			settings_params = params;
+		});
+	}
+
 	import SettingsUser from '$lib/settings/user.svelte';
 	let settings_user = $state();
 	import SettingsServer from '$lib/settings/server.svelte';
@@ -65,13 +74,13 @@
 					(name, data) => {
 						if(name === "server_deleted"){
 							if(settings_params.server_id === data.id)
-								delete settings_params.server_id;
-							if(server.id === sel.server)
+								closeSettings();
+							if(data.id === sel.server)
 								hideServer();
 						}
 						else if((name === "user_kicked" || name === "user_banned") && data.id === user_self.data.id){
 							if(settings_params.server_id === data.id)
-								delete settings_params.server_id;
+								closeSettings();
 							if(data.server_id === sel.server)
 								hideServer();
 						}
@@ -127,13 +136,13 @@
 
 	const closeSettings = () => {
 		sel.settings_tabs = undefined;
+		settings_params = {};
 	}
 
 	// Events
 	const hideServer = (id) => {
 		sel.server = -1;
 		sel.channel = -1;
-		settings_params = {};
 
 		server = {};
 		server_roles = [];
@@ -142,7 +151,6 @@
 	const showServer = (id) => {
 		sel.server = id;
 		sel.channel = -1;
-		settings_params = {};
 
 		server = Server.get(id);
 		server_roles = Role.get_list(id);
@@ -159,7 +167,6 @@
 		} else {
 			showUser(-1, -1);
 			sel.channel = id;
-			settings_params = {};
 		}
 	};
 
@@ -295,18 +302,20 @@
 
 
 <SettingsUser bind:this={settings_user}/>
-<SettingsServer bind:this={settings_server} server_id={settings_params.server_id}/>
-<SettingsChannel bind:this={settings_channel} server_id={sel.server} channel_id={settings_params.channel_id}/>
+{#if typeof settings_params.server_id !== "undefined"}
+	<SettingsServer bind:this={settings_server} server_id={settings_params.server_id}/>
+{/if}
+{#if typeof settings_params.channel_id !== "undefined"}
+	<SettingsChannel bind:this={settings_channel} server_id={sel.server} channel_id={settings_params.channel_id}/>
+{/if}
 
 <CreateServer bind:this={create_server}/>
 <CreateChannel bind:this={create_channel} server_id={sel.server}/>
 
 {#if sel.settings_tabs}
-
-<div style="padding: 16px; box-sizing: border-box; height: 100%">
-	<TabbedSettings tabs={sel.settings_tabs} close_settings={closeSettings}/>
-</div>
-	
+	<div style="padding: 16px; box-sizing: border-box; height: 100%">
+		<TabbedSettings tabs={sel.settings_tabs} close_settings={closeSettings}/>
+	</div>
 {:else}
 	<div class="main">
 		<div style="height: 100%; width: 322px; margin-left: 16px; display: flex; flex-direction: column">
@@ -323,7 +332,7 @@
 								bind:this={server_buttons[i]}
 								oncontextmenu={(e) => {
 									event.preventDefault();
-									settings_params.server_id = srv.id;
+									setSettingsParams({server_id: srv.id});
 									showCtxMenu(server_buttons[i], e, [action_settings_server]);
 								}}
 							>
@@ -368,7 +377,7 @@
 								bind:this={channel_buttons[i]}
 								oncontextmenu={(e) => {
 									event.preventDefault();
-									settings_params.channel_id = ch.id;
+									setSettingsParams({channel_id: ch.id});
 									showCtxMenu(channel_buttons[i], e, [action_settings_channel, action_delete_channel]);
 								}}
 								>
