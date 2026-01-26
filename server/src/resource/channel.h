@@ -1,5 +1,5 @@
-#ifndef RESOURCE_SERVER_CHANNELS_H
-#define RESOURCE_SERVER_CHANNELS_H
+#ifndef RESOURCE_CHANNEL_H
+#define RESOURCE_CHANNEL_H
 
 #include "db/conn_pool.h"
 #include "socket/main_server.h"
@@ -28,10 +28,10 @@ private:
 	socket_vc_server& vcserv;
 };
 
-class server_channel_id_resource : public base_resource
+class channel_resource : public base_resource
 {
 public:
-	server_channel_id_resource(db_connection_pool& pool, socket_main_server& sserv, socket_vc_server& vcserv);
+	channel_resource(db_connection_pool& pool, socket_main_server& sserv, socket_vc_server& vcserv);
 
 	std::shared_ptr<http_response> render_GET(const http_request&);
 	std::shared_ptr<http_response> render_PUT(const http_request&);

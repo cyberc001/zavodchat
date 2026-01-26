@@ -47,13 +47,16 @@ public:
 	static std::shared_ptr<http_response> string_to_color(const http_request&, std::string str, int& color);
 	static std::string color_to_string(int color);
 
-	// Checks if the server is accessible to the user.
 	static std::shared_ptr<http_response> parse_server_id(const http_request&, int user_id, pqxx::work&, int& server_id);
-	// Same as above, but derives user_id from supplied token
 	static std::shared_ptr<http_response> parse_server_id(const http_request&, pqxx::work&, int& user_id, int& server_id);
 
-	static std::shared_ptr<http_response> parse_server_user_id(const http_request&, int server_id, pqxx::work&, int& server_user_id);
+	static std::shared_ptr<http_response> parse_channel_id(const http_request&, int user_id, pqxx::work&, int& server_id, int& channel_id);
+	static std::shared_ptr<http_response> parse_channel_id(const http_request&, pqxx::work&, int& user_id, int& server_id, int& channel_id);
 
+	static std::shared_ptr<http_response> parse_message_id(const http_request&, int user_id, pqxx::work&, int& server_id, int& channel_id, int& message_id);
+	static std::shared_ptr<http_response> parse_message_id(const http_request&, pqxx::work&, int& user_id, int& server_id, int& channel_id,  int& message_id);
+
+	static std::shared_ptr<http_response> parse_server_user_id(const http_request&, int server_id, pqxx::work&, int& server_user_id);
 	static std::shared_ptr<http_response> parse_server_ban_id(const http_request&, int server_id, pqxx::work&, int& server_ban_id);
 
 	// Checks if server's owner_id == user_id.
@@ -61,11 +64,6 @@ public:
 	// Separate check for user being a member of a server. Used when user is not the one that puts a request.
 	static bool check_server_member(int user_id, int server_id, pqxx::work&);
 	static std::shared_ptr<http_response> check_server_member(const http_request&, int user_id, int server_id, pqxx::work&);
-
-	// Checks if channel is in the server
-	static std::shared_ptr<http_response> parse_channel_id(const http_request&, int server_id, pqxx::work&, int& channel_id);
-	// Checks if message is in the channel
-	static std::shared_ptr<http_response> parse_message_id(const http_request&, int channel_id, pqxx::work&, int& message_id);
 
 	static std::shared_ptr<http_response> parse_invite_id(const http_request&, int server_id, pqxx::work&, std::string& invite_id);
 	// Same as above, but also checks if server has the invite

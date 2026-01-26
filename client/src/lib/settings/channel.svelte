@@ -11,7 +11,7 @@
 
 	let channel = $state({});
 	$effect(() => {
-		channel = channel_id ? Channel.get(server_id, channel_id) : {};
+		channel = channel_id ? Channel.get(channel_id) : {};
 	});
 
 	// General
@@ -31,7 +31,7 @@
 		return [
 			{ name: "General", render: general, state: state_general,
 				apply_changes: () => {
-					Channel.change(server_id, channel_id,
+					Channel.change(channel_id,
 						state_general.get_dict_of_changes(),
 						() => state_general.apply_changes(),
 						() => state_general.discard_changes());

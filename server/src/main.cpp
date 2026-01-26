@@ -9,8 +9,8 @@
 #include "resource/file.h"
 #include "resource/file_utils.h"
 #include "resource/server_users.h"
-#include "resource/server_channels.h"
-#include "resource/channel_messages.h"
+#include "resource/channel.h"
+#include "resource/message.h"
 #include "resource/server_invites.h"
 #include "resource/server_bans.h"
 #include "resource/role.h"
@@ -86,14 +86,14 @@ int main()
 	server_channel_resource server_channels(pool, sserv, vcserv);
 	server_channels.max_per_server = cfg.max_channels_per_server;
 	ws.register_resource("/servers/{server_id}/channels", &server_channels);
-	server_channel_id_resource server_channel_id(pool, sserv, vcserv);
-	ws.register_resource("/servers/{server_id}/channels/{channel_id}", &server_channel_id);
+	channel_resource channel(pool, sserv, vcserv);
+	ws.register_resource("/channels/{channel_id}", &channel);
 
 	channel_messages_resource channel_messages(pool, sserv);
 	channel_messages.max_get_count = cfg.max_get_count;
-	ws.register_resource("/servers/{server_id}/channels/{channel_id}/messages", &channel_messages);
-	channel_message_id_resource channel_message_id(pool, sserv);
-	ws.register_resource("/servers/{server_id}/channels/{channel_id}/messages/{message_id}", &channel_message_id);
+	ws.register_resource("/channels/{channel_id}/messages", &channel_messages);
+	message_resource message(pool, sserv);
+	ws.register_resource("/messages/{message_id}", &message);
 
 	server_invites_resource server_invites(pool, sserv);
 	server_invites.cleanup_period = cfg.cleanup_period;

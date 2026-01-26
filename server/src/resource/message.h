@@ -20,10 +20,10 @@ private:
 	socket_main_server& sserv;
 };
 
-class channel_message_id_resource : public base_resource
+class message_resource : public base_resource
 {
 public:
-	channel_message_id_resource(db_connection_pool& pool, socket_main_server& sserv);
+	message_resource(db_connection_pool& pool, socket_main_server& sserv);
 
 	std::shared_ptr<http_response> render_GET(const http_request&);
 	std::shared_ptr<http_response> render_PUT(const http_request&);

@@ -280,7 +280,7 @@ paths:
               example: 4
         '403':
           description: Превышено ограничение на количество каналов на сервере
-  /servers/$server_id/channels/$channel_id:
+  /channels/$channel_id:
     get:
       summary: Информация о канале
       parameters:
@@ -317,7 +317,7 @@ paths:
       responses:
         '200':
           description: Канал успешно удалён
-  /servers/$server_id/channels/$channel_id/messages:
+  /channels/$channel_id/messages:
     get:
       summary: Пагинированный список сообщений
       parameters:
@@ -369,7 +369,7 @@ paths:
           content:
             text:
               example: 377
-  /servers/$server_id/channels/$channel_id/messages/$message_id:
+  /messages/$message_id:
     get:
       summary: Информация о сообщении
       parameters:

@@ -13,8 +13,8 @@ export default class Channel {
 			Channel.channel_list_cache.get_state(server_id).data.push(data);
 	}
 	static update_cache(server_id, channel_id, data){
-		if(Channel.channel_cache.has_state([server_id, channel_id])){
-			let channel_data = Channel.channel_cache.get_state([server_id, channel_id]);
+		if(Channel.channel_cache.has_state(channel_id)){
+			let channel_data = Channel.channel_cache.get_state(channel_id);
 			for(const f in data)
 				channel_data.data[f] = data[f];
 		}
@@ -27,31 +27,31 @@ export default class Channel {
 	}
 
 
-	static get(server_id, channel_id, _catch){
-		return Channel.channel_cache.get_state([server_id, channel_id], (cache, id) => {
-			Rest.get(Rest.get_route_scm(server_id, channel_id),
+	static get(channel_id, _catch){
+		return Channel.channel_cache.get_state(channel_id, (cache, id) => {
+			Rest.get("channels/" + channel_id,
 				(res) => cache.set_state(id, res.data),
 				_catch);
 		});
 	}
 	static create(server_id, data, _then, _catch){
-		Rest.post(`Creating channel "${data.name}"`, Rest.get_route_scm(server_id, ""),
+		Rest.post(`Creating channel "${data.name}"`, "servers/" + server_id + "/channels",
 				Util.form_data_from_object(data, ["name", "type"]),
 				(res) => _then(res.data), _catch);
 	}
-	static change(server_id, channel_id, data, _then, _catch){
-		Rest.put("Changing channel", Rest.get_route_scm(server_id, channel_id),
+	static change(channel_id, data, _then, _catch){
+		Rest.put("Changing channel", "channels/" + channel_id,
 				Util.form_data_from_object(data, ["name", "type"]),
 				(res) => _then(res.data), _catch);
 	}
-	static delete(server_id, channel_id, _then, _catch){
-		Rest.delete("Deleting channel", Rest.get_route_scm(server_id, channel_id),
+	static delete(channel_id, _then, _catch){
+		Rest.delete("Deleting channel", "channels/" + channel_id,
 			_then, _catch);
 	}
 
 	static get_list(server_id, _catch){
 		return Channel.channel_list_cache.get_state(server_id, (cache, id) => {
-			Rest.get(Rest.get_route_scm(server_id, ""),
+			Rest.get("servers/" + server_id + "/channels",
 				(res) => {
 					let list = res.data;
 					for(const ch of list){

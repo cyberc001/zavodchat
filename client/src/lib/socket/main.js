@@ -21,7 +21,7 @@ export default class MainSocket {
 
 	static socket_event_handlers = {
 		message_edited: function(data) {
-			let tree = Message.message_range_cache.get_tree([data.server_id, data.channel_id]);
+			let tree = Message.message_range_cache.get_tree(data.channel_id);
 			if(tree)
 				tree.update_one_id(data.id, {
 					edited: data.edited,
@@ -30,12 +30,12 @@ export default class MainSocket {
 				});
 		},
 		message_deleted: function(data) {
-			let tree = Message.message_range_cache.get_tree([data.server_id, data.channel_id]);
+			let tree = Message.message_range_cache.get_tree(data.channel_id);
 			if(tree)
 				tree.remove_one_id(data.id);
 		},
 		message_created: function(data) {
-			let tree = Message.message_range_cache.get_tree([data.server_id, data.channel_id]);
+			let tree = Message.message_range_cache.get_tree(data.channel_id);
 			if(tree)
 				tree.insert_last(data);
 		},

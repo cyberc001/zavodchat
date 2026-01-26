@@ -1,4 +1,4 @@
-#include "resource/channel_messages.h"
+#include "resource/message.h"
 #include "resource/utils.h"
 #include "resource/role_utils.h"
 
@@ -12,14 +12,10 @@ std::shared_ptr<http_response> channel_messages_resource::render_GET(const http_
 {
 	base_resource::render_GET(req);
 
-	int user_id, server_id;
+	int user_id, server_id, channel_id;
 	db_connection conn = pool.hold();
 	pqxx::work tx{*conn};
-	auto err = resource_utils::parse_server_id(req, tx, user_id, server_id);
-	if(err) return err;
-
-	int channel_id;
-	err = resource_utils::parse_channel_id(req, server_id, tx, channel_id);
+	auto err = resource_utils::parse_channel_id(req, tx, user_id, server_id, channel_id);
 	if(err) return err;
 
 	int start;
@@ -55,23 +51,19 @@ std::shared_ptr<http_response> channel_messages_resource::render_POST(const http
 	if(!text.size())
 		return create_response::string(req, "Empty messages are forbidden", 400);
 
-	int user_id, server_id;
+	int user_id, server_id, channel_id;
 	db_connection conn = pool.hold();
 	pqxx::work tx{*conn};
-	auto err = resource_utils::parse_server_id(req, tx, user_id, server_id);
+	auto err = resource_utils::parse_channel_id(req, tx, user_id, server_id, channel_id);
 	if(err) return err;
 
 	err = role_utils::check_permission1(req, tx, server_id, user_id, PERM1_CREATE_MESSAGES);
 	if(err) return err;
 
-	int channel_id;
-	err = resource_utils::parse_channel_id(req, server_id, tx, channel_id);
-	if(err) return err;
-
 	int message_id;
 	socket_event ev;
 	try{
-		pqxx::result r = tx.exec("INSERT INTO messages(channel_id, author_id, sent, last_edited, text) VALUES($1, $2, now(), now(), $3) RETURNING message_id, author_id, sent, last_edited, text, channel_id", pqxx::params(channel_id, user_id, text));
+		pqxx::result r = tx.exec("INSERT INTO messages(channel_id, server_id, author_id, sent, last_edited, text) VALUES($1, $2, $3, now(), now(), $4) RETURNING message_id, author_id, sent, last_edited, text, channel_id", pqxx::params(channel_id, server_id, user_id, text));
 		message_id = r[0]["message_id"].as<int>();
 		ev.data = resource_utils::message_json_from_row(r[0]);
 	} catch(pqxx::data_exception& e){
@@ -87,36 +79,28 @@ std::shared_ptr<http_response> channel_messages_resource::render_POST(const http
 }
 
 
-channel_message_id_resource::channel_message_id_resource(db_connection_pool& pool, socket_main_server& sserv) : pool{pool}, sserv{sserv}
+message_resource::message_resource(db_connection_pool& pool, socket_main_server& sserv) : pool{pool}, sserv{sserv}
 {
 	set_allowing("GET", true);
 	set_allowing("PUT", true);
 	set_allowing("DELETE", true);
 }
 
-std::shared_ptr<http_response> channel_message_id_resource::render_GET(const http_request& req)
+std::shared_ptr<http_response> message_resource::render_GET(const http_request& req)
 {
 	base_resource::render_GET(req);
 
-	int user_id, server_id;
+	int user_id, server_id, channel_id, message_id;
 	db_connection conn = pool.hold();
 	pqxx::work tx{*conn};
-	auto err = resource_utils::parse_server_id(req, tx, user_id, server_id);
-	if(err) return err;
-
-	int channel_id;
-	err = resource_utils::parse_channel_id(req, server_id, tx, channel_id);
-	if(err) return err;
-
-	int message_id;
-	err = resource_utils::parse_message_id(req, channel_id, tx, message_id);
+	auto err = resource_utils::parse_message_id(req, tx, user_id, server_id, channel_id, message_id);
 	if(err) return err;
 
 	pqxx::result r = tx.exec("SELECT message_id, author_id, sent, last_edited, text FROM messages WHERE message_id = $1", pqxx::params(message_id));
 	nlohmann::json res = resource_utils::message_json_from_row(r[0]);
 	return create_response::string(req, res.dump(), 200);
 }
-std::shared_ptr<http_response> channel_message_id_resource::render_PUT(const http_request& req)
+std::shared_ptr<http_response> message_resource::render_PUT(const http_request& req)
 {
 	base_resource::render_PUT(req);
 
@@ -124,18 +108,10 @@ std::shared_ptr<http_response> channel_message_id_resource::render_PUT(const htt
 	if(!text.size())
 		return create_response::string(req, "Empty messages are forbidden", 400);
 
-	int user_id, server_id;
+	int user_id, server_id, channel_id, message_id;
 	db_connection conn = pool.hold();
 	pqxx::work tx{*conn};
-	auto err = resource_utils::parse_server_id(req, tx, user_id, server_id);
-	if(err) return err;
-
-	int channel_id;
-	err = resource_utils::parse_channel_id(req, server_id, tx, channel_id);
-	if(err) return err;
-
-	int message_id;
-	err = resource_utils::parse_message_id(req, channel_id, tx, message_id);
+	auto err = resource_utils::parse_message_id(req, tx, user_id, server_id, channel_id, message_id);
 	if(err) return err;
 
 	pqxx::result r = tx.exec("SELECT author_id FROM messages WHERE message_id = $1", pqxx::params(message_id));
@@ -157,22 +133,14 @@ std::shared_ptr<http_response> channel_message_id_resource::render_PUT(const htt
 
 	return create_response::string(req, "Changed", 200);
 }
-std::shared_ptr<http_response> channel_message_id_resource::render_DELETE(const http_request& req)
+std::shared_ptr<http_response> message_resource::render_DELETE(const http_request& req)
 {
 	base_resource::render_DELETE(req);
 
-	int user_id, server_id;
+	int user_id, server_id, channel_id, message_id;
 	db_connection conn = pool.hold();
 	pqxx::work tx{*conn};
-	auto err = resource_utils::parse_server_id(req, tx, user_id, server_id);
-	if(err) return err;
-
-	int channel_id;
-	err = resource_utils::parse_channel_id(req, server_id, tx, channel_id);
-	if(err) return err;
-
-	int message_id;
-	err = resource_utils::parse_message_id(req, channel_id, tx, message_id);
+	auto err = resource_utils::parse_message_id(req, tx, user_id, server_id, channel_id, message_id);
 	if(err) return err;
 
 	pqxx::result r = tx.exec("SELECT author_id FROM messages WHERE message_id = $1", pqxx::params(message_id));

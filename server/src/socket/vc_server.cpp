@@ -1,5 +1,5 @@
 #include "socket/vc_server.h"
-#include "resource/server_channels.h"
+#include "resource/channel.h"
 #include "resource/utils.h"
 
 #include <iostream>
@@ -409,7 +409,7 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 					try {
 						r = tx.exec("SELECT user_id FROM sessions WHERE token = $1 AND expiration_time > now()", pqxx::params(parse_token(msg)));
 					} catch(pqxx::data_exception& e){
-					conn->close(ix::WebSocketCloseConstants::kNormalClosureCode, "Invalid token");
+						conn->close(ix::WebSocketCloseConstants::kNormalClosureCode, "Invalid token");
 						return;
 					}
 					if(!r.size()){

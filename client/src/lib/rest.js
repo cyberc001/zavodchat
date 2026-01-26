@@ -15,20 +15,6 @@ export default class Rest {
 		return str;
 	}
 
-	static get_route_scm(server_id, channel_id, message_id)
-	{
-		let route = "";
-		if(typeof server_id === "undefined")
-			return route;
-		route += "servers/" + server_id;
-		if(typeof channel_id === "undefined")
-			return route;
-		route += "/channels/" + channel_id;
-		if(typeof message_id === "undefined")
-			return route;
-		route += "/messages/" + message_id;
-		return route;
-	}
 	static get_route_sur(server_id, user_id, role_id)
 	{
 		let route = "";

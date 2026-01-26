@@ -158,6 +158,47 @@ std::shared_ptr<http_response> resource_utils::parse_server_id(const http_reques
 	return parse_server_id(req, user_id, tx, server_id);
 }
 
+std::shared_ptr<http_response> resource_utils::parse_channel_id(const http_request& req, int user_id, pqxx::work& tx, int& server_id, int& channel_id)
+{
+	try{
+		channel_id = std::stoi(std::string(req.get_arg("channel_id")));
+	} catch(std::invalid_argument& e){
+		return create_response::string(req, "Invalid channel ID", 400);
+	}
+	pqxx::result r = tx.exec("SELECT channel_id, server_id FROM channels WHERE server_id IN (SELECT server_id FROM user_x_server WHERE user_id = $1) AND channel_id = $2", pqxx::params(user_id, channel_id));
+	if(!r.size())
+		return create_response::string(req, "Channel does not exist", 404);
+	server_id = r[0]["server_id"].as<int>();
+	return std::shared_ptr<http_response>(nullptr);
+}
+std::shared_ptr<http_response> resource_utils::parse_channel_id(const http_request& req, pqxx::work& tx, int& user_id, int& server_id, int& channel_id)
+{
+	auto err = parse_session_token(req, tx, user_id);
+	if(err) return err;
+	return parse_channel_id(req, user_id, tx, server_id, channel_id);
+}
+
+std::shared_ptr<http_response> resource_utils::parse_message_id(const http_request& req, int user_id, pqxx::work& tx, int& server_id, int& channel_id, int& message_id)
+{
+	try{
+		message_id = std::stoi(std::string(req.get_arg("message_id")));
+	} catch(std::invalid_argument& e){
+		return create_response::string(req, "Invalid message ID", 400);
+	}
+	pqxx::result r = tx.exec("SELECT message_id, channel_id, server_id FROM messages WHERE channel_id IN (SELECT channel_id FROM channels WHERE server_id IN (SELECT server_id FROM user_x_server WHERE user_id = $1)) AND message_id = $2", pqxx::params(user_id, message_id));
+	if(!r.size())
+		return create_response::string(req, "Message does not exist", 404);
+	channel_id = r[0]["channel_id"].as<int>();
+	server_id = r[0]["server_id"].as<int>();
+	return std::shared_ptr<http_response>(nullptr);
+}
+std::shared_ptr<http_response> resource_utils::parse_message_id(const http_request& req, pqxx::work& tx, int& user_id, int& server_id, int& channel_id, int& message_id)
+{
+	auto err = parse_session_token(req, tx, user_id);
+	if(err) return err;
+	return parse_message_id(req, user_id, tx, server_id, channel_id, message_id);
+}
+
 std::shared_ptr<http_response> resource_utils::parse_server_user_id(const http_request& req, int server_id, pqxx::work& tx, int& server_user_id)
 {
 	try{
@@ -184,7 +225,6 @@ std::shared_ptr<http_response> resource_utils::parse_server_ban_id(const http_re
 	return nullptr;
 }
 
-
 std::shared_ptr<http_response> resource_utils::check_server_owner(const http_request& req, int user_id, int server_id, pqxx::work& tx)
 {
 	pqxx::result r = tx.exec("SELECT owner_id FROM servers WHERE server_id = $1", pqxx::params(server_id));
@@ -202,32 +242,6 @@ std::shared_ptr<http_response> resource_utils::check_server_member(const http_re
 	if(!check_server_member(user_id, server_id, tx))
 		return create_response::string(req, "User with ID " + std::to_string(user_id) + " is not a member of the server", 403);
 	return nullptr;
-}
-
-std::shared_ptr<http_response> resource_utils::parse_channel_id(const http_request& req, int server_id, pqxx::work& tx, int& channel_id)
-{
-	try{
-		channel_id = std::stoi(std::string(req.get_arg("channel_id")));
-	} catch(std::invalid_argument& e){
-		return create_response::string(req, "Invalid channel ID", 400);
-	}
-	pqxx::result r = tx.exec("SELECT server_id FROM channels WHERE channel_id = $1", pqxx::params(channel_id));
-	if(!r.size() || r[0]["server_id"].as<int>() != server_id)
-		return create_response::string(req, "Channel does not exist", 404);
-	return std::shared_ptr<http_response>(nullptr);
-}
-
-std::shared_ptr<http_response> resource_utils::parse_message_id(const http_request& req, int channel_id, pqxx::work& tx, int& message_id)
-{
-	try{
-		message_id = std::stoi(std::string(req.get_arg("message_id")));
-	} catch(std::invalid_argument& e){
-		return create_response::string(req, "Invalid message ID", 400);
-	}
-	pqxx::result r = tx.exec("SELECT channel_id FROM messages WHERE message_id = $1", pqxx::params(message_id));
-	if(!r.size() || r[0]["channel_id"].as<int>() != channel_id)
-		return create_response::string(req, "Message does not exist", 404);
-	return std::shared_ptr<http_response>(nullptr);
 }
 
 std::shared_ptr<http_response> resource_utils::parse_invite_id(const http_request& req, pqxx::work& tx, std::string& invite_id)

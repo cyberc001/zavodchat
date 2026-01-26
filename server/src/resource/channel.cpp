@@ -1,4 +1,4 @@
-#include "resource/server_channels.h"
+#include "resource/channel.h"
 #include "resource/utils.h"
 #include "resource/role_utils.h"
 
@@ -72,25 +72,22 @@ std::shared_ptr<http_response> server_channel_resource::render_POST(const http_r
 	return create_response::string(req, std::to_string(channel_id), 200);
 }
 
-server_channel_id_resource::server_channel_id_resource(db_connection_pool& pool, socket_main_server& sserv, socket_vc_server& vcserv): base_resource(), pool{pool}, sserv{sserv}, vcserv{vcserv}
+channel_resource::channel_resource(db_connection_pool& pool, socket_main_server& sserv, socket_vc_server& vcserv): base_resource(), pool{pool}, sserv{sserv}, vcserv{vcserv}
 {
 	set_allowing("GET", true);
 	set_allowing("PUT", true);
 	set_allowing("DELETE", true);
 }
-std::shared_ptr<http_response> server_channel_id_resource::render_GET(const http_request& req)
+std::shared_ptr<http_response> channel_resource::render_GET(const http_request& req)
 {
 	base_resource::render_GET(req);
 
-	int user_id, server_id;
+	int user_id, channel_id, server_id;
 	db_connection conn = pool.hold();
 	pqxx::work tx{*conn};
-	auto err = resource_utils::parse_server_id(req, tx, user_id, server_id);
+	auto err = resource_utils::parse_channel_id(req, tx, user_id, server_id, channel_id);
 	if(err) return err;
 
-	int channel_id;
-	err = resource_utils::parse_channel_id(req, server_id, tx, channel_id);
-	if(err) return err;
 	pqxx::result r = tx.exec("SELECT channel_id, name, type FROM channels WHERE channel_id = $1", pqxx::params(channel_id));
 	nlohmann::json channel_json = resource_utils::channel_json_from_row(r[0]);
 
@@ -99,21 +96,17 @@ std::shared_ptr<http_response> server_channel_id_resource::render_GET(const http
 
 	return create_response::string(req, channel_json.dump(), 200);
 }
-std::shared_ptr<http_response> server_channel_id_resource::render_PUT(const http_request& req)
+std::shared_ptr<http_response> channel_resource::render_PUT(const http_request& req)
 {
 	base_resource::render_PUT(req);
 
-	int user_id, server_id;
+	int user_id, channel_id, server_id;
 	db_connection conn = pool.hold();
 	pqxx::work tx{*conn};
-	auto err = resource_utils::parse_server_id(req, tx, user_id, server_id);
+	auto err = resource_utils::parse_channel_id(req, tx, user_id, server_id, channel_id);
 	if(err) return err;
 
 	err = role_utils::check_permission1(req, tx, server_id, user_id, PERM1_MANAGE_CHANNELS);
-	if(err) return err;
-
-	int channel_id;
-	err = resource_utils::parse_channel_id(req, server_id, tx, channel_id);
 	if(err) return err;
 
 	bool updated = false;
@@ -149,21 +142,17 @@ std::shared_ptr<http_response> server_channel_id_resource::render_PUT(const http
 
 	return create_response::string(req, "Changed", 200);
 }
-std::shared_ptr<http_response> server_channel_id_resource::render_DELETE(const http_request& req)
+std::shared_ptr<http_response> channel_resource::render_DELETE(const http_request& req)
 {
 	base_resource::render_DELETE(req);
 
-	int user_id, server_id;
+	int user_id, channel_id, server_id;
 	db_connection conn = pool.hold();
 	pqxx::work tx{*conn};
-	auto err = resource_utils::parse_server_id(req, tx, user_id, server_id);
+	auto err = resource_utils::parse_channel_id(req, tx, user_id, server_id, channel_id);
 	if(err) return err;
 
 	err = role_utils::check_permission1(req, tx, server_id, user_id, PERM1_MANAGE_CHANNELS);
-	if(err) return err;
-
-	int channel_id;
-	err = resource_utils::parse_channel_id(req, server_id, tx, channel_id);
 	if(err) return err;
 
 	tx.exec("DELETE FROM channels WHERE channel_id = $1", pqxx::params(channel_id));

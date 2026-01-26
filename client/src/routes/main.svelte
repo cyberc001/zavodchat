@@ -186,7 +186,7 @@
 
 	const sendMessage = (text) => {
 		message_status = "Sending...";
-		Message.send(sel.server, sel.channel, text,
+		Message.send(sel.channel, text,
 				() => {
 					message_text = "";
 					message_status = undefined;
@@ -200,7 +200,7 @@
 		sel.message_edit = -1;
 		message_text = "";
 
-		Message.edit(sel.server, sel.channel, msg.id, text,
+		Message.edit(msg.id, text,
 				() => {}, () => {
 						msg.status = Message.Status.None;
 						msg.text = prev_text;
@@ -235,7 +235,7 @@
 		onclick={() => {
 				let msg = message_list.getItem(sel.ctx.message);
 				msg.status = Message.Status.Deleting;
-				Message.delete(sel.server, sel.channel, msg.id,
+				Message.delete(msg.id,
 						() => {}, () => msg.status = Message.Status.None);
 		}}
 	/>
@@ -262,7 +262,7 @@
 	<ContextMenuAction icon="src/lib/assets/icons/delete.svg" text="Delete"
 		hide_ctx_menu={hide_ctx_menu}
 		onclick={() => {
-				Channel.delete(sel.server, settings_params.channel_id,
+				Channel.delete(settings_params.channel_id,
 						() => {}, () => {});
 		}}
 	/>
@@ -535,7 +535,7 @@
 			reversed={true}
 			loading_text="Loading messages..." to_latest_text="To latest messages"
 			render_item={render_message}
-			load_items={(index, range) => Message.get_range(sel.server, sel.channel, index, range)}
+			load_items={(index, range) => Message.get_range(sel.channel, index, range)}
 			augment_item={(msg) => {
 						msg.author = User.get_server(sel.server, msg.author_id);
 						msg.author_roles = Role.get_user_roles(msg.author.data, server_roles.data);
