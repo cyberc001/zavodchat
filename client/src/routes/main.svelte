@@ -25,9 +25,7 @@
 	import CreateChannel from '$lib/settings/create_channel.svelte';
 	let create_channel = $state();
 
-	import Textbox from '$lib/control/textbox.svelte';
 	import DurationPicker from '$lib/control/duration_picker.svelte';
-	import Select from '$lib/control/select.svelte';
 	import Slider from '$lib/control/slider.svelte';
 
 	import PaginatedList from '$lib/display/paginated_list.svelte';
@@ -35,6 +33,7 @@
 	import UserProfileDisplay from '$lib/display/user_profile.svelte';
 	import MessageDisplay from '$lib/display/message.svelte';
 	import MessageInput from '$lib/control/message_input.svelte';
+	import VCPanel from '$lib/control/vc_panel.svelte';
 
 	import ContextMenu from '$lib/control/context_menu.svelte';
 	import ContextMenuAction from '$lib/control/context_menu_action.svelte';
@@ -314,7 +313,6 @@
 			<div style="display: flex; height: -webkit-fill-available">
 				<div style="display: flex; flex-direction: column">
 					<div class="panel sidebar_servers">
-
 						{#if !servers.loaded}
 						<img src="$lib/assets/icons/loading.svg" alt="loading" class="filter_icon_main" style="width: 48px"/>
 						{:else}
@@ -450,50 +448,10 @@
 		</div>
 
 		{#if socket_vc}
-			<div class="panel profile_panel" style="border-bottom: none">
-				<div style="display: flex; align-items: center; margin-bottom: 6px">
-					{socket_vc.channel.data.name}
-
-					<div style="margin-left: auto; display: flex">
-						<button class="hoverable transparent_button"
-							onclick={() => {
-								socket_vc.set_video_state(socket_vc.video_state === VCSocket.VideoState.Disabled ?
-												VCSocket.VideoState.Screen : VCSocket.VideoState.Disabled);
-							}}
-						>
-							<img src={"/src/lib/assets/icons/screen_share" + (socket_vc.video_state === VCSocket.VideoState.Screen ? "_stop" : "") + ".svg"}
-								alt={socket_vc.video_state === VCSocket.VideoState.Screen ? "stop sharing screen" : "share screen"} class="filter_icon_main" style="width: 24px">
-						</button>
-
-
-						<button class="hoverable transparent_button"
-							onclick={() => {
-								socket_vc.toggle_mute();
-							}}
-						>
-							<img src={"/src/lib/assets/icons/" + (socket_vc.mute == VCSocket.AudioState.None ? "not_" : "") + "muted.svg"}
-								alt={(socket_vc.mute == VCSocket.AudioState.None ? "" : "un") + "mute"} class="filter_icon_main" style="width: 24px">
-						</button>
-						<button class="hoverable transparent_button"
-							onclick={() => {
-								socket_vc.toggle_deaf();
-							}}
-						>
-							<img src={"/src/lib/assets/icons/" + (socket_vc.deaf == VCSocket.AudioState.None ? "not_" : "") + "deaf.svg"}
-								alt={(socket_vc.deaf == VCSocket.AudioState.None ? "" : "un") + "deafen"} class="filter_icon_main" style="width: 24px">
-						</button>
-						<button class="hoverable transparent_button"
-							onclick={() => {
-								socket_vc.end_call();
-								socket_vc = undefined;
-							}}
-						>
-							<img src="$lib/assets/icons/hang.svg" alt="end call" class="filter_icon_main" style="width: 24px">
-						</button>
-					</div>
-				</div>
-				{socket_vc.state.text}
-			</div>
+			<VCPanel socket_vc={socket_vc} end_call={() => {
+				socket_vc.end_call();
+				socket_vc = undefined;
+			}}/>
 		{/if}
 		<div class="panel profile_panel">
 			{#if !user_self.loaded}

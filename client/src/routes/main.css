@@ -2,6 +2,8 @@
 	--clr_text: #F6F5F5;
 	--clr_text_secondary: #988888;
 	--clr_text_error: #FF5A5A;
+	--clr_text_warning: #E2E383;
+	--clr_text_success: #76F774;
 
 	--clr_bg_panel: #342A2E;
 	--clr_bg_item: #231D1F;
@@ -29,6 +31,10 @@ html, body {
 body {
 	background: #3B3034;
 	color: var(--clr_text);
+	font-family: sans-serif;
+}
+button {
+	font-family: sans-serif;
 }
 ::selection {
 	background: var(--clr_bg_text_selection);
@@ -188,7 +194,6 @@ img.sidebar_server_el {
 .sidebar_user_display {
 	padding: 3px 6px 3px 6px;
 }
-
 
 .profile_panel {
 	border-style: solid;

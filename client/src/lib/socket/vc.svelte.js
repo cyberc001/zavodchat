@@ -113,7 +113,11 @@ export default class VCSocket {
 	audio = $state({});
 	video = $state({});
 
-	state = $state({text: "Waiting for first offer"});
+	state = $state({text: "Waiting for first offer", color: "var(--clr_text_warning)"});
+	set_state(text, color){
+		this.state.text = text;
+		this.state.color = `var(${color})`;
+	}
 
 	constructor(user_id, server_id, channel_id,
 			onclose, onerror){
@@ -125,6 +129,8 @@ export default class VCSocket {
 			if(this.rtc)
 				this.rtc.close();
 			// close all streams to make socket GC properly and prevent audio duplication
+			if(this.video_send_track)
+				this.video_send_track.stop();
 			for(const track of Object.values(this.tracks))
 				track.destroy();
 			onclose(e);
@@ -202,7 +208,10 @@ export default class VCSocket {
 				try {
 					const media = await navigator.mediaDevices.getDisplayMedia();
 					this.video_send_track = media.getTracks()[0];
-					this.video_send_track.onended = () => this.set_video_state(VCSocket.VideoState.Disabled);
+					this.video_send_track.onended = () => {
+						if(this.ws.readyState === WebSocket.OPEN)
+							this.set_video_state(VCSocket.VideoState.Disabled);
+					}
 					this.ws.send(JSON.stringify({name: "enable_video"}));
 				} catch {
 					// Dont change video state if screensharing was denied
@@ -232,29 +241,29 @@ export default class VCSocket {
 			this.rtc.onconnectionstatechange = () => {
 				switch(this.rtc.connectionState){
 					case "connecting":
-						this.state.text = "ICE is connecting";
+						this.set_state("ICE is connecting", "--clr_text_warning");
 						break;
 					case "disconnected":
-						this.state.text = "ICE is disconnected";
+						this.set_state("ICE is disconnected", "--clr_text_error");
 						break;
 					case "failed":
-						this.state.text = "ICE has failed";
+						this.set_state("ICE has failed", "--clr_text_error");
 						break;
 					case "connected":
-						this.state.text = "Connected";
+						this.set_state("Connected", "--clr_text_success");
 						break;
 				}
 			};
 			this.rtc.onsignalingstatechange = () => {
 				switch(this.rtc.signalingState){
 					case "have-local-offer":
-						this.state.text = "RTC has a local offer";
+						this.set_state("RTC has a local offer", "--clr_text_warning");
 						break;
 					case "have-remote-offer":
-						this.state.text = "RTC has a remote offer";
+						this.set_state("RTC has a remote offer", "--clr_text_warning");
 						break;
 					case "stable":
-						this.state.text = "Connected";
+						this.set_state("Connected", "--clr_text_success");
 						break;
 				}
 			};
