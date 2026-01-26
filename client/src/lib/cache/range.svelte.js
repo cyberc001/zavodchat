@@ -403,7 +403,7 @@ export class RangeCache extends IDCache {
 	intv = setInterval(() => {
 		for(const id in this.cache)
 			this.cache[id].trim();
-	}, 2000); // TODO change to a proper value
+	}, 60000);
 
 
 	get_tree(_id){

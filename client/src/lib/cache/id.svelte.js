@@ -15,6 +15,13 @@ export class IDCache {
 		return new IDObserver();
 	}
 
+	// Keep references to state values so they dont get collected until interval passes
+	_cache_refs = {};
+	intv = setInterval(() => {
+		for(const key in this._cache_refs)
+			delete this._cache_refs[key];
+	}, 60000);
+
 	// ID: [int1, int2, ..., intN]
 	state_refs_id(id){
 		if(typeof id === "number")
@@ -43,6 +50,7 @@ export class IDCache {
 			this.cache[id] = new WeakRef(obj);	
 		}
 		obj.set_data(data);
+		this._cache_refs[id] = obj;
 	}
 	has_state(_id){
 		return typeof this.cache[this.state_refs_id(_id)]?.deref() !== "undefined";
@@ -51,5 +59,6 @@ export class IDCache {
 		const id = this.state_refs_id(_id);
 		if(this.cache.hasOwnProperty(id))
 			delete this.cache[id];
+		delete this._cache_refs[id];
 	}
 }
