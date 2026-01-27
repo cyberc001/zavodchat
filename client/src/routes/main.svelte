@@ -295,8 +295,8 @@
 {/snippet}
 
 {#snippet user_volume()}
-	<Slider text="User volume" bind:value={() => Math.floor(socket_vc.get_volume(sel.ctx.user_id) * 100),
-						(x) => socket_vc.set_volume(sel.ctx.user_id, x / 100)}
+	<Slider text="User volume" bind:value={() => Math.floor(socket_vc.audio[sel.ctx.user_id].volume * 100),
+						(x) => socket_vc.audio[sel.ctx.user_id].set_volume(x / 100)}
 			display_value={(value) => value + "%"}/>
 {/snippet}
 
@@ -340,6 +340,7 @@
 						if(vc_state.id === user_self.data.id)
 							return;
 						sel.ctx.user_id = vc_state.id;
+						console.log("vc_state", $state.snapshot(vc_state), sel.ctx.user_id, socket_vc);
 						showCtxMenu(self, e, [user_volume]);
 					}}
 					create_channel={() => {
