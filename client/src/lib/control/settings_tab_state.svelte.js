@@ -84,9 +84,10 @@ export default class SettingsTabState {
 
 	static ChangesState = {
 		Inherit: 0,
-		Invalid: 1,
-		HasChanges: 2,
-		NoChanges: 3
+		Loading: 1,
+		Invalid: 2,
+		HasChanges: 3,
+		NoChanges: 4
 	}
 
 

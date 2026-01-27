@@ -13,8 +13,8 @@
 		{#each tabs as tab, i}
 			<div>
 				<button
-				class={"item hoverable transparent_button tabbed_settings_el" + (sel_tab == i ? " selected" : "")}
-				onclick={() => sel_tab = i}
+					class={"item hoverable transparent_button tabbed_settings_el" + (sel_tab == i ? " selected" : "")}
+					onclick={() => sel_tab = i}
 				>
 					{tab.name}
 				</button>
@@ -22,35 +22,37 @@
 		{/each}
 	</div>
 	<div class="tabbed_settings_tab">
-	<div class="tabbed_settings_inner_tab">
-		<div>{@render tabs[sel_tab].render(() => {
-				if(tabs[sel_tab].state.reset)
-					tabs[sel_tab].state.reset();
-				close_settings();
-			})}
-		</div>
-
-		{#if tabs[sel_tab].state.constructor.name === "SettingsTabState"}
-			{#if tabs[sel_tab].state.changes === SettingsTabState.ChangesState.HasChanges
-				|| tabs[sel_tab].state.changes === SettingsTabState.ChangesState.Invalid}
-				<div class="tabbed_settings_actions">
-					<Button text="Apply changes" onclick={tabs[sel_tab].apply_changes} disabled={tabs[sel_tab].state.changes === SettingsTabState.ChangesState.Invalid}/>
-					<Button text="Discard changes" onclick={tabs[sel_tab].discard_changes}/>
-				</div>
-			{/if}
-		{:else}
-			<div class="tabbed_settings_actions">
-				<Button text="Create"
-				onclick={() => tabs[sel_tab].create(() => {
-					tabs[sel_tab].state.reset();
+	<div style="width: 100%">
+		<div class="tabbed_settings_inner_tab">
+			<div>
+				{@render tabs[sel_tab].render(() => {
+					if(tabs[sel_tab].state.reset)
+						tabs[sel_tab].state.reset();
 					close_settings();
 				})}
-				disabled={!tabs[sel_tab].state.valid}/>
 			</div>
-		{/if}
+	
+			{#if tabs[sel_tab].state.constructor.name === "SettingsTabState"}
+				{#if tabs[sel_tab].state.changes === SettingsTabState.ChangesState.HasChanges
+					|| tabs[sel_tab].state.changes === SettingsTabState.ChangesState.Invalid}
+					<div class="tabbed_settings_actions">
+						<Button text="Apply changes" onclick={tabs[sel_tab].apply_changes} disabled={tabs[sel_tab].state.changes === SettingsTabState.ChangesState.Invalid}/>
+						<Button text="Discard changes" onclick={tabs[sel_tab].discard_changes}/>
+					</div>
+				{/if}
+			{:else}
+				<div class="tabbed_settings_actions">
+					<Button text="Create"
+					onclick={() => tabs[sel_tab].create(() => {
+						tabs[sel_tab].state.reset();
+						close_settings();
+					})}
+					disabled={!tabs[sel_tab].state.valid}/>
+				</div>
+			{/if}
+		</div>
 	</div>
-	</div>
-	<div>
+	<div style="z-index: 200">
 		<button
 		class="hoverable transparent_button"
 		onclick={() => {
@@ -61,6 +63,13 @@
 		>
 			<img src="$lib/assets/icons/close.svg" alt="close settings" class="filter_icon_main" style="width: 32px"/>
 		</button>
+	</div>
+	{#if tabs[sel_tab].state.constructor.name === "SettingsTabState"
+		&& tabs[sel_tab].state.changes === SettingsTabState.ChangesState.Loading}
+		<div class="tabbed_settings_inner_tab_overlay">
+			<img src="$lib/assets/icons/loading.svg" alt="loading" class="filter_icon_main" style="width: 48px"/>
+		</div>
+	{/if}
 	</div>
 </div>
 
@@ -95,6 +104,7 @@
 
 .tabbed_settings_tab {
 	position: relative;
+	display: flex;
 
 	width: 85%;
 	padding: 16px;
@@ -105,6 +115,20 @@
 
 	height: 100%;
 	width: 100%;
+}
+.tabbed_settings_inner_tab_overlay {
+	position: absolute;
+	top: 0;
+	left: 0;
+	height: 100%;
+	width: 100%;
+
+	display: flex;
+	align-items: center;
+	justify-content: center;	
+
+	z-index: 100;
+	background: rgba(0, 0, 0, 0.5);
 }
 
 .tabbed_settings_sidebar {

@@ -19,9 +19,11 @@
 
 	$effect(() => {
 		if(channel.loaded){
+			state_general.changes_override = SettingsTabState.ChangesState.Inherit;
 			state_general.set_default_state("name", channel.data.name);
 			state_general.set_default_state("type", channel.data.type);
 		} else {
+			state_general.changes_override = SettingsTabState.ChangesState.Loading;
 			state_general.set_all_states("name", "");
 			state_general.set_all_states("type", Channel.Type.Text);
 		}

@@ -24,9 +24,11 @@
 
 	$effect(() => {
 		if(self_user.loaded){
+			state_profile.changes_override = SettingsTabState.ChangesState.Inherit;
 			state_profile.set_all_states("displayname", self_user.data.name);
 			state_profile.set_all_states("avatar", User.get_avatar_path(self_user.data));
-		}
+		} else
+			state_profile.changes_override = SettingsTabState.ChangesState.Loading;
 	});
 
 	export function tabs() {

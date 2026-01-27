@@ -37,9 +37,11 @@
 
 	$effect(() => {
 		if(server.loaded){
+			state_general.changes_override = SettingsTabState.ChangesState.Inherit;
 			state_general.set_all_states("avatar", Server.get_avatar_path(server.data));
 			state_general.set_all_states("name", server.data.name);
 		} else {
+			state_general.changes_override = SettingsTabState.ChangesState.Loading;
 			state_general.set_all_states("avatar", "");
 			state_general.set_all_states("name", "");
 		}
@@ -51,10 +53,13 @@
 	let role_list_selected_idx = $state(-1);
 
 	$effect(() => {
-		if(server_roles.loaded)
+		if(server_roles.loaded){
+			state_roles.changes_override = SettingsTabState.ChangesState.Inherit;
 			state_roles.set_default_state("list", server_roles.data);
-		else
+		} else {
+			state_roles.changes_override = SettingsTabState.ChangesState.Loading;
 			state_roles.set_all_states("list", []);
+		}
 	});
 
 	function perm_to_toggle_value(x){
@@ -122,20 +127,16 @@
 
 	// Invites
 	let state_invites = new SettingsTabState({list: []});
-	let invite_list_selected_idx = $state(-1);
+	state_invites.changes_override = SettingsTabState.ChangesState.Loading;
 	$effect(() => {
 		Invite.get_list_nocache(server_id,
-					(list) => state_invites.set_all_states("list", list),
-					() => {});
+					(list) => {
+						state_invites.set_all_states("list", list);
+						state_invites.changes_override = SettingsTabState.ChangesState.Inherit;
+					}, () => {});
 	});
+	let invite_list_selected_idx = $state(-1);
 	
-	const InviteState = {
-		Added: 0,
-		Changed: 1,
-		Removed: 2
-	};
-
-
 	export function tabs() {
 		return [
 			{ name: "General", render: general, state: state_general,
