@@ -77,12 +77,14 @@
 								closeSettings();
 							if(data.id === sel.server)
 								hideServer();
-						}
-						else if((name === "user_kicked" || name === "user_banned") && data.id === user_self.data.id){
+						} else if((name === "user_kicked" || name === "user_banned") && data.id === user_self.data.id){
 							if(settings_params.server_id === data.id)
 								closeSettings();
 							if(data.server_id === sel.server)
 								hideServer();
+						} else if((name === "channel_deleted" || (name === "channel_edited" && data.type === Channel.Type.Voice)
+								) && sel.channel === data.id){
+							showServer(sel.server);
 						}
 					});
 	let socket_vc = $state();
