@@ -17,7 +17,7 @@
 		}
 	});
 
-	let duration_units = $state(0);
+	let duration_units = $state(Util.TimeUnits.Minutes);
 </script>
 
 

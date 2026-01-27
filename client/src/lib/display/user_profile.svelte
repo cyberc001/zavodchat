@@ -91,7 +91,7 @@
 					}}
 					style="anchor-name: --add_role_button"
 				>
-					<img class="filter_icon_main role_add_icon" src="$lib/assets/icons/add_cross.svg"> add role
+					<img class="filter_icon_main role_add_icon" src="$lib/assets/icons/add.svg"> add role
 				</button>
 			{/if}
 		</div>

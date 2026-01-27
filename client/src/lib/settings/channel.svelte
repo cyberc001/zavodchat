@@ -46,7 +46,7 @@
 <Group name="General settings">
 	<Textbox label_text="Channel name" bind:value={state_general.state.name}/>
 	<Select label_text="Channel type" bind:value={state_general.state.type}
-	options={[0, 1]}
+	options={[Channel.Type.Text, Channel.Type.Voice]}
 	option_labels={["Text", "Voice"]}
 	/>
 </Group>

@@ -13,7 +13,7 @@
 		{#each tabs as tab, i}
 			<div>
 				<button
-				class={"item hoverable transparent_button sidebar_channel_el" + (sel_tab == i ? " selected" : "")}
+				class={"item hoverable transparent_button tabbed_settings_el" + (sel_tab == i ? " selected" : "")}
 				onclick={() => sel_tab = i}
 				>
 					{tab.name}
@@ -71,6 +71,26 @@
 
 	width: 100%;
 	height: 100%;
+}
+
+.tabbed_settings_el {
+	border-style: solid none none none;
+
+	width: 100%;
+	padding: 4px 0px 4px 4px;
+
+	color: var(--clr_text);
+	font-size: 18px;
+
+	display: inline-flex;
+	text-align: left;
+	align-items: center;
+
+	overflow-wrap: anywhere;
+
+	cursor: pointer;
+
+	user-select: none;
 }
 
 .tabbed_settings_tab {

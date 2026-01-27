@@ -36,8 +36,11 @@
 
 	import DurationPicker from '$lib/control/duration_picker.svelte';
 	import Slider from '$lib/control/slider.svelte';
-
 	import PaginatedList from '$lib/display/paginated_list.svelte';
+
+	import SidebarServer from '$lib/display/sidebar/server.svelte';
+	import SidebarChannel from '$lib/display/sidebar/channel.svelte';
+
 	import UserDisplay from '$lib/display/user.svelte';
 	import UserProfileDisplay from '$lib/display/user_profile.svelte';
 	import MessageDisplay from '$lib/display/message.svelte';
@@ -64,10 +67,9 @@
 	let user_self = User.get(-1);
 	let servers = Server.get_list();
 
-	let server = $state({});
+	let server = $state();
 	let server_roles = $state([]);
-
-	let channels = $state([]);
+	let channels = $state();
 
 	// Sockets
 	let socket_main = new MainSocket(setError, setError,
@@ -90,10 +92,6 @@
 	let socket_vc = $state();
 
 	// UI state
-	let server_buttons = $state({});
-	let channel_buttons = $state({});
-	let vc_user_divs = $state({});
-
 	let sel = $state({
 		server: -1, channel: -1,
 		message_edit: -1,
@@ -148,7 +146,7 @@
 
 		server = {};
 		server_roles = [];
-		channels = [];
+		channels = undefined;
 	};
 	const showServer = (id) => {
 		sel.server = id;
@@ -322,140 +320,32 @@
 	<div class="main">
 		<div style="height: 100%; width: 322px; margin-left: 16px; display: flex; flex-direction: column">
 			<div style="display: flex; height: -webkit-fill-available">
-				<div style="display: flex; flex-direction: column">
-					<div class="panel sidebar_servers">
-						{#if !servers.loaded}
-						<img src="$lib/assets/icons/loading.svg" alt="loading" class="filter_icon_main" style="width: 48px"/>
-						{:else}
-						{#each servers.data as srv, i}
-							<button class={"item hoverable sidebar_server" + (sel.server == srv.id ? " selected" : "")}
-								style="anchor-name: --{"server_" + srv.id}"
-								onclick={() => showServer(srv.id)}
-								bind:this={server_buttons[i]}
-								oncontextmenu={(e) => {
-									event.preventDefault();
-									setSettingsParams({server_id: srv.id});
-									showCtxMenu(server_buttons[i], e, [action_settings_server]);
-								}}
-							>
-							{#if srv.avatar === undefined}
-							<div style="padding:4px;"><div class="sidebar_server_el">{srv.name}</div></div>
-							{:else}
-							<img class="sidebar_server_el" alt={srv.name} src={Server.get_avatar_path(srv)}/>
-							{/if}
-							</button>
-						{/each}
-						{/if}
-					</div>
-					<div class="panel sidebar_servers sidebar_server_actions">
-						<button class={"item hoverable sidebar_server"}
-							onclick={() => sel.settings_tabs = create_server.tabs()}
-						>
-						<img src="$lib/assets/icons/add.svg" alt="create server" class="filter_icon_main" style="width: 40px"/>
-						</button>
-					</div>
-				</div>
+				<SidebarServer servers={servers} selected_serever={sel.server}
+					show_server={(server) => showServer(server.id)}
+					ctx_server={(self, e, server) => {
+						setSettingsParams({server_id: server.id});
+						showCtxMenu(self, e, [action_settings_server]);
+					}}
+					create_server={() => sel.settings_tabs = create_server.tabs()}
+				/>
 
-				<div style="display: flex; flex-direction: column">
-					<div class="panel sidebar_channels">
-						<div class="sidebar_channel_name">
-							{#if server.data?.name}
-								{server.data?.name}
-							{/if}
-						</div>
-
-						{#if channels.loaded === false}
-							<div style="text-align: center; margin-top: 6px">
-							<img src="$lib/assets/icons/loading.svg" alt="loading" class="filter_icon_main" style="width: 48px"/>
-						</div>
-						{:else}
-						{#each channels.data as ch, i}
-							<div>
-								<button
-								class={"item hoverable transparent_button sidebar_channel_el" + (sel.channel == ch.id ? " selected" : "")}
-								style={(i == channels.data.length - 1 ? "border-style: solid none solid none" : "")
-									+ "; anchor-name: --channel_" + ch.id}
-								onclick={() => showChannel(ch.id, i)}
-								bind:this={channel_buttons[i]}
-								oncontextmenu={(e) => {
-									event.preventDefault();
-									setSettingsParams({channel_id: ch.id});
-									showCtxMenu(channel_buttons[i], e, [action_settings_channel, action_delete_channel]);
-								}}
-								>
-									{#if ch.type === Channel.Type.Voice}
-									<img src="$lib/assets/icons/channel_vc.svg" alt="voice" class="filter_icon_main sidebar_channel_el_icon"/>
-									{:else}
-									<img src="$lib/assets/icons/channel_text.svg" alt="text" class="filter_icon_main sidebar_channel_el_icon"/>
-									{/if}
-									{ch.name}
-								</button>
-								{#if ch.type === Channel.Type.Voice}
-									{#each Object.values(ch.vc_users) as vc_state}
-										<div
-											style="display: flex; align-items: center; margin: 3px 0 3px 6px; font-size: 22px; anchor-name: --{"vc_user_" + vc_state.id}"
-
-											bind:this={vc_user_divs[vc_state.id]}
-											oncontextmenu={(e) => {
-												event.preventDefault();
-												if(vc_state.id === user_self.data.id)
-													return;
-												sel.ctx.user_id = vc_state.id;
-												showCtxMenu(vc_user_divs[vc_state.id], e, [user_volume]);
-											}}
-										>
-											<img src={User.get_avatar_path(vc_state.user.data)}
-												alt="avatar"
-												style={"width: 32px; height: 32px; margin-right: 8px; border-style: solid; border-size: 2px; border-color: #00FF00"
-													+ (socket_vc && socket_vc.audio[vc_state.user.data.id] ?
-														Util.padded_hex(Math.min(socket_vc.audio[vc_state.user.data.id].amplitude / 10, 1) * 255)
-														: "00")
-												}
-											/>
-											{vc_state.user.data.name}
-											<div style="margin-left: auto; margin-right: 4px; display: flex; align-items: center">
-												{#if vc_state.video > VCSocket.VideoState.Disabled}
-													<div style="background: red; border-radius: 4px; font-size: 18px; padding: 0 3px 0 3px; margin-right: 3px; display: inline-block">
-														STREAM
-													</div>
-												{/if}
-												{#if socket_vc && socket_vc.video[vc_state.user.data.id]}
-												<button class="hoverable transparent_button"
-														onclick={() => {
-															socket_vc.watch_video(vc_state.user.data.id);
-														}}
-												>
-													<img src={"/src/lib/assets/icons/watch.svg"} alt="watch" class="filter_icon_main" style="width: 24px"/>
-												</button>
-												{/if}
-
-												{#if vc_state.mute}
-												<img src="/src/lib/assets/icons/muted.svg" alt="muted" class="filter_icon_main" style="width: 24px"/>
-												{/if}
-												{#if vc_state.deaf}
-												<img src="/src/lib/assets/icons/deaf.svg" alt="deaf" class="filter_icon_main" style="width: 24px"/>
-												{/if}
-											</div>
-										</div>
-									{/each}
-								{/if}
-							</div>
-						{/each}
-						{/if}
-					</div>
-					{#if channels.loaded}
-					<div class="panel sidebar_channels sidebar_channel_actions">
-						<button
-						class="item hoverable transparent_button sidebar_channel_el"
-						style="border-style: solid none none none"
-						onclick={() => sel.settings_tabs = create_channel.tabs()}
-						>
-							<img src="$lib/assets/icons/add.svg" alt="add channel" class="filter_icon_main sidebar_channel_el_icon"/>
-							Add channel
-						</button>
-					</div>
-					{/if}
-				</div>
+				<SidebarChannel server={server} channels={channels} selected_channel={sel.channel}
+					socket_vc={socket_vc}
+					show_channel={showChannel}
+					ctx_channel={(self, e, channel) => {
+						setSettingsParams({channel_id: channel.id});
+						showCtxMenu(self, e, [action_settings_channel, action_delete_channel]);
+					}}
+					ctx_vc_user={(self, e, vc_state) => {
+						if(vc_state.id === user_self.data.id)
+							return;
+						sel.ctx.user_id = vc_state.id;
+						showCtxMenu(self, e, [user_volume]);
+					}}
+					create_channel={() => {
+						sel.settings_tabs = create_channel.tabs();
+					}}
+				/>
 		</div>
 
 		{#if socket_vc}
@@ -540,13 +430,13 @@
 
 {#if profile_display_params.user}
 	<UserProfileDisplay
-	anchor={profile_display_params.anchor} anchor_side_x={profile_display_params.anchor_side_x}
-	user={profile_display_params.user.data} server_roles={server_roles.data}
-	hide_profile={() => showUser(-1, -1)}
-	assign_role={(role_id) => ServerUser.assign_role(sel.server, profile_display_params.user.data.id, role_id,
-								() => {})}
-	disallow_role={(role_id) => ServerUser.disallow_role(sel.server, profile_display_params.user.data.id, role_id,
-								() => {})}
+		anchor={profile_display_params.anchor} anchor_side_x={profile_display_params.anchor_side_x}
+		user={profile_display_params.user.data} server_roles={server_roles.data}
+		hide_profile={() => showUser(-1, -1)}
+		assign_role={(role_id) => ServerUser.assign_role(sel.server, profile_display_params.user.data.id, role_id,
+									() => {})}
+		disallow_role={(role_id) => ServerUser.disallow_role(sel.server, profile_display_params.user.data.id, role_id,
+									() => {})}
 	/>
 {/if}
 
@@ -568,12 +458,12 @@
 <NotifDisplay/>
 
 <Dialog bind:this={ban.dialog}
-question="Ban user?"
-buttons={[{text: ban.duration ? "Ban" : "Ban forever", disabled: ban.error,
-		action: () => {
-			Ban.ban(sel.server, ban.user_id, ban.expires, () => {}, () => {})
-		}},
-	  {text: "Cancel"}]}
+	question="Ban user?"
+	buttons={[{text: ban.duration ? "Ban" : "Ban forever", disabled: ban.error,
+			action: () => {
+				Ban.ban(sel.server, ban.user_id, ban.expires, () => {}, () => {})
+			}},
+		  {text: "Cancel"}]}
 >
 	<DurationPicker label_text="Ban duration"
 		bind:expires={ban.expires} bind:error={ban.error}

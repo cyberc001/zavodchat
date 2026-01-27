@@ -1,9 +1,6 @@
 <script>
 	let {label_text, options = [], option_labels,
 		value = $bindable("")} = $props();
-
-	if(options.length > 0)
-		value = options[0];
 	</script>
 
 <div class="settings_select_frame">

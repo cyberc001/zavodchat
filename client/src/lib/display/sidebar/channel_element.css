@@ -1,0 +1,26 @@
+.sidebar_channel_el {
+	border-style: solid none none none;
+
+	width: 100%;
+
+	color: var(--clr_text);
+	font-size: 18px;
+
+	display: inline-flex;
+	text-align: left;
+	align-items: center;
+
+	overflow-wrap: anywhere;
+
+	cursor: pointer;
+
+	user-select: none;
+}
+.sidebar_channel_el_icon {
+	padding-right: 6px;
+	height: 20px;
+}
+
+.vc_state_icon {
+	width: 24px;
+}
