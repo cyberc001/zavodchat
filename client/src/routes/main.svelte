@@ -321,7 +321,7 @@
 {:else}
 	<div class="main">
 		<div style="height: 100%; width: 322px; margin-left: 16px; display: flex; flex-direction: column">
-			<div style="display: flex; height: -webkit-fill-available">
+			<div style="display: flex; height: 100%">
 				<SidebarServer servers={servers} selected_serever={sel.server}
 					show_server={(server) => showServer(server.id)}
 					ctx_server={(self, e, server) => {

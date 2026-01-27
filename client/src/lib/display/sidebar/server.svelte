@@ -35,7 +35,7 @@
 	box-sizing: border-box;
 
 	width: 64px;
-	height: -webkit-fill-available;
+	height: 100%;
 	padding: 6px;
 }
 .sidebar_server_actions {

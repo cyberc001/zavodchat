@@ -212,7 +212,12 @@ export default class VCSocket {
 						if(this.ws.readyState === WebSocket.OPEN)
 							this.set_video_state(VCSocket.VideoState.Disabled);
 					}
-					this.ws.send(JSON.stringify({name: "enable_video"}));
+					this.ws.send(JSON.stringify({
+						name: "enable_video",
+						data: {
+							codec: (this.get_video_codecs()["video/VP8"] ? "VP8" : "H264")
+						}
+					}));
 				} catch {
 					// Dont change video state if screensharing was denied
 					return;
@@ -233,6 +238,14 @@ export default class VCSocket {
 
 
 	// Helper methods
+
+	get_video_codecs(){
+		const codecs = {};
+		for(const c of RTCRtpReceiver.getCapabilities("video").codecs)
+			codecs[c.mimeType] = true;
+		return codecs;
+	}
+
 	async handle_offer(offer){
 		if(!this.rtc){
 			this.rtc = new RTCPeerConnection({bundlePolicy: "max-bundle"});

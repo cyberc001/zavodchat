@@ -125,7 +125,7 @@ std::shared_ptr<rtc::Track> socket_vc_connection::get_audio_track(int user_id)
 		return nullptr;
 }
 
-void socket_vc_connection::add_video_track(rtc::SSRC ssrc, int user_id, int bitrate)
+void socket_vc_connection::add_video_track(rtc::SSRC ssrc, int user_id, codec cd, int bitrate)
 {
 	std::shared_ptr<rtc::Track> track;
 	std::lock_guard lock(mut);
@@ -135,14 +135,14 @@ void socket_vc_connection::add_video_track(rtc::SSRC ssrc, int user_id, int bitr
 		removed_video_tracks.pop();
 		change_track_desc(track, ssrc, user_id);
 	} else {
-		auto rtp_conf = std::make_shared<rtc::RtpPacketizationConfig>(ssrc, "video", RTC_PAYLOAD_TYPE_VIDEO, rtc::OpusRtpPacketizer::DefaultClockRate);
+		auto rtp_conf = std::make_shared<rtc::RtpPacketizationConfig>(ssrc, "video", RTC_PAYLOAD_TYPE_VIDEO(cd), rtc::OpusRtpPacketizer::DefaultClockRate);
 		auto session_recv = std::make_shared<rtc::RtcpReceivingSession>();
 		auto session_send = std::make_shared<rtc::RtcpSrReporter>(rtp_conf);
 		session_recv->addToChain(session_send);
 	
 		std::string mid = get_new_mid();
 		rtc::Description::Video desc(mid, rtc::Description::Direction::SendOnly);
-		desc.addH264Codec(RTC_PAYLOAD_TYPE_VIDEO);
+		add_video_codec(desc, cd);
 		desc.setBitrate(bitrate);
 		desc.addSSRC(ssrc, mid);
 		desc.addAttribute("user:" + std::to_string(user_id));
@@ -192,7 +192,7 @@ void socket_vc_connection::add_recv_audio_track()
 	audio_tracks[-1] = track;
 }
 
-void socket_vc_connection::add_recv_video_track(int bitrate)
+void socket_vc_connection::add_recv_video_track(codec cd, int bitrate)
 {
 	std::uniform_int_distribution<rtc::SSRC> dist(1, (rtc::SSRC)-1);
 	const rtc::SSRC ssrc = dist(socket_vc_server::rng);
@@ -205,13 +205,13 @@ void socket_vc_connection::add_recv_video_track(int bitrate)
 		if(track->isOpen())
 			track->requestKeyframe();
 	} else {
-		auto rtp_conf = std::make_shared<rtc::RtpPacketizationConfig>(ssrc, "video", RTC_PAYLOAD_TYPE_VIDEO, rtc::OpusRtpPacketizer::DefaultClockRate);
+		auto rtp_conf = std::make_shared<rtc::RtpPacketizationConfig>(ssrc, "video", RTC_PAYLOAD_TYPE_VIDEO(cd), rtc::OpusRtpPacketizer::DefaultClockRate);
 		auto session_recv = std::make_shared<rtc::RtcpReceivingSession>();
 		auto session_send = std::make_shared<rtc::RtcpSrReporter>(rtp_conf);
 		session_recv->addToChain(session_send);
 	
 		rtc::Description::Video desc("my_video", rtc::Description::Direction::RecvOnly);
-		desc.addH264Codec(RTC_PAYLOAD_TYPE_VIDEO);
+		add_video_codec(desc, cd);
 		desc.setBitrate(bitrate);
 		desc.addSSRC(ssrc, "my_video");
 
@@ -256,6 +256,24 @@ rtc::SSRC socket_vc_connection::get_ssrc(std::shared_ptr<rtc::Track> track)
 {
 	return track->description().getSSRCs()[0];
 }
+codec socket_vc_connection::get_video_codec(std::shared_ptr<rtc::Track> tr)
+{
+	if(!tr)
+		return codec::INVALID;
+	return static_cast<codec>(tr->description().payloadTypes()[0] - RTC_PAYLOAD_TYPE_VIDEO(0));
+}
+void socket_vc_connection::add_video_codec(rtc::Description::Video& desc, codec cd)
+{
+	switch(cd){
+		case codec::H264:
+			desc.addH264Codec(RTC_PAYLOAD_TYPE_VIDEO(cd));
+			break;
+		case codec::VP8:
+			desc.addVP8Codec(RTC_PAYLOAD_TYPE_VIDEO(cd));
+			break;
+	}
+}
+
 std::mutex& socket_vc_connection::get_mutex()
 {
 	return mut;
@@ -271,7 +289,7 @@ void socket_vc_channel::add_user(std::shared_ptr<socket_vc_connection> conn, thr
 		std::shared_ptr<rtc::Track> other_recv_video_track = other_conn->get_recv_video_track();
 		if(other_recv_video_track){
 			conn->add_video_track(other_conn->get_ssrc(other_recv_video_track), other_user_id,
-						other_recv_video_track->description().bitrate());
+						other_conn->get_video_codec(other_recv_video_track), other_recv_video_track->description().bitrate());
 			other_conn->request_keyframe(conn->user_id);
 		}
 
@@ -331,8 +349,9 @@ void socket_vc_channel::enable_user_video(std::shared_ptr<socket_vc_connection> 
 		if(conn == other_conn)
 			return;
 
-		other_conn->add_video_track(conn->get_ssrc(conn->get_recv_video_track()), conn->user_id,
-						conn->get_recv_video_track()->description().bitrate());
+		std::shared_ptr<rtc::Track> recv_video_track = conn->get_recv_video_track();
+		other_conn->add_video_track(conn->get_ssrc(recv_video_track), conn->user_id,
+						conn->get_video_codec(recv_video_track), recv_video_track->description().bitrate());
 		other_conn->rtc_conn->setLocalDescription();
 	});
 	conn->rtc_conn->setLocalDescription();
@@ -567,8 +586,21 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 						this->sserv.send_to_channel(conn->channel_id, tx, ev);
 					}
 				} else if(ev.name == "enable_video"){
+					std::cerr << "ENABLING VIDEO" << std::endl;
 					if(conn->get_recv_video_track())
 						return;
+
+					codec cd = codec::H264;
+					if(ev.data.contains("codec")){
+						if(!ev.data["codec"].is_string() || 
+							(cd = check_codec(ev.data["codec"])) == codec::INVALID){
+							socket_event ev;
+							ev.name = "error";
+							ev.data = "invalid codec";
+							conn->send(ev.dump());
+							return;
+						}
+					}
 
 					int bitrate = max_video_bitrate;
 					if(ev.data.contains("bitrate")){
@@ -582,7 +614,7 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 						bitrate = std::min(ev.data["bitrate"].get<int>(), max_video_bitrate);
 					}
 
-					conn->add_recv_video_track(bitrate);
+					conn->add_recv_video_track(cd, bitrate);
 					channels[conn->channel_id]->enable_user_video(conn, thr_pool);
 
 					db_connection db_conn = this->pool.hold();
@@ -635,6 +667,17 @@ nlohmann::json socket_vc_server::get_channel_users(int channel_id)
 	});
 	std::cerr << "got users for " << channel_id << std::endl;
 	return out;
+}
+
+codec socket_vc_server::check_codec(std::string str)
+{
+	static std::unordered_map<std::string, codec> _str_to_codec = {
+		{"H264", codec::H264},
+		{"VP8", codec::VP8}
+	};
+	if(_str_to_codec.find(str) == _str_to_codec.end())
+		return codec::INVALID;
+	return _str_to_codec[str];
 }
 
 bool socket_vc_server::parse_audio_state(std::unordered_map<std::string, std::string>& query, std::string arg_name, audio_state& out)

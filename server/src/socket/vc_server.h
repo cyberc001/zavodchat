@@ -13,7 +13,12 @@
 #include <random>
 
 #define RTC_PAYLOAD_TYPE_VOICE 96
-#define RTC_PAYLOAD_TYPE_VIDEO 97
+#define RTC_PAYLOAD_TYPE_VIDEO(cd) (97 + (cd))
+enum codec
+{
+	INVALID,
+	H264, VP8
+};
 
 enum audio_state
 {
@@ -39,11 +44,11 @@ public:
 	void remove_audio_track(int user_id);
 	std::shared_ptr<rtc::Track> get_audio_track(int user_id);
 
-	void add_video_track(rtc::SSRC, int user_id, int bitrate);
+	void add_video_track(rtc::SSRC, int user_id, codec cd, int bitrate);
 	void remove_video_track(int user_id);
 	std::shared_ptr<rtc::Track> get_video_track(int user_id);
 
-	void add_recv_video_track(int bitrate);
+	void add_recv_video_track(codec cd, int bitrate);
 	void remove_recv_video_track();
 	// Returns nullptr if recv track does not exist or is closed
 	std::shared_ptr<rtc::Track> get_recv_video_track();
@@ -55,6 +60,9 @@ public:
 	bool is_keyframe_requested(int user_id);
 
 	rtc::SSRC get_ssrc(std::shared_ptr<rtc::Track>);
+	codec get_video_codec(rtc::shared_ptr<rtc::Track>);
+	void add_video_codec(rtc::Description::Video&, codec);
+
 	std::mutex& get_mutex();
 
 	audio_state mute = audio_state::NO, deaf = audio_state::NO;
@@ -115,6 +123,8 @@ public:
 
 	int max_video_bitrate = 10240000;
 private:
+	codec check_codec(std::string);
+
 	bool parse_audio_state(std::unordered_map<std::string, std::string>& query, std::string arg_name, audio_state& out);
 	bool check_audio_state(unsigned state);
 

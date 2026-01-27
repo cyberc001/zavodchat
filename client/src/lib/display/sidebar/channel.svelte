@@ -46,7 +46,7 @@
 <style>
 .sidebar_channels {
 	width: 256px;
-	height: -webkit-fill-available;
+	height: 100%;
 	border-style: none solid none none;
 }
 .sidebar_channel_actions {
