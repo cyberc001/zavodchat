@@ -1,5 +1,5 @@
 <script>
-	let {label_text, error = "",
+	let {label_text = "", error = "",
 		is_password = false, value = $bindable(""),
 		render_after} = $props();
 </script>

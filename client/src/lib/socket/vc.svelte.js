@@ -1,5 +1,6 @@
 import {PUBLIC_BASE_SOCKET_VC} from '$env/static/public';
 import Channel from '$lib/rest/channel.js';
+import Preferences from '$lib/rest/preferences.svelte.js';
 import Sound from '$lib/sound.js';
 
 class VCTrack {
@@ -30,7 +31,7 @@ class VCAudioTrack extends VCTrack {
 	ctx_src; ctx_dest;
 	amplitude = $state(0);
 
-	async init(track, mic, denoise){
+	async init(track, mic){
 		super.init(track);
 		if(!mic){
 			this.media = new Audio();
@@ -45,7 +46,7 @@ class VCAudioTrack extends VCTrack {
 
 		if(mic){
 			this.ctx_dest = this.ctx.createMediaStreamDestination();
-			if(denoise){
+			if(Preferences.data.noise_supression === "rnnoise"){
 				await this.ctx.audioWorklet.addModule("/src/lib/socket/vc_mic_processor.js");
 				this.processor = new AudioWorkletNode(this.ctx, "vc_mic_processor");
 				this.ctx_src.connect(this.processor).connect(this.ctx_dest);
@@ -345,16 +346,20 @@ export default class VCSocket {
 
 			// Add microphone track
 			try {
-				const media = await navigator.mediaDevices.getUserMedia({audio: {
-					echoCancellation: false,
-					autoGainControl: false,
-					noiseSupression: false
-				}});
+				const media = await navigator.mediaDevices.getUserMedia({audio:
+					Preferences.data.noise_supression === "browser" ?
+					true
+					: {
+						echoCancellation: false,
+						autoGainControl: false,
+						noiseSupression: false
+					}
+				});
 				const new_track = media.getTracks()[0];
 				
 				let track = this.audio[this.user_id] = this.tracks[-1] = new VCAudioTrack();
 				track.user_id = this.user_id;
-				await track.init(new_track, true, true);
+				await track.init(new_track, true);
 				this.rtc.addTrack(track.ctx_dest.stream.getTracks()[0], track.ctx_dest.stream);
 			} catch {
 			}
