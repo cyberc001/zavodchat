@@ -1,5 +1,6 @@
 <script>
-	import { tick } from 'svelte';
+	import {asset} from '$app/paths';
+	import {tick} from 'svelte';
 
 	let {index = $bindable(0), scrollTop = $bindable(0),
 		range = 30, advance = 10, reversed = false,
@@ -113,7 +114,7 @@
 	</div>
 	{#if !items_range.loaded}
 		<div class="item paginated_list_overlay">
-			<img src="$lib/assets/icons/loading.svg" alt="loading" class="filter_icon_main" style="width: 20px; margin-right: 8px"/>
+			<img src={asset("icons/loading.svg")} alt="loading" class="filter_icon_main" style="width: 20px; margin-right: 8px"/>
 			<span class="paginated_list_overlay_text">{loading_text}</span>
 		</div>
 	{/if}

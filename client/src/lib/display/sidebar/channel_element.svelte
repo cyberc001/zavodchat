@@ -1,4 +1,5 @@
 <script>
+	import {asset} from '$app/paths';
 	import Util from '$lib/util.js';
 	import Channel from '$lib/rest/channel.js';
 	import User from '$lib/rest/user.svelte.js';	
@@ -26,9 +27,9 @@
 		}}
 	>
 		{#if channel.type === Channel.Type.Voice}
-			<img src="$lib/assets/icons/channel_vc.svg" alt="voice_channel" class="filter_icon_main sidebar_channel_el_icon"/>
+			<img src={asset("icons/channel_vc.svg")} alt="voice_channel" class="filter_icon_main sidebar_channel_el_icon"/>
 		{:else}
-			<img src="$lib/assets/icons/channel_text.svg" alt="text_channel" class="filter_icon_main sidebar_channel_el_icon"/>
+			<img src={asset("icons/channel_text.svg")}  alt="text_channel" class="filter_icon_main sidebar_channel_el_icon"/>
 		{/if}
 		{channel.name}
 	</button>
@@ -64,15 +65,15 @@
 								socket_vc.watch_video(vc_state.user.data.id);
 							}}
 					>
-						<img src={"/src/lib/assets/icons/watch.svg"} alt="watch" class="filter_icon_main vc_state_icon"/>
+						<img src={asset("icons/watch.svg")} alt="watch" class="filter_icon_main vc_state_icon"/>
 					</button>
 					{/if}
 
 					{#if vc_state.mute}
-						<img src="/src/lib/assets/icons/muted.svg" alt="muted" class="filter_icon_main vc_state_icon"/>
+						<img src={asset("icons/muted.svg")} alt="muted" class="filter_icon_main vc_state_icon"/>
 					{/if}
 					{#if vc_state.deaf}
-						<img src="/src/lib/assets/icons/deaf.svg" alt="deaf" class="filter_icon_main vc_state_icon"/>
+						<img src={asset("icons/deaf.svg")} alt="deaf" class="filter_icon_main vc_state_icon"/>
 					{/if}
 				</div>
 			</div>

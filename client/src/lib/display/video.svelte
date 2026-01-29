@@ -1,4 +1,6 @@
 <script>
+	import {asset} from '$app/paths';
+
 	let {track, close_video = () => {}} = $props();
 
 	let elem = $state();
@@ -16,7 +18,7 @@
 		class="hoverable transparent_button video_close_button"
 		onclick={close_video}
 		>
-			<img src="$lib/assets/icons/close.svg" alt="close settings" class="filter_icon_main" style="width: 32px"/>
+			<img src={asset("icons/close.svg")} alt="close settings" class="filter_icon_main" style="width: 32px"/>
 	</button>
 </div>
 

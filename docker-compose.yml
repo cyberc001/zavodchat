@@ -38,6 +38,7 @@ services:
       context: ./client
       dockerfile: Dockerfile
     ports:
+      - 4173:4173
       - 5173:5173
 
 volumes:

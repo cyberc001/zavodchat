@@ -1,4 +1,5 @@
 <script>
+	import {asset} from '$app/paths';
 	import VCSocket from '$lib/socket/vc.svelte.js';
 
 	const {socket_vc, end_call} = $props();
@@ -15,7 +16,7 @@
 									VCSocket.VideoState.Screen : VCSocket.VideoState.Disabled);
 				}}
 			>
-				<img src={"/src/lib/assets/icons/screen_share" + (socket_vc.video_state === VCSocket.VideoState.Screen ? "_stop" : "") + ".svg"}
+				<img src={asset("icons/screen_share" + (socket_vc.video_state === VCSocket.VideoState.Screen ? "_stop" : "") + ".svg")}
 					alt={socket_vc.video_state === VCSocket.VideoState.Screen ? "stop sharing screen" : "share screen"} class="filter_icon_main" style="width: 24px">
 			</button>
 
@@ -24,7 +25,7 @@
 					socket_vc.toggle_mute();
 				}}
 			>
-				<img src={"/src/lib/assets/icons/" + (socket_vc.mute == VCSocket.AudioState.None ? "not_" : "") + "muted.svg"}
+				<img src={asset("/icons/" + (socket_vc.mute == VCSocket.AudioState.None ? "not_" : "") + "muted.svg")}
 					alt={(socket_vc.mute == VCSocket.AudioState.None ? "" : "un") + "mute"} class="filter_icon_main" style="width: 24px">
 			</button>
 			<button class="hoverable transparent_button"
@@ -32,13 +33,13 @@
 					socket_vc.toggle_deaf();
 				}}
 			>
-				<img src={"/src/lib/assets/icons/" + (socket_vc.deaf == VCSocket.AudioState.None ? "not_" : "") + "deaf.svg"}
+				<img src={asset("icons/" + (socket_vc.deaf == VCSocket.AudioState.None ? "not_" : "") + "deaf.svg")}
 					alt={(socket_vc.deaf == VCSocket.AudioState.None ? "" : "un") + "deafen"} class="filter_icon_main" style="width: 24px">
 			</button>
 			<button class="hoverable transparent_button"
 				onclick={end_call}
 			>
-				<img src="$lib/assets/icons/hang.svg" alt="end call" class="filter_icon_main" style="width: 24px">
+				<img src={asset("icons/hang.svg")} alt="end call" class="filter_icon_main" style="width: 24px">
 			</button>
 		</div>
 	</div>

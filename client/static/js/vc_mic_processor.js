@@ -1,4 +1,4 @@
-import Denoiser from '/src/lib/socket/vc_mic_denoiser.js';
+import Denoiser from '/js/vc_mic_denoiser.js';
 
 class VCMicProcessor extends AudioWorkletProcessor {
 	constructor(options){

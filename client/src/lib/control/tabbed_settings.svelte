@@ -1,4 +1,5 @@
 <script>
+	import {asset} from '$app/paths';
 	import SettingsTabState from "$lib/control/settings_tab_state.svelte.js";
 	import Button from "$lib/control/button.svelte";
 
@@ -32,7 +33,7 @@
 				})}
 			</div>
 	
-			{#if tabs[sel_tab].state.constructor.name === "SettingsTabState"}
+			{#if tabs[sel_tab].state instanceof SettingsTabState}
 				{#if tabs[sel_tab].state.changes === SettingsTabState.ChangesState.HasChanges
 					|| tabs[sel_tab].state.changes === SettingsTabState.ChangesState.Invalid}
 					<div class="tabbed_settings_actions">
@@ -61,13 +62,13 @@
 			close_settings();
 		}}
 		>
-			<img src="$lib/assets/icons/close.svg" alt="close settings" class="filter_icon_main" style="width: 32px"/>
+			<img src={asset("icons/close.svg")} alt="close settings" class="filter_icon_main" style="width: 32px"/>
 		</button>
 	</div>
-	{#if tabs[sel_tab].state.constructor.name === "SettingsTabState"
+	{#if tabs[sel_tab].state instanceof SettingsTabState
 		&& tabs[sel_tab].state.changes === SettingsTabState.ChangesState.Loading}
 		<div class="tabbed_settings_inner_tab_overlay">
-			<img src="$lib/assets/icons/loading.svg" alt="loading" class="filter_icon_main" style="width: 48px"/>
+			<img src={asset("icons/loading.svg")} alt="loading" class="filter_icon_main" style="width: 48px"/>
 		</div>
 	{/if}
 	</div>

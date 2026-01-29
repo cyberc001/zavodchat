@@ -1,5 +1,6 @@
 <script>
 	import {tick} from 'svelte';
+	import {asset} from '$app/paths';
 
 	import Util from '$lib/util.js';
 	import Server from '$lib/rest/server.js';
@@ -228,7 +229,7 @@
 
 
 {#snippet action_edit_message(hide_ctx_menu)}
-	<ContextMenuAction icon="src/lib/assets/icons/edit.svg" text="Edit"
+	<ContextMenuAction icon={asset("icons/edit.svg")} text="Edit"
 		hide_ctx_menu={hide_ctx_menu}
 		onclick={() => {
 				sel.message_edit = sel.ctx.message;
@@ -238,7 +239,7 @@
 	/>
 {/snippet}
 {#snippet action_delete_message(hide_ctx_menu)}
-	<ContextMenuAction icon="src/lib/assets/icons/delete.svg" text="Delete"
+	<ContextMenuAction icon={asset("icons/delete.svg")} text="Delete"
 		hide_ctx_menu={hide_ctx_menu}
 		onclick={() => {
 				let msg = message_list.getItem(sel.ctx.message);
@@ -250,7 +251,7 @@
 {/snippet}
 
 {#snippet action_settings_server(hide_ctx_menu)}
-	<ContextMenuAction icon="src/lib/assets/icons/settings.svg" text="Settings"
+	<ContextMenuAction icon={asset("icons/settings.svg")} text="Settings"
 		hide_ctx_menu={hide_ctx_menu}
 		onclick={() => {
 				sel.settings_tabs = settings_server.tabs();
@@ -259,7 +260,7 @@
 {/snippet}
 
 {#snippet action_settings_channel(hide_ctx_menu)}
-	<ContextMenuAction icon="src/lib/assets/icons/settings.svg" text="Settings"
+	<ContextMenuAction icon={asset("icons/settings.svg")} text="Settings"
 		hide_ctx_menu={hide_ctx_menu}
 		onclick={() => {
 				sel.settings_tabs = settings_channel.tabs();
@@ -267,7 +268,7 @@
 	/>
 {/snippet}
 {#snippet action_delete_channel(hide_ctx_menu)}
-	<ContextMenuAction icon="src/lib/assets/icons/delete.svg" text="Delete"
+	<ContextMenuAction icon={asset("icons/delete.svg")} text="Delete"
 		hide_ctx_menu={hide_ctx_menu}
 		onclick={() => {
 				Channel.delete(settings_params.channel_id,
@@ -277,7 +278,7 @@
 {/snippet}
 
 {#snippet action_kick_user(hide_ctx_menu)}
-	<ContextMenuAction icon="src/lib/assets/icons/kick.svg" text="Kick"
+	<ContextMenuAction icon={asset("icons/kick.svg")} text="Kick"
 		hide_ctx_menu={hide_ctx_menu}
 		onclick={() => {
 				User.kick(sel.server, sel.ctx.user_id, () => {}, () => {});
@@ -285,7 +286,7 @@
 	/>
 {/snippet}
 {#snippet action_ban_user(hide_ctx_menu)}
-	<ContextMenuAction icon="src/lib/assets/icons/ban.svg" text="Ban"
+	<ContextMenuAction icon={asset("icons/ban.svg")} text="Ban"
 		hide_ctx_menu={hide_ctx_menu}
 		onclick={() => {
 				ban.user_id = sel.ctx.user_id;
@@ -360,7 +361,7 @@
 		{/if}
 		<div class="panel profile_panel">
 			{#if !user_self.loaded}
-				<img src="$lib/assets/icons/loading.svg" alt="loading" class="filter_icon_main" style="width: 24px"/>
+				<img src={asset("icons/loading.svg")} alt="loading" class="filter_icon_main" style="width: 24px"/>
 			{:else}
 				<div style="display: flex; align-items: center; margin-bottom: 6px">
 					<img src={User.get_avatar_path(user_self.data)} style="width: 32px; height: 32px; margin-right: 8px" alt="avatar"/>
@@ -369,7 +370,7 @@
 						style="margin-left:auto"
 						onclick={() => sel.settings_tabs = settings_user.tabs()}
 					>
-						<img src="$lib/assets/icons/settings.svg" alt="profile settings" class="filter_icon_main" style="width: 32px"/>
+						<img src={asset("icons/settings.svg")} alt="profile settings" class="filter_icon_main" style="width: 32px"/>
 					</button>
 				</div>
 			{/if}

@@ -1,4 +1,5 @@
 <script>
+	import {asset} from '$app/paths';
 	import SidebarChannelElement from '$lib/display/sidebar/channel_element.svelte';
 	import SidebarChannelAction from '$lib/display/sidebar/channel_action.svelte';
 
@@ -19,7 +20,7 @@
 	
 			{#if !channels.loaded}
 				<div style="text-align: center; margin-top: 6px">
-					<img src="$lib/assets/icons/loading.svg" alt="loading" class="filter_icon_main" style="width: 48px"/>
+					<img src={asset("icons/loading.svg")} alt="loading" class="filter_icon_main" style="width: 48px"/>
 				</div>
 			{:else}
 				{#each channels.data as ch, i}
@@ -36,7 +37,7 @@
 	{#if channels?.loaded}
 		<div class="panel sidebar_channels sidebar_channel_actions">
 			<SidebarChannelAction last={false}
-				icon="/src/lib/assets/icons/add.svg" text="Add channel"
+				icon={asset("icons/add.svg")} text="Add channel"
 				action={create_channel}
 			/>
 		</div>

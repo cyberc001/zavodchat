@@ -1,4 +1,5 @@
 <script>
+	import {asset} from '$app/paths';
 	let { hint = "", max_rows = 5, value = $bindable(""),
 		status, actions = [],
 		onsend } = $props();
@@ -21,7 +22,7 @@
 	<div class="message_input_center_panel">
 		{#if status}
 			<div class="message_input_status_panel">
-				<img src="$lib/assets/icons/loading.svg" alt="loading" class="filter_icon_main" style="margin-right: 5px"/>
+				<img src={asset("icons/loading.svg")} alt="loading" class="filter_icon_main" style="margin-right: 5px"/>
 				{status}
 			</div>
 		{/if}

@@ -1,4 +1,5 @@
 <script>
+	import {asset} from '$app/paths';
 	import User from '$lib/rest/user.svelte.js';
 	import Role from '$lib/rest/role.js';
 	import ContextMenu from '$lib/control/context_menu.svelte';
@@ -55,16 +56,12 @@
 	bind:this={self}
 >
 	{#if Object.keys(user).length === 0}
-		<img src="$lib/assets/icons/loading.svg" alt="loading" class="filter_icon_main" style="width: 48px"/>
+		<img src={asset("icons/loading.svg")} alt="loading" class="filter_icon_main" style="width: 48px"/>
 	{:else}
 		<div class="user_profile_name">
 			<div class="user_avatar_frame">
 				<div class="user_status" style={User.Status.get_style(user?.status)}></div>
-				{#if user?.avatar}
-					<img class="user_avatar" src={User.get_avatar_path(user)} alt="avatar"/>
-				{:else}
-					<img class="user_avatar" src="$lib/assets/default_avatar.png" alt="avatar"/>
-				{/if}
+				<img class="user_avatar" src={User.get_avatar_path(user)} alt="avatar"/>
 			</div>
 			<b style={Role.get_username_style(user_roles)}>{user?.name}</b>
 		</div>
@@ -91,7 +88,7 @@
 					}}
 					style="anchor-name: --add_role_button"
 				>
-					<img class="filter_icon_main role_add_icon" src="$lib/assets/icons/add.svg"> add role
+					<img class="filter_icon_main role_add_icon" src={asset("icons/add.svg")}> add role
 				</button>
 			{/if}
 		</div>

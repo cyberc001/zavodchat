@@ -3,7 +3,7 @@ FROM node:25
 # install emscripten
 RUN mkdir /3rdparty
 RUN git clone https://github.com/emscripten-core/emsdk.git /3rdparty/emsdk; cd /3rdparty/emsdk;\
-	./emsdk install 4.0.23; ./emsdk activate 4.0.23
+	HTTP_PROXY="" HTTPS_PROXY="" http_proxy="" https_proxy="" ./emsdk install 4.0.23; ./emsdk activate 4.0.23
 ENV PATH="$PATH:/3rdparty/emsdk:/3rdparty/emsdk/upstream/emscripten"
 
 # install node_modules
@@ -21,10 +21,16 @@ COPY static/ /client/static/
 COPY src/ /client/src/
 
 # compile webasm
-WORKDIR /client/src
+COPY Makefile /client/
+WORKDIR /client
 RUN make -j 4
 
 
+ARG BUILD=dev
+ENV _BUILD=$BUILD
+
+RUN cd /client; if [ "$BUILD" = "preview" ]; then npm run build; fi
+
 #ENTRYPOINT ["tail", "-f", "/dev/null"]
 ENV HOST=0.0.0.0
-ENTRYPOINT ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+ENTRYPOINT npm run $_BUILD -- --host 0.0.0.0

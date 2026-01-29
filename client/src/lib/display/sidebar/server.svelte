@@ -1,4 +1,5 @@
 <script>
+	import {asset} from '$app/paths';
 	import SidebarServerElement from '$lib/display/sidebar/server_element.svelte';
 	import SidebarServerAction from '$lib/display/sidebar/server_action.svelte';
 
@@ -10,7 +11,7 @@
 <div style="display: flex; flex-direction: column">
 	<div class="panel sidebar_servers">
 		{#if !servers.loaded}
-			<img src="$lib/assets/icons/loading.svg" alt="loading" class="filter_icon_main" style="width: 48px"/>
+			<img src={asset("icons/loading.svg")} alt="loading" class="filter_icon_main" style="width: 48px"/>
 		{:else}
 			{#each servers.data as srv, i}
 				<SidebarServerElement server={srv} selected={selected_server === srv.id}
@@ -21,7 +22,7 @@
 		{/if}
 	</div>
 	<div class="panel sidebar_servers sidebar_server_actions">
-		<SidebarServerAction icon="src/lib/assets/icons/add.svg" action={create_server}/>
+		<SidebarServerAction icon={asset("icons/add.svg")} action={create_server}/>
 	</div>
 </div>
 

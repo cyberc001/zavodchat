@@ -1,6 +1,7 @@
 <script>
 	import {page} from '$app/state';
 	import {goto} from '$app/navigation';
+	import {asset} from '$app/paths';
 	import Server from '$lib/rest/server.js';
 	import Invite from '$lib/rest/invite.js';
 	import Button from '$lib/control/button.svelte';
@@ -21,7 +22,7 @@
 		{#if server === null}
 			Invalid invite
 		{:else if !server}
-			<img src="$lib/assets/icons/loading.svg" alt="loading" class="filter_icon_main" style="width: 48px"/>
+			<img src={asset("icons/loading.svg")} alt="loading" class="filter_icon_main" style="width: 48px"/>
 		{:else}
 			{#if server.avatar}
 				<img class="server_avatar" src={Server.get_avatar_path(server)} />

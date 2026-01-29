@@ -1,4 +1,5 @@
 <script>
+	import {asset} from '$app/paths';
 	import Notifs from '$lib/notifs.svelte.js';
 
 	import {fade} from 'svelte/transition';
@@ -46,7 +47,7 @@
 			style={typeof notif.opacity !== "undefined" ? `opacity: ${notif.opacity}` : ""}
 		>
 			{#if notif.type === Notifs.Types.Ongoing}
-				<img src="$lib/assets/icons/loading.svg" alt="loading" class="filter_icon_main" style="width: 16px"/>
+				<img src={asset("icons/loading.svg")} alt="loading" class="filter_icon_main" style="width: 16px"/>
 			{/if}
 			{notif.message}
 		</div>

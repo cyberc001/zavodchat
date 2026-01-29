@@ -2,6 +2,7 @@ import {PUBLIC_BASE_SOCKET_VC} from '$env/static/public';
 import Channel from '$lib/rest/channel.js';
 import Preferences from '$lib/rest/preferences.svelte.js';
 import Sound from '$lib/sound.js';
+import {asset} from '$app/paths';
 
 class VCTrack {
 	user_id;
@@ -47,7 +48,7 @@ class VCAudioTrack extends VCTrack {
 		if(mic){
 			this.ctx_dest = this.ctx.createMediaStreamDestination();
 			if(Preferences.data.noise_supression === "rnnoise"){
-				await this.ctx.audioWorklet.addModule("/src/lib/socket/vc_mic_processor.js");
+				await this.ctx.audioWorklet.addModule( "/js/vc_mic_processor.js");
 				this.processor = new AudioWorkletNode(this.ctx, "vc_mic_processor");
 				this.ctx_src.connect(this.processor).connect(this.ctx_dest);
 				this.processor.connect(this.analyser);
@@ -137,7 +138,7 @@ export default class VCSocket {
 			for(const track of Object.values(this.tracks))
 				track.destroy();
 			onclose(e);
-			Sound.play("/src/lib/assets/sounds/vc_leave.ogg");
+			Sound.play(asset("sounds/vc_leave.ogg"));
 		}
 		this.ws.onerror = onerror;
 		this.ws.onmessage = (e) => {
@@ -167,19 +168,19 @@ export default class VCSocket {
 
 		switch(name){
 			case "user_joined_vc":
-				Sound.play("/src/lib/assets/sounds/vc_join.ogg");
+				Sound.play(asset("sounds/vc_join.ogg"));
 				break;
 			case "user_left_vc":
-				Sound.play("/src/lib/assets/sounds/vc_leave.ogg");
+				Sound.play(asset("sounds/vc_leave.ogg"));
 				break;
 			case "user_changed_vc_state":
 				if(data.video === VCSocket.VideoState.Screen)
-					Sound.play("/src/lib/assets/sounds/vc_video_enable.ogg");
+					Sound.play(asset("sounds/vc_video_enable.ogg"));
 				if(data.id === this.user_id){
 					if(data.mute === VCSocket.AudioState.BySelf || data.deaf === VCSocket.AudioState.BySelf)
-						Sound.play("/src/lib/assets/sounds/vc_audio_mute.ogg");
+						Sound.play(asset("sounds/vc_audio_mute.ogg"));
 					else if(data.mute === VCSocket.AudioState.None || data.deaf === VCSocket.AudioState.None)
-						Sound.play("/src/lib/assets/sounds/vc_audio_unmute.ogg");
+						Sound.play(asset("sounds/vc_audio_unmute.ogg"));
 				}
 				break;
 		}
