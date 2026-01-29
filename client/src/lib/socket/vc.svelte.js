@@ -1,5 +1,6 @@
 import {PUBLIC_BASE_SOCKET_VC} from '$env/static/public';
 import Channel from '$lib/rest/channel.js';
+import Sound from '$lib/sound.js';
 
 class VCTrack {
 	user_id;
@@ -119,10 +120,10 @@ export default class VCSocket {
 		this.state.color = `var(${color})`;
 	}
 
-	constructor(user_id, server_id, channel_id,
+	constructor(user_id, channel_id,
 			onclose, onerror){
 		this.user_id = user_id;
-		this.channel = Channel.get(server_id, channel_id);
+		this.channel = Channel.get(channel_id);
 
 		this.ws = new WebSocket(PUBLIC_BASE_SOCKET_VC + "?channel=" + channel_id);
 		this.ws.onclose = (e) => {
@@ -134,6 +135,7 @@ export default class VCSocket {
 			for(const track of Object.values(this.tracks))
 				track.destroy();
 			onclose(e);
+			Sound.play("/src/lib/assets/sounds/vc_leave.ogg");
 		}
 		this.ws.onerror = onerror;
 		this.ws.onmessage = (e) => {
@@ -150,6 +152,35 @@ export default class VCSocket {
 
 	end_call(){
 		this.ws.close();
+	}
+
+
+	// callback for MainSocket's onmessage
+	on_main_message(name, data){
+		const allowed_events = {"user_joined_vc": true,
+					"user_left_vc": true,
+					"user_changed_vc_state": true};
+		if(!allowed_events[name] || data.channel_id !== this.channel.data.id)
+			return;
+
+		switch(name){
+			case "user_joined_vc":
+				Sound.play("/src/lib/assets/sounds/vc_join.ogg");
+				break;
+			case "user_left_vc":
+				Sound.play("/src/lib/assets/sounds/vc_leave.ogg");
+				break;
+			case "user_changed_vc_state":
+				if(data.video === VCSocket.VideoState.Screen)
+					Sound.play("/src/lib/assets/sounds/vc_video_enable.ogg");
+				if(data.id === this.user_id){
+					if(data.mute === VCSocket.AudioState.BySelf || data.deaf === VCSocket.AudioState.BySelf)
+						Sound.play("/src/lib/assets/sounds/vc_audio_mute.ogg");
+					else if(data.mute === VCSocket.AudioState.None || data.deaf === VCSocket.AudioState.None)
+						Sound.play("/src/lib/assets/sounds/vc_audio_unmute.ogg");
+				}
+				break;
+		}
 	}
 
 

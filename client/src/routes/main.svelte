@@ -72,8 +72,11 @@
 	let channels = $state();
 
 	// Sockets
+	let socket_vc = $state();
 	let socket_main = new MainSocket(setError, setError,
 					(name, data) => {
+						socket_vc?.on_main_message(name, data);
+
 						if(name === "server_deleted"){
 							if(settings_params.server_id === data.id)
 								closeSettings();
@@ -89,7 +92,6 @@
 							showServer(sel.server);
 						}
 					});
-	let socket_vc = $state();
 
 	// UI state
 	let sel = $state({
@@ -160,7 +162,7 @@
 	const showChannel = (id, i) => {
 		if(channels.data[i].type === Channel.Type.Voice){
 			let old_socket_vc = socket_vc;
-			socket_vc = new VCSocket(user_self.data.id, sel.server, id, (close) => {
+			socket_vc = new VCSocket(user_self.data.id, id, (close) => {
 				if(close.reason === "User is already connected to this channel")
 					socket_vc = old_socket_vc;
 			});

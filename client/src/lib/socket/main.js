@@ -134,7 +134,6 @@ export default class MainSocket {
 			}
 		},
 		user_left_vc: function(data) {
-			console.log("user_left_vc", data);
 			if(Channel.channel_list_cache.has_state(data.server_id)){
 				let list = Channel.channel_list_cache.get_state(data.server_id);
 				let channel_list_data = Channel.channel_list_cache.get_state(data.server_id).data.find((x) => x.id === data.channel_id);
@@ -147,9 +146,12 @@ export default class MainSocket {
 				let list = Channel.channel_list_cache.get_state(data.server_id);
 				let channel_list_data = Channel.channel_list_cache.get_state(data.server_id).data.find((x) => x.id === data.channel_id);
 				if(channel_list_data && channel_list_data.vc_users){
-					channel_list_data.vc_users[data.id].mute = data.mute;
-					channel_list_data.vc_users[data.id].deaf = data.deaf;
-					channel_list_data.vc_users[data.id].video = data.video;
+					if(typeof data.mute !== "undefined")
+						channel_list_data.vc_users[data.id].mute = data.mute;
+					if(typeof data.deaf !== "undefined")
+						channel_list_data.vc_users[data.id].deaf = data.deaf;
+					if(typeof data.video !== "undefined")
+						channel_list_data.vc_users[data.id].video = data.video;
 				}
 			}
 		}

@@ -35,7 +35,7 @@
 	</div>
 	{#if channels?.loaded}
 		<div class="panel sidebar_channels sidebar_channel_actions">
-			<SidebarChannelAction last={true}
+			<SidebarChannelAction last={false}
 				icon="/src/lib/assets/icons/add.svg" text="Add channel"
 				action={create_channel}
 			/>

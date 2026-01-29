@@ -522,8 +522,8 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 				db_connection db_conn = this->pool.hold();
 				pqxx::work tx{*db_conn};
 				socket_event ev;
-				resource_utils::json_set_ids(ev.data, conn->server_id, conn->channel_id);
 				ev.data["id"] = conn->user_id;
+				resource_utils::json_set_ids(ev.data, conn->server_id, conn->channel_id);
 				ev.name = "user_left_vc";
 				this->sserv.send_to_channel(conn->channel_id, tx, ev);
 
@@ -547,7 +547,7 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 						conn->rtc_conn->setRemoteDescription(answer);
 					}
 				} else if(ev.name == "change_state"){
-					bool changed = false;
+					socket_event changed_ev;
 					if(ev.data.contains("mute")){
 						if(!ev.data["mute"].is_number_unsigned() || !check_audio_state(ev.data["mute"])){
 							socket_event ev;
@@ -556,10 +556,8 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 							conn->send(ev.dump());
 							return;
 						}
-						if(ev.data["mute"] != conn->mute){
-							changed = true;
-							conn->mute = ev.data["mute"];
-						}
+						if(ev.data["mute"] != conn->mute)
+							changed_ev.data["mute"] = conn->mute = ev.data["mute"];
 					}
 					if(ev.data.contains("deaf")){
 						if(!ev.data["deaf"].is_number_unsigned() || !check_audio_state(ev.data["deaf"])){
@@ -569,21 +567,18 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 							conn->send(ev.dump());
 							return;
 						}
-						if(ev.data["deaf"] != conn->deaf){
-							changed = true;
-							conn->deaf = ev.data["deaf"];
-						}
+						if(ev.data["deaf"] != conn->deaf)
+							changed_ev.data["deaf"] = conn->deaf = ev.data["deaf"];
 					}
 
-					if(changed){
+					if(changed_ev.data.size()){
 						db_connection db_conn = this->pool.hold();
 						pqxx::work tx{*db_conn};
 
-						socket_event ev;
-						ev.data = conn->get_vc_state();
-						resource_utils::json_set_ids(ev.data, conn->server_id, conn->channel_id);
-						ev.name = "user_changed_vc_state";
-						this->sserv.send_to_channel(conn->channel_id, tx, ev);
+						changed_ev.data["id"] = conn->user_id;
+						resource_utils::json_set_ids(changed_ev.data, conn->server_id, conn->channel_id);
+						changed_ev.name = "user_changed_vc_state";
+						this->sserv.send_to_channel(conn->channel_id, tx, changed_ev);
 					}
 				} else if(ev.name == "enable_video"){
 					std::cerr << "ENABLING VIDEO" << std::endl;
@@ -620,7 +615,8 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 					db_connection db_conn = this->pool.hold();
 					pqxx::work tx{*db_conn};
 					socket_event ev;
-					ev.data = conn->get_vc_state();
+					ev.data["video"] = video_state::SCREEN;
+					ev.data["id"] = conn->user_id;
 					resource_utils::json_set_ids(ev.data, conn->server_id, conn->channel_id);
 					ev.name = "user_changed_vc_state";
 					this->sserv.send_to_channel(conn->channel_id, tx, ev);
@@ -634,7 +630,8 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 					db_connection db_conn = this->pool.hold();
 					pqxx::work tx{*db_conn};
 					socket_event ev;
-					ev.data = conn->get_vc_state();
+					ev.data["video"] = video_state::DISABLED;
+					ev.data["id"] = conn->user_id;
 					resource_utils::json_set_ids(ev.data, conn->server_id, conn->channel_id);
 					ev.name = "user_changed_vc_state";
 					this->sserv.send_to_channel(conn->channel_id, tx, ev);
