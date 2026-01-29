@@ -53,6 +53,7 @@ class VCAudioTrack extends VCTrack {
 				this.processor.connect(this.analyser);
 			} else {
 				this.ctx_src.connect(this.ctx_dest);
+				this.ctx_src.connect(this.analyser);
 			}
 		} else
 			this.ctx_src.connect(this.analyser);
@@ -355,6 +356,7 @@ export default class VCSocket {
 						noiseSupression: false
 					}
 				});
+				this.set_state("Initializing microphone", "--clr_text_warning");
 				const new_track = media.getTracks()[0];
 				
 				let track = this.audio[this.user_id] = this.tracks[-1] = new VCAudioTrack();

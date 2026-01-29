@@ -7,7 +7,7 @@ RUN git clone https://github.com/emscripten-core/emsdk.git /3rdparty/emsdk; cd /
 ENV PATH="$PATH:/3rdparty/emsdk:/3rdparty/emsdk/upstream/emscripten"
 
 # install node_modules
-COPY package.json package-lock.json svelte.config.js vite.config.js jsconfig.json .npmrc .env download_model.sh.patch /client/
+COPY package.json package-lock.json svelte.config.js vite.config.js jsconfig.json .npmrc .env download_model.sh.patch client.key client.pem /client/
 WORKDIR /client
 RUN npm install
 
@@ -26,4 +26,5 @@ RUN make -j 4
 
 
 #ENTRYPOINT ["tail", "-f", "/dev/null"]
-ENTRYPOINT ["npm", "run", "dev"]
+ENV HOST=0.0.0.0
+ENTRYPOINT ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
