@@ -16,6 +16,7 @@
 #include "resource/role.h"
 #include "resource/user_status.h"
 #include "resource/params.h"
+#include "resource/preferences.h"
 
 #include "db/init.h"
 
@@ -131,6 +132,10 @@ int main()
 	ws.register_resource("/files/upload/{fname}", &server_file_manage);
 	server_user_file_resource server_user_file(pool, cfg.file_storage_path);
 	ws.register_resource("/files/upload/{user_id}/{fname}", &server_user_file);
+
+	preferences_resource preferences(pool);
+	preferences.keys_per_user = cfg.max_user_preference_keys;
+	ws.register_resource("/preferences", &preferences);
 
 	params_resource params(cfg);
 	ws.register_resource("/params", &params);

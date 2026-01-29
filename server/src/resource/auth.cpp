@@ -102,12 +102,16 @@ std::shared_ptr<http_response> register_resource::render_POST(const http_request
 	pqxx::result r;
 	try{
 		r = tx.exec("INSERT INTO users(name, status) VALUES($1, 0) RETURNING user_id", pqxx::params(displayname));
+	} catch(pqxx::data_exception& e){
+		return create_response::string(req, "Displayname is too long", 400);
 	} catch(const pqxx::unique_violation& e){
 		return create_response::string(req, "Displayname already exists", 403);
 	}
 
 	try{
 		tx.exec("INSERT INTO auth(username, password, user_id) VALUES($1, crypt($2, gen_salt('bf')), $3)", pqxx::params(username, password, r[0]["user_id"].as<int>()));
+	} catch(pqxx::data_exception& e){
+		return create_response::string(req, "Username or password are too long", 400);
 	} catch(const pqxx::unique_violation& e){
 		return create_response::string(req, "Username already exists", 403);
 	}

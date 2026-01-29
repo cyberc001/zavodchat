@@ -39,6 +39,7 @@ public:
 
 	unsigned max_get_count = 50;
 
+	unsigned max_user_preference_keys = 128;
 	unsigned servers_owned_per_user = 10;
 	unsigned max_channels_per_server = 50;
 	unsigned max_roles_per_server = 50;

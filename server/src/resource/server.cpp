@@ -31,8 +31,6 @@ std::shared_ptr<http_response> server_resource::render_POST(const http_request& 
 {
 	base_resource::render_POST(req);
 
-	std::string_view name = req.get_arg("name");
-
 	db_connection conn = pool.hold();
 	pqxx::work tx{*conn};
 
@@ -44,7 +42,8 @@ std::shared_ptr<http_response> server_resource::render_POST(const http_request& 
 	r = tx.exec("SELECT owner_id FROM servers WHERE owner_id = $1", pqxx::params(user_id));
 	if(r.size() >= owned_per_user)
 		return create_response::string(req, "User owns more than " + std::to_string(owned_per_user) + " servers", 403);
-	
+
+	std::string_view name = req.get_arg("name");
 	int server_id;
 	try{
 		r = tx.exec("INSERT INTO servers(name, owner_id) VALUES($1, $2) RETURNING server_id", pqxx::params(name, user_id));
