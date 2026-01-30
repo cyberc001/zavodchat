@@ -13,7 +13,7 @@ public:
 	thread_pool(size_t init_size = 8);
 	~thread_pool();
 
-	void execute(std::function<void()>);
+	void execute(std::function<void()>, bool blocking = true);
 private:
 	struct _thread
 	{

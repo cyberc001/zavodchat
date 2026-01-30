@@ -10,8 +10,8 @@ thread_pool::_thread::_thread(thread_pool& parent): parent{parent}
 }
 void thread_pool::_thread::loop()
 {
+	std::unique_lock lock(mut);
 	for(;;){
-		std::unique_lock lock(mut);
 		cond.wait(lock, [this](){ return run || finished; });
 		if(finished)
 			break;
@@ -43,20 +43,25 @@ thread_pool::~thread_pool()
 	}
 }
 
-void thread_pool::execute(std::function<void()> func)
+void thread_pool::execute(std::function<void()> func, bool blocking)
 {
 	thread_pool::_thread* thr;
 	{
 		// Wait until a thread is available
 		std::unique_lock lock(mut);
+		std::cerr << "threads " << threads.size() << std::endl;
+		if(!blocking && !threads.size())
+			return;
 		cond.wait(lock, [this](){ return threads.size(); });
 		thr = threads.front();
 		threads.pop();
 	}
 
+	thr->mut.lock();
 	thr->run_func = func;
 	thr->run = true;
 	thr->cond.notify_one();
+	thr->mut.unlock();
 }
 void thread_pool::release(thread_pool::_thread* thr)
 {

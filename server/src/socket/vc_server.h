@@ -101,7 +101,8 @@ public:
 	void enable_user_video(std::shared_ptr<socket_vc_connection>, thread_pool& thr_pool);
 	void disable_user_video(std::shared_ptr<socket_vc_connection>);
 
-	void for_each(std::function<void (int, std::shared_ptr<socket_vc_connection>)>);
+	std::vector<std::shared_ptr<socket_vc_connection>> get_users();
+	//void for_each(std::function<void (int, std::shared_ptr<socket_vc_connection>)>);
 private:
 	std::mutex mut;
 	std::unordered_map<int, std::shared_ptr<socket_vc_connection>> users;
