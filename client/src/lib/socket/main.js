@@ -163,9 +163,14 @@ export default class MainSocket {
 		}
 	};
 
+	ws_ping_intv;
+
 	constructor(onclose, onerror, onmessage) {
 		this.ws = new WebSocket(PUBLIC_BASE_SOCKET);
-		this.ws.onclose = onclose;
+		this.ws.onclose = (e) => {
+			clearInterval(this.ws_ping_intv);
+			onclose(e);
+		};
 		this.ws.onerror = onerror;
 
 		this.ws.onmessage = (e) => {
@@ -177,5 +182,9 @@ export default class MainSocket {
 			if(onmessage)
 				onmessage(_data.name, _data.data);
 		};
+
+		this.ws_ping_intv = setInterval(() => {
+			this.ws.send(JSON.stringify({name: "ping", data: ""}));
+		}, 60000);
 	}
 };

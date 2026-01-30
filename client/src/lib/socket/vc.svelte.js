@@ -123,6 +123,8 @@ export default class VCSocket {
 		this.state.color = `var(${color})`;
 	}
 
+	ws_ping_intv;
+
 	constructor(user_id, channel_id,
 			onclose, onerror){
 		this.user_id = user_id;
@@ -130,6 +132,7 @@ export default class VCSocket {
 
 		this.ws = new WebSocket(PUBLIC_BASE_SOCKET_VC + "?channel=" + channel_id);
 		this.ws.onclose = (e) => {
+			clearInterval(this.ws_ping_intv);
 			console.log("closing ws with rtc", this.rtc);
 			if(this.rtc)
 				this.rtc.close();
@@ -153,6 +156,10 @@ export default class VCSocket {
 					break;
 			}
 		};
+
+		this.ws_ping_intv = setInterval(() => {
+			this.ws.send(JSON.stringify({name: "ping", data: ""}));
+		}, 60000);
 	}
 
 	end_call(){
