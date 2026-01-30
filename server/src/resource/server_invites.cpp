@@ -58,9 +58,9 @@ std::shared_ptr<http_response> server_invites_resource::render_POST(const http_r
 	tx.commit();
 
 	socket_event ev;
-	resource_utils::json_set_ids(ev.data, server_id);
 	r = tx.exec("SELECT user_id, name, avatar, status FROM users WHERE user_id = $1", pqxx::params(user_id));
 	ev.data = resource_utils::user_json_from_row(r[0]);
+	resource_utils::json_set_ids(ev.data, server_id);
 	ev.name = "user_joined";
 	sserv.send_to_server(server_id, tx, ev);
 	

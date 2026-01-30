@@ -180,6 +180,16 @@ export class DataRange {
 		}
 	}
 
+	reload_observers(){
+		this.delete_gced_observers();
+
+		for(const ref of this.observers){
+			const obs = ref.deref();
+			if(obs) // in case an object gets garbage collected after new_obs is formed
+				obs.load_func(obs.state, this, obs.start, obs.end - obs.start);
+		}	
+	}
+
 	inc_observers_end(){
 		this.delete_gced_observers();
 
@@ -392,6 +402,17 @@ export class DataRangeTree {
 
 		this.__trim_iter(left, toremove);
 		this.__trim_iter(right, toremove);
+	}
+
+	reload_all(){
+		this.__reload_all_iter(this._tree._root);
+	}
+	__reload_all_iter(node){
+		if(node === null)
+			return;
+		node.data.reload_observers();
+		this.__reload_all_iter(node.left);
+		this.__reload_all_iter(node.right);
 	}
 };
 

@@ -68,6 +68,12 @@ export default class MainSocket {
 				st.data.splice(idx, 1);
 		},
 
+		user_joined: function(data) {
+			let tree = User.user_server_range_cache.get_tree(data.server_id);
+			if(tree)
+				tree.reload_all(data);
+		},
+
 		user_kicked: function(data) {
 			if(User.user_cache.has_state(-1) && User.user_cache.get_state(-1).data.id === data.id)
 				Server.remove_cache(data.server_id);
