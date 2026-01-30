@@ -13,7 +13,7 @@
 		textarea_rows = Math.min(text_rows, max_rows);
 	});
 	const textarea_onkeyup = (e) => {
-		if(e.code === "Enter" && e.ctrlKey/*&& value.length > 0*/)
+		if(!status && e.code === "Enter" && e.ctrlKey && value.length > 0)
 			onsend(value);
 	}
 </script>

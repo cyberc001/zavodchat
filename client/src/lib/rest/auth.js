@@ -10,7 +10,7 @@ export default class {
 		Rest.post("", "register", {"username": username, "displayname": displayname, "password": password}, _then, _catch);
 	}
 	static change_user_data(data, _then, _catch){
-		Rest.put("", "register",
+		Rest.put("Changing user data", "register",
 			Util.form_data_from_object(data, ["displayname", "username", "password", "avatar"]),
 			_then, _catch);
 	}

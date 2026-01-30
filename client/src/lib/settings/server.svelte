@@ -293,7 +293,7 @@ This cannot be reversed.
 		bind:value={role_perm_get_fabric(1, 6), role_perm_set_fabric(1, 6)}
 	/>
 	<Toggle label_text="Speak in voice channels" states="off_default_on"
-		bind:value={role_perm_get_fabric(1, 7), role_perm_set_fabric(1, 8)}
+		bind:value={role_perm_get_fabric(1, 7), role_perm_set_fabric(1, 7)}
 	/>
 	<Toggle label_text="Manage roles" states="off_default_on"
 		bind:value={role_perm_get_fabric(1, 8), role_perm_set_fabric(1, 8)}

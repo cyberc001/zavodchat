@@ -199,6 +199,9 @@
 				() => {
 					message_text = "";
 					message_status = undefined;
+				},
+				() => {
+					message_status = undefined;
 				});
 	};
 	const editMessage = (text) => {

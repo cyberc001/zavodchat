@@ -3,6 +3,7 @@ import Rest from '$lib/rest.js';
 import Util from '$lib/util';
 import {IDCache} from '$lib/cache/id.svelte.js';
 import {ListCache} from '$lib/cache/list.svelte.js';
+import {asset} from '$app/paths';
 
 export default class Server {
 	static server_cache = new IDCache();
@@ -63,7 +64,7 @@ export default class Server {
 
 	static get_avatar_path(srv){
 		if(typeof srv.avatar === "undefined")
-			return "/src/lib/assets/default_avatar.png";
+			return asset("default_avatar.png");
 		if(srv.avatar.startsWith("data:image"))
 			return srv.avatar;
 		return PUBLIC_BASE_REST + "files/avatar/server/" + srv.avatar;

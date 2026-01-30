@@ -130,6 +130,7 @@ export default class VCSocket {
 
 		this.ws = new WebSocket(PUBLIC_BASE_SOCKET_VC + "?channel=" + channel_id);
 		this.ws.onclose = (e) => {
+			console.log("closing ws with rtc", this.rtc);
 			if(this.rtc)
 				this.rtc.close();
 			// close all streams to make socket GC properly and prevent audio duplication
@@ -138,6 +139,7 @@ export default class VCSocket {
 			for(const track of Object.values(this.tracks))
 				track.destroy();
 			onclose(e);
+			this.set_state("Disconnected", "--clr_text_error");
 			Sound.play(asset("sounds/vc_leave.ogg"));
 		}
 		this.ws.onerror = onerror;
@@ -154,6 +156,7 @@ export default class VCSocket {
 	}
 
 	end_call(){
+		console.log("ending call");
 		this.ws.close();
 	}
 
