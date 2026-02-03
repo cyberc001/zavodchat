@@ -25,7 +25,7 @@
 	let add_role_ctx_off = $state([0, 0]);
 	let show_add_role_menu = $state(false);
 	let add_role_items = $derived.by(() => {
-		if(Object.keys(user).length === 0)
+		if(!user)
 			return [];
 
 		let items = [[], []];
@@ -55,7 +55,7 @@
 	onmouseleave={() => pointer_on_profile = false}
 	bind:this={self}
 >
-	{#if Object.keys(user).length === 0}
+	{#if !user}
 		<img src={asset("icons/loading.svg")} alt="loading" class="filter_icon_main" style="width: 48px"/>
 	{:else}
 		<div class="user_profile_name">

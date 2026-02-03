@@ -1,6 +1,5 @@
 import {PUBLIC_BASE_SOCKET} from '$env/static/public';
 
-import {DataRange} from '$lib/cache/range.svelte.js';
 import Util from '$lib/util';
 import Message from '$lib/rest/message.js';
 import User from '$lib/rest/user.svelte.js';
@@ -12,32 +11,19 @@ import Ban from '$lib/rest/ban.js';
 export default class MainSocket {
 	ws;
 
-	static _get_new_roles(data) {
-		if(User.user_server_cache.has_state([data.server_id, data.user_id]))
-			return User.user_server_cache.get_state([data.server_id, data.user_id]).data.roles;
-		else
-			return User.user_server_range_cache.get_tree(data.server_id)?.find_by_id(data.user_id)?.data.roles;
-	}
-
 	static socket_event_handlers = {
 		message_edited: function(data) {
-			let tree = Message.message_range_cache.get_tree(data.channel_id);
-			if(tree)
-				tree.update_one_id(data.id, {
+			Message.message_range_cache.data_update_id(data.channel_id, data.id, {
 					edited: data.edited,
 					text: data.text,
 					status: Message.Status.None
 				});
 		},
 		message_deleted: function(data) {
-			let tree = Message.message_range_cache.get_tree(data.channel_id);
-			if(tree)
-				tree.remove_one_id(data.id);
+			Message.message_range_cache.data_remove_id(data.channel_id, data.id);
 		},
 		message_created: function(data) {
-			let tree = Message.message_range_cache.get_tree(data.channel_id);
-			if(tree)
-				tree.insert_last(data);
+			Message.message_range_cache.data_append(data.channel_id, data);
 		},
 
 		user_changed: function(data) {
@@ -69,9 +55,8 @@ export default class MainSocket {
 		},
 
 		user_joined: function(data) {
-			let tree = User.user_server_range_cache.get_tree(data.server_id);
-			if(tree)
-				tree.reload_all(data);
+			console.log("user_joined reloading", data.server_id);
+			User.user_server_range_cache.reload(data.server_id);
 		},
 
 		user_kicked: function(data) {
@@ -88,18 +73,14 @@ export default class MainSocket {
 			if(tree)
 				User.get_nocache(data.id, (user_data) => {
 						user_data.expires = data.expires;
-						tree.insert_last(user_data);
+						tree.data_append(user_data);
 				}, () => {});
 		},
 		user_unbanned: function(data) {
-			let tree = Ban.ban_range_cache.get_tree(data.server_id);
-			if(tree)
-				tree.remove_one_id(data.id);
+			Ban.ban_range_cache.data_remove(data.server_id, data.id);
 		},
 		ban_changed: function(data) {
-			let tree = Ban.ban_range_cache.get_tree(data.server_id);
-			if(tree)
-				tree.update_one_id(data.id, {expires: data.expires});
+			Ban.ban_range_cache.data_update(data.server_id, data.id, {expires: data.expires});
 		},
 
 		roles_updated: function(data) {
@@ -112,14 +93,14 @@ export default class MainSocket {
 		},
 
 		role_assigned: function(data) {
-			let new_roles = MainSocket._get_new_roles(data);
+			let new_roles = User.get_roles(data.server_id, data.user_id);
 			if(new_roles){
 				new_roles.push(data.role_id);
 				User.update_cache_server(data.server_id, data.user_id, {roles: new_roles});
 			}
 		},
 		role_disallowed: function(data) {
-			let new_roles = MainSocket._get_new_roles(data);
+			let new_roles = User.get_roles(data.server_id, data.user_id);
 			if(new_roles){
 				const i = new_roles.findIndex((x) => x === data.role_id);
 				if(i !== -1){

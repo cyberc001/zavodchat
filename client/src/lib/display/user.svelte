@@ -24,7 +24,7 @@
 		show_ctx_menu(self, e);
 	}}
 >
-	{#if !user || Object.keys(user).length === 0}
+	{#if !user}
 		<img src={asset("icons/loading.svg")} alt="loading" class="filter_icon_main" style="width: 24px"/>
 	{:else}
 		<div class="user_avatar_frame">

@@ -8,7 +8,6 @@
 	import Message from '$lib/rest/message.js';
 	import User from '$lib/rest/user.svelte.js';
 	import Role from '$lib/rest/role.js';
-	import ServerUser from '$lib/rest/server_user.js';
 	import Ban from '$lib/rest/ban.js';
 
 	import MainSocket from '$lib/socket/main.js';
@@ -171,6 +170,7 @@
 			showUser(-1, -1);
 			sel.channel = id;
 		}
+		message_list?.reset();
 	};
 
 
@@ -441,9 +441,9 @@
 		anchor={profile_display_params.anchor} anchor_side_x={profile_display_params.anchor_side_x}
 		user={profile_display_params.user.data} server_roles={server_roles.data}
 		hide_profile={() => showUser(-1, -1)}
-		assign_role={(role_id) => ServerUser.assign_role(sel.server, profile_display_params.user.data.id, role_id,
+		assign_role={(role_id) => User.assign_role(sel.server, profile_display_params.user.data.id, role_id,
 									() => {})}
-		disallow_role={(role_id) => ServerUser.disallow_role(sel.server, profile_display_params.user.data.id, role_id,
+		disallow_role={(role_id) => User.disallow_role(sel.server, profile_display_params.user.data.id, role_id,
 									() => {})}
 	/>
 {/if}

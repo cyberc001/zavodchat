@@ -45,16 +45,11 @@ export default class User {
 			for(const f in data)
 				st.data[f] = data[f];
 		}
-
-		let tree = User.user_server_range_cache.get_tree(server_id);
-		if(tree)
-			tree.update_one_id(user_id, data);
+		User.user_server_range_cache.data_update_id(server_id, user_id, data);
 	}
 	static delete_cache_server(server_id, user_id){
 		User.user_server_cache.remove_state([server_id, user_id]);
-		let tree = User.user_server_range_cache.get_tree(server_id);
-		if(tree)
-			tree.remove_one_id(user_id);
+		User.user_server_range_cache.data_remove_id(server_id, user_id);
 	}
 
 
@@ -110,6 +105,23 @@ export default class User {
 		Rest.delete("Kicking user", Rest.get_route_sur(server_id, user_id),
 						_then, _catch);
 	}
+
+	static get_roles(server_id, user_id){
+		if(User.user_server_cache.has_state([server_id, user_id]))
+			return User.user_server_cache.get_state([server_id, user_id]).data.roles;
+		else
+			return User.user_server_range_cache.get_tree(server_id)?.find_by_id(user_id)?.data.roles;
+	}
+
+	static assign_role(server_id, user_id, role_id, _then, _catch){
+		Rest.post("Assigning role", Rest.get_route_sur(server_id, user_id, role_id), undefined,
+				(res) => _then(res.data), _catch);
+	}
+	static disallow_role(server_id, user_id, role_id, _then, _catch){
+		Rest.delete("Disallowing role", Rest.get_route_sur(server_id, user_id, role_id),
+				(res) => _then(res.data), _catch);
+	}
+
 
 	static dummy(){
 		return {

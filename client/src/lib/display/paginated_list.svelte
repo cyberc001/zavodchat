@@ -2,11 +2,17 @@
 	import {asset} from '$app/paths';
 	import {tick} from 'svelte';
 
-	let {index = $bindable(0), scrollTop = $bindable(0),
+	let {scrollTop = $bindable(0),
 		range = 30, advance = 10, reversed = false,
 		render_item, load_items, augment_item = () => {},
 		loading_text = "Loading...", to_latest_text = "To latest"
 		} = $props();
+
+	let index = $state(0);
+	export function reset(){
+		index = 0;
+		scrollTop = list_div.scrollTop = 0;
+	}
 
 	// Keeping this reference is CRUCIAL so that observer does not get garbage collected and items are notified of the changes
 	let items_range = $derived(load_items(index, range));
@@ -24,7 +30,7 @@
 	// 2. Same goes for embedding data directly in REST cached requests using other REST cached requests
 	$effect(() => {
 		for(let item of items)
-			if(item && Object.keys(item).length > 0)
+			if(item)
 				augment_item(item);
 	});
 
@@ -105,7 +111,7 @@
 <div class="paginated_list">
 	<div class="paginated_list" style={reversed ? "flex-direction: column-reverse" : ""} onwheel={on_scroll} bind:this={list_div}>
 		{#each items as item, i}
-			{#if item && Object.keys(item).length > 0}
+			{#if item}
 				<div id={"paginated_list_item_" + item.id}>
 					{@render render_item(i, item)}
 				</div>
