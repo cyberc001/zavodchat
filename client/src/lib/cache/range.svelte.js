@@ -22,6 +22,10 @@ class RangeObserver {
 	}
 
 	update(range, start, end){
+		if(typeof start === "undefined"){
+			start = this.start;
+			end = this.end;
+		}
 		for(let i = start; i < end; ++i)
 			if(range.data[i - range.start])
 				this.data[i - this.start] = range.data[i - range.start];
@@ -268,7 +272,7 @@ class DataRangeTree {
 						++obs.end;
 						obs.data.unshift(data);
 					} else
-						obs.update(this, this.start, this.end);
+						obs.update(enc_range);
 				}
 				this.data_append(undefined, this._tree._root, enc_range);
 			}

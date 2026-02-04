@@ -23,6 +23,7 @@ export default class MainSocket {
 			Message.message_range_cache.data_remove_id(data.channel_id, data.id);
 		},
 		message_created: function(data) {
+			console.log("message_created", data);
 			Message.message_range_cache.data_append(data.channel_id, data);
 		},
 
