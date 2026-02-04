@@ -20,6 +20,19 @@ private:
 	socket_main_server& sserv;
 };
 
+class channel_messages_search_resource : public base_resource
+{
+public:
+	channel_messages_search_resource(db_connection_pool& pool);
+
+	std::shared_ptr<http_response> render_POST(const http_request&);
+
+	/* CONFIG PARAMETERS */
+	unsigned max_get_count = 50;
+private:
+	db_connection_pool& pool;
+};
+
 class message_resource : public base_resource
 {
 public:

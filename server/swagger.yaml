@@ -369,6 +369,68 @@ paths:
           content:
             text:
               example: 377
+  /channels/$channel_id/messages_search:
+    post:
+      summary: Пагинированный фильтрованый список сообщений
+      description: Указанные в теле запроса ограничения находятся в коньюнкции (И), включая массив "content". "content" также может быть строкой.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                content:
+                  type: array
+                  example:
+                    - "pc"
+                    - "gaming"
+                  description: Искомая подстрока
+                author_id:
+                  type: integer
+                  example: 444
+                  description: ID пользователя, отправившего сообщение
+                date_from:
+                  type: string
+                  example: "2024-11-13 00:00:00+03"
+                  description: дата, не раньше которой отправлено сообщение
+                date_until:
+                  type: string
+                  example: "2024-11-13 00:00:00+03"
+                  description: дата, не позже которой отправлено сообщение
+
+      parameters:
+        - $ref: "#/parameters/zavodchat_token"
+        - name: start
+          required: true
+          in: query
+          description: Начало диапазона (0 - последнее сообщение, 1 - предпоследнее, и т.д.)
+          schema:
+            type: integer
+            example: 0
+        - name: count
+          required: true
+          in: query
+          description: Размер диапазона
+          schema:
+            type: integer
+            example: 50
+        - name: order
+          in: query
+          description: Порядок сообщений (0 - от новых к старым (по умолчанию), 1 - от старых к новым)
+          schema:
+            type: integer
+            example: 0
+      responses:
+        '200':
+          description: Сообщения (может быть < count - означает конец массива сообщений)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Message'
+        '403':
+          description: Неправильный start (< 0, >= количеству пользователей) / слишком большой count / канал не текстовый
   /messages/$message_id:
     get:
       summary: Информация о сообщении

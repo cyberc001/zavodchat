@@ -2,30 +2,21 @@
 #include "resource/utils.h"
 #include "resource/role_utils.h"
 
-channel_messages_resource::channel_messages_resource(db_connection_pool& pool, socket_main_server& sserv) : base_resource(), pool{pool}, sserv{sserv}
-{
-	set_allowing("GET", true);
-	set_allowing("POST", true);
-}
+#include <iostream>
 
-std::shared_ptr<http_response> channel_messages_resource::render_GET(const http_request& req)
+std::shared_ptr<http_response> message_get_params(const http_request& req, pqxx::work& tx, unsigned max_get_count,
+							int& user_id, int& server_id, int& channel_id,
+							int& start, int& count, std::string& order)
 {
-	base_resource::render_GET(req);
-
-	int user_id, server_id, channel_id;
-	db_connection conn = pool.hold();
-	pqxx::work tx{*conn};
 	auto err = resource_utils::parse_channel_id(req, tx, user_id, server_id, channel_id);
 	if(err) return err;
 
-	int start;
 	err = resource_utils::parse_index(req, "start", start, 0);
 	if(err) return err;
-	int count;
 	err = resource_utils::parse_index(req, "count", count, 0, max_get_count);
 	if(err) return err;
 
-	std::string order = "DESC";
+	order = "DESC";
 	auto args = req.get_args();
 	if(args.find(std::string_view("order")) != args.end()){
 		int int_order;
@@ -36,6 +27,31 @@ std::shared_ptr<http_response> channel_messages_resource::render_GET(const http_
 		if(int_order == ORDER_ASC)
 			order = "ASC";
 	}
+
+	return nullptr;
+}
+
+channel_messages_resource::channel_messages_resource(db_connection_pool& pool, socket_main_server& sserv) : base_resource(), pool{pool}, sserv{sserv}
+{
+	set_allowing("GET", true);
+	set_allowing("POST", true);
+}
+
+std::shared_ptr<http_response> channel_messages_resource::render_GET(const http_request& req)
+{
+	base_resource::render_GET(req);
+
+	db_connection conn = pool.hold();
+	pqxx::work tx{*conn};
+
+	int user_id, server_id, channel_id;
+	int start, count;
+	std::string order;
+	auto err = message_get_params(req, tx, max_get_count,
+					user_id, server_id, channel_id,
+					start, count, order);
+	if(err)
+		return err;
 
 	nlohmann::json res = nlohmann::json::array();
 	pqxx::result r = tx.exec("SELECT message_id, author_id, sent, last_edited, text FROM messages WHERE channel_id = $1 ORDER BY sent " + order + " LIMIT $2 OFFSET $3", pqxx::params(channel_id, count, start));
@@ -76,6 +92,78 @@ std::shared_ptr<http_response> channel_messages_resource::render_POST(const http
 	sserv.send_to_channel(channel_id, tx, ev);
 
 	return create_response::string(req, std::to_string(message_id), 200);
+}
+
+
+channel_messages_search_resource::channel_messages_search_resource(db_connection_pool& pool) : pool{pool}
+{
+	set_allowing("POST", true);
+}
+std::shared_ptr<http_response> channel_messages_search_resource::render_POST(const http_request& req)
+{
+	base_resource::render_POST(req);
+
+	db_connection conn = pool.hold();
+	pqxx::work tx{*conn};
+
+	int user_id, server_id, channel_id;
+	int start, count;
+	std::string order;
+	auto err = message_get_params(req, tx, max_get_count,
+					user_id, server_id, channel_id,
+					start, count, order);
+	if(err)
+		return err;
+
+	nlohmann::json body;
+	err = resource_utils::json_from_content(req, body);
+	if(err)
+		return err;
+
+	pqxx::params pr(channel_id, count, start);
+
+	std::string q_where = "";
+	
+
+	if(body["content"].type() == nlohmann::json::value_t::string){
+		pr.append(body["content"].get<std::string>());
+		q_where += " AND text LIKE '%' || $" + std::to_string(pr.size()) + " || '%'";
+	} else if(body["content"].is_array()){
+		const auto& content = body["content"];
+		if(content.size() > 16)
+			return create_response::string(req, "content array is bigger than 16", 400);
+		for(auto val = content.begin(); val != content.end(); ++val){
+			if(val->type() != nlohmann::json::value_t::string)
+				return create_response::string(req, "content array contains a non-string member", 400);
+			pr.append(val->get<std::string>());
+			q_where += " AND text LIKE '%' || $" + std::to_string(pr.size()) + " || '%'";
+		}
+	}
+
+	if(body["author_id"].type() == nlohmann::json::value_t::number_unsigned){
+		pr.append(body["author_id"].get<unsigned>());
+		q_where += " AND author_id = $" + std::to_string(pr.size());
+	}
+
+	if(body["date_from"].type() == nlohmann::json::value_t::string){
+		pr.append(body["date_from"].get<std::string>());
+		q_where += " AND sent >= $" + std::to_string(pr.size());
+	}
+	if(body["date_until"].type() == nlohmann::json::value_t::string){
+		pr.append(body["date_until"].get<std::string>());
+		q_where += " AND sent <= $" + std::to_string(pr.size());
+	}
+
+	nlohmann::json res = nlohmann::json::array();
+	pqxx::result r;
+	try{
+		r = tx.exec("SELECT message_id, author_id, sent, last_edited, text FROM messages WHERE channel_id = $1 " + q_where + " ORDER BY sent " + order + " LIMIT $2 OFFSET $3", pr);
+	} catch(pqxx::data_exception& e){
+		return create_response::string(req, "Invalid date/time format in search query", 400);
+	}
+	for(size_t i = 0; i < r.size(); ++i)
+		res += resource_utils::message_json_from_row(r[i]);
+	return create_response::string(req, res.dump(), 200);
 }
 
 

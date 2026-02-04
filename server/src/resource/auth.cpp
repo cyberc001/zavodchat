@@ -14,9 +14,9 @@ std::shared_ptr<http_response> auth_resource::render_POST(const http_request& re
 	base_resource::render_POST(req);
 
 	nlohmann::json body;
-	std::shared_ptr<http_response> res = resource_utils::json_from_content(req, body);
-	if(res)
-		return res;
+	auto err = resource_utils::json_from_content(req, body);
+	if(err)
+		return err;
 
 	if(body["username"].type() != nlohmann::json::value_t::string)
 		return create_response::string(req, "'username' should be string", 400);
@@ -41,7 +41,7 @@ std::shared_ptr<http_response> auth_resource::render_POST(const http_request& re
 		return create_response::string(req, "Invalid username or password", 404);
 
 	session_token token = create_session(user_id, tx);
-	res = create_response::string(req, token, 200);
+	auto res = create_response::string(req, token, 200);
 	res->with_cookie("zavodchat_token", token + "; Max-Age=" + std::to_string(session_lifetime) + "; SameSite=None; Secure;");
 	return res;
 }
