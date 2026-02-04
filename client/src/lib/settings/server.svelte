@@ -31,24 +31,52 @@
 	let server_roles = Role.get_list(server_id);
 
 	// General
-	let state_general = new SettingsTabState({name: "", avatar: ""});
+	class ServerTabState extends SettingsTabState {
+		changes_override = $derived.by(() => {
+			if(!server.loaded)
+				return SettingsTabState.ChangesState.Loading;
+		});
+
+		apply_changes(){
+			let changes = this.get_dict_of_changes();
+			if(changes.avatar)
+				changes.avatar = avatar_picker.getFile();
+			else
+				delete changes.avatar;
+			Server.change(server_id, changes,
+				() => super.apply_changes(),
+				() => super.discard_changes());
+		}
+	};
+	let state_general = new ServerTabState({name: "", avatar: ""});
 	let delete_confirm = $state();
 	let avatar_picker = $state();
 
 	$effect(() => {
 		if(server.loaded){
-			state_general.changes_override = SettingsTabState.ChangesState.Inherit;
 			state_general.set_all_states("avatar", Server.get_avatar_path(server.data));
 			state_general.set_all_states("name", server.data.name);
-		} else {
-			state_general.changes_override = SettingsTabState.ChangesState.Loading;
-			state_general.set_all_states("avatar", "");
-			state_general.set_all_states("name", "");
-		}
+		}	
 	});
 
 	// Roles
-	let state_roles = new SettingsTabState({list: []});
+	class RolesTabState extends SettingsTabState {
+		changes_override = $derived.by(() => {
+			if(!server_roles.loaded)
+				return SettingsTabState.ChangesState.Loading;
+		});
+
+		apply_changes(){
+			Role.change_list(server_id, this.state.list,
+						() => super.apply_changes(),
+						() => super.discard_changes());
+		}
+		discard_changes(){
+			role_list_selected_idx = -1;
+			super.discard_changes();
+		}
+	};
+	let state_roles = new RolesTabState({list: []});
 
 	let role_list_selected_idx = $state(-1);
 
@@ -56,9 +84,6 @@
 		if(server_roles.loaded){
 			state_roles.changes_override = SettingsTabState.ChangesState.Inherit;
 			state_roles.set_default_state("list", server_roles.data);
-		} else {
-			state_roles.changes_override = SettingsTabState.ChangesState.Loading;
-			state_roles.set_all_states("list", []);
 		}
 	});
 
@@ -87,7 +112,36 @@
 
 
 	// Bans
-	let state_bans = new SettingsTabState({changed_bans: {}});
+	class BansTabState extends SettingsTabState {
+		apply_changes(){
+			let ban_changes = [];
+			for(const id in this.state.changed_bans){
+				const change = this.state.changed_bans[id];
+				if(change.state !== BanState.Unchanged){
+					change.id = id;
+					ban_changes.push(change);
+				}
+			}
+
+			let counter = ban_changes.length;
+			// Changes should be discarded either way, because actual changes are already applied to Ban cache
+			// thanks to socket events
+			const _then = () => { if(--counter === 0) this.discard_changes(); };
+			const _catch = () => this.discard_changes();
+
+			for(const ch of ban_changes){
+				if(ch.state === BanState.Changed)
+					Ban.change(server_id, ch.id, ch.expires,
+							_then, _catch);
+				else
+					Ban.unban(server_id, ch.id, _then, _catch);
+			}
+		}
+		discard_changes(){
+			this.set_all_states("changed_bans", {});
+		}
+	};
+	let state_bans = new BansTabState({changed_bans: {}});
 
 	const BanState = {
 		Unchanged: 0,
@@ -101,10 +155,6 @@
 		if(ban_select_change?.state === BanState.Removed)
 			return "Ban";
 		return "Unban";
-	});
-	let ban_duration_error = $state("");
-	$effect(() => {
-		state_bans.changes_override = ban_duration_error ? SettingsTabState.ChangesState.Invalid : SettingsTabState.ChangesState.Inherit;
 	});
 
 	let ban_select_id = $state(-1);
@@ -126,89 +176,48 @@
 	});
 
 	// Invites
-	let state_invites = new SettingsTabState({list: []});
-	state_invites.changes_override = SettingsTabState.ChangesState.Loading;
+	class InvitesTabState extends SettingsTabState {
+		changes_override = $derived.by(() => {
+			if(!state_invites_loaded)
+				return SettingsTabState.ChangesState.Loading;
+		});
+
+		apply_changes(){
+			this.execute_list_changes("list",
+				(inv, _then, _catch) => Invite.create(server_id, inv.expires, _then, _catch),
+				(inv, _then, _catch) => Invite.change(server_id, inv.id, inv.expires, _then, _catch),
+				(inv, _then, _catch) => Invite.delete(server_id, inv.id, _then, _catch),
+				() => Invite.get_list_nocache(server_id,
+								(list) => this.set_all_states("list", list),
+								() => {}),
+				() => Invite.get_list_nocache(server_id,
+								(list) => this.set_all_states("list", list),
+								() => {})
+			);
+		}
+		discard_changes(){
+			invite_list_selected_idx = -1;
+			super.discard_changes();
+		}
+	};
+	let state_invites_loaded = $state(false);
+	let state_invites = new InvitesTabState({list: []});
+
 	$effect(() => {
 		Invite.get_list_nocache(server_id,
 					(list) => {
 						state_invites.set_all_states("list", list);
-						state_invites.changes_override = SettingsTabState.ChangesState.Inherit;
+						state_invites_loaded = true;
 					}, () => {});
 	});
 	let invite_list_selected_idx = $state(-1);
 	
 	export function tabs() {
 		return [
-			{ name: "General", render: general, state: state_general,
-				apply_changes: () => {
-					let changes = state_general.get_dict_of_changes();
-					if(changes.avatar)
-						changes.avatar = avatar_picker.getFile();
-					else
-						delete changes.avatar;
-					Server.change(server_id, changes,
-						() => state_general.apply_changes(),
-						() => state_general.discard_changes());
-				},
-				discard_changes: () => state_general.discard_changes()
-			},
-			{ name: "Roles", render: roles, state: state_roles,
-				apply_changes: () => {
-					Role.change_list(server_id, state_roles.state.list,
-								() => state_roles.apply_changes(),
-								() => state_roles.discard_changes());
-				},
-				discard_changes: () => {
-					role_list_selected_idx = -1;
-					state_roles.discard_changes();
-				}
-			},
-			{ name: "Bans", render: bans, state: state_bans,
-				apply_changes: () => {
-					let ban_changes = [];
-					for(const id in state_bans.state.changed_bans){
-						const change = state_bans.state.changed_bans[id];
-						if(change.state !== BanState.Unchanged){
-							change.id = id;
-							ban_changes.push(change);
-						}
-					}
-
-					let counter = ban_changes.length;
-					// Changes should be discarded either way, because actual changes are already applied to Ban cache
-					// thanks to socket events
-					const _then = () => { if(--counter === 0) state_bans.discard_changes(); };
-					const _catch = () => state_bans.discard_changes();
-
-					for(const ch of ban_changes){
-						if(ch.state === BanState.Changed)
-							Ban.change(server_id, ch.id, ch.expires,
-									_then, _catch);
-						else
-							Ban.unban(server_id, ch.id, _then, _catch);
-					}
-				},
-				discard_changes: () => state_bans.set_all_states("changed_bans", {})
-			},
-			{ name: "Invites", render: invites, state: state_invites,
-				apply_changes: () => {
-					state_invites.execute_list_changes("list",
-						(inv, _then, _catch) => Invite.create(server_id, inv.expires, _then, _catch),
-						(inv, _then, _catch) => Invite.change(server_id, inv.id, inv.expires, _then, _catch),
-						(inv, _then, _catch) => Invite.delete(server_id, inv.id, _then, _catch),
-						() => Invite.get_list_nocache(server_id,
-										(list) => state_invites.set_all_states("list", list),
-										() => {}),
-						() => Invite.get_list_nocache(server_id,
-										(list) => state_invites.set_all_states("list", list),
-										() => {})
-					);
-				},
-				discard_changes: () => {
-					invite_list_selected_idx = -1;
-					state_invites.discard_changes();
-				}
-			}
+			{name: "General", render: general, state: state_general},
+			{name: "Roles", render: roles, state: state_roles},
+			{name: "Bans", render: bans, state: state_bans},
+			{name: "Invites", render: invites, state: state_invites}
 		];
 	}
 </script>
@@ -346,7 +355,6 @@ This cannot be reversed.
 						ban_select_change.expires = expires;
 					}
 			}
-			bind:error={ban_duration_error}
 			/>
 		{/if}
 	{/if}

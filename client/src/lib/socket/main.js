@@ -55,7 +55,6 @@ export default class MainSocket {
 		},
 
 		user_joined: function(data) {
-			console.log("user_joined reloading", data.server_id);
 			User.user_server_range_cache.reload(data.server_id);
 		},
 
@@ -77,10 +76,10 @@ export default class MainSocket {
 				}, () => {});
 		},
 		user_unbanned: function(data) {
-			Ban.ban_range_cache.data_remove(data.server_id, data.id);
+			Ban.ban_range_cache.data_remove_id(data.server_id, data.id);
 		},
 		ban_changed: function(data) {
-			Ban.ban_range_cache.data_update(data.server_id, data.id, {expires: data.expires});
+			Ban.ban_range_cache.data_update_id(data.server_id, data.id, {expires: data.expires});
 		},
 
 		roles_updated: function(data) {

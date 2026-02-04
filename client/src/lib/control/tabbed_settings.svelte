@@ -6,6 +6,7 @@
 	let {tabs, close_settings} = $props();
 
 	let sel_tab = $state(0);
+	let loading = $state(false);
 </script>
 
 
@@ -27,29 +28,32 @@
 		<div class="tabbed_settings_inner_tab">
 			<div>
 				{@render tabs[sel_tab].render(() => {
-					if(tabs[sel_tab].state.reset)
-						tabs[sel_tab].state.reset();
+					tabs[sel_tab].state.discard_changes();
 					close_settings();
 				})}
 			</div>
 	
-			{#if tabs[sel_tab].state instanceof SettingsTabState}
+			{#if tabs[sel_tab].state.type === "create"}
+				<div class="tabbed_settings_actions">
+					<Button text="Create"
+					onclick={() => {
+						loading = true;
+						tabs[sel_tab].state.apply_changes(() => {
+							tabs[sel_tab].state.discard_changes();
+							loading = false;
+							close_settings();
+						});
+					}}
+					disabled={tabs[sel_tab].state.changes === SettingsTabState.ChangesState.Invalid}/>
+				</div>
+			{:else}
 				{#if tabs[sel_tab].state.changes === SettingsTabState.ChangesState.HasChanges
 					|| tabs[sel_tab].state.changes === SettingsTabState.ChangesState.Invalid}
 					<div class="tabbed_settings_actions">
-						<Button text="Apply changes" onclick={tabs[sel_tab].apply_changes} disabled={tabs[sel_tab].state.changes === SettingsTabState.ChangesState.Invalid}/>
-						<Button text="Discard changes" onclick={tabs[sel_tab].discard_changes}/>
+						<Button text="Apply changes" onclick={() => tabs[sel_tab].state.apply_changes()} disabled={tabs[sel_tab].state.changes === SettingsTabState.ChangesState.Invalid}/>
+						<Button text="Discard changes" onclick={() => tabs[sel_tab].state.discard_changes()}/>
 					</div>
 				{/if}
-			{:else}
-				<div class="tabbed_settings_actions">
-					<Button text="Create"
-					onclick={() => tabs[sel_tab].create(() => {
-						tabs[sel_tab].state.reset();
-						close_settings();
-					})}
-					disabled={!tabs[sel_tab].state.valid}/>
-				</div>
 			{/if}
 		</div>
 	</div>
@@ -57,16 +61,14 @@
 		<button
 		class="hoverable transparent_button"
 		onclick={() => {
-			if(tabs[sel_tab].state.reset)
-				tabs[sel_tab].state.reset();
+			tabs[sel_tab].state.discard_changes();
 			close_settings();
 		}}
 		>
 			<img src={asset("icons/close.svg")} alt="close settings" class="filter_icon_main" style="width: 32px"/>
 		</button>
 	</div>
-	{#if tabs[sel_tab].state instanceof SettingsTabState
-		&& tabs[sel_tab].state.changes === SettingsTabState.ChangesState.Loading}
+	{#if loading || tabs[sel_tab].state.changes === SettingsTabState.ChangesState.Loading}
 		<div class="tabbed_settings_inner_tab_overlay">
 			<img src={asset("icons/loading.svg")} alt="loading" class="filter_icon_main" style="width: 48px"/>
 		</div>

@@ -3,7 +3,7 @@
 	import Textbox from '$lib/control/textbox.svelte';
 	import Select from '$lib/control/select.svelte';
 
-	import CreateTabState from '$lib/control/create_tab_state.svelte.js';
+	import SettingsTabState from '$lib/control/settings_tab_state.svelte.js';
 
 	import Util from '$lib/util.js';
 	import Channel from '$lib/rest/channel.js';
@@ -11,20 +11,23 @@
 	let { server_id } = $props();
 
 	// General
-	class CreateTabStateGeneral extends CreateTabState {
-		valid = $derived(this.state.name.length > 0);
+	class ChannelTabState extends SettingsTabState {
+		type = "create";
+		changes_override = $derived.by(() => {
+			if(this.state.name.length === 0)
+				return SettingsTabState.ChangesState.Invalid;
+		});
+
+		apply_changes(close_settings){
+			Channel.create(server_id, state_general.state,
+					close_settings, () => {});
+		}
 	};
-	let state_general = new CreateTabStateGeneral({name: "", type: Channel.Type.Text});
+	let state_general = new ChannelTabState({name: "", type: Channel.Type.Text});
 
 	export function tabs() {
 		return [
-			{ name: "General", render: general, state: state_general,
-				create: (close_settings) => {
-					Channel.create(server_id, state_general.state,
-						close_settings,
-						() => {});
-				}
-			}
+			{name: "General", render: general, state: state_general}
 		];
 	}
 </script>

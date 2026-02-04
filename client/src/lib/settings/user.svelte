@@ -14,64 +14,67 @@
 	let preferences = Preferences.data;
 
 	// Profile
-	let state_profile = new SettingsTabState({displayname: "", avatar: "",
+	let profile_passwords_match = $derived(state_profile.state.password === state_profile.state.password_repeat);
+	class UserTabState extends SettingsTabState {
+		changes_override = $derived.by(() => {
+			if(!self_user.loaded)
+				return SettingsTabState.ChangesState.Loading;
+			if(!profile_passwords_match)
+				return SettingsTabState.ChangesState.Invalid;
+		});
+
+		apply_changes(){
+			let changes = this.get_dict_of_changes();
+			if(changes.avatar)
+				changes.avatar = avatar_picker.getFile();
+			else
+				delete changes.avatar;
+
+			Auth.change_user_data(changes,
+				() => {
+					super.discard_changes(["username", "password"]);
+					super.apply_changes();
+				},
+				() => super.discard_changes());
+		}
+	};
+	let state_profile = new UserTabState({displayname: "", avatar: "",
 							username: "", password: "", password_repeat: ""});
 
 	let avatar_picker = $state();
-	let profile_passwords_match = $derived(state_profile.state.password === state_profile.state.password_repeat);
-
-	$effect(() => {
-		state_profile.changes_override = profile_passwords_match ? SettingsTabState.ChangesState.Inherit : SettingsTabState.ChangesState.Invalid;
-	});
 
 	$effect(() => {
 		if(self_user.loaded){
-			state_profile.changes_override = SettingsTabState.ChangesState.Inherit;
-			state_profile.set_all_states("displayname", self_user.data.name);
-			state_profile.set_all_states("avatar", User.get_avatar_path(self_user.data));
-		} else
-			state_profile.changes_override = SettingsTabState.ChangesState.Loading;
+			state_profile.set_default_state("displayname", self_user.data.name);
+			state_profile.set_default_state("avatar", User.get_avatar_path(self_user.data));
+		}
 	});
 
 	// Audio
-	let state_audio = new SettingsTabState({noise_supression: "off"});
+	class AudioTabState extends SettingsTabState {
+		changes_override = $derived.by(() => {
+			if(!preferences.loaded)
+				return SettingsTabState.ChangesState.Loading;
+		});
+
+		apply_changes(){
+			Preferences.change(super.get_dict_of_changes(),
+						() => super.apply_changes(),
+						() => super.discard_changes());
+		}
+	};
+	let state_audio = new AudioTabState({noise_supression: "off"});
 	$effect(() => {
-		if(preferences.loaded){
-			state_audio.changes_override = SettingsTabState.ChangesState.Inherit;
+		if(preferences.loaded)
 			for(const key in preferences)
 				state_audio.set_all_states(key, preferences[key]);
-		} else
-			state_audio.changes_override = SettingsTabState.ChangesState.Loading;
 	});
 
 
 	export function tabs() {
 		return [
-			{ name: "Profile & Account", render: profile, state: state_profile,
-				apply_changes: () => {
-					let changes = state_profile.get_dict_of_changes();
-					if(changes.avatar)
-						changes.avatar = avatar_picker.getFile();
-					else
-						delete changes.avatar;
-
-					Auth.change_user_data(changes,
-						() => {
-							state_profile.discard_changes(["username", "password"]);
-							state_profile.apply_changes();
-						},
-						() => state_profile.discard_changes());
-				},
-				discard_changes: () => state_profile.discard_changes()
-			},
-			{ name: "Audio", render: audio, state: state_audio,
-				apply_changes: () => {
-					Preferences.change(state_audio.get_dict_of_changes(),
-								() => state_audio.apply_changes(),
-								() => state_audio.discard_changes());
-				},
-				discard_changes: () => state_audio.discard_changes()
-			}
+			{name: "Profile & Account", render: profile, state: state_profile},
+			{name: "Audio", render: audio, state: state_audio}
 		];
 	}
 </script>

@@ -9,37 +9,34 @@
 
 	let { server_id, channel_id } = $props();
 
-	let channel = $state({});
-	$effect(() => {
-		channel = channel_id ? Channel.get(channel_id) : {};
-	});
+	let channel = Channel.get(channel_id);
 
 	// General
-	let state_general = new SettingsTabState({name: "", type: Channel.Type.Text});
+	class ChannelTabState extends SettingsTabState {
+		changes_override = $derived.by(() => {
+			if(!channel.loaded)
+				return SettingsTabState.ChangesState.Loading;
+		});
+
+		apply_changes(){
+			Channel.change(channel_id,
+				super.get_dict_of_changes(),
+				() => super.apply_changes(),
+				() => super.discard_changes());
+		}
+	};
+	let state_general = new ChannelTabState({name: "", type: Channel.Type.Text});
 
 	$effect(() => {
 		if(channel.loaded){
-			state_general.changes_override = SettingsTabState.ChangesState.Inherit;
 			state_general.set_default_state("name", channel.data.name);
 			state_general.set_default_state("type", channel.data.type);
-		} else {
-			state_general.changes_override = SettingsTabState.ChangesState.Loading;
-			state_general.set_all_states("name", "");
-			state_general.set_all_states("type", Channel.Type.Text);
 		}
 	});
 
 	export function tabs() {
 		return [
-			{ name: "General", render: general, state: state_general,
-				apply_changes: () => {
-					Channel.change(channel_id,
-						state_general.get_dict_of_changes(),
-						() => state_general.apply_changes(),
-						() => state_general.discard_changes());
-				},
-				discard_changes: () => state_general.discard_changes()
-			}
+			{name: "General", render: general, state: state_general}
 		];
 	}
 </script>

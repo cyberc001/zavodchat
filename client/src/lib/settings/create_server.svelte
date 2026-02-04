@@ -3,41 +3,45 @@
 	import Textbox from '$lib/control/textbox.svelte';
 	import AvatarPicker from '$lib/control/avatar_picker.svelte';
 
-	import CreateTabState from '$lib/control/create_tab_state.svelte.js';
+	import SettingsTabState from '$lib/control/settings_tab_state.svelte.js';
 
 	import Util from '$lib/util.js';
 	import Server from '$lib/rest/server.js';
 
 	// General
-	class CreateTabStateGeneral extends CreateTabState {
-		valid = $derived(this.state.name.length > 0);
+	class ServerTabState extends SettingsTabState {
+		type = "create";
+		changes_override = $derived.by(() => {
+			if(this.state.name.length === 0)
+				return SettingsTabState.ChangesState.Invalid;
+		});
+
+		apply_changes(close_settings){
+			let data = Util.object_from_object(this.state);
+			const avatar_url = data.avatar;
+			if(data.avatar)
+				data.avatar = avatar_picker.getFile();
+			else
+				delete data.avatar;
+			
+			Server.create(data,
+				(server_id) => {
+					data.id = server_id;
+					if(avatar_url)
+						data.avatar = avatar_url;
+					Server.server_list_cache.get_state(0).data.push(data);
+					close_settings();
+				},
+				() => {});
+		}
 	};
-	let state_general = new CreateTabStateGeneral({name: "", avatar: ""});
+	let state_general = new ServerTabState({name: "", avatar: ""});
 
 	let avatar_picker = $state();
 
 	export function tabs() {
 		return [
-			{ name: "General", render: general, state: state_general,
-				create: (close_settings) => {
-					let data = Util.object_from_object(state_general.state);
-					const avatar_url = data.avatar;
-					if(data.avatar)
-						data.avatar = avatar_picker.getFile();
-					else
-						delete data.avatar;
-					
-					Server.create(data,
-						(server_id) => {
-							data.id = server_id;
-							if(avatar_url)
-								data.avatar = avatar_url;
-							Server.server_list_cache.get_state(0).data.push(data);
-							close_settings();
-						},
-						() => {});
-				}
-			}
+			{name: "General", render: general, state: state_general}
 		];
 	}
 </script>

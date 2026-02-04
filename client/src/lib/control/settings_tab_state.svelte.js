@@ -3,6 +3,7 @@ import Util from "$lib/util.js";
 export default class SettingsTabState {
 	state = $state({});
 	default_state = $state({});
+	type = "settings"; // "create"
 
 	copy_obj(obj){
 		if(obj instanceof File)
@@ -31,9 +32,9 @@ export default class SettingsTabState {
 		}
 	}
 
-	changes_override = $state(SettingsTabState.ChangesState.Inherit);
+	changes_override = $derived(undefined);
 	changes = $derived.by(() => {
-		if(this.changes_override !== SettingsTabState.ChangesState.Inherit)
+		if(typeof this.changes_override !== "undefined")
 			return this.changes_override;
 		for(const key in this.state)
 			if(this.is_changed(key))
@@ -83,7 +84,6 @@ export default class SettingsTabState {
 
 
 	static ChangesState = {
-		Inherit: 0,
 		Loading: 1,
 		Invalid: 2,
 		HasChanges: 3,
