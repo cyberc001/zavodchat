@@ -293,7 +293,7 @@
 		hide_ctx_menu={hide_ctx_menu}
 		onclick={() => {
 				ban.user_id = sel.ctx.user_id;
-				ban.duration = "";
+				ban.expires = "never";
 				ban.duration_units = Util.TimeUnits.Minutes;
 				ban.dialog.show();
 		}}
@@ -467,7 +467,7 @@
 
 <Dialog bind:this={ban.dialog}
 	question="Ban user?"
-	buttons={[{text: ban.duration ? "Ban" : "Ban forever", disabled: ban.error,
+	buttons={[{text: ban.expires === "never" ? "Ban forever" : "Ban", disabled: ban.error,
 			action: () => {
 				Ban.ban(sel.server, ban.user_id, ban.expires, () => {}, () => {})
 			}},

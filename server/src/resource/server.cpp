@@ -173,13 +173,13 @@ std::shared_ptr<http_response> server_id_resource::render_DELETE(const http_requ
 
 	pqxx::result r = tx.exec("SELECT avatar FROM servers WHERE server_id = $1", pqxx::params(server_id));
 
-	tx.exec("DELETE FROM servers WHERE server_id = $1", pqxx::params(server_id));
-	tx.commit();
-
 	socket_event ev;
 	ev.data["id"] = server_id;
 	ev.name = "server_deleted";
 	sserv.send_to_server(server_id, tx, ev);
+
+	tx.exec("DELETE FROM servers WHERE server_id = $1", pqxx::params(server_id));
+	tx.commit();
 
 	if(!r[0]["avatar"].is_null()){
 		std::string avatar_fpath = r[0]["avatar"].as<std::string>();
