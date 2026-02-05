@@ -40,11 +40,10 @@
 
 	import SidebarServer from '$lib/display/sidebar/server.svelte';
 	import SidebarChannel from '$lib/display/sidebar/channel.svelte';
+	import SidebarMessage from '$lib/display/sidebar/message.svelte';
 
 	import UserDisplay from '$lib/display/user.svelte';
 	import UserProfileDisplay from '$lib/display/user_profile.svelte';
-	import MessageDisplay from '$lib/display/message.svelte';
-	import MessageInput from '$lib/control/message_input.svelte';
 	import VCPanel from '$lib/control/vc_panel.svelte';
 
 	import ContextMenu from '$lib/control/context_menu.svelte';
@@ -68,7 +67,7 @@
 	let servers = Server.get_list();
 
 	let server = $state();
-	let server_roles = $state([]);
+	let server_roles = $state();
 	let channels = $state();
 
 	// Sockets
@@ -96,19 +95,13 @@
 	// UI state
 	let sel = $state({
 		server: -1, channel: -1,
-		message_edit: -1,
 		user: {
 			id: -1, message_id: -1
 		},
-		ctx: {
-			message: -1, user_id: -1
-		}
+		ctx_user_id: -1
 	});
 
-	let message_text = $state("");
-	let message_status = $state();
-	let prev_message_text = "";
-	let message_list = $state(), server_user_list = $state();
+	let server_user_list = $state();
 
 	let ban = $state({
 		user_id: -1,
@@ -131,8 +124,6 @@
 		ctx_menu_params.visible = true;
 	};
 	const hideCtxMenu = () => {
-		sel.ctx.message = -1;
-		sel.ctx.user_id = -1;
 		ctx_menu_params.visible = false;
 	};
 
@@ -147,7 +138,6 @@
 		sel.channel = -1;
 
 		server = {};
-		server_roles = [];
 		channels = undefined;
 	};
 	const showServer = (id) => {
@@ -170,7 +160,6 @@
 			showUser(-1, -1);
 			sel.channel = id;
 		}
-		message_list?.reset();
 	};
 
 
@@ -193,35 +182,11 @@
 		}
 	};
 
-	const sendMessage = (text) => {
-		message_status = "Sending...";
-		Message.send(sel.channel, text,
-				() => {
-					message_text = "";
-					message_status = undefined;
-				},
-				() => {
-					message_status = undefined;
-				});
-	};
-	const editMessage = (text) => {
-		let msg = message_list.getItem(sel.message_edit);
-		let prev_text = msg.text;
-		msg.status = Message.Status.Editing;
-		msg.text = text;
-		sel.message_edit = -1;
-		message_text = "";
-
-		Message.edit(msg.id, text,
-				() => {}, () => {
-						msg.status = Message.Status.None;
-						msg.text = prev_text;
-		});
-	};
-
-	const stopEditing = () => {
-		sel.message_edit = -1;
-		message_text = prev_message_text;
+	const showBan = (id) => {
+		ban.user_id = id;
+		ban.expires = "never";
+		ban.duration_units = Util.TimeUnits.Minutes;
+		ban.dialog.show();
 	};
 </script>
 
@@ -230,28 +195,6 @@
 @import "main.css";
 </style>
 
-
-{#snippet action_edit_message(hide_ctx_menu)}
-	<ContextMenuAction icon={asset("icons/edit.svg")} text="Edit"
-		hide_ctx_menu={hide_ctx_menu}
-		onclick={() => {
-				sel.message_edit = sel.ctx.message;
-				prev_message_text = message_text;
-				message_text = message_list.getItem(sel.ctx.message).text;
-		}}
-	/>
-{/snippet}
-{#snippet action_delete_message(hide_ctx_menu)}
-	<ContextMenuAction icon={asset("icons/delete.svg")} text="Delete"
-		hide_ctx_menu={hide_ctx_menu}
-		onclick={() => {
-				let msg = message_list.getItem(sel.ctx.message);
-				msg.status = Message.Status.Deleting;
-				Message.delete(msg.id,
-						() => {}, () => msg.status = Message.Status.None);
-		}}
-	/>
-{/snippet}
 
 {#snippet action_settings_server(hide_ctx_menu)}
 	<ContextMenuAction icon={asset("icons/settings.svg")} text="Settings"
@@ -284,26 +227,21 @@
 	<ContextMenuAction icon={asset("icons/kick.svg")} text="Kick"
 		hide_ctx_menu={hide_ctx_menu}
 		onclick={() => {
-				User.kick(sel.server, sel.ctx.user_id, () => {}, () => {});
+				User.kick(sel.server, sel.ctx_user_id, () => {}, () => {});
 		}}
 	/>
 {/snippet}
 {#snippet action_ban_user(hide_ctx_menu)}
 	<ContextMenuAction icon={asset("icons/ban.svg")} text="Ban"
 		hide_ctx_menu={hide_ctx_menu}
-		onclick={() => {
-				ban.user_id = sel.ctx.user_id;
-				ban.expires = "never";
-				ban.duration_units = Util.TimeUnits.Minutes;
-				ban.dialog.show();
-		}}
+		onclick={() => showBan(sel.ctx_user_id)}
 	/>
 {/snippet}
 
 {#snippet user_volume()}
 	<div style="padding: 4px">
-		<Slider text="User volume" bind:value={() => Math.floor(socket_vc.audio[sel.ctx.user_id].volume * 100),
-						(x) => socket_vc.audio[sel.ctx.user_id].set_volume(x / 100)}
+		<Slider text="User volume" bind:value={() => Math.floor(socket_vc.audio[sel.ctx_user_id].volume * 100),
+						(x) => socket_vc.audio[sel.ctx_user_id].set_volume(x / 100)}
 			display_value={(value) => value + "%"}/>
 	</div>
 {/snippet}
@@ -347,7 +285,7 @@
 					ctx_vc_user={(self, e, vc_state) => {
 						if(vc_state.id === user_self.data.id)
 							return;
-						sel.ctx.user_id = vc_state.id;
+						sel.ctx_user_id = vc_state.id;
 						showCtxMenu(self, e, [user_volume]);
 					}}
 					create_channel={() => {
@@ -379,41 +317,13 @@
 			{/if}
 		</div>
 	</div>
-	<div class="panel sidebar_messages">
-		{#if sel.channel > -1}
-			{#snippet render_message(i, item)}
-				<MessageDisplay id={item.id} text={item.text}
-				author={item.author}
-				author_roles={item.author_roles}
-				time_sent={new Date(item.sent)} time_edited={new Date(item.edited)}
-				status={item.status}
-				show_ctx_menu={(anchor, e, for_message) => {
-					sel.ctx.user_id = item.author.data.id;
-					sel.ctx.message = i;
-					showCtxMenu(anchor, e, for_message ? [action_edit_message, action_delete_message]
-								: [action_kick_user, action_ban_user]);
-				}}
-				selected_user={item.id == sel.user.message_id && item.author_id == sel.user.id}
-				onclick_user={() => showUser(item.author_id, item.id)}
-				hide_profile={() => showUser(-1, -1)}
-				/>
-			{/snippet}
-			<PaginatedList bind:this={message_list}
-			reversed={true}
-			loading_text="Loading messages..." to_latest_text="To latest messages"
-			render_item={render_message}
-			load_items={(index, range) => Message.get_range(sel.channel, index, range)}
-			augment_item={(msg) => {
-						msg.author = User.get_server(sel.server, msg.author_id);
-						msg.author_roles = Role.get_user_roles(msg.author.data, server_roles.data);
-			}}
-			}}/>
-			<MessageInput
-				bind:value={message_text} onsend={sel.message_edit > -1 ? editMessage : sendMessage}
-				status={message_status}
-				actions={sel.message_edit > -1 ? [{text: "Stop editing", func: stopEditing}] : []}/>
-		{/if}
-	</div>
+
+	<SidebarMessage server={sel.server} channel={sel.channel}
+		sel_message_id={sel.user.message_id} sel_user_id={sel.user.id}
+		show_ctx_menu={showCtxMenu} show_user={showUser}
+		show_ban={showBan}
+	/>
+
 	{#if sel.server > -1}
 		<div class="panel sidebar_users">
 			{#snippet render_user(i, user)}
@@ -422,7 +332,7 @@
 				selected={sel.user.message_id == -1 && user.id == sel.user.id}
 				onclick={() => showUser(user.id, -1)}
 				show_ctx_menu={(anchor, e) => {
-					sel.ctx.user_id = user.id;
+					sel.ctx_user_id = user.id;
 					showCtxMenu(anchor, e, [action_kick_user, action_ban_user]);
 				}}
 				/>
