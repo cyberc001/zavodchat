@@ -84,20 +84,27 @@ export default class User {
 				});
 		});
 	}
-	static get_server_range(server_id, start, count, _catch){
+	static get_server_range(server_id, start, count, displayname, _catch){
 		if(start == -1) start = 0;
 		if(count == -1) count = 50;
 
-		return User.user_server_range_cache.get_state(server_id, start, count,
+		return User.user_server_range_cache.get_state(typeof displayname == "undefined" ? server_id : [server_id, displayname],
+			start, count,
 			(cache, range, start, count) => {
-				Rest.get(Rest.get_route_sur(server_id, ""),
-				(res) => {
-					for(let user of res.data)
-						user.user_ref = User.add_shared_server(user.id, server_id);
-					cache.set_state(range, start, count, res.data);
-				},
-				_catch,
-				"start", start, "count", count);
+				const res_handler = (res) => {
+						for(let user of res.data)
+							user.user_ref = User.add_shared_server(user.id, server_id);
+						cache.set_state(range, start, count, res.data);
+				};
+
+				if(typeof displayname !== "undefined")
+					Rest.get(Rest.get_route_sur(server_id, ""),
+						res_handler, _catch,
+						"start", start, "count", count, "displayname", displayname);
+				else
+					Rest.get(Rest.get_route_sur(server_id, ""),
+						res_handler, _catch,
+						"start", start, "count", count);
 			});
 	}
 

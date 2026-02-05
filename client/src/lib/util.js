@@ -57,6 +57,9 @@ export default class Util {
 	}
 
 	// Formatting
+	static padded(num, ln){
+		return num.toString().padStart(ln, "0");
+	}
 	static padded_hex(num, ln){
 		if(!ln)
 			ln = 2;

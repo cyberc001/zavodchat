@@ -1,31 +1,31 @@
 <script>
+	import FocusManager from '$lib/focus_manager.svelte';
+
 	const { anchor, off = [0, 0],
 		hide_ctx_menu,
 		items } = $props();
 
-	let pointer_on_menu = false;
-	let first_mouse_up = true;
-	const onmouseup = () => {
-		if(pointer_on_menu || first_mouse_up){
-			first_mouse_up = false;
-			return;
-		}
-		hide_ctx_menu();
-	};
+	let self = $state();
 </script>
 
-<svelte:window {onmouseup}/>
-<div class="item context_menu_panel" style="position-anchor: {getComputedStyle(anchor).getPropertyValue("anchor-name")};
-						left: calc(anchor(left, 10000px) + {off[0]}px); top: calc(anchor(top, -10000px) + {off[1]}px)"
+
+<FocusManager element={self}
+	onblur={() => {
+		hide_ctx_menu();
+	}}
+/>
+
+
+<div class="item context_menu_panel"
+	style="position-anchor: {getComputedStyle(anchor).getPropertyValue("anchor-name")}; left: calc(anchor(left, 10000px) + {off[0]}px); top: calc(anchor(top, -10000px) + {off[1]}px)"
 	role="list"
-	onmouseenter={() => pointer_on_menu = true}
-	onmouseleave={() => pointer_on_menu = false}
+	bind:this={self}
 >
-{#each items as item, i}
-	<div class="item context_menu_item hoverable">
-		{@render item(hide_ctx_menu, i)}
-	</div>
-{/each}
+	{#each items as item, i}
+		<div class="item context_menu_item hoverable">
+			{@render item(hide_ctx_menu, i)}
+		</div>
+	{/each}
 </div>
 
 <style>

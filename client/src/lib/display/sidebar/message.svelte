@@ -6,18 +6,20 @@
 	import MessageInput from '$lib/control/message_input.svelte';
 	import ContextMenuAction from '$lib/control/context_menu_action.svelte';
 
+	import SearchBar from '$lib/control/search_bar.svelte';
+
 	import Message from '$lib/rest/message.js';
 	import User from '$lib/rest/user.svelte.js';
 	import Role from '$lib/rest/role.js';
 
-	let {server, channel,
+	let {server_id, channel_id,
 		sel_message_id, sel_user_id,
 		show_ctx_menu, show_user, show_ban} = $props();
 
 	let server_roles = $state();
 	$effect(() => {
-		if(server > -1)
-			server_roles = Role.get_list(server);
+		if(server_id > -1)
+			server_roles = Role.get_list(server_id);
 	});
 
 	let sel = $state({
@@ -26,6 +28,7 @@
 		ctx_user_idx: -1
 	});
 
+	let message_search_params = $state({});
 	let message_list = $state();
 	let message_text = $state("");
 	let prev_message_text = "";
@@ -33,7 +36,7 @@
 
 	const sendMessage = (text) => {
 		message_status = "Sending...";
-		Message.send(channel, text,
+		Message.send(channel_id, text,
 				() => {
 					message_text = "";
 					message_status = undefined;
@@ -63,7 +66,7 @@
 	};
 
 	$effect(() => {
-		channel;
+		channel_id;
 		message_list?.reset();
 	});
 </script>
@@ -95,7 +98,7 @@
 	<ContextMenuAction icon={asset("icons/kick.svg")} text="Kick"
 		hide_ctx_menu={hide_ctx_menu}
 		onclick={() => {
-				User.kick(server, sel.ctx_user_id, () => {}, () => {});
+				User.kick(server_id, sel.ctx_user_id, () => {}, () => {});
 		}}
 	/>
 {/snippet}
@@ -108,46 +111,75 @@
 
 
 
-<div class="panel sidebar_messages">
-	{#if channel > -1}
-		{#snippet render_message(i, item)}
-			<MessageDisplay id={item.id} text={item.text}
-			author={item.author}
-			author_roles={item.author_roles}
-			time_sent={new Date(item.sent)} time_edited={new Date(item.edited)}
-			status={item.status}
-			show_ctx_menu={(anchor, e, for_message) => {
-				sel.ctx_user_id = item.author.data.id;
-				sel.ctx_message = i;
-				show_ctx_menu(anchor, e, for_message ? [action_edit_message, action_delete_message]
-							: [action_kick_user, action_ban_user]);
+<div class="panel sidebar_message">
+	{#if channel_id > -1}
+	<div style="height: 100%; position: relative">
+		<div class="sidebar_message_content">
+			{#snippet render_message(i, item)}
+				<MessageDisplay id={item.id} text={item.text}
+				author={item.author}
+				author_roles={item.author_roles}
+				time_sent={new Date(item.sent)} time_edited={new Date(item.edited)}
+				status={item.status}
+				show_ctx_menu={(anchor, e, for_message) => {
+					sel.ctx_user_id = item.author.data.id;
+					sel.ctx_message = i;
+					show_ctx_menu(anchor, e, for_message ? [action_edit_message, action_delete_message]
+								: [action_kick_user, action_ban_user]);
+				}}
+				selected_user={item.id == sel_message_id && item.author_id == sel_user_id}
+				onclick_user={() => show_user(item.author_id, item.id)}
+				hide_profile={() => show_user(-1, -1)}
+				/>
+			{/snippet}
+			<PaginatedList bind:this={message_list}
+			reversed={true}
+			loading_text="Loading messages..." to_latest_text="To latest messages"
+			render_item={render_message}
+			load_items={(index, range) => Message.get_search_range(channel_id, index, range, message_search_params)}
+			augment_item={(msg) => {
+					msg.author = User.get_server(server_id, msg.author_id);
+						msg.author_roles = Role.get_user_roles(msg.author.data, server_roles.data);
 			}}
-			selected_user={item.id == sel_message_id && item.author_id == sel_user_id}
-			onclick_user={() => show_user(item.author_id, item.id)}
-			hide_profile={() => show_user(-1, -1)}
 			/>
-		{/snippet}
-		<PaginatedList bind:this={message_list}
-		reversed={true}
-		loading_text="Loading messages..." to_latest_text="To latest messages"
-		render_item={render_message}
-		load_items={(index, range) => Message.get_range(channel, index, range)}
-		augment_item={(msg) => {
-					msg.author = User.get_server(server, msg.author_id);
-					msg.author_roles = Role.get_user_roles(msg.author.data, server_roles.data);
-		}}
-		}}/>
-		<MessageInput
-			bind:value={message_text} onsend={sel.message_edit > -1 ? editMessage : sendMessage}
-			status={message_status}
-			actions={sel.message_edit > -1 ? [{text: "Stop editing", func: stopEditing}] : []}/>
+			<MessageInput
+				bind:value={message_text} onsend={sel.message_edit > -1 ? editMessage : sendMessage}
+				status={message_status}
+				actions={sel.message_edit > -1 ? [{text: "Stop editing", func: stopEditing}] : []}
+			/>
+		</div>
+
+		<div class="sidebar_message_search">
+			<SearchBar server_id={server_id}
+				elements={[
+					{type: "server_user", label: "Author", param: "author_id"},
+					{type: "date", label: "Date from", param: "date_from"},
+					{type: "date", label: "Date until", param: "date_until"}
+				]}
+				onsearch={(params) => {
+					message_search_params = params;
+					message_list.reset();
+				}}
+			/>
+		</div>
+	</div>
 	{/if}
 </div>
 
 <style>
-.sidebar_messages {
+.sidebar_message {
 	width: 100%;
+}
+.sidebar_message_content {
+	height: 100%;
+
 	display: flex;
 	flex-direction: column;
+}
+.sidebar_message_search {
+	top: 10px;
+	right: 10px;
+
+	position: absolute;
 }
 </style>

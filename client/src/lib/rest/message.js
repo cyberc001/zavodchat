@@ -11,11 +11,30 @@ export default class Message {
 		return Message.message_range_cache.get_state(channel_id, start, count,
 			(cache, range, start, count) => {
 				Rest.get("channels/" + channel_id + "/messages",
-				(res) => cache.set_state(range, start, count, res.data),
-				_catch,
-				"start", start, "count", count);
+					(res) => cache.set_state(range, start, count, res.data),
+					_catch,
+					"start", start, "count", count);
 			});
 	}
+	static get_search_range(channel_id, start, count, params, _catch){
+		if(start == -1) start = 0;
+		if(count == -1) count = 50;
+
+		let cache_id = [channel_id];
+		for(const key of Object.keys(params)){
+			cache_id.push(key);
+			cache_id.push(params[key]);
+		}
+		return Message.message_range_cache.get_state(cache_id,
+			start, count,
+			(cache, range, start, count) => {
+				Rest.post("", "channels/" + channel_id + "/messages_search", params,
+					(res) => cache.set_state(range, start, count, res.data),
+					_catch,
+					"start", start, "count", count);
+			});
+	}
+
 
 	static send(channel_id, text, _then, _catch){
 		Rest.post("!Sending message", "channels/" + channel_id + "/messages", text,

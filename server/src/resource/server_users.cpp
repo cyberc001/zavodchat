@@ -25,9 +25,18 @@ std::shared_ptr<http_response> server_users_resource::render_GET(const http_requ
 	err = resource_utils::parse_index(req, "count", count, 0, max_get_count);
 	if(err) return err;
 
-	nlohmann::json res = nlohmann::json::array();
-	pqxx::result r = tx.exec("SELECT user_id, name, avatar, status, role_id FROM user_x_server NATURAL JOIN users WHERE user_id IN (SELECT DISTINCT ON(user_id) user_id FROM user_x_server WHERE server_id = $1 LIMIT $2 OFFSET $3) AND server_id = $1 ORDER BY user_id", pqxx::params(server_id, count, start)); // select first distinct 'count' users, then get all user_id-role_id entries for those selected users
+	pqxx::params pr(server_id, count, start);
+
+	std::string displayname = "", where_displayname = "";
+	auto args = req.get_args();
+	if(args.find(std::string_view("displayname")) != args.end()){
+		pr.append(std::string(args["displayname"]));
+		where_displayname = "AND name LIKE '%' || $" + std::to_string(pr.size()) + " || '%'";
+	}
+
+	pqxx::result r = tx.exec("SELECT user_id, name, avatar, status, role_id FROM user_x_server NATURAL JOIN users WHERE user_id IN (SELECT DISTINCT ON(user_id) user_id FROM user_x_server WHERE server_id = $1 LIMIT $2 OFFSET $3) AND server_id = $1 " + where_displayname + " ORDER BY user_id", pr); // select first distinct 'count' users, then get all user_id-role_id entries for those selected users
 	std::unordered_map<int, size_t> r_users; // for O(1) access to users already inserted in res to append role_ids to them
+	nlohmann::json res = nlohmann::json::array();
 	for(size_t i = 0; i < r.size(); ++i){
 		int user_id = r[i]["user_id"].as<int>();
 		if(r_users.find(user_id) == r_users.end()){

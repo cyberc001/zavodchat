@@ -318,7 +318,7 @@
 		</div>
 	</div>
 
-	<SidebarMessage server={sel.server} channel={sel.channel}
+	<SidebarMessage server_id={sel.server} channel_id={sel.channel}
 		sel_message_id={sel.user.message_id} sel_user_id={sel.user.id}
 		show_ctx_menu={showCtxMenu} show_user={showUser}
 		show_ban={showBan}

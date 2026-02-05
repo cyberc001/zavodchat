@@ -213,6 +213,12 @@ paths:
           schema:
             type: integer
             example: 50
+        - name: displayname
+          in: query
+          description: Фильтр по частичному имени пользователя
+          schema:
+            type: string
+            example: Vasya
       responses:
         '200':
           description: Список пользователей (может быть < count - означает конец массива пользователей)

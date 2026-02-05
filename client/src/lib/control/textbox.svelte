@@ -8,8 +8,9 @@
 	<p class="settings_control_label">{label_text}</p>
 	<div style="display: flex">
 		<input autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" type={is_password ? "password" : "input"}
-		class="settings_control" style="width:var(--width, 512px)"
-		bind:value={value}/>
+			class="settings_control" style="width:var(--width, 512px)"
+			bind:value={value}
+		/>
 		{#if render_after}
 			{@render render_after()}
 		{/if}
