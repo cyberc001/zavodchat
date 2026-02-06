@@ -3,7 +3,7 @@
 </script>
 
 <button class="settings_control settings_button" 
-style="width:var(--width, auto); margin-bottom:var(--margin-bottom, 12px); margin-top:var(--margin-top, 0px)"
+style="width: var(--width, auto); margin-bottom: var(--margin-bottom, 12px); margin-top: var(--margin-top, 0px)"
 onclick={onclick} {disabled}
 >
 	{text}

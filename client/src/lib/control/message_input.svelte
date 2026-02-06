@@ -86,6 +86,7 @@
 	border-color: var(--clr_border_item);
 	border-style: solid;
 	border-width: 2px;
+	border-radius: 4px;
 
 	color: var(--clr_text);
 	font-size: 16px;

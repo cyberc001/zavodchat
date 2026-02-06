@@ -6,7 +6,7 @@
 		range = 30, advance = 10, reversed = false,
 		render_item, load_items, augment_item = () => {},
 		loading_text = "Loading...", to_latest_text = "To latest"
-		} = $props();
+	} = $props();
 
 	let index = $state(0);
 	export function reset(){
@@ -16,8 +16,11 @@
 
 	// Keeping this reference is CRUCIAL so that observer does not get garbage collected and items are notified of the changes
 	let items_range = $derived(load_items(index, range));
-
 	let items = $derived(items_range.data);
+
+	export function getItemCount(){
+		return items.length;
+	}
 	export function getItem(idx){
 		return items[idx];
 	}
@@ -108,7 +111,9 @@
 	};
 </script>
 
-<div class="paginated_list">
+<div class="paginated_list"
+	style="max-height:var(--max-height, 100%);"
+>
 	<div class="paginated_list" style={reversed ? "flex-direction: column-reverse" : ""} onwheel={on_scroll} bind:this={list_div}>
 		{#each items as item, i}
 			{#if item}

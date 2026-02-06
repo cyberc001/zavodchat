@@ -18,7 +18,7 @@
 	<button class={"item hoverable transparent_button sidebar_channel_el" + (selected ? " selected" : "")}
 		style={(last ? "border-style: solid none solid none" : "")
 			+ "; anchor-name: --channel_" + channel.id
-			+ "; padding: 4px 0px 4px 4px"}
+			+ "; padding: 4px 0px 4px 4px; border-color: var(--clr_border)"}
 		onclick={() => show_channel(channel.id)}
 		bind:this={self}
 		oncontextmenu={(e) => {

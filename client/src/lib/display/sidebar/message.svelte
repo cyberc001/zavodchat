@@ -139,6 +139,7 @@
 			load_items={(index, range) => Message.get_search_range(channel_id, index, range, message_search_params)}
 			augment_item={(msg) => {
 					msg.author = User.get_server(server_id, msg.author_id);
+					if(server_roles)
 						msg.author_roles = Role.get_user_roles(msg.author.data, server_roles.data);
 			}}
 			/>

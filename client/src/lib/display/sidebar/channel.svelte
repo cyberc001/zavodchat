@@ -36,7 +36,7 @@
 	</div>
 	{#if channels?.loaded}
 		<div class="panel sidebar_channels sidebar_channel_actions">
-			<SidebarChannelAction last={false}
+			<SidebarChannelAction
 				icon={asset("icons/add.svg")} text="Add channel"
 				action={create_channel}
 			/>
@@ -54,7 +54,12 @@
 	height: 32px;
 }
 .sidebar_channel_name {
-	margin: 8px 0 8px 8px;
+	padding: 8px 0 8px 8px;
+
+	border-width: 2px;
+	border-style: none none solid none;
+	border-color: var(--clr_border);
+
 	font-size: 24px;
 }
 </style>

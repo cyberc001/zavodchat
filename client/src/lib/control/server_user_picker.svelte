@@ -11,6 +11,7 @@
 	let show_list = $state(false);
 
 	let user_name = $state("");
+	let prev_user_name = $state("");
 	$effect(() => {
 		user_name;
 		user_list?.reset();
@@ -37,21 +38,29 @@
 
 <div style="position: relative" bind:this={self}>
 	<input autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
-		class="settings_control" style="width:var(--width, 200px)"
+		class="settings_control"
+		style={"width:var(--width, 200px); margin-bottom: var(--margin-bottom, 12px)" +
+			(typeof value === "undefined" ? "; color: var(--clr_text_secondary)" : "")
+		}
 		bind:value={user_name}
 		onfocus={() => {show_list = true;}}
 		onkeyup={() => {
-			value = undefined;
+			if(user_name !== prev_user_name){
+				value = undefined;
+				prev_user_name = user_name;
+			}
 		}}
 	/>
 
 	{#if show_list}
-		<div class="server_user_list_panel item">
+		<div class="server_user_list_panel item"
+			style={user_list && user_list.getItemCount() > 0 ? "" : "display: none"}>
 			<PaginatedList
-			render_item={render_user}
-			load_items={(index, range) => User.get_server_range(server_id, index, range, user_name)}
-			bind:this={user_list}
-			to_latest_text="Up"
+				render_item={render_user}
+				load_items={(index, range) => User.get_server_range(server_id, index, range, user_name)}
+				bind:this={user_list}
+				to_latest_text="Up"
+				--max-height="400px"
 			/>
 		</div>
 	{/if}
@@ -62,7 +71,7 @@
 
 .server_user_list_panel {
 	position: absolute;
-	height: 100vh;
-	max-height: 400px;
+	border-style: solid;
+	border-radius: 4px;
 }
 </style>

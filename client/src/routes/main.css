@@ -52,14 +52,14 @@ button {
 	background: var(--clr_bg_panel);
 	border-width: 2px;
 	border-color: var(--clr_border);
-
 	color: var(--clr_text);
 }
 
 .item {
 	background: var(--clr_bg_item);
 	border-width: 2px;
-	border-color: var(--clr_border);
+	border-color: var(--clr_border_item);
+	border-style: none;
 }
 .hoverable:hover {
 	background: var(--clr_bg_hover);

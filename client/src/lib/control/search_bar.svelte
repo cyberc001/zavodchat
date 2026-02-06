@@ -11,12 +11,13 @@
 	let self = $state();
 
 	let content = $state("");
-	let params = {};
+	let params = $state({});
 </script>
 
 <FocusManager element={self}
 	onblur={() => {
 		show_params = false;
+		params = {};
 	}}
 />
 
@@ -25,8 +26,13 @@
 		class="settings_control" style="width:var(--width, 240px)"
 		bind:value={content}
 		onkeyup={(e) => {
-			if(e.code === "Enter")
-				onsearch(params);
+			if(e.code === "Enter"){
+				let p = $state.snapshot(params);
+				let words = content.split(" ").filter((x) => x.length > 0);
+				if(words.length > 0)
+					p.content = words;
+				onsearch(p);
+			}
 		}}
 
 		onfocus={() => {
@@ -37,10 +43,13 @@
 		<div class="item search_bar_params">
 			{#each elements as e}
 				{#if e.type === "date"}
-					<DatePicker label_text={e.label} bind:value={params[e.param]}/>
+					<DatePicker label_text={e.label} bind:value={params[e.param]}
+						--margin-bottom="6px"
+					/>
 				{:else if e.type === "server_user"}
 					<ServerUserPicker label_text={e.label} bind:value={params[e.param]}
 						server_id={server_id}
+						--margin-bottom="6px"
 					/>
 				{/if}
 			{/each}
@@ -56,6 +65,8 @@
 	margin-bottom: 12px;
 }
 .search_bar_params {
-	padding: 6px 0 0 10px;
+	padding: 6px 0 0 6px;
+	border-style: solid;
+	border-radius: 4px;
 }
 </style>
