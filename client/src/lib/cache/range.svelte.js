@@ -1,404 +1,270 @@
-import {IDCache} from "$lib/cache/id.svelte.js";
-import {RBTree} from "bintrees";
+import {IDCache} from '$lib/cache/id.svelte.js';
+import {RBTree} from 'bintrees';
+import Util from '$lib/util.js';
 
 class RangeObserver {
 	data = $state([]);
 	loaded = $state(false);
-	init_length = 0;
-	start = 0; end = 0;
+	start_id = 0; count = 0;
+	asc; asc_items;
+	order_sign = $derived(this.asc ? 1 : -1);
+
+	is_full = $derived(this.data.length >= this.count);
 	
-	cache;
-	load_func;
+	tree; load_func;
 
-	constructor(range, start, end, cache, load_func){
-		this.start = start; this.end = end;
-		this.init_length = end - start;
-		for(let i = start; i < end; ++i)
-			if(range.data[i - range.start])
-				this.data[i - start] = range.data[i - range.start];
+	constructor(tree, start_id, count, load_func, asc, asc_items){
+		this.start_id = start_id;
+		this.count = count;
+		this.asc = asc; this.asc_items = asc_items;
 
-		this.cache = cache;
+		this.set(tree, start_id, count);
+
+		this.tree = tree;
 		this.load_func = load_func;
 	}
-
-	update(range, start, end){
-		if(typeof start === "undefined"){
-			start = this.start;
-			end = this.end;
-		}
-		for(let i = start; i < end; ++i)
-			if(range.data[i - range.start])
-				this.data[i - this.start] = range.data[i - range.start];
-		this.loaded = true;
+	clone(){
+		const obs = new RangeObserver(this.tree, this.start_id, this.count, this.load_func, this.asc, this.asc_items);
+		this.tree.observers.push(new WeakRef(obs));
+		return obs;
 	}
 
-	contains(idx){
-		return idx >= this.start && idx <= this.end;
+	set(tree, start_id, count){
+		console.log("before obs.set", tree, start_id, count, this, $state.snapshot(this.data));
+		start_id = this.asc ? Math.max(this.start_id, start_id) : Math.min(this.start_id, start_id);
+		let iter = tree._tree.lowerBound({id: start_id});
+		if(this.start_id === RangeCache.max_id && !iter.data())
+			iter.prev();
+		let _i = Util.bin_search_lower_bound(this.data, (x) => (x.id - start_id) * this.order_sign);
+
+		const inv_items = typeof this.asc_items !== "undefined" && this.asc_items !== this.asc;
+		let i = inv_items ? count - _i - 1 : _i;
+console.log("i", i, "inv_items", inv_items, "count", count, "iter", iter);
+		let prev_next_id;
+		while(iter.data() && count > 0 && i < this.count && i >= 0){
+			if(typeof prev_next_id !== "undefined" && iter.data().id !== prev_next_id){
+				console.log("bailing out on", iter.data());
+				if(inv_items)
+					this.data.splice(0, i + 1);
+				break;
+			}
+			prev_next_id = this.asc ? iter.data().next_id : iter.data().prev_id;
+			this.data[inv_items ? i-- : i++] = iter.data();
+			--count;
+			if(this.asc)
+				iter.next();
+			else
+				iter.prev();
+
+			console.log("iterating", iter.data(), count, i);
+		}
+		if(!iter.data() && inv_items)
+			this.data.splice(0, i + 1);
+
+		this.loaded = true;
+		console.log("after obs.set", tree, start_id, count, this, $state.snapshot(this.data));
+	}
+
+	find(id){
+		return Util.bin_search(this.data, (x) => (x.id - id) * this.order_sign);
+	}
+	remove(id){
+		const i = this.find(id);
+		if(i !== -1)
+			this.data.splice(i, 1);
+		// Try to load more
+		this.load_func(this.tree, this.start_id, this.count, this.asc);
+	}
+
+	intersects(start_id, end_id){
+		let this_end_id = this.data.length === 0 ? (this.asc ? RangeCache.max : 0)
+					: (this.asc ? Math.max(this.data[0].id, this.data[this.data.length - 1].id) : Math.min(this.data[0].id, this.data[this.data.length - 1].id));
+		console.log("cmp", this.start_id, this_end_id, "vs", start_id, end_id);
+		let a = Math.min(this.start_id, this_end_id), b = Math.max(this.start_id, this_end_id);
+		return (start_id >= a && start_id <= b) || (end_id >= a && end_id <= b);
+	}
+
+	has(id){
+		if(this.data.length === 0)
+			return false;
+		const a = this.data[0].id, b = this.data[this.data.length - 1].id;
+		return id >= Math.min(a, b) && id <= Math.max(a, b);
 	}
 }
 
-class DataRange {
-	data = [];
+class DataTree {
+	_tree;
 	observers = [];
+	min_id = RangeCache.max_id; max_id = -1;
 
-	start = 0; end = 0;
-	t = 0; // creation order, latest range's values are prioritized when merging
-
-	static _last_t = 0;
-	update_t(){
-		this.t = ++DataRange._last_t;
-	}
-
-	constructor(start, end){
-		this.start = start; this.end = end;
-		this.update_t();
-	}
-
-	latest_item(other, i){
-		let f_empty = 0;
-		if(typeof this.data[i - this.start] === "undefined")
-			f_empty |= 1;
-		if(typeof other.data[i - this.start] === "undefined")
-			f_empty |= 2;
-		if(f_empty == 0) // Objects are present for both ranges, so pick latest one
-			return this.t > other.t ? this.data[i - this.start] : other.data[i - other.start];
-		return f_empty == 1 ? other.data[i - other.start] : this.data[i - this.start];
-	}
-
-	keyed_start_end(key){
-		if(typeof key === "undefined")
-			return [this.start, this.end];
-		const keys = [this.data[0][key], this.data[this.data.length - 1][key]];
-		return keys[0] < keys[1] ? [keys[0], keys[1]] : [keys[1], keys[0]];
-	}
-
-	intersects(other, key){
-		const [start, end] = this.keyed_start_end(key);
-		const [o_start, o_end] = other.keyed_start_end(key);
-		return (start >= o_start && start <= o_end)
-		    || (start <= o_end && end >= o_start);
-	}
-
-	contains(other, key){
-		const [start, end] = this.keyed_start_end(key);
-		if(typeof other === "number")
-			return other >= start && other <= end;
-		const [o_start, o_end] = other.keyed_start_end(key);
-		return o_start >= start && o_end <= end;
-	}
-
-	union(other){
-		let new_range = new DataRange(Math.min(this.start, other.start), Math.max(this.end, other.end));
-		new_range.tree = this.tree;
-
-		// Solo beginning
-		if(this.start < other.start)
-			for(let i = 0; i < other.start - this.start; ++i)
-				new_range.data[i] = this.data[i];
-		else
-			for(let i = 0; i < this.start - other.start; ++i)
-				new_range.data[i] = other.data[i];
-		// Intersection
-		for(let i = Math.max(this.start, other.start); i < Math.min(this.end, other.end); ++i)
-			new_range.data[i - new_range.start] = this.latest_item(other, i);
-		// Solo end
-		if(this.end > other.end)
-			for(let i = other.end; i < this.end; ++i)
-				new_range.data[i - new_range.start] = this.data[i - this.start];
-		else
-			for(let i = this.end; i < other.end; ++i)
-				new_range.data[i - new_range.start] = other.data[i - other.start];
-
-
-		new_range.observers = this.observers.slice();
-		new_range.observers.push.apply(new_range.observers, other.observers);
-
-		return new_range;
-	}
-
-
-	get_observers(start, end){
-		if(typeof start === "undefined"){
-			start = this.start;
-			end = this.end;
-		}
-
+	get_observers(start_id, end_id){
 		let iter = {};
-		let range = this;
+		let tree = this;
 		iter[Symbol.iterator] = function *(){
-			for(let i = 0; i < range.observers.length; ++i){
-				const obs = range.observers[i].deref();
+			for(let i = 0; i < tree.observers.length; ++i){
+				const obs = tree.observers[i].deref();
 				if(typeof obs === "undefined"){
-					range.observers.splice(i--, 1);
+					tree.observers.splice(i--, 1);
 					continue;
 				}
-				if(!range.intersects(new DataRange(obs.start, obs.end)))
+
+				if(typeof start_id !== "undefined" && !obs.intersects(start_id, end_id))
 					continue;
+
 				yield obs;
 			}
 		}
 		return iter;
 	}
 
-	update_observers(start, end, dont_fill){
-		if(typeof start === "undefined"){
-			start = this.start;
-			end = this.end;
-		}
-
-		for(const obs of this.get_observers(start, end)){
-			if(obs.end > this.end){
-				// Try to load more items
-				obs.loaded = false;
-				obs.load_func(obs.cache, this, obs.start, obs.end - obs.start);
-			} else if(!dont_fill)
-				obs.update(this, start, end);
-		}
-	}
-
-	reload_observers(){
-		for(const obs of this.get_observers())
-			obs.load_func(obs.cache, this, obs.start, obs.init_length);
-	}
-
-	remove(idx){
-		for(const obs of this.get_observers())
-			if(obs.contains(idx))
-				obs.data.splice(idx - obs.start, 1);
-		this.data.splice(idx - this.start, 1);
-		--this.end;
-		this.update_observers(this.start, this.end, true);
-	}
-
-
-	trim(){
-		let start, end;
-		for(const obs of this.get_observers()){
-			const is_init = typeof start !== "undefined";
-			if(!is_init || obs.start < start)
-				start = obs.start;
-			if(!is_init || obs.end > end)
-				end = obs.end;
-		}
-		if(typeof start === "undefined" || this.start === this.end)
-			return;
-		this.data.splice(0, start - this.start);
-		this.data.splice(end - this.end, this.end - end);
-		this.start = start; this.end = end;
-	}
-}
-
-class DataRangeTree {
-	_tree;
-	_max_idx = -1;
-
 	constructor(){
 		this._tree = new RBTree((a, b) => {
-			return a.end - b.end;
+			return a.id - b.id;
 		});
 	}
 
-	find_enclosing_range(range, key, node){
-		if(typeof node === "undefined") // user call
-			return this.find_enclosing_range(range, key, this._tree._root);
-
-		if(node === null)
-			return;
-		if(node.data.contains(range, key))
-			return node.data;
-
-		const [start, end] = range.keyed_start_end(key);
-		const [n_start, n_end] = node.data.keyed_start_end(key);
-		if(end > n_end)
-			return this.find_enclosing_range(range, key, node.right);
-		return this.find_enclosing_range(range, key, node.left);
+	// For loading
+	has_enough(obs){
+		if(obs.data.length >= obs.count)
+			return true;
+		if(obs.asc)
+			return this.min_id !== -1 && obs.start_id >= this.min_id;
+		return this.max_id !== RangeCache.max_id && obs.end_id <= this.max_id;
+	}
+	set_state(start_id, count, data, asc){
+		for(let i = 0; i < data.length; ++i){
+			let f = this._tree.find(data[i]);
+			if(!f){
+				this._tree.insert(data[i]);
+				f = data[i];
+			}
+			if(asc){
+				if(i > 0)
+					f.prev_id = data[i - 1].id;
+				if(i < data.length - 1)
+					f.next_id = data[i + 1].id;
+			} else {
+				if(i > 0)
+					f.next_id = data[i - 1].id;
+				if(i < data.length - 1)
+					f.prev_id = data[i + 1].id;
+			}
+		}
+		if(data.length > 0 && count > data.length){
+			if(asc){
+				if(data[data.length - 1].id < this.min_id)
+					this.min_id = data[data.length - 1].id;
+			} else {
+				if(data[data.length - 1].id > this.max_id)
+					this.max_id = data[data.length - 1].id;
+			}
+		}
+		const end_id = data.length > 0 ? data[data.length - 1].id : start_id;
+		console.log("SET_STATE", start_id, end_id);
+		for(const obs of this.get_observers(start_id, end_id))
+			obs.set(this, start_id, count);
 	}
 
-	_by_id(id){
-		const r = new DataRange(0, 0);
-		r.data[0] = {id};
-		const enc_range = this.find_enclosing_range(r, "id");
-		if(!enc_range)
-			return [undefined, undefined];
-		for(let i = enc_range.start; i != enc_range.end; ++i)
-			if(enc_range.data[i - enc_range.start].id === id)
-				return [enc_range.data[i - enc_range.start], i];
-		return [undefined, undefined];
+	insert(data, update){
+		this._tree.insert(data);
+
+		if(update)
+			for(const obs of this.get_observers(data.id, data.id))
+				obs.set(this, data.id, obs.count);
 	}
-	find_by_id(id){
-		const [data, _] = this._by_id(id);
-		return data;
+	remove(id, update){
+		this._tree.remove({id});
+
+		if(update)
+			for(const obs of this.get_observers(id, 1))
+				obs.remove(id);
 	}
-	idx_by_id(id){
-		const [_, idx] = this._by_id(id);
-		return idx;
+	update(data){
+		let d = this._tree.find(data);
+		if(d)
+			for(const key of Object.keys(data))
+				d[key] = data[key];
+
+		for(const obs of this.get_observers(data.id, data.id))
+			obs.set(this, data.id, 1);
 	}
 
-	insert(range){
-		range.tree = this;
+	reload(){
+		for(const obs of this.get_observers())
+			obs.load_func(this, obs.start_id, obs.count, obs.asc);
+	}
 
-		if(this._tree.size === 0){
-			this._tree.insert(range);
-			return range;
+	// This function runs in O(NM) + O(KlogN), where N - tree size, M - observer count, K - deleted entries count
+	// Seems kinda bad, but realistically N, M and K are rather low, cause only so much entries can be loaded via HTTP in-between trims
+	// TODO trim when tree size gets too big
+	// TODO delete observers from ranges when iter got past them
+	trim(){
+		let ranges = [];
+		for(const obs of this.get_observers()){
+			if(obs.loading)
+				continue;
+			console.log("trimming with obs", $state.snapshot(obs.data));
+			ranges.push(obs);
 		}
 
-		const iter = this._tree.upperBound(range); // find closest ancestor that has bigger end
-		if(!iter.data())
-			iter.prev();
-
-		let removed_ranges = [];
-		// ascend from lower bound until iter.data does not intersect range
-		for(let r = iter.data(); r !== null && r.end >= range.start; r = iter.prev())
-			if(range.intersects(r)){
-				removed_ranges.push(r);
-				range = range.union(r);
-			}
-
-		for(const r of removed_ranges)
-			this._tree.remove(r);
-		this._tree.insert(range);
-		return range;
-	}
-
-
-	data_append(data, node, range){
-		if(typeof range === "undefined"){ // user call
-			let enc_range = this.find_enclosing_range(new DataRange(0, 0));
-			if(enc_range){
-				++enc_range.end;
-				enc_range.data.unshift(data);
-				for(const obs of enc_range.get_observers(0, 0)){
-					if(obs.data.length < obs.init_length){
-						++obs.end;
-						obs.data.unshift(data);
-					} else
-						obs.update(enc_range);
+		let todelete = [];
+		let iter = this._tree.iterator();
+		iter.next();
+		while(iter.data()){
+			let data = iter.data();
+			let can_delete = true;
+			for(const obs of ranges){
+				console.log("obs inter", data.id, obs.intersects(data.id, data.id));
+				if(obs.has(data.id)){
+					can_delete = false;
+					break;
 				}
-				this.data_append(undefined, this._tree._root, enc_range);
 			}
-			if(this._max_idx !== -1)
-				++this._max_idx;
-			return;
+			if(can_delete)
+				todelete.push(data);
+
+			iter.next();
 		}
 
-		// Shift all other ranges by 1
-		if(node === null || node.data === range)
-			return;
-
-		++node.data.start; ++node.data.end;
-
-		this.data_append(undefined, node.left, range);
-		this.data_append(undefined, node.right, range);
-	}
-
-	data_remove(idx, node){
-		if(typeof node === "undefined"){ // user call
-			this.data_remove(idx, this._tree._root);
-			if(this._max_idx !== -1)
-				--this._max_idx;
-			return;
-		}
-
-		if(node === null)
-			return;
-
-		// Shift all ranges past idx by 1
-		if(node.data.contains(idx)){
-			node.data.remove(idx);
-		} else if(node.data.end > idx) {
-			--node.data.start; --node.data.end;
-		}
-
-		if(node.data.end > idx) // potential ranges with (end > idx) in left subtree
-			this.data_remove(idx, node.left);
-		this.data_remove(idx, node.right);
-	}
-	data_remove_id(id){
-		const idx = this.idx_by_id(id);
-		if(typeof idx !== "undefined")
-			this.data_remove(idx);
-	}
-
-	data_update(idx, data){
-		let enc_range = this.find_enclosing_range(new DataRange(idx, idx));
-		if(enc_range){
-			for(const key in data)
-				enc_range.data[idx - enc_range.start][key] = data[key];
-			enc_range.update_observers(idx, idx + 1);
-		}
-	}
-	data_update_id(id, data){
-		const idx = this.idx_by_id(id);
-		if(typeof idx !== "undefined")
-			this.data_update(idx, data);
-	}
-
-	reload(node){
-		if(typeof node === "undefined"){
-			this.reload(this._tree._root);
-			return;
-		}
-		if(node === null)
-			return;
-		node.data.reload_observers();
-		this.reload(node.left);
-		this.reload(node.right);
-	}
-
-
-	trim(node, toremove){
-		if(typeof node === "undefined"){ // user call
-			let toremove = [];
-			this.trim(this._tree._root, toremove);
-			for(const node of toremove)
-				this._tree.remove(node);
-			return;
-		}
-		if(node === null)
-			return;
-
-		const left = node.left, right = node.right;
-
-		if(node.data.observers.length === 0)
-			toremove.push(node.data);
-		else
-			node.data.trim();
-
-		this.trim(left, toremove);
-		this.trim(right, toremove);
+		for(const data of todelete)
+			this._tree.remove(data);
+		console.log("todelete", todelete);
 	}
 }
 
 export class RangeCache extends IDCache {
+	static max_id = 2147483647;
+
 	_default_state_constructor(){
-		return new DataRangeTree();
+		return new DataTree();
 	}
 
 	intv = setInterval(() => {
 		for(const id in this.cache)
 			this.cache[id].trim();
-	}, 60000);
+	}, 15000/*60000*/);
 
 	get_tree(_id){
 		const id = this.state_refs_id(_id);
 		return this.cache[id];
 	}
 	
-	data_append(_id, data){
+	insert(_id, data){
 		const tree = this.get_tree(_id);
 		if(tree)
-			tree.data_append(data);
+			tree.insert(data, true);
 	}
-	data_remove_id(_id, data_id){
+	remove(_id, data_id){
 		const tree = this.get_tree(_id);
 		if(tree)
-			tree.data_remove_id(data_id);
+			tree.remove(data_id, true);
 	}
-	data_update_id(_id, data_id, data){
+	update(_id, data){
 		const tree = this.get_tree(_id);
 		if(tree)
-			tree.data_update_id(data_id, data);
+			tree.update(data);
 	}
+
 	reload(_id){
 		const tree = this.get_tree(_id);
 		if(tree)
@@ -406,57 +272,21 @@ export class RangeCache extends IDCache {
 	}
 
 
-	get_state(_id, start, count, load_func){
+	get_state(_id, start_id, count, load_func, asc, asc_items){
 		const id = this.state_refs_id(_id);
 
 		if(typeof this.cache[id] === "undefined")
 			this.cache[id] = this._default_state_constructor();
 		let tree = this.cache[id];
 
-		if(tree._max_idx !== -1 && start + count > tree._max_idx)
-			count = Math.max(0, tree._max_idx - start);
+		let nobs = new RangeObserver(tree, start_id, count, load_func, !!asc, asc_items);
+		nobs.loaded = tree.has_enough(nobs);
+		console.log("Has_enough?", nobs.loaded, nobs);
+		tree.observers.push(new WeakRef(nobs));
 
-		const range = new DataRange(start, start + count);
-		let enc_range = tree.find_enclosing_range(range);
-		let load = false;
-		if(!enc_range){
-			enc_range = tree.insert(range);
-			load = true;
-		}
+		if(!nobs.loaded)
+			load_func(tree, start_id, count, asc);
 
-		let nobs = new RangeObserver(enc_range, start, start + count,
-						this, load_func);
-		nobs.loaded = !load;
-		enc_range.observers.push(new WeakRef(nobs));
-
-		if(load)
-			load_func(this, enc_range, start, count);
-
-		return nobs;	
-	}
-	// Should be called from get_state(, load_func), therefore id is not parsed twice
-	set_state(range, start, count, data){
-		if(range.end < start + data.length)
-			range = range.tree.insert(new DataRange(start, start + data.length));
-		if(range.end > start + data.length){
-			range.end = start + data.length;
-			// Remove excessive "undefined" items
-			if(range.start + range.data.length > range.end)
-				range.data.splice(range.end, range.start + range.data.length - range.end);
-		}
-
-		for(let i = start; i < start + count && i - start < data.length; ++i)
-			range.data[i - range.start] = data[i - start];
-
-		if(count > data.length && start + data.length <= range.end){
-			range.tree._max_idx = start + data.length;
-			for(const obs of range.get_observers()){
-				if(obs.end > range.end)
-					obs.end = range.end;
-			}
-		}
-
-		range.update_observers(start, Math.min(start + count, range.end));
-		range.update_t();
+		return nobs;
 	}
 }

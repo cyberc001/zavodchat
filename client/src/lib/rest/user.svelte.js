@@ -39,17 +39,17 @@ export default class User {
 			User.update_cache_server(server_id, user_id, data);
 	}
 
-	static update_cache_server(server_id, user_id, data){
-		if(User.user_server_cache.has_state([server_id, user_id])){
-			let st = User.user_server_cache.get_state([server_id, user_id]);
+	static update_cache_server(server_id, data){
+		if(User.user_server_cache.has_state([server_id, data.id])){
+			let st = User.user_server_cache.get_state([server_id, data.id]);
 			for(const f in data)
 				st.data[f] = data[f];
 		}
-		User.user_server_range_cache.data_update_id(server_id, user_id, data);
+		User.user_server_range_cache.update(server_id, data);
 	}
 	static delete_cache_server(server_id, user_id){
 		User.user_server_cache.remove_state([server_id, user_id]);
-		User.user_server_range_cache.data_remove_id(server_id, user_id);
+		User.user_server_range_cache.remove(server_id, user_id);
 	}
 
 
@@ -84,28 +84,25 @@ export default class User {
 				});
 		});
 	}
-	static get_server_range(server_id, start, count, displayname, _catch){
-		if(start == -1) start = 0;
-		if(count == -1) count = 50;
-
+	static get_server_range(server_id, start_id, count, asc, displayname, _catch){
 		return User.user_server_range_cache.get_state(typeof displayname == "undefined" ? server_id : [server_id, displayname],
-			start, count,
-			(cache, range, start, count) => {
+			start_id, count,
+			(tree, start_id, count, asc) => {
 				const res_handler = (res) => {
 						for(let user of res.data)
 							user.user_ref = User.add_shared_server(user.id, server_id);
-						cache.set_state(range, start, count, res.data);
+						tree.set_state(start_id, count, res.data, asc);
 				};
 
 				if(typeof displayname !== "undefined")
 					Rest.get(Rest.get_route_sur(server_id, ""),
 						res_handler, _catch,
-						"start", start, "count", count, "displayname", displayname);
+						"start_id", start_id, "count", count, "order", asc ? 1 : 0, "displayname", displayname);
 				else
 					Rest.get(Rest.get_route_sur(server_id, ""),
 						res_handler, _catch,
-						"start", start, "count", count);
-			});
+						"start_id", start_id, "count", count, "order", asc ? 1 : 0);
+			}, asc, true);
 	}
 
 	static kick(server_id, user_id, _then, _catch){

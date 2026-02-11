@@ -4,17 +4,14 @@ import {RangeCache} from '$lib/cache/range.svelte.js';
 export default class Ban {
 	static ban_range_cache = new RangeCache();
 
-	static get_range(server_id, start, count, _catch){
-		if(start == -1) start = 0;
-		if(count == -1) count = 50;
-
-		return Ban.ban_range_cache.get_state(server_id, start, count,
-			(cache, range, start, count) => {
+	static get_range(server_id, start_id, count, asc, _catch){
+		return Ban.ban_range_cache.get_state(server_id, start_id, count,
+			(tree, start_id, count, asc) => {
 				Rest.get(Rest.get_route_sb(server_id, ""),
-				(res) => cache.set_state(range, start, count, res.data),
+				(res) => tree.set_state(start_id, count, res.data, asc),
 				_catch,
-				"start", start, "count", count);
-			});
+				"start_id", start_id, "count", count, "order", asc ? 1 : 0);
+			}, asc, false);
 	}
 
 	static ban(server_id, user_id, expires, _then, _catch){

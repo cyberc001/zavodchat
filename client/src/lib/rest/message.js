@@ -4,35 +4,29 @@ import {RangeCache} from '$lib/cache/range.svelte.js';
 export default class Message {
 	static message_range_cache = new RangeCache();
 
-	static get_range(channel_id, start, count, _catch){
-		if(start == -1) start = 0;
-		if(count == -1) count = 50;
-
-		return Message.message_range_cache.get_state(channel_id, start, count,
-			(cache, range, start, count) => {
+	static get_range(channel_id, start_id, count, asc, _catch){
+		return Message.message_range_cache.get_state(channel_id, start_id, count,
+			(tree, start_id, count, asc) => {
 				Rest.get("channels/" + channel_id + "/messages",
-					(res) => cache.set_state(range, start, count, res.data),
+					(res) => tree.set_state(start_id, count, res.data, asc),
 					_catch,
-					"start", start, "count", count);
-			});
+					"start_id", start_id, "count", count, "order", asc ? 1 : 0);
+			}, asc, false);
 	}
-	static get_search_range(channel_id, start, count, params, _catch){
-		if(start == -1) start = 0;
-		if(count == -1) count = 50;
-
+	static get_search_range(channel_id, start_id, count, asc, params, _catch){
 		let cache_id = [channel_id];
 		for(const key of Object.keys(params)){
 			cache_id.push(key);
 			cache_id.push(params[key]);
 		}
 		return Message.message_range_cache.get_state(cache_id,
-			start, count,
-			(cache, range, start, count) => {
+			start_id, count,
+			(tree, start_id, count, asc) => {
 				Rest.post("", "channels/" + channel_id + "/messages_search", params,
-					(res) => cache.set_state(range, start, count, res.data),
+					(res) => tree.set_state(start_id, count, res.data, asc),
 					_catch,
-					"start", start, "count", count);
-			});
+					"start_id", start_id, "count", count, "order", asc ? 1 : 0);
+			}, asc, false);
 	}
 
 

@@ -29,6 +29,8 @@
 	});
 
 	let message_search_params = $state({});
+	let is_search = $derived(Object.keys(message_search_params).length > 0);
+
 	let message_list = $state();
 	let message_text = $state("");
 	let prev_message_text = "";
@@ -55,10 +57,12 @@
 		message_text = "";
 
 		Message.edit(msg.id, text,
-				() => {}, () => {
-						msg.status = Message.Status.None;
-						msg.text = prev_text;
-		});
+				() => {},
+				() => {
+					msg.status = Message.Status.None;
+					msg.text = prev_text;
+				}
+		);
 	};
 	const stopEditing = () => {
 		sel.message_edit = -1;
@@ -67,7 +71,8 @@
 
 	$effect(() => {
 		channel_id;
-		message_list?.reset();
+		if(channel_id > -1)
+			message_list?.reset();
 	});
 </script>
 
@@ -76,9 +81,9 @@
 	<ContextMenuAction icon={asset("icons/edit.svg")} text="Edit"
 		hide_ctx_menu={hide_ctx_menu}
 		onclick={() => {
-				sel.message_edit = sel.ctx_message;
-				prev_message_text = message_text;
-				message_text = message_list.getItem(sel.ctx_message).text;
+			sel.message_edit = sel.ctx_message;
+			prev_message_text = message_text;
+			message_text = message_list.getItem(sel.ctx_message).text;
 		}}
 	/>
 {/snippet}
@@ -86,10 +91,19 @@
 	<ContextMenuAction icon={asset("icons/delete.svg")} text="Delete"
 		hide_ctx_menu={hide_ctx_menu}
 		onclick={() => {
-				let msg = message_list.getItem(sel.ctx_message);
-				msg.status = Message.Status.Deleting;
-				Message.delete(msg.id,
-						() => {}, () => msg.status = Message.Status.None);
+			let msg = message_list.getItem(sel.ctx_message);
+			msg.status = Message.Status.Deleting;
+			Message.delete(msg.id,
+					() => {}, () => msg.status = Message.Status.None);
+		}}
+	/>
+{/snippet}
+{#snippet action_goto_message(hide_ctx_menu)}
+	<ContextMenuAction icon={asset("icons/kick.svg")} text="Go to"
+		hide_ctx_menu={hide_ctx_menu}
+		onclick={() => {
+			message_search_params = {};
+			message_list.reset();
 		}}
 	/>
 {/snippet}
@@ -124,7 +138,9 @@
 				show_ctx_menu={(anchor, e, for_message) => {
 					sel.ctx_user_id = item.author.data.id;
 					sel.ctx_message = i;
-					show_ctx_menu(anchor, e, for_message ? [action_edit_message, action_delete_message]
+					show_ctx_menu(anchor, e, for_message ?
+								(is_search ? [action_goto_message]
+								: [action_edit_message, action_delete_message])
 								: [action_kick_user, action_ban_user]);
 				}}
 				selected_user={item.id == sel_message_id && item.author_id == sel_user_id}
@@ -136,7 +152,7 @@
 			reversed={true}
 			loading_text="Loading messages..." to_latest_text="To latest messages"
 			render_item={render_message}
-			load_items={(index, range) => Message.get_search_range(channel_id, index, range, message_search_params)}
+			load_items={(start_id, range, asc) => Message.get_search_range(channel_id, start_id, range, asc, message_search_params)}
 			augment_item={(msg) => {
 					msg.author = User.get_server(server_id, msg.author_id);
 					if(server_roles)

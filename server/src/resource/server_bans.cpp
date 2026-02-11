@@ -22,20 +22,17 @@ std::shared_ptr<http_response> server_bans_resource::render_GET(const http_reque
 	err = role_utils::check_permission1(req, tx, server_id, user_id, PERM1_BAN_MEMBERS);
 	if(err) return err;
 
-	int start;
-	err = resource_utils::parse_index(req, "start", start, 0);
+	int start_id;
+	err = resource_utils::parse_index(req, "start_id", start_id, 0);
 	if(err) return err;
 	int count;
 	err = resource_utils::parse_index(req, "count", count, 0, max_get_count);
 	if(err) return err;
 
 	nlohmann::json res = nlohmann::json::array();
-	pqxx::result r = tx.exec("SELECT expiration_time, user_id, name, avatar, status FROM server_bans NATURAL JOIN users WHERE server_id = $1 LIMIT $2 OFFSET $3", pqxx::params(server_id, count, start));
-	for(size_t i = 0; i < r.size(); ++i){
-		nlohmann::json ban = resource_utils::user_json_from_row(r[i]);
-		ban["expires"] = r[i]["expiration_time"].is_null() ? "never" : r[i]["expiration_time"].as<std::string>();
-		res += ban;
-	}
+	pqxx::result r = tx.exec("SELECT ban_id, expiration_time, user_id, name, avatar, status FROM server_bans NATURAL JOIN users WHERE server_id = $1 AND ban_id > $2 LIMIT $3", pqxx::params(server_id, start_id, count));
+	for(size_t i = 0; i < r.size(); ++i)
+		res += resource_utils::ban_json_from_row(r[i]);
 
 	return create_response::string(req, res.dump(), 200);
 }
@@ -72,16 +69,16 @@ std::shared_ptr<http_response> server_ban_id_resource::render_POST(const http_re
 	err = role_utils::check_permission1(req, tx, server_id, user_id, PERM1_BAN_MEMBERS);
 	if(err) return err;
 
-	int server_ban_id;
-	err = resource_utils::parse_index(req, "server_ban_id", server_ban_id);
+	int server_user_id;
+	err = resource_utils::parse_index(req, "server_ban_id", server_user_id);
 	if(err) return err;
-	err = resource_utils::check_server_member(req, server_ban_id, server_id, tx);
-	if(err) return err;
-
-	err = role_utils::check_user_lower_than_other(req, tx, server_id, user_id, server_ban_id);
+	err = resource_utils::check_server_member(req, server_user_id, server_id, tx);
 	if(err) return err;
 
-	pqxx::result r = tx.exec("SELECT user_id FROM server_bans WHERE user_id = $1 AND server_id = $2", pqxx::params(server_ban_id, server_id));
+	err = role_utils::check_user_lower_than_other(req, tx, server_id, user_id, server_user_id);
+	if(err) return err;
+
+	pqxx::result r = tx.exec("SELECT user_id FROM server_bans WHERE user_id = $1 AND server_id = $2", pqxx::params(server_user_id, server_id));
 	if(r.size())
 		return create_response::string(req, "Already banned", 202);
 
@@ -90,22 +87,22 @@ std::shared_ptr<http_response> server_ban_id_resource::render_POST(const http_re
 	if(err) return err;
 
 	try{
-		tx.exec("INSERT INTO server_bans(user_id, server_id, expiration_time) VALUES ($1, $2, $3)", pqxx::params(server_ban_id, server_id, expires.size() ? expires.c_str() : nullptr));
+		tx.exec("INSERT INTO server_bans(user_id, server_id, expiration_time) VALUES ($1, $2, $3)", pqxx::params(server_user_id, server_id, expires.size() ? expires.c_str() : nullptr));
+		r = tx.exec("SELECT ban_id, expiration_time, user_id, name, avatar, status FROM server_bans NATURAL JOIN users WHERE server_id = $1 AND user_id = $2", pqxx::params(server_id, server_user_id));
 	} catch(pqxx::data_exception& e){
 		return create_response::string(req, "Invalid date/time format", 400);
 	}
 
 	// delete user from server
-	tx.exec("DELETE FROM user_x_server WHERE user_id = $1 AND server_id = $2", pqxx::params(server_ban_id, server_id));
+	tx.exec("DELETE FROM user_x_server WHERE user_id = $1 AND server_id = $2", pqxx::params(server_user_id, server_id));
 	tx.commit();
 
 	socket_event ev;
 	resource_utils::json_set_ids(ev.data, server_id);
-	ev.data["id"] = server_ban_id;
-	ev.data["expires"] = req.get_arg("expires");
+	ev.data = resource_utils::ban_json_from_row(r[0]);
 	ev.name = "user_banned";
 	sserv.send_to_server(server_id, tx, ev);
-	sserv.send_to_user(server_ban_id, tx, ev);
+	sserv.send_to_user(server_user_id, tx, ev);
 
 	return create_response::string(req, "Banned", 200);
 }
@@ -122,8 +119,8 @@ std::shared_ptr<http_response> server_ban_id_resource::render_PUT(const http_req
 	err = role_utils::check_permission1(req, tx, server_id, user_id, PERM1_BAN_MEMBERS);
 	if(err) return err;
 
-	int server_ban_id;
-	err = resource_utils::parse_server_ban_id(req, server_id, tx, server_ban_id);
+	int ban_id;
+	err = resource_utils::parse_server_ban_id(req, server_id, tx, ban_id);
 	if(err) return err;
 
 	auto args = req.get_args();
@@ -132,7 +129,7 @@ std::shared_ptr<http_response> server_ban_id_resource::render_PUT(const http_req
 		std::string expires;
 		err = resource_utils::parse_timestamp(req, "expires", expires);
 		try{
-			tx.exec("UPDATE server_bans SET expiration_time = $1 WHERE user_id = $2", pqxx::params(expires.size() ? expires.c_str() : nullptr, server_ban_id));
+			tx.exec("UPDATE server_bans SET expiration_time = $1 WHERE ban_id = $2", pqxx::params(expires.size() ? expires.c_str() : nullptr, ban_id));
 		} catch(pqxx::data_exception& e){
 			return create_response::string(req, "Invalid date/time format", 400);
 		}
@@ -143,7 +140,7 @@ std::shared_ptr<http_response> server_ban_id_resource::render_PUT(const http_req
 	if(changed){
 		socket_event ev;
 		resource_utils::json_set_ids(ev.data, server_id);
-		ev.data["id"] = server_ban_id;
+		ev.data["id"] = ban_id;
 		ev.data["expires"] = args["expires"];
 		ev.name = "ban_changed";
 		sserv.send_to_server(server_id, tx, ev);
@@ -165,16 +162,16 @@ std::shared_ptr<http_response> server_ban_id_resource::render_DELETE(const http_
 	err = role_utils::check_permission1(req, tx, server_id, user_id, PERM1_BAN_MEMBERS);
 	if(err) return err;
 
-	int server_ban_id;
-	err = resource_utils::parse_server_ban_id(req, server_id, tx, server_ban_id);
+	int ban_id;
+	err = resource_utils::parse_server_ban_id(req, server_id, tx, ban_id);
 	if(err) return err;
 
-	tx.exec("DELETE FROM server_bans WHERE user_id = $1 AND server_id = $2", pqxx::params(server_ban_id, server_id));
+	tx.exec("DELETE FROM server_bans WHERE ban_id = $1 AND server_id = $2", pqxx::params(ban_id, server_id));
 	tx.commit();
 
 	socket_event ev;
 	resource_utils::json_set_ids(ev.data, server_id);
-	ev.data["id"] = server_ban_id;
+	ev.data["id"] = ban_id;
 	ev.name = "user_unbanned";
 	sserv.send_to_server(server_id, tx, ev);
 

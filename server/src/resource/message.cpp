@@ -6,27 +6,21 @@
 
 std::shared_ptr<http_response> message_get_params(const http_request& req, pqxx::work& tx, unsigned max_get_count,
 							int& user_id, int& server_id, int& channel_id,
-							int& start, int& count, std::string& order)
+							int& start_id, int& count, std::string& id_query)
 {
 	auto err = resource_utils::parse_channel_id(req, tx, user_id, server_id, channel_id);
 	if(err) return err;
 
-	err = resource_utils::parse_index(req, "start", start, 0);
+	err = resource_utils::parse_index(req, "start_id", start_id, 0);
 	if(err) return err;
 	err = resource_utils::parse_index(req, "count", count, 0, max_get_count);
 	if(err) return err;
 
-	order = "DESC";
-	auto args = req.get_args();
-	if(args.find(std::string_view("order")) != args.end()){
-		int int_order;
-		auto err = resource_utils::parse_index(req, "order", int_order);
-		if(err) return err;
-		if(int_order != ORDER_ASC && int_order != ORDER_DESC)
-			return create_response::string(req, "Unknown order type", 400);
-		if(int_order == ORDER_ASC)
-			order = "ASC";
-	}
+	std::string order;
+	err = resource_utils::parse_order(req, order);
+	if(err) return err;
+
+	id_query = "AND message_id " + std::string(order == "DESC" ? "<=" : ">=") + " $2 ORDER BY sent " + order + " LIMIT $3";
 
 	return nullptr;
 }
@@ -45,18 +39,22 @@ std::shared_ptr<http_response> channel_messages_resource::render_GET(const http_
 	pqxx::work tx{*conn};
 
 	int user_id, server_id, channel_id;
-	int start, count;
-	std::string order;
+	int start_id, count;
+	std::string id_query;
 	auto err = message_get_params(req, tx, max_get_count,
 					user_id, server_id, channel_id,
-					start, count, order);
+					start_id, count, id_query);
 	if(err)
 		return err;
 
 	nlohmann::json res = nlohmann::json::array();
-	pqxx::result r = tx.exec("SELECT message_id, author_id, sent, last_edited, text FROM messages WHERE channel_id = $1 ORDER BY sent " + order + " LIMIT $2 OFFSET $3", pqxx::params(channel_id, count, start));
-	for(size_t i = 0; i < r.size(); ++i)
-		res += resource_utils::message_json_from_row(r[i]);
+	pqxx::result r = tx.exec("SELECT message_id, author_id, sent, last_edited, text FROM messages WHERE channel_id = $1 " + id_query, pqxx::params(channel_id, start_id, count));
+	for(size_t i = 0; i < r.size(); ++i){
+		nlohmann::json mes = resource_utils::message_json_from_row(r[i]);
+		if(i < r.size() - 1)
+			mes["next_id"] = r[i + 1]["message_id"].as<int>();
+		res += mes;
+	}
 	return create_response::string(req, res.dump(), 200);
 }
 std::shared_ptr<http_response> channel_messages_resource::render_POST(const http_request& req)
@@ -107,11 +105,11 @@ std::shared_ptr<http_response> channel_messages_search_resource::render_POST(con
 	pqxx::work tx{*conn};
 
 	int user_id, server_id, channel_id;
-	int start, count;
-	std::string order;
+	int start_id, count;
+	std::string id_query;
 	auto err = message_get_params(req, tx, max_get_count,
 					user_id, server_id, channel_id,
-					start, count, order);
+					start_id, count, id_query);
 	if(err)
 		return err;
 
@@ -120,7 +118,7 @@ std::shared_ptr<http_response> channel_messages_search_resource::render_POST(con
 	if(err)
 		return err;
 
-	pqxx::params pr(channel_id, count, start);
+	pqxx::params pr(channel_id, start_id, count);
 
 	std::string q_where = "";
 	
@@ -157,12 +155,16 @@ std::shared_ptr<http_response> channel_messages_search_resource::render_POST(con
 	nlohmann::json res = nlohmann::json::array();
 	pqxx::result r;
 	try{
-		r = tx.exec("SELECT message_id, author_id, sent, last_edited, text FROM messages WHERE channel_id = $1 " + q_where + " ORDER BY sent " + order + " LIMIT $2 OFFSET $3", pr);
+		r = tx.exec("SELECT message_id, author_id, sent, last_edited, text FROM messages WHERE channel_id = $1 " + q_where + " " + id_query, pr);
 	} catch(pqxx::data_exception& e){
 		return create_response::string(req, "Invalid date/time format in search query", 400);
 	}
-	for(size_t i = 0; i < r.size(); ++i)
-		res += resource_utils::message_json_from_row(r[i]);
+	for(size_t i = 0; i < r.size(); ++i){
+		nlohmann::json mes = resource_utils::message_json_from_row(r[i]);
+		if(i < r.size() - 1)
+			mes["next_id"] = r[i + 1]["message_id"].as<int>();
+		res += mes;
+	}
 	return create_response::string(req, res.dump(), 200);
 }
 

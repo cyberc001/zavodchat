@@ -1,6 +1,7 @@
 <script>
 	import {asset} from '$app/paths';
 	import {tick} from 'svelte';
+	import {RangeCache} from '$lib/cache/range.svelte.js';
 
 	let {scrollTop = $bindable(0),
 		range = 30, advance = 10, reversed = false,
@@ -8,38 +9,50 @@
 		loading_text = "Loading...", to_latest_text = "To latest"
 	} = $props();
 
-	let index = $state(0);
+	let init_items = $state(load_items(reversed ? RangeCache.max_id : 0, range, !reversed));
+	let old_items = $state({});
+	let items = $state({loaded: false, data: []});
+	// Initialize items with init_items (dont duplicate the request)
+	$effect(() => {
+		if(typeof items.start_id === "undefined" && init_items.loaded)
+			items = init_items.clone();
+	});
+	// Keep reference to old_items so it does not get colleted
+	$effect(() => {
+		if(items.loaded && items.start_id !== old_items.start_id && items.count !== old_items.count)
+			old_items = items;
+	});
+
 	export function reset(){
-		index = 0;
+		init_items = load_items(reversed ? RangeCache.max_id : 0, range, !reversed);
+		items = {loaded: false, data: []};
+
+		keep_scroll_pos = false;
 		scrollTop = list_div.scrollTop = 0;
 	}
 
-	// Keeping this reference is CRUCIAL so that observer does not get garbage collected and items are notified of the changes
-	let items_range = $derived(load_items(index, range));
-	let items = $derived(items_range.data);
-
 	export function getItemCount(){
-		return items.length;
+		return items.data.length;
 	}
 	export function getItem(idx){
-		return items[idx];
+		return items.data[idx];
 	}
 	export function findItem(filter){
-		return items.find(filter);
+		return items.data.find(filter);
 	}
 
 	// A method for loading additional information into items. Its useful, because:
 	// 1. You cannot use cached REST methods in snippets that PaginatedList uses to render items, since it makes PaginatedList mutate static state (i.e. cache) that Main owns
 	// 2. Same goes for embedding data directly in REST cached requests using other REST cached requests
 	$effect(() => {
-		for(let item of items)
+		for(let item of items.data)
 			if(item)
 				augment_item(item);
 	});
 
 	let keep_scroll_pos = true;
 	$effect(() => {
-		items;
+		items.data;
 
 		let anchor = get_anchor(anchor_id);
 		if(anchor && keep_scroll_pos){
@@ -50,6 +63,7 @@
 	});
 
 	let reverse_sign = $derived(reversed ? -1 : 1);
+	let can_scroll_before = $derived(init_items.data.length > 0 && items.data.length > 0 && reverse_sign * (items.data[0].id - init_items.data[0].id) > 0);
 
 	let last_scroll_top;
 	const is_scrolling_up = (scroll_top) => {
@@ -70,13 +84,13 @@
 	const get_anchor = (id) => list_div.querySelector("#paginated_list_item_" + id);
 	const remember_scroll_pos = () => {
 		scrollTop = list_div.scrollTop;
-		anchor_id = items[Math.floor(items.length / 2)].id;
+		anchor_id = items.data[Math.floor(items.data.length / 2)].id;
 		anchor_top_before = get_anchor(anchor_id).offsetTop;
 		list_scroll_top_before = list_div.scrollTop;
 	}
 
 	const on_scroll = (e) => {
-		if(!items_range.loaded)
+		if(!items.loaded)
 			return;
 
 		remember_scroll_pos();
@@ -85,13 +99,12 @@
 		let next_scroll_top = list_div.scrollTop + e.deltaY * 0.3;
 
 		if(reverse_sign * next_scroll_top >= max_scroll || reverse_sign * next_scroll_top < 0){
-			let dir = Math.sign(e.deltaY);
+			let dir = Math.sign(e.deltaY) * reverse_sign;
 
-			if(dir !== 0 && index + reverse_sign * dir >= 0
-				&& (reverse_sign * dir < 0 || items_range.end - items_range.start >= range) /* dont allow to scroll past the last page */){
-				index += reverse_sign * dir * advance;
-				if(index < 0) index = 0;
-			}
+			if(dir > 0 && items.is_full)
+				items = load_items(items.data[advance - 1].id, range, !reversed);
+			else if(dir < 0 && can_scroll_before)
+				items = load_items(items.data[items.data.length - advance].id, range, reversed);
 		}
 		list_div.scrollTop = next_scroll_top;
 		scrollTop = list_div.scrollTop;
@@ -99,23 +112,16 @@
 
 	// show "Go to latest" button if scrolled more than half-page above last element
 	let show_goto_latest = $derived(typeof to_latest_text !== "undefined" &&
-		(index > 0 || 
+		(can_scroll_before ||
 		(typeof list_div !== "undefined" && (reverse_sign * scrollTop > (list_div.scrollHeight - list_div.clientHeight) * 0.5))
 		));
- 
-	const goto_latest = () => {
-		keep_scroll_pos = false;
-		index = 0;
-		list_div.scrollTop = 0;
-		scrollTop = list_div.scrollTop;
-	};
 </script>
 
 <div class="paginated_list"
 	style="max-height:var(--max-height, 100%);"
 >
 	<div class="paginated_list" style={reversed ? "flex-direction: column-reverse" : ""} onwheel={on_scroll} bind:this={list_div}>
-		{#each items as item, i}
+		{#each items.data as item, i}
 			{#if item}
 				<div id={"paginated_list_item_" + item.id}>
 					{@render render_item(i, item)}
@@ -123,14 +129,14 @@
 			{/if}
 		{/each}
 	</div>
-	{#if !items_range.loaded}
+	{#if !items.loaded}
 		<div class="item paginated_list_overlay">
 			<img src={asset("icons/loading.svg")} alt="loading" class="filter_icon_main" style="width: 20px; margin-right: 8px"/>
 			<span class="paginated_list_overlay_text">{loading_text}</span>
 		</div>
 	{/if}
 	{#if show_goto_latest}
-		<button class="item paginated_list_overlay paginated_list_overlay_tolatest" onclick={goto_latest}>
+		<button class="item paginated_list_overlay paginated_list_overlay_tolatest" onclick={() => reset()}>
 			<span class="paginated_list_overlay_text" style="text-decoration: underline">{to_latest_text}</span>
 		</button>
 	{/if}

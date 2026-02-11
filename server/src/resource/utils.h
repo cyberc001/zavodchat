@@ -44,6 +44,8 @@ public:
 	static std::shared_ptr<http_response> parse_session_token(const http_request&, pqxx::work& tx, int& user_id);
 	static std::shared_ptr<http_response> parse_timestamp(const http_request&, std::string arg_name, std::string& ts);
 
+	static std::shared_ptr<http_response> parse_order(const http_request&, std::string& order);
+
 	static std::shared_ptr<http_response> string_to_color(const http_request&, std::string str, int& color);
 	static std::string color_to_string(int color);
 
@@ -75,14 +77,15 @@ public:
 	static void json_set_ids(nlohmann::json& data, int server_id);
 	static void json_set_ids(nlohmann::json& data, int server_id, int channel_id);
 
-	static nlohmann::json user_json_from_row(const pqxx::row&& r);
-	static nlohmann::json server_json_from_row(const pqxx::row&& r);
-	static nlohmann::json channel_json_from_row(const pqxx::row&& r);
+	static nlohmann::json user_json_from_row(const pqxx::row& r);
+	static nlohmann::json server_json_from_row(const pqxx::row& r);
+	static nlohmann::json channel_json_from_row(const pqxx::row& r);
 
-	static nlohmann::json message_json_from_row(const pqxx::row&& r);
-	static nlohmann::json message_update_json_from_row(const pqxx::row&& r);
+	static nlohmann::json message_json_from_row(const pqxx::row& r);
+	static nlohmann::json message_update_json_from_row(const pqxx::row& r);
 
-	static nlohmann::json invite_json_from_row(const pqxx::row&& r);
+	static nlohmann::json invite_json_from_row(const pqxx::row& r);
+	static nlohmann::json ban_json_from_row(const pqxx::row& r);
 };
 
 #endif

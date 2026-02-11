@@ -65,4 +65,72 @@ export default class Util {
 			ln = 2;
 		return Math.round(num).toString(16).padStart(ln, "0");
 	}
-};
+	
+	// Algorithms
+	static bin_search(arr, cmp_func){
+		let l = 0, r = arr.length - 1;
+		while(r - l > 1){
+			const m = Math.floor((l + r) / 2);
+			const c = cmp_func(arr[m]);
+			if(c === 0)
+				return m;
+			else if(c > 0) 
+				r = m; // left half remains
+			else
+				l = m; // right half remains
+		}
+		if(cmp_func(arr[l]) === 0)
+			return l;
+		if(r > l && cmp_func(arr[r]) === 0)
+			return r;
+		return -1;
+	}
+	static bin_search_lower_bound(arr, cmp_func){
+		if(arr.length === 0)
+			return -1;
+
+		let l = 0, r = arr.length - 1;
+		while(r - l > 1){
+			const m = Math.floor((l + r) / 2);
+			const c = cmp_func(arr[m]);
+			if(c === 0)
+				return m;
+			else if(c > 0) 
+				r = m; // left half remains
+			else
+				l = m; // right half remains
+		}
+		if(cmp_func(arr[l]) === 0)
+			return l;
+		if(r > l && cmp_func(arr[r]) === 0)
+			return r;
+		return -1;
+	}
+
+	static bin_search_lower_bound(arr, cmp_func){
+		if(arr.length === 0)
+			return 0;
+
+		let l = 0, r = arr.length - 1;
+		while(r - l > 1){
+			const m = Math.floor((l + r) / 2);
+			const c = cmp_func(arr[m]);
+			if(c === 0)
+				return m;
+			else if(c > 0) 
+				r = m; // left half remains
+			else
+				l = m; // right half remains
+		}
+		const c_l = cmp_func(arr[l]), c_r = cmp_func(arr[r]);
+		if(c_l === 0)
+			return l;
+		if(c_r === 0)
+			return r;
+		if(c_l > 0)
+			return l;
+		if(c_r > 0)
+			return r;
+		return arr.length;
+	}
+}

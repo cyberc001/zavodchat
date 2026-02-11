@@ -312,7 +312,7 @@ This cannot be reversed.
 {/snippet}
 
 {#snippet render_ban(i, item)}
-	<UserDisplay user={item} display_status={false}
+	<UserDisplay user={item.user} display_status={false}
 			style={state_bans.state.changed_bans[item.id]?.state === BanState.Removed ? "text-decoration: line-through" : ""}
 			selected={ban_select_id === item.id}
 			onclick={() => ban_select_id = item.id}
@@ -323,7 +323,7 @@ This cannot be reversed.
 <Group name="Ban list">
 	<PaginatedList
 		render_item={render_ban}
-		load_items={(index, range) => Ban.get_range(server_id, index, range)}
+		load_items={(index, range, asc) => Ban.get_range(server_id, index, range, asc)}
 		bind:this={ban_list}
 	/>
 </Group>

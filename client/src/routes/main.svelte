@@ -142,6 +142,8 @@
 	};
 	const showServer = (id) => {
 		sel.server = id;
+		if(id > -1)
+			server_user_list?.reset();
 		sel.channel = -1;
 
 		server = Server.get(id);
@@ -339,7 +341,7 @@
 			{/snippet}
 			<PaginatedList bind:this={server_user_list}
 			render_item={render_user}
-			load_items={(index, range) => User.get_server_range(sel.server, index, range)}
+			load_items={(start_id, range, asc) => User.get_server_range(sel.server, start_id, range, asc)}
 			augment_item={(user) => {user.role_list = Role.get_user_roles(user, server_roles.data)}}
 			to_latest_text="Up"/>
 		</div>

@@ -120,6 +120,23 @@ std::shared_ptr<http_response> resource_utils::parse_timestamp(const http_reques
 	return nullptr;
 }
 
+std::shared_ptr<http_response> resource_utils::parse_order(const http_request& req, std::string& order)
+{
+	order = "DESC";
+	auto args = req.get_args();
+	if(args.find(std::string_view("order")) != args.end()){
+		int int_order;
+		auto err = resource_utils::parse_index(req, "order", int_order);
+		if(err) return err;
+		if(int_order != ORDER_ASC && int_order != ORDER_DESC)
+			return create_response::string(req, "Unknown order type", 400);
+		if(int_order == ORDER_ASC)
+			order = "ASC";
+	}
+	return nullptr;
+}
+
+
 std::shared_ptr<http_response> resource_utils::string_to_color(const http_request& req, std::string str, int& color)
 {
 	if(str.size() != 7)
@@ -219,9 +236,9 @@ std::shared_ptr<http_response> resource_utils::parse_server_ban_id(const http_re
 	} catch(std::invalid_argument& e){
 		return create_response::string(req, "Invalid server ban ID", 400);
 	}
-	pqxx::result r = tx.exec("SELECT user_id FROM server_bans WHERE user_id = $1 AND server_id = $2", pqxx::params(server_ban_id, server_id));
+	pqxx::result r = tx.exec("SELECT user_id FROM server_bans WHERE ban_id = $1 AND server_id = $2", pqxx::params(server_ban_id, server_id));
 	if(!r.size())
-		return create_response::string(req, "User is not banned on the server", 404);
+		return create_response::string(req, "Ban does not exist", 404);
 	return nullptr;
 }
 
@@ -293,7 +310,7 @@ void resource_utils::json_set_ids(nlohmann::json& data, int server_id, int chann
 	data["channel_id"] = channel_id;
 }
 
-nlohmann::json resource_utils::user_json_from_row(const pqxx::row&& r)
+nlohmann::json resource_utils::user_json_from_row(const pqxx::row& r)
 {
 	nlohmann::json res = {
 		{"id", r["user_id"].as<int>()},
@@ -305,7 +322,7 @@ nlohmann::json resource_utils::user_json_from_row(const pqxx::row&& r)
 	return res;
 }
 
-nlohmann::json resource_utils::server_json_from_row(const pqxx::row&& r)
+nlohmann::json resource_utils::server_json_from_row(const pqxx::row& r)
 {
 	nlohmann::json res = {{"id", r["server_id"].as<int>()},
 				{"name", r["name"].as<std::string>()}};
@@ -314,7 +331,7 @@ nlohmann::json resource_utils::server_json_from_row(const pqxx::row&& r)
 	return res;
 }
 
-nlohmann::json resource_utils::channel_json_from_row(const pqxx::row&& r)
+nlohmann::json resource_utils::channel_json_from_row(const pqxx::row& r)
 {
 	return {
 		{"id", r["channel_id"].as<int>()},
@@ -323,7 +340,7 @@ nlohmann::json resource_utils::channel_json_from_row(const pqxx::row&& r)
 	};
 }
 
-nlohmann::json resource_utils::message_json_from_row(const pqxx::row&& r)
+nlohmann::json resource_utils::message_json_from_row(const pqxx::row& r)
 {
 	return {
 		{"id", r["message_id"].as<int>()},
@@ -334,7 +351,7 @@ nlohmann::json resource_utils::message_json_from_row(const pqxx::row&& r)
 	};
 }
 
-nlohmann::json resource_utils::message_update_json_from_row(const pqxx::row&& r)
+nlohmann::json resource_utils::message_update_json_from_row(const pqxx::row& r)
 {
 	return {
 		{"id", r["message_id"].as<int>()},
@@ -343,11 +360,19 @@ nlohmann::json resource_utils::message_update_json_from_row(const pqxx::row&& r)
 	};
 }
 
-nlohmann::json resource_utils::invite_json_from_row(const pqxx::row&& r)
+nlohmann::json resource_utils::invite_json_from_row(const pqxx::row& r)
 {
 	return {
 		{"id", r["invite_id"].as<std::string>()},
 		{"server_id", r["server_id"].as<int>()},
+		{"expires", r["expiration_time"].is_null() ? "never" : r["expiration_time"].as<std::string>()}
+	};
+}
+nlohmann::json resource_utils::ban_json_from_row(const pqxx::row& r)
+{
+	return {
+		{"id", r["ban_id"].as<int>()},
+		{"user", resource_utils::user_json_from_row(r)},
 		{"expires", r["expiration_time"].is_null() ? "never" : r["expiration_time"].as<std::string>()}
 	};
 }

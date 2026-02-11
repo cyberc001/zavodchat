@@ -580,7 +580,7 @@ paths:
           description: Приглашения с таким ID не существует на сервере
   /servers/$server_id/bans/:
     get:
-      summary: Пагинированный список забаненных пользователей
+      summary: Пагинированный список банов
       parameters:
         - $ref: "#/parameters/zavodchat_token"
         - name: start
@@ -608,7 +608,7 @@ paths:
                   $ref: '#/components/schemas/UserBan'
         '403':
           description: Неправильный start (< 0, >= количеству банов) / слишком большой count
-  /servers/$server_id/bans/$ban_id:
+  /servers/$server_id/bans/$user_id:
     post:
       summary: Забанить пользователя
       parameters:
@@ -629,6 +629,7 @@ paths:
           description: Неправильная дата и время expires
         '403':
           description: Нет прав на управление банами / попытка забанить >= роль
+  /servers/$server_id/bans/$ban_id:
     put:
       summary: Изменить параметры бана
       parameters:
@@ -814,20 +815,13 @@ components:
       properties:
         id:
           type: integer
-          example: 412
-        name:
-          type: string
-          example: cyb3rc001
-        avatar:
-          type: string
-          example: avatar_453912.png
-        status:
-          type: integer
-          example: 0
+          example: 33
         expires:
           type: string
           format: date
           example: "2026-01-08T05:05:48.638Z"
+        user:
+          $ref: '#/components/schemas/User'
     ServerUser:
       type: object
       properties:

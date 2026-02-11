@@ -13,26 +13,23 @@ export default class MainSocket {
 
 	static socket_event_handlers = {
 		message_edited: function(data) {
-			Message.message_range_cache.data_update_id(data.channel_id, data.id, {
-					edited: data.edited,
-					text: data.text,
-					status: Message.Status.None
-				});
+			data.status = Message.Status.None;
+			Message.message_range_cache.update(data.channel_id, data);
 		},
 		message_deleted: function(data) {
-			Message.message_range_cache.data_remove_id(data.channel_id, data.id);
+			Message.message_range_cache.remove(data.channel_id, data.id);
 		},
 		message_created: function(data) {
 			console.log("message_created", data);
-			Message.message_range_cache.data_append(data.channel_id, data);
+			Message.message_range_cache.insert(data.channel_id, data);
 		},
 
 		user_changed: function(data) {
-			User.update_cache(data.id, Util.object_from_object(data, ["status", "name", "avatar"]));
+			User.update_cache(data.id, data);
 		},
 
 		server_edited: function(data) {
-			Server.update_cache(data.id, Util.object_from_object(data, ["name", "avatar"]));
+			Server.update_cache(data.id, data);
 		},
 		server_deleted: function(data) {
 			Server.server_cache.remove_state(data.id);
@@ -42,10 +39,10 @@ export default class MainSocket {
 		},
 
 		channel_created: function(data) {
-			Channel.add_channel_to_cache(data.server_id, Util.object_from_object(data, ["name", "type", "id"]));
+			Channel.add_channel_to_cache(data.server_id, data);
 		},
 		channel_edited: function(data) {
-			Channel.update_cache(data.server_id, data.id, Util.object_from_object(data, ["name", "type"]));
+			Channel.update_cache(data.server_id, data.id, data);
 		},
 		channel_deleted: function(data) {
 			Channel.channel_cache.remove_state(data.id);
@@ -65,22 +62,16 @@ export default class MainSocket {
 			User.delete_cache_server(data.server_id, data.id);
 		},
 		user_banned: function(data) {
-			if(User.user_cache.has_state(-1) && User.user_cache.get_state(-1).data.id === data.id)
+			if(User.user_cache.has_state(-1) && User.user_cache.get_state(-1).data.id === data.user.id)
 				Server.remove_cache(data.server_id);
-			User.delete_cache_server(data.server_id, data.id);
-
-			let tree = Ban.ban_range_cache.get_tree(data.server_id);
-			if(tree)
-				User.get_nocache(data.id, (user_data) => {
-						user_data.expires = data.expires;
-						tree.data_append(user_data);
-				}, () => {});
+			User.delete_cache_server(data.server_id, data.user.id);
+			Ban.ban_range_cache.insert(data.server_id, data);
 		},
 		user_unbanned: function(data) {
-			Ban.ban_range_cache.data_remove_id(data.server_id, data.id);
+			Ban.ban_range_cache.remove(data.server_id, data.id);
 		},
 		ban_changed: function(data) {
-			Ban.ban_range_cache.data_update_id(data.server_id, data.id, {expires: data.expires});
+			Ban.ban_range_cache.update(data.server_id, data);
 		},
 
 		roles_updated: function(data) {
@@ -96,7 +87,7 @@ export default class MainSocket {
 			let new_roles = User.get_roles(data.server_id, data.user_id);
 			if(new_roles){
 				new_roles.push(data.role_id);
-				User.update_cache_server(data.server_id, data.user_id, {roles: new_roles});
+				User.update_cache_server(data.server_id, {id: data.user_id, roles: new_roles});
 			}
 		},
 		role_disallowed: function(data) {
@@ -105,7 +96,7 @@ export default class MainSocket {
 				const i = new_roles.findIndex((x) => x === data.role_id);
 				if(i !== -1){
 					new_roles.splice(i, 1);
-					User.update_cache_server(data.server_id, data.user_id, {roles: new_roles});
+					User.update_cache_server(data.server_id, {id: data.user_id, roles: new_roles});
 				}
 			}
 		},
