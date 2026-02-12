@@ -10,26 +10,27 @@
 	} = $props();
 
 	let init_items = $state(load_items(reversed ? RangeCache.max_id : 0, range, !reversed));
-	let old_items = $state({});
 	let items = $state({loaded: false, data: []});
 	// Initialize items with init_items (dont duplicate the request)
 	$effect(() => {
 		if(typeof items.start_id === "undefined" && init_items.loaded)
 			items = init_items.clone();
 	});
-	// Keep reference to old_items so it does not get colleted
-	$effect(() => {
-		if(items.loaded && items.start_id !== old_items.start_id && items.count !== old_items.count)
-			old_items = items;
-	});
 
 	export function reset(){
 		init_items = load_items(reversed ? RangeCache.max_id : 0, range, !reversed);
 		items = {loaded: false, data: []};
 
-		keep_scroll_pos = false;
-		scrollTop = list_div.scrollTop = 0;
+		list_div.scrollTop = 0;
 	}
+
+	$effect(() => {
+		if(items.loaded && !items.is_full){
+			console.log("finalizing items");
+			items = load_items(items.asc ? RangeCache.max_id : 0, range, !items.asc);
+			items.final = true;
+		}
+	});
 
 	export function getItemCount(){
 		return items.data.length;
@@ -50,18 +51,6 @@
 				augment_item(item);
 	});
 
-	let keep_scroll_pos = true;
-	$effect(() => {
-		items.data;
-
-		let anchor = get_anchor(anchor_id);
-		if(anchor && keep_scroll_pos){
-			list_div.scrollTop = list_scroll_top_before + (anchor.offsetTop - anchor_top_before);
-			remember_scroll_pos();
-		}
-		keep_scroll_pos = true;
-	});
-
 	let reverse_sign = $derived(reversed ? -1 : 1);
 	let can_scroll_before = $derived(init_items.data.length > 0 && items.data.length > 0 && reverse_sign * (items.data[0].id - init_items.data[0].id) > 0);
 
@@ -78,22 +67,9 @@
 
 	let list_div = $state();
 
-	let anchor_id = -1;
-	let anchor_top_before;
-	let list_scroll_top_before;
-	const get_anchor = (id) => list_div.querySelector("#paginated_list_item_" + id);
-	const remember_scroll_pos = () => {
-		scrollTop = list_div.scrollTop;
-		anchor_id = items.data[Math.floor(items.data.length / 2)].id;
-		anchor_top_before = get_anchor(anchor_id).offsetTop;
-		list_scroll_top_before = list_div.scrollTop;
-	}
-
 	const on_scroll = (e) => {
 		if(!items.loaded)
 			return;
-
-		remember_scroll_pos();
 
 		let max_scroll = list_div.scrollHeight - list_div.clientHeight;
 		let next_scroll_top = list_div.scrollTop + e.deltaY * 0.3;
@@ -102,12 +78,13 @@
 			let dir = Math.sign(e.deltaY) * reverse_sign;
 
 			if(dir > 0 && items.is_full)
-				items = load_items(items.data[advance - 1].id, range, !reversed);
+				items = load_items(items.data[advance - 1].id + reverse_sign, range, !reversed);
 			else if(dir < 0 && can_scroll_before)
-				items = load_items(items.data[items.data.length - advance].id, range, reversed);
+				items = load_items(items.data[items.data.length - advance].id - reverse_sign, range, reversed);
+		} else {
+			list_div.scrollTop = next_scroll_top;
+			scrollTop = list_div.scrollTop;
 		}
-		list_div.scrollTop = next_scroll_top;
-		scrollTop = list_div.scrollTop;
 	};
 
 	// show "Go to latest" button if scrolled more than half-page above last element

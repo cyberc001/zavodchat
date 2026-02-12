@@ -30,7 +30,7 @@ class RangeObserver {
 	}
 
 	set(tree, start_id, count){
-		console.log("before obs.set", tree, start_id, count, this, $state.snapshot(this.data));
+		//console.log("before obs.set", tree, start_id, count, this, $state.snapshot(this.data));
 		start_id = this.asc ? Math.max(this.start_id, start_id) : Math.min(this.start_id, start_id);
 		let iter = tree._tree.lowerBound({id: start_id});
 		if(this.start_id === RangeCache.max_id && !iter.data())
@@ -39,11 +39,10 @@ class RangeObserver {
 
 		const inv_items = typeof this.asc_items !== "undefined" && this.asc_items !== this.asc;
 		let i = inv_items ? count - _i - 1 : _i;
-console.log("i", i, "inv_items", inv_items, "count", count, "iter", iter);
+		//console.log("i", i, "inv_items", inv_items, "count", count, "iter", iter);
 		let prev_next_id;
 		while(iter.data() && count > 0 && i < this.count && i >= 0){
 			if(typeof prev_next_id !== "undefined" && iter.data().id !== prev_next_id){
-				console.log("bailing out on", iter.data());
 				if(inv_items)
 					this.data.splice(0, i + 1);
 				break;
@@ -55,14 +54,12 @@ console.log("i", i, "inv_items", inv_items, "count", count, "iter", iter);
 				iter.next();
 			else
 				iter.prev();
-
-			console.log("iterating", iter.data(), count, i);
 		}
 		if(!iter.data() && inv_items)
 			this.data.splice(0, i + 1);
 
 		this.loaded = true;
-		console.log("after obs.set", tree, start_id, count, this, $state.snapshot(this.data));
+		//console.log("after obs.set", tree, start_id, count, this, $state.snapshot(this.data));
 	}
 
 	find(id){
@@ -76,19 +73,34 @@ console.log("i", i, "inv_items", inv_items, "count", count, "iter", iter);
 		this.load_func(this.tree, this.start_id, this.count, this.asc);
 	}
 
+	get min_id(){
+		return Math.min(this.data[0].id, this.data[this.data.length - 1].id);
+	}
+	get max_id(){
+		return Math.max(this.data[0].id, this.data[this.data.length - 1].id);
+	}
+
+	get end_id(){
+		return this.data.length === 0 ? (this.asc ? RangeCache.max_id : 0)
+							: (this.asc ? this.max_id : this.min_id);
+	}
+
 	intersects(start_id, end_id){
-		let this_end_id = this.data.length === 0 ? (this.asc ? RangeCache.max : 0)
-					: (this.asc ? Math.max(this.data[0].id, this.data[this.data.length - 1].id) : Math.min(this.data[0].id, this.data[this.data.length - 1].id));
-		console.log("cmp", this.start_id, this_end_id, "vs", start_id, end_id);
+		let this_end_id = this.end_id;
 		let a = Math.min(this.start_id, this_end_id), b = Math.max(this.start_id, this_end_id);
 		return (start_id >= a && start_id <= b) || (end_id >= a && end_id <= b);
+	}
+	intersects_items(other){
+		if(this.data.length === 0 || other.data.length === 0)
+			return false;
+		return (other.min_id >= this.min_id && other.min_id <= this.max_id)
+			|| (other.max_id >= this.min_id && other.max_id <= this.max_id);
 	}
 
 	has(id){
 		if(this.data.length === 0)
 			return false;
-		const a = this.data[0].id, b = this.data[this.data.length - 1].id;
-		return id >= Math.min(a, b) && id <= Math.max(a, b);
+		return id >= this.min_id && id <= this.max_id;
 	}
 }
 
@@ -160,24 +172,46 @@ class DataTree {
 			}
 		}
 		const end_id = data.length > 0 ? data[data.length - 1].id : start_id;
-		console.log("SET_STATE", start_id, end_id);
 		for(const obs of this.get_observers(start_id, end_id))
 			obs.set(this, start_id, count);
+	}
+
+	// Update next and previous elements, similar to linked lists
+	update_neighbours(data, next, prev){
+		let iter = this._tree.lowerBound(data);
+		iter.next();
+		if(iter.data())
+			next(iter.data());
+		iter = this._tree.lowerBound(data);
+		iter.prev();
+		if(iter.data())
+			prev(iter.data());
 	}
 
 	insert(data, update){
 		this._tree.insert(data);
 
-		if(update)
+		if(update){
+			update_neighbours(data,
+						(next) => next.prev_id = data.id,
+						(prev) => prev.next_id = data.id);
 			for(const obs of this.get_observers(data.id, data.id))
 				obs.set(this, data.id, obs.count);
+		}
 	}
 	remove(id, update){
-		this._tree.remove({id});
+		let data = this._tree.find({id});
 
-		if(update)
+		if(update){
+			if(data)
+				this.update_neighbours(data,
+							(next) => next.prev_id = data.prev_id,
+							(prev) => prev.next_id = data.next_id);
 			for(const obs of this.get_observers(id, 1))
 				obs.remove(id);
+		}
+
+		this._tree.remove({id});
 	}
 	update(data){
 		let d = this._tree.find(data);
@@ -203,7 +237,6 @@ class DataTree {
 		for(const obs of this.get_observers()){
 			if(obs.loading)
 				continue;
-			console.log("trimming with obs", $state.snapshot(obs.data));
 			ranges.push(obs);
 		}
 
@@ -214,7 +247,6 @@ class DataTree {
 			let data = iter.data();
 			let can_delete = true;
 			for(const obs of ranges){
-				console.log("obs inter", data.id, obs.intersects(data.id, data.id));
 				if(obs.has(data.id)){
 					can_delete = false;
 					break;
@@ -228,7 +260,6 @@ class DataTree {
 
 		for(const data of todelete)
 			this._tree.remove(data);
-		console.log("todelete", todelete);
 	}
 }
 
@@ -281,7 +312,6 @@ export class RangeCache extends IDCache {
 
 		let nobs = new RangeObserver(tree, start_id, count, load_func, !!asc, asc_items);
 		nobs.loaded = tree.has_enough(nobs);
-		console.log("Has_enough?", nobs.loaded, nobs);
 		tree.observers.push(new WeakRef(nobs));
 
 		if(!nobs.loaded)

@@ -49,12 +49,8 @@ std::shared_ptr<http_response> channel_messages_resource::render_GET(const http_
 
 	nlohmann::json res = nlohmann::json::array();
 	pqxx::result r = tx.exec("SELECT message_id, author_id, sent, last_edited, text FROM messages WHERE channel_id = $1 " + id_query, pqxx::params(channel_id, start_id, count));
-	for(size_t i = 0; i < r.size(); ++i){
-		nlohmann::json mes = resource_utils::message_json_from_row(r[i]);
-		if(i < r.size() - 1)
-			mes["next_id"] = r[i + 1]["message_id"].as<int>();
-		res += mes;
-	}
+	for(size_t i = 0; i < r.size(); ++i)
+		res += resource_utils::message_json_from_row(r[i]);
 	return create_response::string(req, res.dump(), 200);
 }
 std::shared_ptr<http_response> channel_messages_resource::render_POST(const http_request& req)
@@ -159,12 +155,8 @@ std::shared_ptr<http_response> channel_messages_search_resource::render_POST(con
 	} catch(pqxx::data_exception& e){
 		return create_response::string(req, "Invalid date/time format in search query", 400);
 	}
-	for(size_t i = 0; i < r.size(); ++i){
-		nlohmann::json mes = resource_utils::message_json_from_row(r[i]);
-		if(i < r.size() - 1)
-			mes["next_id"] = r[i + 1]["message_id"].as<int>();
-		res += mes;
-	}
+	for(size_t i = 0; i < r.size(); ++i)
+		res += resource_utils::message_json_from_row(r[i]);
 	return create_response::string(req, res.dump(), 200);
 }
 

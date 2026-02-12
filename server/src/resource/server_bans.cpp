@@ -28,9 +28,12 @@ std::shared_ptr<http_response> server_bans_resource::render_GET(const http_reque
 	int count;
 	err = resource_utils::parse_index(req, "count", count, 0, max_get_count);
 	if(err) return err;
+	std::string order;
+	err = resource_utils::parse_order(req, order);
+	if(err) return err;
 
 	nlohmann::json res = nlohmann::json::array();
-	pqxx::result r = tx.exec("SELECT ban_id, expiration_time, user_id, name, avatar, status FROM server_bans NATURAL JOIN users WHERE server_id = $1 AND ban_id > $2 LIMIT $3", pqxx::params(server_id, start_id, count));
+	pqxx::result r = tx.exec("SELECT ban_id, expiration_time, user_id, name, avatar, status FROM server_bans NATURAL JOIN users WHERE server_id = $1 AND ban_id > $2 ORDER BY ban_id " + order + " LIMIT $3", pqxx::params(server_id, start_id, count));
 	for(size_t i = 0; i < r.size(); ++i)
 		res += resource_utils::ban_json_from_row(r[i]);
 
@@ -98,8 +101,8 @@ std::shared_ptr<http_response> server_ban_id_resource::render_POST(const http_re
 	tx.commit();
 
 	socket_event ev;
-	resource_utils::json_set_ids(ev.data, server_id);
 	ev.data = resource_utils::ban_json_from_row(r[0]);
+	resource_utils::json_set_ids(ev.data, server_id);
 	ev.name = "user_banned";
 	sserv.send_to_server(server_id, tx, ev);
 	sserv.send_to_user(server_user_id, tx, ev);
