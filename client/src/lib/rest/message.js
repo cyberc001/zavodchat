@@ -11,7 +11,7 @@ export default class Message {
 					(res) => tree.set_state(start_id, count, res.data, asc),
 					_catch,
 					"start_id", start_id, "count", count, "order", asc ? 1 : 0);
-			}, asc, false);
+			}, asc, true);
 	}
 	static get_search_range(channel_id, start_id, count, asc, params, _catch){
 		let cache_id = [channel_id];
@@ -26,7 +26,7 @@ export default class Message {
 					(res) => tree.set_state(start_id, count, res.data, asc),
 					_catch,
 					"start_id", start_id, "count", count, "order", asc ? 1 : 0);
-			}, asc, false);
+			}, asc, true);
 	}
 
 

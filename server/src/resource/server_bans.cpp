@@ -33,7 +33,7 @@ std::shared_ptr<http_response> server_bans_resource::render_GET(const http_reque
 	if(err) return err;
 
 	nlohmann::json res = nlohmann::json::array();
-	pqxx::result r = tx.exec("SELECT ban_id, expiration_time, user_id, name, avatar, status FROM server_bans NATURAL JOIN users WHERE server_id = $1 AND ban_id > $2 ORDER BY ban_id " + order + " LIMIT $3", pqxx::params(server_id, start_id, count));
+	pqxx::result r = tx.exec("SELECT ban_id, expiration_time, user_id, name, avatar, status FROM server_bans NATURAL JOIN users WHERE server_id = $1 AND ban_id " + std::string(order == "DESC" ? "<=" : ">=") +" $2 ORDER BY ban_id " + order + " LIMIT $3", pqxx::params(server_id, start_id, count));
 	for(size_t i = 0; i < r.size(); ++i)
 		res += resource_utils::ban_json_from_row(r[i]);
 
