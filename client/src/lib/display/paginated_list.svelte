@@ -17,22 +17,31 @@
 	});
 
 	$effect(() => {
-		console.log("INIT ITEMS CHANGES", $state.snapshot(init_items.data));
+		console.log("INIT ITEMS CHANGES", $state.snapshot(init_items.data), init_items);
 	});
 
 	let item_divs = $state([]), item_divs_dict = $state({});
+	let items_max_height = $state(0);
+	// temporary dictionary used to remember global offsets of previously rendered items
+	let id_to_offset = {};
+	let list_div_scroll_top = $state(0);
 
 	export function reset(){
 		init_items = load_items(reversed ? RangeCache.max_id : 0, range, !reversed);
 		items = {loaded: false, data: []};
-
-		list_div.scrollTop = 0;
+	
+		list_div_scroll_top = list_div.scrollTop = 0;
+		items_max_height = 0;
+		id_to_offset = {};
 	}
 
 	$effect(() => {
-		if(items.loaded && !items.is_full && !items.final){
+		if(items.loaded && !items.is_full && !items.final && init_items.loaded){
 			console.log("finalizing items", items, $state.snapshot(items.data));
-			items = load_items(items.asc ? RangeCache.max_id : 0, range, !items.asc);
+			if(!init_items.is_full)
+				items = init_items.clone();
+			else
+				items = load_items(items.asc ? RangeCache.max_id : 0, range, !items.asc);
 			items.final = true;
 		}
 	});
@@ -64,11 +73,8 @@
 
 	// Scroll calculations
 	let items_offset_top = $state(0);
-	let items_max_height = $state(0);
 
 	let div_items = $state({});
-	// temporary dictionary used to remember global offsets of previously rendered items
-	let id_to_offset = {};
 
 	const remember_offsets = () => {
 		if(!items.loaded)
@@ -90,31 +96,48 @@
 		let items_height = get_el_bottom(div_items[items.data.length - 1]);
 		if(items_height > items_max_height)
 			items_max_height = items_height;
-		console.log("items max height", items_max_height);
 	});
+
 	$effect(() => {
 		items.data;
 
-		console.log("new items", $state.snapshot(items.data));
-
-		if(items.data.length === 0 || !div_items[0] || !div_items[items.data.length - 1] || items.adjusted)
+		console.log("new items", items, $state.snapshot(items.data), items_offset_top, div_items[items.data.length - 1]?.offsetTop);
+		if(items.data.length === 0 || !div_items[0] || !div_items[items.data.length - 1] || items.adjusted || items_max_height === 0)
 			return;
+
+		// If list was scrolled to the last item, dont remember offsets (it might be a new item)
+		const scroll_off = list_div.scrollTop + list_div.clientHeight;
+		const last_off = id_to_offset[items.data[items.data.length - 2]?.id];
+		let item_inserted = false;
+		if(items.last_action === "removed" || (reversed && !can_scroll_before && last_off && scroll_off >= last_off.top && scroll_off <= last_off.bottom)){
+			id_to_offset = {};
+			item_inserted = true;
+		}
 
 		if(typeof id_to_offset[items.data[0].id] !== "undefined"){
 			items_offset_top = id_to_offset[items.data[0].id].top;
-			console.log("recall top offset\n", id_to_offset, "\n", $state.snapshot(items.data));
+			console.log("recall top offset\n", id_to_offset, "\n", $state.snapshot(items.data), "\n", items_offset_top);
 		} else if(typeof id_to_offset[items.data[items.data.length - 1].id] !== "undefined"){
-			items_offset_top = id_to_offset[items.data[items.data.length - 1].id].bottom - items_max_height;
-			console.log("recall bottom offset\n", id_to_offset, "\n", $state.snapshot(items.data));
+			let items_height = get_el_bottom(div_items[items.data.length - 1]);
+			if(items_height === 0)
+				return;
+			items_offset_top = id_to_offset[items.data[items.data.length - 1].id].bottom - items_height;
+			console.log("recall bottom offset\n", id_to_offset, "\n", $state.snapshot(items.data), "\n", items_offset_top, "\n", items.data[items.data.length - 1].id);
 		} else {
 			items_offset_top = 0;
 			if(reversed)
-				list_div.scrollTop = items_max_height - list_div.clientHeight;
-			console.log("recall initial offset", list_div.scrollTop, items_max_height -= list_div.clientHeight);
+				list_div_scroll_top = list_div.scrollTop = items_max_height - list_div.clientHeight;
+			console.log("recall initial offset", list_div.clientHeight, list_div.scrollTop, items_max_height - list_div.clientHeight);
 		}
+
+		if(item_inserted)
+			remember_offsets();
 
 		if(items.loaded)
 			items.adjusted = true;
+
+		if(items.final)
+			remember_offsets();
 	});
 
 	$effect(() => {
@@ -122,7 +145,7 @@
 
 		// DO NOT CHANGE THE ORDER OF THESE TWO ASSIGMENTS
 		if(items_offset_top < 0){
-			list_div.scrollTop = -items_offset_top;
+			list_div_scroll_top = list_div.scrollTop = -items_offset_top;
 			items_offset_top = 0;
 		}
 	});
@@ -130,6 +153,7 @@
 	const get_el_bottom = (el) => el.offsetTop + el.clientHeight;
 
 	const on_scroll = (e) => {
+		list_div_scroll_top = list_div.scrollTop;
 		if(!items.loaded || items.data.length === 0)
 			return;
 
@@ -161,14 +185,13 @@
 			}
 		} else
 			list_div.scrollTop = next_scroll_top;
+		list_div_scroll_top = list_div.scrollTop;
 	};
 
 	// show "Go to latest" button if scrolled more than half-page above last element
-	let show_goto_latest = $derived(false);
-	/*let show_goto_latest = $derived(typeof to_latest_text !== "undefined" &&
-		(can_scroll_before ||
-		(typeof list_div !== "undefined" && (reverse_sign * scrollTop > (list_div.scrollHeight - list_div.clientHeight) * 0.5))
-		));*/
+	let show_goto_latest = $derived(typeof to_latest_text !== "undefined" &&
+		(can_scroll_before || (list_div && (reversed ? list_div.scrollHeight - list_div.clientHeight - list_div_scroll_top : list_div_scroll_top) > items_max_height * 0.25))
+	);
 </script>
 
 <div class="paginated_list"
@@ -182,7 +205,6 @@
 			{#if item}
 				<div bind:this={div_items[i]}
 				>
-					{item.id}
 					{@render render_item(i, item)}
 				</div>
 			{/if}

@@ -45,10 +45,7 @@ class RangeObserver {
 	}
 
 	set(tree, start_id, count){
-		console.log("before obs.set", tree, start_id, count, this, $state.snapshot(this.data));
-
 		let iter = this.find_closest_start_iter(tree);
-		console.log("iter", iter);
 		if(!iter)
 			return;
 
@@ -61,36 +58,10 @@ class RangeObserver {
 			else
 				iter.prev();
 		}
-
-
-		/*let iter = tree._tree.lowerBound({id: start_id});
-		if(this.start_id === RangeCache.max_id && !iter.data())
-			iter.prev();
-		let _i = Util.bin_search_lower_bound(this.data, (x) => (x.id - start_id) * this.order_sign);
-
-		const inv_items = typeof this.asc_items !== "undefined" && this.asc_items !== this.asc;
-		let i = inv_items ? count - _i - 1 : _i;
-		console.log("i", i, "inv_items", inv_items, "count", count, "iter", JSON.parse(JSON.stringify(iter)));
-		let prev_next_id;
-		while(iter.data() && count > 0 && i < this.count && i >= 0){
-			if(typeof prev_next_id !== "undefined" && iter.data().id !== prev_next_id){
-				if(inv_items)
-					this.data.splice(0, i + 1);
-				break;
-			}
-			prev_next_id = this.asc ? iter.data().next_id : iter.data().prev_id;
-			this.data[inv_items ? i-- : i++] = iter.data();
-			--count;
-			if(this.asc)
-				iter.next();
-			else
-				iter.prev();
-		}*/
 		if(!iter.data() && inv_items)
 			this.data.splice(0, i + 1);
 
 		this.loaded = true;
-		console.log("after obs.set", tree, start_id, count, this, $state.snapshot(this.data));
 	}
 
 	find(id){
@@ -101,7 +72,6 @@ class RangeObserver {
 		if(i !== -1)
 			this.data.splice(i, 1);
 		// Try to load more
-		console.log("obs trying to load more", this);
 		this.loaded = false;
 		this.load_func(this.tree, this.start_id, this.count, this.asc);
 	}
@@ -142,7 +112,7 @@ class DataTree {
 	observers = [];
 	min_id = RangeCache.max_id; max_id = -1;
 
-	get_observers(start_id, end_id){
+	get_observers(start_id, end_id, or_nonfull){
 		let iter = {};
 		let tree = this;
 		iter[Symbol.iterator] = function *(){
@@ -153,7 +123,7 @@ class DataTree {
 					continue;
 				}
 
-				if(typeof start_id !== "undefined" && !obs.intersects(start_id, end_id))
+				if(typeof start_id !== "undefined" && !obs.intersects(start_id, end_id) && (!or_nonfull || obs.is_full))
 					continue;
 
 				yield obs;
@@ -246,15 +216,17 @@ class DataTree {
 		this._tree.insert(data);
 
 		if(update){
-			update_neighbours(data,
+			this.update_neighbours(data,
 						(next) => next.prev_id = data.id,
 						(prev) => prev.next_id = data.id);
-			for(const obs of this.get_observers(data.id, data.id))
+			for(const obs of this.get_observers(data.id, data.id, true)){
+				delete obs.adjusted; // TODO thats a hack
+				obs.last_action = "inserted";
 				obs.set(this, data.id, obs.count);
+			}
 		}
 	}
 	remove(id, update){
-		console.log("before removing", this._tree);
 		let data = this._tree.find({id});
 
 		if(update){
@@ -262,9 +234,10 @@ class DataTree {
 				this.update_neighbours(data,
 							(next) => next.prev_id = data.prev_id,
 							(prev) => prev.next_id = data.next_id);
-			console.log("updated neighbours", this._tree);
-			for(const obs of this.get_observers(id, 1))
+			for(const obs of this.get_observers(id, 1)){
+				obs.last_action = "removed";
 				obs.remove(id);
+			}
 		}
 
 		this._tree.remove({id});
@@ -275,8 +248,10 @@ class DataTree {
 			for(const key of Object.keys(data))
 				d[key] = data[key];
 
-		for(const obs of this.get_observers(data.id, data.id))
+		for(const obs of this.get_observers(data.id, data.id)){
+			obs.last_action = "updated";
 			obs.set(this, data.id, 1);
+		}
 	}
 
 	reload(){
@@ -368,7 +343,6 @@ export class RangeCache extends IDCache {
 
 		let nobs = new RangeObserver(tree, start_id, count, load_func, !!asc, asc_items);
 		nobs.loaded = tree.has_enough(nobs);
-		console.log("nobs", nobs, $state.snapshot(nobs.data));
 		tree.observers.push(new WeakRef(nobs));
 
 		if(!nobs.loaded)
