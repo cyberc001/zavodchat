@@ -16,10 +16,6 @@
 			items = init_items.clone();
 	});
 
-	$effect(() => {
-		console.log("INIT ITEMS CHANGES", $state.snapshot(init_items.data), init_items);
-	});
-
 	let item_divs = $state([]), item_divs_dict = $state({});
 	let items_max_height = $state(0);
 	// temporary dictionary used to remember global offsets of previously rendered items
@@ -86,7 +82,6 @@
 									top: content_div.offsetTop + div_items[i].offsetTop,
 									bottom: content_div.offsetTop + get_el_bottom(div_items[i])
 								};
-		console.trace();
 		console.log("remember offsets", id_to_offset, $state.snapshot(div_items), $state.snapshot(items.data));
 	};
 
@@ -99,45 +94,45 @@
 	});
 
 	$effect(() => {
-		items.data;
+		list_div_scroll_top = list_div.scrollTop;
 
-		console.log("new items", items, $state.snapshot(items.data), items_offset_top, div_items[items.data.length - 1]?.offsetTop);
-		if(items.data.length === 0 || !div_items[0] || !div_items[items.data.length - 1] || items.adjusted || items_max_height === 0)
+		console.log("new items", items, $state.snapshot(items.data), /*items_offset_top,*/ id_to_offset);
+		if(items.last_action === "updated" && div_items[0].clientHeight > 0)
+			remember_offsets();
+		if(items.data.length === 0 || !div_items[0] || !div_items[items.data.length - 1] || items.adjusted || div_items[0].clientHeight === 0)
 			return;
 
 		// If list was scrolled to the last item, dont remember offsets (it might be a new item)
 		const scroll_off = list_div.scrollTop + list_div.clientHeight;
 		const last_off = id_to_offset[items.data[items.data.length - 2]?.id];
-		let item_inserted = false;
-		if(items.last_action === "removed" || (reversed && !can_scroll_before && last_off && scroll_off >= last_off.top && scroll_off <= last_off.bottom)){
+
+		console.log("check", items.last_action, can_scroll_before, last_off, scroll_off, last_off?.top, last_off?.bottom);
+		if(items.last_action === "removed" || (items.last_action === "inserted" && reversed && !can_scroll_before && last_off && scroll_off >= last_off.top && scroll_off <= last_off.bottom)){
+			console.log("reset offsets");
 			id_to_offset = {};
-			item_inserted = true;
 		}
 
 		if(typeof id_to_offset[items.data[0].id] !== "undefined"){
 			items_offset_top = id_to_offset[items.data[0].id].top;
-			console.log("recall top offset\n", id_to_offset, "\n", $state.snapshot(items.data), "\n", items_offset_top);
+			console.log("recall top offset\n", id_to_offset, "\n", $state.snapshot(items.data), /*"\n", items_offset_top*/);
 		} else if(typeof id_to_offset[items.data[items.data.length - 1].id] !== "undefined"){
 			let items_height = get_el_bottom(div_items[items.data.length - 1]);
 			if(items_height === 0)
 				return;
 			items_offset_top = id_to_offset[items.data[items.data.length - 1].id].bottom - items_height;
-			console.log("recall bottom offset\n", id_to_offset, "\n", $state.snapshot(items.data), "\n", items_offset_top, "\n", items.data[items.data.length - 1].id);
+			console.log("recall bottom offset\n", id_to_offset, "\n", $state.snapshot(items.data), "\n", /*items_offset_top, "\n",*/ items.data[items.data.length - 1].id);
 		} else {
 			items_offset_top = 0;
 			if(reversed)
-				list_div_scroll_top = list_div.scrollTop = items_max_height - list_div.clientHeight;
+				list_div.scrollTop = items_max_height - list_div.clientHeight;
 			console.log("recall initial offset", list_div.clientHeight, list_div.scrollTop, items_max_height - list_div.clientHeight);
 		}
-
-		if(item_inserted)
-			remember_offsets();
 
 		if(items.loaded)
 			items.adjusted = true;
 
-		if(items.final)
-			remember_offsets();
+		remember_offsets();
+		list_div_scroll_top = list_div.scrollTop;
 	});
 
 	$effect(() => {
@@ -160,14 +155,11 @@
 		let next_scroll_top = list_div.scrollTop + e.deltaY * 0.3;
 
 		const max_scroll = content_div.offsetTop + get_el_bottom(div_items[items.data.length - 1]);
-		console.log("real scroll", next_scroll_top, list_div.clientHeight, "max scroll", max_scroll, "off", content_div.offsetTop);
-
 		if(next_scroll_top + list_div.clientHeight >= max_scroll || next_scroll_top < content_div.offsetTop){
 			let dir = Math.sign(e.deltaY) * reverse_sign;
 
 			remember_offsets();
 
-			console.log("checking to load more items", dir, items.is_full, can_scroll_before, $state.snapshot(items.data), $state.snapshot(init_items.data));
 			if(dir > 0 && items.is_full){
 				console.log("loading more items", $state.snapshot(items.data), items.data[reversed ? items.data.length - advance : advance - 1].id + reverse_sign, !reversed);
 				items = load_items(items.data[reversed ? items.data.length - advance : advance - 1].id  + reverse_sign, range, !reversed);
@@ -188,10 +180,11 @@
 		list_div_scroll_top = list_div.scrollTop;
 	};
 
-	// show "Go to latest" button if scrolled more than half-page above last element
-	let show_goto_latest = $derived(typeof to_latest_text !== "undefined" &&
-		(can_scroll_before || (list_div && (reversed ? list_div.scrollHeight - list_div.clientHeight - list_div_scroll_top : list_div_scroll_top) > items_max_height * 0.25))
-	);
+	// For some unknown reason $derived() with the same condition does not work. Rendering related?
+	let show_goto_latest = $state(false);
+	$effect(() => {
+		show_goto_latest = typeof to_latest_text !== "undefined" && (can_scroll_before || (list_div && (reversed ? list_div.scrollHeight - list_div.clientHeight - list_div_scroll_top : list_div_scroll_top) > items_max_height * 0.3));
+	});
 </script>
 
 <div class="paginated_list"

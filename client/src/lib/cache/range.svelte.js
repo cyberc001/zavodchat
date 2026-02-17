@@ -46,8 +46,10 @@ class RangeObserver {
 
 	set(tree, start_id, count){
 		let iter = this.find_closest_start_iter(tree);
-		if(!iter)
+		if(!iter){
+			this.loaded = true; // for zero-length data arrays
 			return;
+		}
 
 		const inv_items = typeof this.asc_items !== "undefined" && this.asc_items !== this.asc;
 		let i = inv_items ? this.count - 1 : 0;
@@ -143,9 +145,13 @@ class DataTree {
 		if(obs.data.length >= obs.count)
 			return true;
 
-		if(obs.data.length === 0)
+		if(obs.data.length === 0){
+			if(obs.asc ? obs.start_id === 0 : obs.start_id === RangeCache.max_id)
+				return false;
+
 			return obs.asc ? this.min_id !== -1 && obs.start_id >= this.min_id
 				: this.max_id !== RangeCache.max_id && obs.end_id <= this.max_id;
+		}
 
 		// Observer doesnt have all requested data
 		if(obs.asc){
@@ -162,10 +168,6 @@ class DataTree {
 				return false;
 		}
 		return true;
-
-		/*if(obs.asc)
-			return this.min_id !== -1 && obs.start_id >= this.min_id;
-		return this.max_id !== RangeCache.max_id && obs.end_id <= this.max_id;*/
 	}
 	set_state(start_id, count, data, asc){
 		for(let i = 0; i < data.length; ++i){
@@ -188,16 +190,19 @@ class DataTree {
 		}
 		if(data.length > 0 && count > data.length){
 			if(asc){
-				if(data[data.length - 1].id < this.min_id)
-					this.min_id = data[data.length - 1].id;
-			} else {
 				if(data[data.length - 1].id > this.max_id)
 					this.max_id = data[data.length - 1].id;
+			} else {
+				if(data[data.length - 1].id < this.min_id)
+					this.min_id = data[data.length - 1].id;
 			}
 		}
 		const end_id = data.length > 0 ? data[data.length - 1].id : start_id;
-		for(const obs of this.get_observers(start_id, end_id))
+		console.log("updating observers", start_id, end_id);
+		for(const obs of this.get_observers(start_id, end_id)){
+			console.log("got", obs);
 			obs.set(this, start_id, count);
+		}
 	}
 
 	// Update next and previous elements, similar to linked lists
@@ -220,7 +225,7 @@ class DataTree {
 						(next) => next.prev_id = data.id,
 						(prev) => prev.next_id = data.id);
 			for(const obs of this.get_observers(data.id, data.id, true)){
-				delete obs.adjusted; // TODO thats a hack
+				delete obs.adjusted;
 				obs.last_action = "inserted";
 				obs.set(this, data.id, obs.count);
 			}
