@@ -5,15 +5,18 @@
 
 	let {range = 40, advance = 10, reversed = false,
 		render_item, load_items, augment_item = () => {},
-		loading_text = "Loading...", to_latest_text = "To latest"
+		loading_text = "Loading...", to_latest_text = "To latest",
+		auto_height = false
 	} = $props();
 
 	let init_items = $state(load_items(reversed ? RangeCache.max_id : 0, range, !reversed));
 	let items = $state({loaded: false, data: []});
 	// Initialize items with init_items (dont duplicate the request)
 	$effect(() => {
-		if(typeof items.start_id === "undefined" && init_items.loaded)
+		if(typeof items.start_id === "undefined" && init_items.loaded && typeof items.start_id === "undefined"){
+			console.log("SETTING ITEMS TO INIT_ITEMS");
 			items = init_items.clone();
+		}
 	});
 
 	let item_divs = $state([]), item_divs_dict = $state({});
@@ -22,18 +25,24 @@
 	let id_to_offset = {};
 	let list_div_scroll_top = $state(0);
 
-	export function reset(){
+	let start_id;
+	export function reset(_start_id){
+		start_id = _start_id;
+		console.log("RESETTING", start_id);
 		init_items = load_items(reversed ? RangeCache.max_id : 0, range, !reversed);
-		items = {loaded: false, data: []};
+		if(typeof start_id === "undefined")
+			items = {loaded: false, data: []};
+		else
+			items = load_items(start_id, range, !reversed);
 	
 		list_div_scroll_top = list_div.scrollTop = 0;
 		items_max_height = 0;
 		id_to_offset = {};
 	}
-
+	
 	$effect(() => {
 		if(items.loaded && !items.is_full && !items.final && init_items.loaded){
-			console.log("finalizing items", items, $state.snapshot(items.data));
+			console.log("finalizing items", items, $state.snapshot(items.data), start_id);
 			if(!init_items.is_full)
 				items = init_items.clone();
 			else
@@ -85,18 +94,20 @@
 		console.log("remember offsets", id_to_offset, $state.snapshot(div_items), $state.snapshot(items.data));
 	};
 
+	let list_div_scroll_height = $state(0);
 	$effect(() => {
 		if(items.data.length === 0 || !div_items[0] || !div_items[items.data.length - 1])
 			return;
 		let items_height = get_el_bottom(div_items[items.data.length - 1]);
 		if(items_height > items_max_height)
 			items_max_height = items_height;
+		list_div_scroll_height = list_div.scrollHeight;
 	});
 
 	$effect(() => {
 		list_div_scroll_top = list_div.scrollTop;
 
-		console.log("new items", items, $state.snapshot(items.data), /*items_offset_top,*/ id_to_offset);
+		console.log("new items", items, $state.snapshot(items.data), id_to_offset);
 		if(items.last_action === "updated" && div_items[0].clientHeight > 0)
 			remember_offsets();
 		if(items.data.length === 0 || !div_items[0] || !div_items[items.data.length - 1] || items.adjusted || div_items[0].clientHeight === 0)
@@ -126,6 +137,14 @@
 			if(reversed)
 				list_div.scrollTop = items_max_height - list_div.clientHeight;
 			console.log("recall initial offset", list_div.clientHeight, list_div.scrollTop, items_max_height - list_div.clientHeight);
+		}
+
+		if(typeof start_id !== "undefined" && items.loaded){
+			let start_div = div_items[items.data.findIndex((x) => x.id === start_id)];
+			console.log("SETTING TO START_ID", start_id, start_div, list_div.scrollTop, start_div.getBoundingClientRect().top);
+			start_div.scrollIntoView(true);
+			console.log("AFTER", list_div.scrollTop);
+			start_id = undefined;
 		}
 
 		if(items.loaded)
@@ -188,7 +207,8 @@
 </script>
 
 <div class="paginated_list"
-	style="max-height:var(--max-height, 100%);"
+	style={(auto_height ? `height: ${list_div_scroll_height}px;` : "")
+		+ "max-height: var(--max-height, 100%); width: var(--width, auto)"}
 >
 	<div class="paginated_list" onwheel={on_scroll} bind:this={list_div}>
 		<div style={`position: absolute; top: ${items_offset_top}px; min-height: ${items_max_height}px`}

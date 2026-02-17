@@ -57,9 +57,11 @@
 			style={user_list && user_list.getItemCount() > 0 ? "" : "display: none"}>
 			<PaginatedList
 				render_item={render_user}
-				load_items={(index, range) => User.get_server_range(server_id, index, range, user_name)}
+				load_items={(index, range, asc) => User.get_server_range(server_id, index, range, asc, user_name)}
 				bind:this={user_list}
 				to_latest_text="Up"
+				auto_height=true
+				--width="200px"
 				--max-height="400px"
 			/>
 		</div>

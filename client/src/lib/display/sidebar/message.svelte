@@ -1,5 +1,6 @@
 <script>
 	import {asset} from '$app/paths';
+	import {untrack} from 'svelte';
 
 	import MessageDisplay from '$lib/display/message.svelte';
 	import PaginatedList from '$lib/display/paginated_list.svelte';
@@ -70,9 +71,10 @@
 	};
 
 	$effect(() => {
+		$inspect.trace();
 		channel_id;
 		if(channel_id > -1)
-			message_list?.reset();
+			untrack(() => message_list?.reset());
 	});
 </script>
 
@@ -103,7 +105,8 @@
 		hide_ctx_menu={hide_ctx_menu}
 		onclick={() => {
 			message_search_params = {};
-			message_list.reset();
+			console.log("GO TO", message_list.getItem(sel.ctx_message));
+			message_list.reset(message_list.getItem(sel.ctx_message).id);
 		}}
 	/>
 {/snippet}
