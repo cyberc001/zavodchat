@@ -153,21 +153,18 @@ class DataTree {
 				: this.max_id !== RangeCache.max_id && obs.end_id <= this.max_id;
 		}
 
-		// Observer doesnt have all requested data
-		// TODO fix to take min_id/max_id in account
 		if(obs.asc){
 			let end = this._tree.lowerBound({id: obs.max_id});
-			if(typeof end.data().next_id === "undefined")
+			if(typeof end.data().next_id === "undefined" && (this.max_id === -1 || end.data().id < this.max_id))
 				return false;
 			if(typeof end.data().next_id !== "undefined" && !this._tree.find({id: end.data().next_id}))
 				return false;
 		} else {
 			let beg = this._tree.lowerBound({id: obs.min_id});
-			if(typeof beg.data().prev_id === "undefined")
+			if(typeof beg.data().prev_id === "undefined" && (this.min_id === RangeCache.max_id || beg.data().id > this.min_id))
 				return false;
 			if(typeof beg.data().prev_id !== "undefined" && !this._tree.find({id: beg.data().prev_id}))
 				return false;
-			console.log("CHECKED HAS_ENOUGH", beg.data(), this.min_id, this._tree);
 		}
 		return true;
 	}
@@ -350,6 +347,7 @@ export class RangeCache extends IDCache {
 
 		let nobs = new RangeObserver(tree, start_id, count, load_func, !!asc, asc_items);
 		nobs.loaded = tree.has_enough(nobs);
+		console.log("GET_STATE", nobs.loaded, nobs, $state.snapshot(nobs.data));
 		tree.observers.push(new WeakRef(nobs));
 
 		if(!nobs.loaded)

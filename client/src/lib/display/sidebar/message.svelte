@@ -203,6 +203,7 @@
 					{type: "date", label: "Date until", param: "date_until"}
 				]}
 				onsearch={(params) => {
+					sel.highlight_message = -1;
 					message_search_params = params;
 					message_list.reset();
 				}}
