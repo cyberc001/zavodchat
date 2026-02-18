@@ -51,19 +51,28 @@ class RangeObserver {
 			return;
 		}
 
+		console.log("BEFORE SET OBS", this, JSON.parse(JSON.stringify(tree)), $state.snapshot(this.data));
 		const inv_items = typeof this.asc_items !== "undefined" && this.asc_items !== this.asc;
 		let i = inv_items ? this.count - 1 : 0;
+		let missing_id = false;
 		while(iter.data() && i < this.count && i >= 0){
-			this.data[inv_items ? i-- : i++] = iter.data();
-			if(this.asc)
+			const dat = iter.data();
+			this.data[inv_items ? i-- : i++] = dat;
+			if(this.asc){
 				iter.next();
-			else
+				if(iter.data() && iter.data().id !== dat.next_id)
+					break;
+			} else {
 				iter.prev();
+				if(iter.data() && iter.data().id !== dat.prev_id)
+					break;
+			}
 		}
-		if(!iter.data() && inv_items)
+		if(inv_items && i > 0)
 			this.data.splice(0, i + 1);
 
 		this.loaded = true;
+		console.log("AFTER SET OBS", this, $state.snapshot(this.data));
 	}
 
 	find(id){
@@ -348,7 +357,7 @@ export class RangeCache extends IDCache {
 
 		let nobs = new RangeObserver(tree, start_id, count, load_func, !!asc, asc_items);
 		nobs.loaded = tree.has_enough(nobs);
-		console.log("GET_STATE", nobs.loaded, nobs, $state.snapshot(nobs.data));
+		console.log("GET_STATE", _id, nobs.loaded, nobs, $state.snapshot(nobs.data));
 		tree.observers.push(new WeakRef(nobs));
 
 		if(!nobs.loaded)

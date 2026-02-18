@@ -19,6 +19,7 @@ export default class Message {
 			cache_id.push(key);
 			cache_id.push(params[key]);
 		}
+		console.log("GET_SEARCH_RANGE", cache_id, params);
 		return Message.message_range_cache.get_state(cache_id,
 			start_id, count,
 			(tree, start_id, count, asc) => {
