@@ -1,6 +1,6 @@
 <script>
 	import {asset} from '$app/paths';
-	import {tick} from 'svelte';
+	import {tick, untrack} from 'svelte';
 	import {RangeCache} from '$lib/cache/range.svelte.js';
 
 	let {range = 40, advance = 10, reversed = false,
@@ -20,7 +20,6 @@
 	});
 
 	let item_divs = $state([]), item_divs_dict = $state({});
-	let items_max_height = $state(0);
 	// temporary dictionary used to remember global offsets of previously rendered items
 	let id_to_offset = {};
 	let list_div_scroll_top = $state(0);
@@ -36,7 +35,6 @@
 			items = load_items(start_id, range, !reversed);
 	
 		list_div_scroll_top = list_div.scrollTop = 0;
-		items_max_height = 0;
 		id_to_offset = {};
 	}
 	
@@ -98,16 +96,13 @@
 	$effect(() => {
 		if(items.data.length === 0 || !div_items[0] || !div_items[items.data.length - 1])
 			return;
-		let items_height = get_el_bottom(div_items[items.data.length - 1]);
-		if(items_height > items_max_height)
-			items_max_height = items_height;
 		list_div_scroll_height = list_div.scrollHeight;
 	});
 
 	$effect(() => {
 		list_div_scroll_top = list_div.scrollTop;
 
-		console.log("new items", items, $state.snapshot(items.data), id_to_offset);
+		console.log("new items", list_div.scrollTop, untrack(() => items_offset_top), "\n", items, $state.snapshot(items.data), id_to_offset);
 		if(items.last_action === "updated" && div_items[0].clientHeight > 0)
 			remember_offsets();
 		if(items.data.length === 0 || !div_items[0] || !div_items[items.data.length - 1] || items.adjusted || div_items[0].clientHeight === 0)
@@ -117,26 +112,26 @@
 		const scroll_off = list_div.scrollTop + list_div.clientHeight;
 		const last_off = id_to_offset[items.data[items.data.length - 2]?.id];
 
-		console.log("check", items.last_action, can_scroll_before, last_off, scroll_off, last_off?.top, last_off?.bottom);
-		if(items.last_action === "removed" || (items.last_action === "inserted" && reversed && !can_scroll_before && last_off && scroll_off >= last_off.top && scroll_off <= last_off.bottom)){
+		console.log("check", items.last_action, can_scroll_before, scroll_off, last_off, content_div.clientHeight);
+		if(items.last_action === "inserted" && reversed && !can_scroll_before && last_off && scroll_off >= last_off.top && scroll_off <= last_off.bottom){
 			console.log("reset offsets");
 			id_to_offset = {};
 		}
 
 		if(typeof id_to_offset[items.data[0].id] !== "undefined"){
 			items_offset_top = id_to_offset[items.data[0].id].top;
-			console.log("recall top offset\n", id_to_offset, "\n", $state.snapshot(items.data), /*"\n", items_offset_top*/);
+			console.log("recall top offset\n", id_to_offset, "\n", $state.snapshot(items.data), "\n", untrack(() => items_offset_top));
 		} else if(typeof id_to_offset[items.data[items.data.length - 1].id] !== "undefined"){
 			let items_height = get_el_bottom(div_items[items.data.length - 1]);
 			if(items_height === 0)
 				return;
+			console.log("recall bottom offset\n", id_to_offset, "\n", $state.snapshot(items.data), "\n", items.data[items.data.length - 1].id, "\n", items_height, untrack(() => items_offset_top));
 			items_offset_top = id_to_offset[items.data[items.data.length - 1].id].bottom - items_height;
-			console.log("recall bottom offset\n", id_to_offset, "\n", $state.snapshot(items.data), "\n", /*items_offset_top, "\n",*/ items.data[items.data.length - 1].id);
 		} else {
 			items_offset_top = 0;
 			if(reversed)
-				list_div.scrollTop = items_max_height - list_div.clientHeight;
-			console.log("recall initial offset", list_div.clientHeight, list_div.scrollTop, items_max_height - list_div.clientHeight);
+				list_div.scrollTop = get_el_bottom(div_items[items.data.length - 1]) - list_div.clientHeight;
+			console.log("recall initial offset", list_div.scrollTop, get_el_bottom(div_items[items.data.length - 1]), list_div.clientHeight);
 		}
 
 		if(typeof start_id !== "undefined" && items.loaded){
@@ -159,7 +154,9 @@
 
 		// DO NOT CHANGE THE ORDER OF THESE TWO ASSIGMENTS
 		if(items_offset_top < 0){
-			list_div_scroll_top = list_div.scrollTop = -items_offset_top;
+			list_div.scrollTop -= items_offset_top;
+			list_div_scroll_top = list_div.scrollTop;
+			//list_div_scroll_top = list_div.scrollTop = -items_offset_top;
 			items_offset_top = 0;
 		}
 	});
@@ -203,7 +200,7 @@
 	// For some unknown reason $derived() with the same condition does not work. Rendering related?
 	let show_goto_latest = $state(false);
 	$effect(() => {
-		show_goto_latest = typeof to_latest_text !== "undefined" && (can_scroll_before || (list_div && (reversed ? list_div.scrollHeight - list_div.clientHeight - list_div_scroll_top : list_div_scroll_top) > items_max_height * 0.3));
+		show_goto_latest = typeof to_latest_text !== "undefined" && (can_scroll_before || (list_div && (reversed ? list_div.scrollHeight - list_div.clientHeight - list_div_scroll_top : list_div_scroll_top) > content_div.scrollHeight * 0.3));
 	});
 </script>
 
@@ -212,7 +209,7 @@
 		+ "max-height: var(--max-height, 100%); width: var(--width, auto)"}
 >
 	<div class="paginated_list" onwheel={on_scroll} bind:this={list_div}>
-		<div style={`position: absolute; top: ${items_offset_top}px; min-height: ${items_max_height}px`}
+		<div style={`position: absolute; top: ${items_offset_top}px;`}
 			bind:this={content_div}
 		>
 		{#each items.data as item, i}

@@ -239,6 +239,7 @@ class DataTree {
 							(next) => next.prev_id = data.prev_id,
 							(prev) => prev.next_id = data.next_id);
 			for(const obs of this.get_observers(id, 1)){
+				delete obs.adjusted; // dont delete this
 				obs.last_action = "removed";
 				obs.remove(id);
 			}
