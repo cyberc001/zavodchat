@@ -54,10 +54,10 @@ public:
 	std::shared_ptr<rtc::Track> get_recv_video_track();
 	void set_recv_video_bitrate(int bitrate);
 
-	// Queues a keyframe request for next frame outgoing to this user
-	void request_keyframe(int user_id);
-	// Erases user_id from requested keyframes
-	bool is_keyframe_requested(int user_id);
+	void request_keyframe(int send_user_id);
+	void send_keyframes();
+	bool needs_keyframe();
+	bool needs_keyframe(int send_user_id); // also erases send_user_id from the se
 
 	rtc::SSRC get_ssrc(std::shared_ptr<rtc::Track>);
 	codec get_video_codec(rtc::shared_ptr<rtc::Track>);
@@ -82,7 +82,10 @@ private:
 	std::queue<std::shared_ptr<rtc::Track>> removed_audio_tracks;
 	std::queue<std::shared_ptr<rtc::Track>> removed_video_tracks;
 
-	std::unordered_set<int> requested_keyframes; // key: user_id
+	static const unsigned keyframe_interval = 5000;
+	std::chrono::time_point<std::chrono::high_resolution_clock> last_keyframe_tp;
+	// key: user_id
+	std::unordered_set<int> new_users_for_keyframes;
 	
 	// This track shouldnt be removed
 	void add_recv_audio_track();
@@ -102,7 +105,6 @@ public:
 	void disable_user_video(std::shared_ptr<socket_vc_connection>);
 
 	std::vector<std::shared_ptr<socket_vc_connection>> get_users();
-	//void for_each(std::function<void (int, std::shared_ptr<socket_vc_connection>)>);
 private:
 	std::mutex mut;
 	std::unordered_map<int, std::shared_ptr<socket_vc_connection>> users;

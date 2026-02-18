@@ -202,8 +202,6 @@ void socket_vc_connection::add_recv_video_track(codec cd, int bitrate)
 	if(video_tracks.find(-1) != video_tracks.end()){
 		track = video_tracks[-1];
 		change_track_desc(track, ssrc);
-		if(track->isOpen())
-			track->requestKeyframe();
 	} else {
 		auto rtp_conf = std::make_shared<rtc::RtpPacketizationConfig>(ssrc, "video", RTC_PAYLOAD_TYPE_VIDEO(cd), rtc::OpusRtpPacketizer::DefaultClockRate);
 		auto session_recv = std::make_shared<rtc::RtcpReceivingSession>();
@@ -218,10 +216,6 @@ void socket_vc_connection::add_recv_video_track(codec cd, int bitrate)
 		track = rtc_conn->addTrack(desc);
 		track->setMediaHandler(session_recv);
 		video_tracks[-1] = track;
-
-		track->onOpen([track](){
-			track->requestKeyframe();
-		});
 	}
 	video_recv_is_open = true;
 }
@@ -237,19 +231,36 @@ std::shared_ptr<rtc::Track> socket_vc_connection::get_recv_video_track()
 
 void socket_vc_connection::set_recv_video_bitrate(int bitrate)
 {
+	std::shared_ptr<rtc::Track> tr = get_recv_video_track();
+	if(!tr)
+		return;
 	std::lock_guard lock(mut);
-	get_recv_video_track()->requestBitrate(bitrate);
+	tr->requestBitrate(bitrate);
 }
 
-void socket_vc_connection::request_keyframe(int user_id)
+void socket_vc_connection::request_keyframe(int send_user_id)
 {
 	std::lock_guard lock(mut);
-	requested_keyframes.insert(user_id);
+	new_users_for_keyframes.insert(send_user_id);
 }
-bool socket_vc_connection::is_keyframe_requested(int user_id)
+void socket_vc_connection::send_keyframes()
+{
+	std::shared_ptr<rtc::Track> tr = get_recv_video_track();
+	if(!tr)
+		return;
+	tr->requestKeyframe();
+	std::lock_guard lock(mut);
+	last_keyframe_tp = std::chrono::high_resolution_clock::now();
+}
+bool socket_vc_connection::needs_keyframe()
 {
 	std::lock_guard lock(mut);
-	return requested_keyframes.erase(user_id);
+	return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - last_keyframe_tp).count() >= keyframe_interval;
+}
+bool socket_vc_connection::needs_keyframe(int send_user_id)
+{
+	std::lock_guard lock(mut);
+	return new_users_for_keyframes.erase(send_user_id); 
 }
 
 rtc::SSRC socket_vc_connection::get_ssrc(std::shared_ptr<rtc::Track> track)
@@ -365,17 +376,22 @@ void socket_vc_channel::enable_user_video(std::shared_ptr<socket_vc_connection> 
 			for(auto i = _users.begin(); i != _users.end(); ++i){
 				if(conn == *i)
 					continue;
+
 				std::shared_ptr<rtc::Track> send_track = (*i)->get_video_track(conn->user_id);
 				if(send_track){
 					auto rtp = reinterpret_cast<rtc::RtpHeader*>(message.data());
 					rtp->setSsrc(conn->get_ssrc(recv_video));
 					if(send_track->isOpen()){
 						send_track->send(message.data(), message.size());
-						if(conn->is_keyframe_requested((*i)->user_id))
-							recv_video->requestKeyframe();
+						if(conn->needs_keyframe((*i)->user_id)){
+							conn->get_recv_video_track()->requestKeyframe();
+							send_track->requestKeyframe();
+						}
 					}
 				}
 			}
+			if(conn->needs_keyframe())
+				conn->send_keyframes();
 		}, nullptr);
 	}
 }
