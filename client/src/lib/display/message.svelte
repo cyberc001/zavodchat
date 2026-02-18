@@ -6,7 +6,7 @@
 
 	let {id, text, time_sent, time_edited,
 		author, author_roles,
-		selected = false, selected_user = false,
+		selected = false, selected_user = false, highlighted = false,
 		status = Message.Status.None,
 		show_ctx_menu, onclick_user, hide_profile} = $props();
 	let is_edited = $derived(time_sent.getTime() !== time_edited.getTime());
@@ -44,7 +44,7 @@
 			</div>
 		{/if}
 	{/if}
-	<div class={"message_content_panel hoverable" + (selected ? " selected" : "")}
+	<div class={"message_content_panel hoverable" + (highlighted ? " highlighted" : (selected ? " selected" : ""))}
 	style="anchor-name: --{"message_display_" + id}"
 	role="listitem"
 	title={`Sent: ${time_sent}\nLast edited: ${is_edited ? time_edited : "never"}`}

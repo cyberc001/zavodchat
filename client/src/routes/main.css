@@ -9,6 +9,7 @@
 	--clr_bg_item: #231D1F;
 	--clr_bg_hover: #6D5860;
 	--clr_bg_selected: #4C3D43;
+	--clr_bg_highlighted: #CC8484;
 	--clr_bg_text_selection: #644646;
 
 	--clr_border: #231D1F;
@@ -66,6 +67,9 @@ button {
 }
 .selected {
 	background: var(--clr_bg_selected) !important;
+}
+.highlighted {
+	background: var(--clr_bg_highlighted);
 }
 
 .transparent_button {

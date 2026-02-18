@@ -125,6 +125,7 @@
 	};
 	const hideCtxMenu = () => {
 		ctx_menu_params.visible = false;
+		showUser(-1, -1);
 	};
 
 	const closeSettings = () => {

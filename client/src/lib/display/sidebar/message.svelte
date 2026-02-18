@@ -17,6 +17,7 @@
 		sel_message_id, sel_user_id,
 		show_ctx_menu, show_user, show_ban} = $props();
 
+
 	let server_roles = $state();
 	$effect(() => {
 		if(server_id > -1)
@@ -26,13 +27,32 @@
 	let sel = $state({
 		message_edit: -1,
 		ctx_message: -1,
-		ctx_user_idx: -1
+		ctx_user_idx: -1,
+		highlight_message: -1
 	});
+
+	const _show_user = (user_id, message_id) => {
+		sel.highlight_message = -1;
+		show_user(user_id, message_id);
+	};
+
+	let highlight_expire_tout;
+	const set_highlight_message = (id) => {
+		sel.highlight_message = id;
+		if(typeof highlight_expire_tout !== "undefined")
+			clearTimeout(highlight_expire_tout);
+		highlight_expire_tout = setTimeout(() => {
+			highlight_expire_tout = undefined;
+			sel.highlight_message = -1;
+		}, 5000);
+	}
+
+	let message_list = $state();
+	let search_bar = $state();
 
 	let message_search_params = $state({});
 	let is_search = $derived(Object.keys(message_search_params).length > 0);
 
-	let message_list = $state();
 	let message_text = $state("");
 	let prev_message_text = "";
 	let message_status = $state();
@@ -105,8 +125,11 @@
 		hide_ctx_menu={hide_ctx_menu}
 		onclick={() => {
 			message_search_params = {};
-			console.log("GO TO", message_list.getItem(sel.ctx_message));
-			message_list.reset(message_list.getItem(sel.ctx_message).id);
+			search_bar.reset();
+			const msg = message_list.getItem(sel.ctx_message);
+			console.log("GO TO", msg);
+			set_highlight_message(msg.id);
+			message_list.reset(msg.id);
 		}}
 	/>
 {/snippet}
@@ -115,7 +138,7 @@
 	<ContextMenuAction icon={asset("icons/kick.svg")} text="Kick"
 		hide_ctx_menu={hide_ctx_menu}
 		onclick={() => {
-				User.kick(server_id, sel.ctx_user_id, () => {}, () => {});
+			User.kick(server_id, sel.ctx_user_id, () => {}, () => {});
 		}}
 	/>
 {/snippet}
@@ -141,14 +164,17 @@
 				show_ctx_menu={(anchor, e, for_message) => {
 					sel.ctx_user_id = item.author.data.id;
 					sel.ctx_message = i;
+					_show_user(-1, item.id);
 					show_ctx_menu(anchor, e, for_message ?
 								(is_search ? [action_goto_message]
 								: [action_edit_message, action_delete_message])
 								: [action_kick_user, action_ban_user]);
 				}}
-				selected_user={item.id == sel_message_id && item.author_id == sel_user_id}
-				onclick_user={() => show_user(item.author_id, item.id)}
-				hide_profile={() => show_user(-1, -1)}
+				selected={item.id === sel_message_id || item.id === sel.message_edit}
+				selected_user={item.id === sel_message_id && item.author_id === sel_user_id}
+				highlighted={item.id === sel.highlight_message}
+				onclick_user={() => _show_user(item.author_id, item.id)}
+				hide_profile={() => _show_user(-1, -1)}
 				/>
 			{/snippet}
 			<PaginatedList bind:this={message_list}
@@ -170,7 +196,7 @@
 		</div>
 
 		<div class="sidebar_message_search">
-			<SearchBar server_id={server_id}
+			<SearchBar server_id={server_id} bind:this={search_bar}
 				elements={[
 					{type: "server_user", label: "Author", param: "author_id"},
 					{type: "date", label: "Date from", param: "date_from"},

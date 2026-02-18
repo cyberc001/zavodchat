@@ -12,6 +12,11 @@
 
 	let content = $state("");
 	let params = $state({});
+
+	export function reset(){
+		content = "";
+		params = {};
+	}
 </script>
 
 <FocusManager element={self}

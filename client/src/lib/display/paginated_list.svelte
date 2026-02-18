@@ -174,6 +174,7 @@
 		let next_scroll_top = list_div.scrollTop + e.deltaY * 0.3;
 
 		const max_scroll = content_div.offsetTop + get_el_bottom(div_items[items.data.length - 1]);
+		console.log("scroll", list_div.scrollTop, max_scroll, content_div.offsetTop);
 		if(next_scroll_top + list_div.clientHeight >= max_scroll || next_scroll_top < content_div.offsetTop){
 			let dir = Math.sign(e.deltaY) * reverse_sign;
 
