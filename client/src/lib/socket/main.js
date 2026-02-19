@@ -17,6 +17,7 @@ export default class MainSocket {
 			Message.message_range_cache.update(data.channel_id, data);
 		},
 		message_deleted: function(data) {
+			console.log("message_deleted", data, Message.message_range_cache);
 			Message.message_range_cache.remove(data.channel_id, data.id);
 		},
 		message_created: function(data) {

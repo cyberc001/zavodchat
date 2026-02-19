@@ -11,7 +11,10 @@ class RangeObserver {
 
 	is_full = $derived(this.data.length >= this.count);
 	
-	tree; load_func;
+	tree;
+
+	load_func;
+	onupdate; onremove; oninsert;
 
 	constructor(tree, start_id, count, load_func, asc, asc_items){
 		this.start_id = start_id;
@@ -23,8 +26,14 @@ class RangeObserver {
 		this.tree = tree;
 		this.load_func = load_func;
 	}
+	destroy(){
+		if(this.tree)
+			this.tree.observers.splice(this.tree.observers.findIndex((x) => x.deref() === this), 1);
+	}
+
 	clone(){
 		const obs = new RangeObserver(this.tree, this.start_id, this.count, this.load_func, this.asc, this.asc_items);
+		obs.onupdate = this.onupdate; obs.onremove = this.onremove; obs.oninsert = this.oninsert;
 		this.tree.observers.push(new WeakRef(obs));
 		return obs;
 	}
@@ -68,7 +77,8 @@ class RangeObserver {
 					break;
 			}
 		}
-		if(inv_items && i > 0)
+		console.log("CHECKING SPLICE", inv_items, i, $state.snapshot(this.data));
+		if(inv_items && i >= 0)
 			this.data.splice(0, i + 1);
 
 		this.loaded = true;
@@ -158,8 +168,10 @@ class DataTree {
 			if(obs.asc ? obs.start_id === 0 : obs.start_id === RangeCache.max_id)
 				return false;
 
-			return obs.asc ? this.min_id !== -1 && obs.start_id >= this.min_id
-				: this.max_id !== RangeCache.max_id && obs.end_id <= this.max_id;
+			// If start_id is outside of valid ID range, then we should try to load more
+			if(obs.asc ? this.min_id !== -1 && obs.start_id < this.min_id
+				: this.max_id !== RangeCache.max_id && obs.end_id > this.max_id)
+				return false;
 		}
 
 		if(obs.asc){
@@ -178,6 +190,7 @@ class DataTree {
 		return true;
 	}
 	set_state(start_id, count, data, asc){
+		console.trace();
 		for(let i = 0; i < data.length; ++i){
 			let f = this._tree.find(data[i]);
 			if(!f){
@@ -230,11 +243,11 @@ class DataTree {
 
 		if(update){
 			this.update_neighbours(data,
-						(next) => next.prev_id = data.id,
-						(prev) => prev.next_id = data.id);
+						(next) => {next.prev_id = data.id; data.next_id = next.id;},
+						(prev) => {prev.next_id = data.id; data.prev_id = prev.id;});
 			for(const obs of this.get_observers(data.id, data.id, true)){
-				delete obs.adjusted;
-				obs.last_action = "inserted";
+				if(obs.oninsert)
+					obs.oninsert(obs, data.id);
 				obs.set(this, data.id, obs.count);
 			}
 		}
@@ -248,8 +261,8 @@ class DataTree {
 							(next) => next.prev_id = data.prev_id,
 							(prev) => prev.next_id = data.next_id);
 			for(const obs of this.get_observers(id, 1)){
-				delete obs.adjusted; // dont delete this
-				obs.last_action = "removed";
+				if(obs.onremove)
+					obs.onremove(obs, id);
 				obs.remove(id);
 			}
 		}
@@ -263,7 +276,8 @@ class DataTree {
 				d[key] = data[key];
 
 		for(const obs of this.get_observers(data.id, data.id)){
-			obs.last_action = "updated";
+			if(obs.onupdate)
+				obs.onupdate(obs, data.id);
 			obs.set(this, data.id, 1);
 		}
 	}
@@ -278,6 +292,9 @@ class DataTree {
 	// TODO trim when tree size gets too big
 	// TODO delete observers from ranges when iter got past them
 	trim(){
+		this.min_id = RangeCache.max_id;
+		this.max_id = -1;
+
 		let ranges = [];
 		for(const obs of this.get_observers()){
 			if(obs.loading)
