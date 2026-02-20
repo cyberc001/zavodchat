@@ -199,10 +199,10 @@ paths:
       summary: Пагинированный список пользователей
       parameters:
         - $ref: "#/parameters/zavodchat_token"
-        - name: start
+        - name: start_id
           required: true
           in: query
-          description: Начало диапазона (0 - последний пользователь, 1 - предпоследний, и т.д.)
+          description: id, с которого начинается список. Чтобы получить список с начала для order=1, start_id=2147483647
           schema:
             type: integer
             example: 0
@@ -213,6 +213,12 @@ paths:
           schema:
             type: integer
             example: 50
+        - name: order
+          in: query
+          description: Порядок id пользователей (0 - по возрастанию, 1 - по убыванию [по умолчанию])
+          schema:
+            type: integer
+            example: 0
         - name: displayname
           in: query
           description: Фильтр по частичному имени пользователя
@@ -328,10 +334,10 @@ paths:
       summary: Пагинированный список сообщений
       parameters:
         - $ref: "#/parameters/zavodchat_token"
-        - name: start
+        - name: start_id
           required: true
           in: query
-          description: Начало диапазона (0 - последнее сообщение, 1 - предпоследнее, и т.д.)
+          description: id, с которого начинается список. Чтобы получить список с начала для order=1, start_id=2147483647
           schema:
             type: integer
             example: 0
@@ -344,7 +350,7 @@ paths:
             example: 50
         - name: order
           in: query
-          description: Порядок сообщений (0 - от новых к старым (по умолчанию), 1 - от старых к новым)
+          description: Порядок id сообщений (0 - по возрастанию, 1 - по убыванию [по умолчанию])
           schema:
             type: integer
             example: 0
@@ -406,10 +412,10 @@ paths:
 
       parameters:
         - $ref: "#/parameters/zavodchat_token"
-        - name: start
+        - name: start_id
           required: true
           in: query
-          description: Начало диапазона (0 - последнее сообщение, 1 - предпоследнее, и т.д.)
+          description: id, с которого начинается список. Чтобы получить список с начала для order=1, start_id=2147483647
           schema:
             type: integer
             example: 0
@@ -422,7 +428,7 @@ paths:
             example: 50
         - name: order
           in: query
-          description: Порядок сообщений (0 - от новых к старым (по умолчанию), 1 - от старых к новым)
+          description: Порядок id сообщений (0 - по возрастанию, 1 - по убыванию [по умолчанию])
           schema:
             type: integer
             example: 0
@@ -583,10 +589,10 @@ paths:
       summary: Пагинированный список банов
       parameters:
         - $ref: "#/parameters/zavodchat_token"
-        - name: start
+        - name: start_id
           required: true
           in: query
-          description: Начало диапазона (0 - последний бан, 1 - предпоследний бан, и т.д.)
+          description: id, с которого начинается список. Чтобы получить список с начала для order=1, start_id=2147483647
           schema:
             type: integer
             example: 0
@@ -597,6 +603,12 @@ paths:
           schema:
             type: integer
             example: 50
+        - name: order
+          in: query
+          description: Порядок id бановв (0 - по возрастанию, 1 - по убыванию [по умолчанию])
+          schema:
+            type: integer
+            example: 0
       responses:
         '200':
           description: Список забаненных пользователей с полем expires (может быть < count - означает конец массива банов)
