@@ -7,7 +7,7 @@
 #include <resource/base.h>
 
 enum channel_type {
-	CHANNEL_TEXT,
+	CHANNEL_TEXT = 0,
 	CHANNEL_VOICE
 };
 

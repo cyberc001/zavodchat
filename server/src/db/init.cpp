@@ -47,7 +47,8 @@ void db_init(std::string conn_str)
 		tx.exec("CREATE TABLE IF NOT EXISTS user_x_server(user_id INTEGER REFERENCES users ON DELETE CASCADE NOT NULL, server_id INTEGER REFERENCES servers ON DELETE CASCADE NOT NULL, role_id INTEGER REFERENCES roles ON DELETE CASCADE NOT NULL)"); // can be one-to-many in case a user has multiple roles
 
 		tx.exec("CREATE TABLE IF NOT EXISTS channels(channel_id SERIAL PRIMARY KEY, server_id INTEGER REFERENCES servers ON DELETE CASCADE NOT NULL, name VARCHAR(64) NOT NULL, type INTEGER NOT NULL )");
-		tx.exec("CREATE TABLE IF NOT EXISTS messages(message_id SERIAL PRIMARY KEY, channel_id INTEGER REFERENCES channels ON DELETE CASCADE NOT NULL, server_id INTEGER REFERENCES servers ON DELETE CASCADE NOT NULL, author_id INTEGER REFERENCES users NOT NULL, sent TIMESTAMP WITH TIME ZONE NOT NULL, last_edited TIMESTAMP WITH TIME ZONE NOT NULL, text VARCHAR(2000) )");
+		tx.exec("CREATE TABLE IF NOT EXISTS messages(message_id SERIAL PRIMARY KEY, channel_id INTEGER REFERENCES channels ON DELETE CASCADE NOT NULL, server_id INTEGER REFERENCES servers ON DELETE CASCADE NOT NULL, author_id INTEGER REFERENCES users NOT NULL, sent TIMESTAMP WITH TIME ZONE NOT NULL, last_edited TIMESTAMP WITH TIME ZONE NOT NULL, text VARCHAR(2000) NOT NULL)");
+		tx.exec("CREATE TABLE IF NOT EXISTS message_attachments(message_id INTEGER REFERENCES messages ON DELETE CASCADE NOT NULL, type INTEGER NOT NULL, content VARCHAR(512) NOT NULL, file_user_id INTEGER REFERENCES users ON DELETE CASCADE)");
 
 		tx.exec("CREATE TABLE IF NOT EXISTS user_preferences(user_id INTEGER REFERENCES users ON DELETE CASCADE NOT NULL, key VARCHAR(64) NOT NULL, value VARCHAR(128) NOT NULL)");
 
@@ -66,6 +67,7 @@ void db_init(std::string conn_str)
 		tx.exec("CREATE INDEX IF NOT EXISTS channels_servers ON channels (server_id)");
 		tx.exec("CREATE INDEX IF NOT EXISTS messages_channels ON messages (channel_id)");
 		tx.exec("CREATE INDEX IF NOT EXISTS messages_authors ON messages (author_id)");
+		tx.exec("CREATE INDEX IF NOT EXISTS attachment_message ON message_attachments (message_id)");
 
 		tx.exec("CREATE INDEX IF NOT EXISTS preference_users ON user_preferences (user_id)");
 

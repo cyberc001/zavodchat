@@ -37,6 +37,8 @@ public:
 
 	size_t file_storage_size = 10737418240;
 
+	unsigned max_attachments = 10;
+
 	unsigned max_get_count = 50;
 
 	unsigned max_user_preference_keys = 128;

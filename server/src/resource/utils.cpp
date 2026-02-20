@@ -340,24 +340,33 @@ nlohmann::json resource_utils::channel_json_from_row(const pqxx::row& r)
 	};
 }
 
-nlohmann::json resource_utils::message_json_from_row(const pqxx::row& r)
+nlohmann::json resource_utils::message_json_from_row(const pqxx::row& msg_row, const std::vector<pqxx::row>& attachment_rows)
 {
-	return {
-		{"id", r["message_id"].as<int>()},
-		{"author_id", r["author_id"].as<int>()},
-		{"sent", r["sent"].as<std::string>()},
-		{"edited", r["last_edited"].as<std::string>()},
-		{"text", r["text"].as<std::string>()}
+	nlohmann::json r = {
+		{"id", msg_row["message_id"].as<int>()},
+		{"author_id", msg_row["author_id"].as<int>()},
+		{"sent", msg_row["sent"].as<std::string>()},
+		{"edited", msg_row["last_edited"].as<std::string>()},
+		{"text", msg_row["text"].as<std::string>()},
+		{"attachments", nlohmann::json::array()}
 	};
+	for(auto i = attachment_rows.begin(); i != attachment_rows.end(); ++i){
+		nlohmann::json a = {
+			{"type", (*i)["type"].as<unsigned>()},
+			{"content", (*i)["content"].as<std::string>()}
+		};
+		if(!(*i)["file_user_id"].is_null())
+			a["file_user_id"] = (*i)["file_user_id"].as<int>();
+		r["attachments"].push_back(a);
+	}
+	return r;
 }
-
-nlohmann::json resource_utils::message_update_json_from_row(const pqxx::row& r)
+nlohmann::json resource_utils::message_json_from_row(const pqxx::row& msg_row, const pqxx::result& _attachment_rows)
 {
-	return {
-		{"id", r["message_id"].as<int>()},
-		{"edited", r["last_edited"].as<std::string>()},
-		{"text", r["text"].as<std::string>()}
-	};
+	std::vector<pqxx::row> attachment_rows;
+	for(auto i = _attachment_rows.begin(); i != _attachment_rows.end(); ++i)
+		attachment_rows.push_back(*i);
+	return message_json_from_row(msg_row, attachment_rows);
 }
 
 nlohmann::json resource_utils::invite_json_from_row(const pqxx::row& r)

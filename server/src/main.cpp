@@ -92,11 +92,13 @@ int main()
 
 	channel_messages_resource channel_messages(pool, sserv);
 	channel_messages.max_get_count = cfg.max_get_count;
+	channel_messages.max_attachments = cfg.max_attachments;
 	ws.register_resource("/channels/{channel_id}/messages", &channel_messages);
 	channel_messages_search_resource channel_messages_search(pool);
 	channel_messages_search.max_get_count = cfg.max_get_count;
 	ws.register_resource("/channels/{channel_id}/messages_search", &channel_messages_search);
 	message_resource message(pool, sserv);
+	message.max_attachments = cfg.max_attachments;
 	ws.register_resource("/messages/{message_id}", &message);
 
 	server_invites_resource server_invites(pool, sserv);

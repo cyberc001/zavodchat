@@ -99,6 +99,8 @@ config::config(std::ifstream& fd)
 
 	GET_SIZE_T(file_storage_size)
 
+	GET_UNSIGNED(max_attachments)
+
 	GET_UNSIGNED(max_get_count)
 
 	GET_UNSIGNED(max_user_preference_keys)

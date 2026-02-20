@@ -371,8 +371,19 @@ paths:
         - $ref: "#/parameters/zavodchat_token"
       requestBody:
         content:
-            text:
-              example: "папа ты купил молоко?"
+          application/json:
+            schema:
+              type: object
+              properties:
+                text:
+                  type: string
+                  description: Текст сообщения
+                  example: Ушёл за сигаретами
+                attachments:
+                  type: array
+                  description: приложения к сообщению
+                  items:
+                      $ref: '#/components/schemas/Attachment'
       responses:
         '400':
           description: Пустое сообщение
@@ -409,7 +420,6 @@ paths:
                   type: string
                   example: "2024-11-13 00:00:00+03"
                   description: дата, не позже которой отправлено сообщение
-
       parameters:
         - $ref: "#/parameters/zavodchat_token"
         - name: start_id
@@ -457,12 +467,24 @@ paths:
                 $ref: '#/components/schemas/Message'
     put:
       summary: Отредактировать сообщение
+      description: Поля text и attachments можно опустить - в таком случае они не будут изменены. Attachments полностью заменяются на указанные.
       parameters:
         - $ref: "#/parameters/zavodchat_token"
       requestBody:
         content:
-            text:
-              example: "папа ты купил молоко?"
+          application/json:
+            schema:
+              type: object
+              properties:
+                text:
+                  type: string
+                  description: Текст сообщения
+                  example: Вернулся с молоком
+                attachments:
+                  type: array
+                  description: приложения к сообщению
+                  items:
+                      $ref: '#/components/schemas/Attachment'
       responses:
         '400':
           description: Пустое сообщение
@@ -896,6 +918,21 @@ components:
           type: array
           items:
               $ref: '#/components/schemas/VCState'
+    Attachment:
+      type: object
+      properties:
+        type:
+          type: integer
+          description: 0 - ссылка, 1 - файл, 2 - изображение
+          example: 2
+        content:
+          type: string
+          description: Имя файла / URL
+          example: "94fkwekl1u93w.png"
+        file_user_id:
+          type: integer
+          description: ID пользователя, которому принадлежит этот файл, при type == 1 || type == 2
+          example: 30
     Message:
       type: object
       properties:
@@ -916,6 +953,11 @@ components:
         text:
           type: string
           example: "папа ты купил молоко?"
+        attachments:
+          description: приложения к сообщению
+          type: array
+          items:
+              $ref: '#/components/schemas/Attachment'
     Invite:
       type: object
       properties:
@@ -956,6 +998,10 @@ components:
           type: integer
           description: Максимальное количество записей, которые можно получить за один запрос пагинации
           example: 50
+        max_attachments:
+          type: integer
+          description: Максимальное количество приложений к сообщению
+          example: 10
         max_roles_per_server:
           type: integer
           description: Максимальное количество ролей, которые можно создать на одном сервере

@@ -81,8 +81,8 @@ public:
 	static nlohmann::json server_json_from_row(const pqxx::row& r);
 	static nlohmann::json channel_json_from_row(const pqxx::row& r);
 
-	static nlohmann::json message_json_from_row(const pqxx::row& r);
-	static nlohmann::json message_update_json_from_row(const pqxx::row& r);
+	static nlohmann::json message_json_from_row(const pqxx::row& msg_row, const std::vector<pqxx::row>& attachment_rows);
+	static nlohmann::json message_json_from_row(const pqxx::row& msg_row, const pqxx::result& attachment_rows);
 
 	static nlohmann::json invite_json_from_row(const pqxx::row& r);
 	static nlohmann::json ban_json_from_row(const pqxx::row& r);
