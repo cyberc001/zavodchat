@@ -36,7 +36,7 @@ export default class User {
 
 		// for each server that user shared with the client
 		for(const server_id of user_data.data.servers)
-			User.update_cache_server(server_id, user_id, data);
+			User.update_cache_server(server_id, data);
 	}
 
 	static update_cache_server(server_id, data){
