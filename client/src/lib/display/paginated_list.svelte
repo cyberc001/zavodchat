@@ -12,6 +12,7 @@
 	const _load_items = (start_id, count, asc) => {
 		const new_items = load_items(start_id, count, asc);
 		new_items.onupdate = (obs, id) => {
+			console.log("UPDATE ITEMS", id, "\n", items);
 			set_anchor(items.data.findIndex((x) => x.id === id));
 		};
 		new_items.oninsert = (obs, id) => {
@@ -122,11 +123,14 @@
 		if(typeof i === "undefined")
 			i = 0;
 
+		// Paginated list can be hidden, but updates can still happen (like when changing user profile)
+		if(div_items[0] === null)
+			return;
+
 		anchor = {
 			id: items.data[i].id,
 			top: div_items[i].offsetTop - list_div.scrollTop
 		};
-		console.log("set anchor",  i, JSON.parse(JSON.stringify(anchor)));
 	};
 
 	let list_div_scroll_height = $state(0);
