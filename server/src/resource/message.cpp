@@ -50,7 +50,7 @@ std::shared_ptr<http_response> channel_messages_resource::render_GET(const http_
 	nlohmann::json res = nlohmann::json::array();
 	pqxx::result r = tx.exec("SELECT message_id, author_id, sent, last_edited, text FROM messages WHERE channel_id = $1 " + id_query, pqxx::params(channel_id, start_id, count));
 	for(size_t i = 0; i < r.size(); ++i){
-		pqxx::result r_att = tx.exec("SELECT type, content, file_user_id FROM message_attachments WHERE message_id = $1", pqxx::params(r[i]["message_id"].as<int>()));
+		pqxx::result r_att = tx.exec("SELECT type, content FROM message_attachments WHERE message_id = $1", pqxx::params(r[i]["message_id"].as<int>()));
 		res += resource_utils::message_json_from_row(r[i], r_att);
 	}
 	return create_response::string(req, res.dump(), 200);
@@ -95,15 +95,13 @@ std::shared_ptr<http_response> channel_messages_resource::render_POST(const http
 		if(att.size() > max_attachments)
 			return create_response::string(req, "Too many attachments", 400);
 		for(auto val = att.begin(); val != att.end(); ++val){
-			std::string content; unsigned att_type; int file_user_id = -1;
-			err = parse_attachment(req, *val, content, att_type, file_user_id);
+			std::string content; unsigned att_type;
+			err = parse_attachment(req, *val, content, att_type);
 			if(err) return err;
 			pqxx::params pr(message_id, att_type, content);
-			if(file_user_id > -1)
-				pr.append(file_user_id);
 
 			try {
-				pqxx::result r = tx.exec("INSERT INTO message_attachments(message_id, type, content" + std::string(file_user_id > -1 ? ", file_user_id" : "") + ") VALUES($1, $2, $3" + std::string(file_user_id  > -1 ? ", $4" : "") + ") RETURNING message_id, type, content, file_user_id", pr);
+				pqxx::result r = tx.exec("INSERT INTO message_attachments(message_id, type, content) VALUES($1, $2, $3) RETURNING message_id, type, content", pr);
 				attachment_rows.push_back(r[0]);
 			} catch(pqxx::data_exception& e){
 				return create_response::string(req, "Attachment content is too long", 400);
@@ -127,7 +125,7 @@ bool channel_messages_resource::is_valid_attachment_type(unsigned type)
 	return type <= MESSAGE_ATTACHMENT_IMAGE;
 }
 std::shared_ptr<http_response> channel_messages_resource::parse_attachment(const http_request& req, nlohmann::json& val,
-										std::string& content, unsigned& att_type, int file_user_id)
+										std::string& content, unsigned& att_type)
 {
 	if(!val.is_object())
 		return create_response::string(req, "An attachment is not an object", 400);
@@ -140,12 +138,6 @@ std::shared_ptr<http_response> channel_messages_resource::parse_attachment(const
 	att_type = val["type"].get<unsigned>();
 	if(!is_valid_attachment_type(att_type))
 		return create_response::string(req, "Invalid attachment type " + std::to_string(att_type), 400);
-
-	if(att_type == MESSAGE_ATTACHMENT_FILE || att_type == MESSAGE_ATTACHMENT_IMAGE){
-		if(val["file_user_id"].type() != nlohmann::json::value_t::number_unsigned)
-			return create_response::string(req, "An attachment file_user_id is not an unsigned integer", 400);
-		file_user_id = val["file_user_id"].get<int>();
-	}
 	return nullptr;
 }
 
@@ -216,7 +208,7 @@ std::shared_ptr<http_response> channel_messages_search_resource::render_POST(con
 		return create_response::string(req, "Invalid date/time format in search query", 400);
 	}
 	for(size_t i = 0; i < r.size(); ++i){
-		pqxx::result r_att = tx.exec("SELECT type, content, file_user_id FROM message_attachments WHERE message_id = $1", pqxx::params(r[i]["message_id"].as<int>()));
+		pqxx::result r_att = tx.exec("SELECT type, content FROM message_attachments WHERE message_id = $1", pqxx::params(r[i]["message_id"].as<int>()));
 		res += resource_utils::message_json_from_row(r[i], r_att);
 	}
 	return create_response::string(req, res.dump(), 200);
@@ -241,7 +233,7 @@ std::shared_ptr<http_response> message_resource::render_GET(const http_request& 
 	if(err) return err;
 
 	pqxx::result r = tx.exec("SELECT message_id, author_id, sent, last_edited, text FROM messages WHERE message_id = $1", pqxx::params(message_id));
-	pqxx::result r_att = tx.exec("SELECT type, content, file_user_id FROM message_attachments WHERE message_id = $1", pqxx::params(r[0]["message_id"].as<int>()));
+	pqxx::result r_att = tx.exec("SELECT type, content FROM message_attachments WHERE message_id = $1", pqxx::params(r[0]["message_id"].as<int>()));
 	nlohmann::json res = resource_utils::message_json_from_row(r[0], r_att);
 	return create_response::string(req, res.dump(), 200);
 }
@@ -272,7 +264,7 @@ std::shared_ptr<http_response> message_resource::render_PUT(const http_request& 
 	if(body["text"].type() == nlohmann::json::value_t::string){
 		std::string text = body["text"].get<std::string>();
 		if(!text.size()){
-			pqxx::result r = tx.exec("SELECT type, content, file_user_id FROM message_attachments WHERE message_id = $1", pqxx::params(message_id));
+			pqxx::result r = tx.exec("SELECT type, content FROM message_attachments WHERE message_id = $1", pqxx::params(message_id));
 			if(!r.size())
 				return create_response::string(req, "Empty messages without attachments are forbidden", 400);
 		}
@@ -290,15 +282,13 @@ std::shared_ptr<http_response> message_resource::render_PUT(const http_request& 
 
 		tx.exec("DELETE FROM message_attachments WHERE message_id = $1", pqxx::params(message_id));
 		for(auto val = att.begin(); val != att.end(); ++val){
-			std::string content; unsigned att_type; int file_user_id = -1;
-			err = channel_messages_resource::parse_attachment(req, *val, content, att_type, file_user_id);
+			std::string content; unsigned att_type;
+			err = channel_messages_resource::parse_attachment(req, *val, content, att_type);
 			if(err) return err;
 			pqxx::params pr(message_id, att_type, content);
-			if(file_user_id > -1)
-				pr.append(file_user_id);
 
 			try {
-				pqxx::result r = tx.exec("INSERT INTO message_attachments(message_id, type, content" + std::string(file_user_id > -1 ? ", file_user_id" : "") + ") VALUES($1, $2, $3" + std::string(file_user_id  > -1 ? ", $4" : "") + ") RETURNING message_id, type, content, file_user_id", pr);
+				pqxx::result r = tx.exec("INSERT INTO message_attachments(message_id, type, content) VALUES($1, $2, $3) RETURNING message_id, type, content", pr);
 				attachment_rows.push_back(r[0]);
 			} catch(pqxx::data_exception& e){
 				return create_response::string(req, "Attachment content is too long", 400);
@@ -307,7 +297,7 @@ std::shared_ptr<http_response> message_resource::render_PUT(const http_request& 
 
 		edited = true;
 	} else {
-		pqxx::result att_res = tx.exec("SELECT type, content, file_user_id FROM message_attachments WHERE message_id = $1", pqxx::params(message_id));
+		pqxx::result att_res = tx.exec("SELECT type, content FROM message_attachments WHERE message_id = $1", pqxx::params(message_id));
 		for(auto i = att_res.begin(); i != att_res.end(); ++i)
 			attachment_rows.push_back(*i);
 	}

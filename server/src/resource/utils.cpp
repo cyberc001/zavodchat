@@ -350,15 +350,11 @@ nlohmann::json resource_utils::message_json_from_row(const pqxx::row& msg_row, c
 		{"text", msg_row["text"].as<std::string>()},
 		{"attachments", nlohmann::json::array()}
 	};
-	for(auto i = attachment_rows.begin(); i != attachment_rows.end(); ++i){
-		nlohmann::json a = {
+	for(auto i = attachment_rows.begin(); i != attachment_rows.end(); ++i)
+		r["attachments"].push_back({
 			{"type", (*i)["type"].as<unsigned>()},
 			{"content", (*i)["content"].as<std::string>()}
-		};
-		if(!(*i)["file_user_id"].is_null())
-			a["file_user_id"] = (*i)["file_user_id"].as<int>();
-		r["attachments"].push_back(a);
-	}
+		});
 	return r;
 }
 nlohmann::json resource_utils::message_json_from_row(const pqxx::row& msg_row, const pqxx::result& _attachment_rows)

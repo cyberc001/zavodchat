@@ -45,6 +45,12 @@ export default class Message {
 			_then, _catch);
 	}
 
+	static AttachmentType = {
+		Link: 0,
+		File: 1,
+		Image: 2
+	}
+
 	static Status = {
 		None: 0,
 		Sending: 1,

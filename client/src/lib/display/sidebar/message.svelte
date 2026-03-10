@@ -12,11 +12,13 @@
 	import Message from '$lib/rest/message.js';
 	import User from '$lib/rest/user.svelte.js';
 	import Role from '$lib/rest/role.js';
+	import File from '$lib/rest/file.js';
 
 	let {server_id, channel_id,
 		sel_message_id, sel_user_id,
 		show_ctx_menu, show_user, show_ban} = $props();
 
+	let self_user = User.get(-1);
 
 	let server_roles = $state();
 	$effect(() => {
@@ -56,34 +58,66 @@
 	let message_text = $state("");
 	let prev_message_text = "";
 	let message_status = $state();
+	let message_attachments = $state([]);
 
-	const sendMessage = (text) => {
-		message_status = "Sending...";
-		Message.send(channel_id, text,
-				() => {
-					message_text = "";
-					message_status = undefined;
-				},
-				() => {
-					message_status = undefined;
-				});
+	const resetMessage = (keep_content) => {
+		if(!keep_content){
+			message_text = "";
+			message_attachments = [];
+		}
+		message_status = undefined;
+	};
+	const compileMessage = (_then, _catch) => {
+		let attachments = [];
+		for(const att of message_attachments)
+			attachments.push(Object.assign({}, att));
+		let msg = {
+			text: message_text,
+			attachments
+		};
+
+		// TODO change counting when handling links
+		console.log("SENDING ATTACHMENTS", $state.snapshot(msg.attachments));
+		let to_upload = msg.attachments.length;
+		for(let att of msg.attachments)
+			switch(att.type){
+				case Message.AttachmentType.Image:
+					File.upload(att.content, (res) => {
+						att.content = `/files/upload/${self_user.data.id}/${res.data}`;
+						if(--to_upload === 0)
+							_then(JSON.stringify(msg));
+					},  _catch);
+					break;
+			}
 	};
 
-	const editMessage = (text) => {
+	const sendMessage = () => {
+		const _then = () => resetMessage();
+		const _catch = () => resetMessage(true);
+
+		message_status = "Sending...";
+		compileMessage((data) => Message.send(channel_id, data, _then, _catch),
+				_catch);
+	};
+
+	const editMessage = () => {
+		const _then = () => {
+			resetMessage();
+			msg.status = Message.Status.None;
+		};
+		const _catch = () => {
+			resetMessage(true);
+			msg.status = Message.Status.None;
+			msg.text = prev_text;
+		};
+
 		let msg = message_list.getItem(sel.message_edit);
 		let prev_text = msg.text;
 		msg.status = Message.Status.Editing;
-		msg.text = text;
 		sel.message_edit = -1;
-		message_text = "";
 
-		Message.edit(msg.id, text,
-				() => {},
-				() => {
-					msg.status = Message.Status.None;
-					msg.text = prev_text;
-				}
-		);
+		compileMessage((data) => Message.edit(msg.id, data, _then, _catch),
+				_catch);
 	};
 	const stopEditing = () => {
 		sel.message_edit = -1;
@@ -189,7 +223,8 @@
 			}}
 			/>
 			<MessageInput
-				bind:value={message_text} onsend={sel.message_edit > -1 ? editMessage : sendMessage}
+				bind:value={message_text} bind:attachments = {message_attachments}
+				onsend={sel.message_edit > -1 ? editMessage : sendMessage}
 				status={message_status}
 				actions={sel.message_edit > -1 ? [{text: "Stop editing", func: stopEditing}] : []}
 			/>

@@ -12,7 +12,6 @@
 	const _load_items = (start_id, count, asc) => {
 		const new_items = load_items(start_id, count, asc);
 		new_items.onupdate = (obs, id) => {
-			console.log("UPDATE ITEMS", id, "\n", items);
 			set_anchor(items.data.findIndex((x) => x.id === id));
 		};
 		new_items.oninsert = (obs, id) => {

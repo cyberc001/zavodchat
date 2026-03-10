@@ -1,6 +1,10 @@
 <script>
 	import {asset} from '$app/paths';
-	let { hint = "", max_rows = 5, value = $bindable(""),
+	import {untrack} from 'svelte';
+	import Message from '$lib/rest/message.js';
+
+	let { max_rows = 5,
+		value = $bindable(""), attachments = $bindable([]),
 		status, actions = [],
 		onsend } = $props();
 
@@ -13,12 +17,31 @@
 		textarea_rows = Math.min(text_rows, max_rows);
 	});
 	const textarea_onkeyup = (e) => {
-		if(!status && e.code === "Enter" && e.ctrlKey && value.length > 0)
-			onsend(value);
+		if(!status && e.code === "Enter" && e.ctrlKey
+			&& (value.length > 0 || attachments.length > 0))
+			onsend();
 	}
+
+	let files = $state();
+	let file_input = $state();
+	const onattach = () => {
+		file_input.click();
+	};
+
+	$effect(() => {
+		if(files){
+			for(const file of files)
+				attachments.push({type: Message.AttachmentType.Image,
+						  content: file});
+			files = undefined;
+		}
+	});
 </script>
 
 <div class="message_input">
+	<input type="file" style="position: fixed; top: -100vh" bind:this={file_input} bind:files
+		multiple accept="image/*" />
+
 	<div class="message_input_center_panel">
 		{#if status}
 			<div class="message_input_status_panel">
@@ -31,10 +54,30 @@
 				<button class="item message_input_action_button" onclick={a.func}>{a.text}</button>
 			{/each}
 		</div>
-		<textarea class="item message_input_textarea" rows={textarea_rows}
-			bind:value
-			onkeyup={textarea_onkeyup}>
-		</textarea>
+
+		<div style="display: flex">
+			<button class="hoverable transparent_button" onclick={onattach}>
+				<img class="filter_icon_main" src={asset("icons/attachment.svg")}/>
+			</button>
+			<textarea class="item message_input_textarea" rows={textarea_rows}
+				bind:value
+				onkeyup={textarea_onkeyup}>
+			</textarea>
+		</div>
+
+		<div style="display: flex; padding-top: 4px">
+			{#each attachments as att, i}
+				<div class="item message_input_img_attachment">
+					<button class="hoverable item"
+					style="position: absolute; padding: 0; border-radius: 0 0 4px 0"
+					onclick={() => attachments.splice(i, 1)}
+					>
+						<img src={asset("icons/close.svg")} alt="remove attachment" class="filter_icon_main" style="width: 32px"/>
+					</button>
+					<img src={URL.createObjectURL(att.content)} class="attachment_img"/>
+				</div>
+			{/each}
+		</div>
 	</div>
 </div>
 
@@ -78,7 +121,6 @@
 	background: var(--clr_bg_item);
 }
 
-
 .message_input_textarea {
 	width: 100%;
 	resize: none;
@@ -90,5 +132,11 @@
 
 	color: var(--clr_text);
 	font-size: 16px;
+}
+
+.message_input_img_attachment {
+	border-radius: 4px;
+	padding: 6px;
+	margin-right: 8px;
 }
 </style>

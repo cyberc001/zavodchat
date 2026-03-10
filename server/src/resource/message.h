@@ -24,7 +24,7 @@ public:
 	unsigned max_attachments = 10;
 
 	static std::shared_ptr<http_response> parse_attachment(const http_request&, nlohmann::json&,
-								std::string& content, unsigned& att_type, int file_user_id);
+								std::string& content, unsigned& att_type);
 	static bool is_valid_attachment_type(unsigned type);
 private:
 	db_connection_pool& pool;

@@ -81,7 +81,12 @@ button {
 }
 
 
-/* Frequently used classes */
+.attachment_img {
+	width: min(150px, 8vw);
+	height: min(150px, 8vw);
+	object-fit: cover;
+}
+
 
 .user_role_circle_big {
 	display: inline-block;

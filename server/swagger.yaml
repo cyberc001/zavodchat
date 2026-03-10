@@ -927,12 +927,8 @@ components:
           example: 2
         content:
           type: string
-          description: Имя файла / URL
-          example: "94fkwekl1u93w.png"
-        file_user_id:
-          type: integer
-          description: ID пользователя, которому принадлежит этот файл, при type == 1 || type == 2
-          example: 30
+          description: URL к файлу либо ссылке
+          example: "/files/upload/1/94fkwekl1u93w.png"
     Message:
       type: object
       properties:
