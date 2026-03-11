@@ -77,7 +77,7 @@
 				{#each data.attachments as att}
 				<button onclick={() => shown_attachment = att} class="transparent_button unhoverable">
 					<img src={File.get_attachment_url(att.content)} class="attachment_img"
-					style="margin-right: 6px; cursor: pointer" />
+					style="margin-right: 6px; cursor: pointer"/>
 				</button>
 				{/each}
 			</div>

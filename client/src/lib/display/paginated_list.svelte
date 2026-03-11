@@ -18,7 +18,7 @@
 			if(!can_scroll_before || div_items.length === 0)
 				return;
 
-			let last_item = div_items[reversed ? items.data.length - 1 : 0];
+			const last_item = div_items[reversed ? items.data.length - 1 : 0];
 			if(get_abs_scroll() > last_item.clientHeight)
 				set_anchor(reversed ? items.data.length - 1 : 0);
 			else
@@ -71,7 +71,7 @@
 		anchor = {};
 		scroll_initialized = false;
 	}
-	
+
 	$effect(() => {
 		if(items.loaded && !items.is_full && !items.final && init_items.loaded){
 			console.log("finalizing items", items, $state.snapshot(items.data), start_id);
@@ -105,7 +105,6 @@
 
 	let reverse_sign = $derived(reversed ? -1 : 1);
 	let can_scroll_before = $derived.by(() => {
-		console.log(items, $state.snapshot(items.data));
 		return (init_items.data.length > 0 && items.data.length > 0 && reverse_sign * (items.data[0].id - init_items.data[0].id) > 0);
 	});
 	//let can_scroll_before = $derived(init_items.data.length > 0 && items.data.length > 0 && reverse_sign * (items.data[0].id - init_items.data[0].id) > 0);
@@ -152,15 +151,6 @@
 			list_div_scroll_top = list_div.scrollTop = reversed ? 2147483648 : 0;
 		}
 
-		// If list was scrolled to the last item, dont remember offsets (it might be a new item)
-		/*const scroll_off = list_div.scrollTop + list_div.clientHeight;
-
-		console.log("check", items.last_action, can_scroll_before, scroll_off, last_off);
-		if(items.last_action === "inserted" && reversed && !can_scroll_before && last_off && scroll_off >= last_off.top && scroll_off <= last_off.bottom){
-			console.log("reset offsets");
-			id_to_offset = {};
-		}*/
-
 		if(typeof anchor.id !== "undefined"){
 			const anchor_el = div_items[items.data.findIndex((x) => x.id === anchor.id)];
 			console.log("recalling anchor", anchor, anchor_el, "\n", (anchor_el.offsetTop - list_div.scrollTop), anchor.top, "\n", list_div.scrollTop);
@@ -176,6 +166,24 @@
 		}
 
 		list_div_scroll_top = list_div.scrollTop;
+	});
+
+	// Scroll back to bottom/top if user hasnt scrolled past the last element and the element changed in size
+	// (ex. an image attachment got loaded)
+	let last_item_resize_obs;
+	$effect(() => {
+		if(div_items.length === 0)
+			return;
+		const last_item = div_items[reversed ? items.data.length - 1 : 0];
+		if(!last_item)
+			return;
+
+		last_item_resize_obs = new ResizeObserver((elements) => {
+			const last_item = elements[0].target;
+			if(get_abs_scroll() <= last_item.clientHeight)
+				list_div_scroll_top = list_div.scrollTop = reversed ? 2147483648 : 0;
+		});
+		last_item_resize_obs.observe(last_item);
 	});
 
 	const on_scroll = (e) => {
