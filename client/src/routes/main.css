@@ -65,6 +65,9 @@ button {
 .hoverable:hover {
 	background: var(--clr_bg_hover);
 }
+.unhoverable:hover {
+	background-color: unset;
+}
 .selected {
 	background: var(--clr_bg_selected) !important;
 }
@@ -82,9 +85,18 @@ button {
 
 
 .attachment_img {
+	border-radius: 4px;
+
 	width: min(150px, 8vw);
 	height: min(150px, 8vw);
 	object-fit: cover;
+}
+
+.fullscreen_media {
+	position: absolute;
+	width: 100%;
+	height: 90vh;
+	object-fit: contain;
 }
 
 

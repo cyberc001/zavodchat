@@ -190,11 +190,7 @@
 	<div style="height: 100%; position: relative">
 		<div class="sidebar_message_content">
 			{#snippet render_message(i, item)}
-				<MessageDisplay id={item.id} text={item.text}
-				author={item.author}
-				author_roles={item.author_roles}
-				time_sent={new Date(item.sent)} time_edited={new Date(item.edited)}
-				status={item.status}
+				<MessageDisplay data={item}
 				show_ctx_menu={(anchor, e, for_message) => {
 					sel.ctx_user_id = item.author.data.id;
 					sel.ctx_message = i;

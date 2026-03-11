@@ -2,11 +2,20 @@
 	import {asset} from '$app/paths';
 	import SidebarChannelElement from '$lib/display/sidebar/channel_element.svelte';
 	import SidebarChannelAction from '$lib/display/sidebar/channel_action.svelte';
+	import MediaDisplay from '$lib/display/media.svelte';
 
 	const {server, channels, selected_channel,
 		socket_vc,
 		show_channel, ctx_channel, ctx_vc_user,
 		create_channel} = $props();
+
+	let vc_video_elem = $state();
+	$effect(() => {
+		if(socket_vc?.watched_video && vc_video_elem){
+			vc_video_elem.srcObject = new MediaStream([socket_vc.watched_video]);
+			vc_video_elem.play();
+		}
+	});
 </script>
 
 <div style="display: flex; flex-direction: column">
@@ -43,6 +52,13 @@
 		</div>
 	{/if}
 </div>
+
+{#if socket_vc && socket_vc.watched_video}
+	<MediaDisplay close_media={() => socket_vc.unwatch_video()}>
+		<video class="fullscreen_media" bind:this={vc_video_elem}/>
+	</MediaDisplay>
+{/if}
+
 
 <style>
 .sidebar_channels {

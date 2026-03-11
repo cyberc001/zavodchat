@@ -51,7 +51,6 @@
 
 	import Dialog from '$lib/control/dialog.svelte';
 	import NotifDisplay from '$lib/display/notif.svelte';
-	import Video from '$lib/display/video.svelte';
 
 	let {setPage} = $props();
 
@@ -368,12 +367,6 @@
 		items={ctx_menu_params.items}/>
 {/if}
 
-{/if}
-
-{#if socket_vc && socket_vc.watched_video}
-	<Video track={socket_vc.watched_video}
-		close_video={() => socket_vc.unwatch_video()}
-	/>
 {/if}
 
 <NotifDisplay/>
