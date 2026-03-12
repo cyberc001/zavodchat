@@ -82,6 +82,7 @@
 		for(let att of msg.attachments)
 			switch(att.type){
 				case Message.AttachmentType.Image:
+				case Message.AttachmentType.File:
 					File.upload(att.content, (res) => {
 						att.content = `/files/upload/${self_user.data.id}/${res.data}`;
 						if(--to_upload === 0)

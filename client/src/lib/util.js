@@ -36,7 +36,6 @@ export default class Util {
 		return a === b;
 	}
 
-
 	// Time
 	static TimeUnits = {
 		Seconds: 0,
@@ -132,5 +131,13 @@ export default class Util {
 		if(c_r > 0)
 			return r;
 		return arr.length;
+	}
+
+	// Files
+	static get_file_name(fpath){
+		const i = fpath.lastIndexOf("/"), j = fpath.lastIndexOf("\\");
+		if(i === -1 && j === -1)
+			return fpath;
+		return fpath.substring(Math.max(i, j) + 1);
 	}
 }

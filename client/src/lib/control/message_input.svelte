@@ -31,7 +31,8 @@
 	$effect(() => {
 		if(files){
 			for(const file of files)
-				attachments.push({type: Message.AttachmentType.Image,
+				attachments.push({type: file.type.startsWith("image") ? Message.AttachmentType.Image
+						  : Message.AttachmentType.File,
 						  content: file});
 			files = undefined;
 		}
@@ -39,8 +40,7 @@
 </script>
 
 <div class="message_input">
-	<input type="file" style="position: fixed; top: -100vh" bind:this={file_input} bind:files
-		multiple accept="image/*" />
+	<input type="file" style="position: fixed; top: -100vh" bind:this={file_input} bind:files multiple/>
 
 	<div class="message_input_center_panel">
 		{#if status}
@@ -67,14 +67,22 @@
 
 		<div style="display: flex; padding-top: 4px">
 			{#each attachments as att, i}
-				<div class="item message_input_img_attachment">
+				<div class="item message_input_attachment">
 					<button class="hoverable item"
-					style="position: absolute; padding: 0; border-radius: 0 0 4px 0"
+					style="position: absolute; top: 0; left: 0; padding: 0; border-radius: 0 0 4px 0"
 					onclick={() => attachments.splice(i, 1)}
 					>
 						<img src={asset("icons/close.svg")} alt="remove attachment" class="filter_icon_main" style="width: 32px"/>
 					</button>
-					<img src={URL.createObjectURL(att.content)} class="attachment_img"/>
+					{#if att.type === Message.AttachmentType.Image}
+						<img src={URL.createObjectURL(att.content)} class="attachment_square"/>
+					{:else}
+						<div class="attachment_square">
+							<img src={asset("icons/file.svg")} alt="file" class="filter_icon_main"
+							style="width: 24px; margin-bottom: 4px"/>
+							{att.content.name}
+						</div>
+					{/if}
 				</div>
 			{/each}
 		</div>
@@ -134,7 +142,8 @@
 	font-size: 16px;
 }
 
-.message_input_img_attachment {
+.message_input_attachment {
+	position: relative;
 	border-radius: 4px;
 	padding: 6px;
 	margin-right: 8px;

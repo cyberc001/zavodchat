@@ -1,5 +1,6 @@
 <script>
 	import {asset} from '$app/paths';
+	import Util from '$lib/util.js';
 	import Message from '$lib/rest/message.js';
 	import User from '$lib/rest/user.svelte.js';
 	import File from '$lib/rest/file.js';
@@ -28,7 +29,11 @@
 	const padnum = (x, n) => x.toString().padStart(n, '0');
 	const formatTimeHHMM = (date) => `${padnum(date.getHours(), 2)}:${padnum(date.getMinutes(), 2)}`;
 
+	const img_attachments = $derived(data.attachments.filter((x) => x.type === Message.AttachmentType.Image));
+	const file_attachments = $derived(data.attachments.filter((x) => x.type === Message.AttachmentType.File));
+
 	let shown_attachment = $state();
+	let hovered_file_attachment = $state(-1);
 </script>
 
 <div id={"message_display_" + data.id} class="message_panel" tabindex=0 role="group">
@@ -67,17 +72,36 @@
 			{/if}
 		</div>
 		<div>
-			<div>{data.text}</div>
-			{#if data.attachments.length === 1}
-			<button onclick={() => shown_attachment = data.attachments[0]} class="transparent_button unhoverable">
-				<img src={File.get_attachment_url(data.attachments[0].content)} class="single_attachment_img"/>
+			<div style={data.attachments.length > 0 ? "margin-bottom: 4px" : ""}>
+				{data.text}
+			</div>
+
+			<div style={(img_attachments.length > 0 ? "margin-bottom: 4px; " : "") + "display: flex; flex-flow: column"}>
+				{#each file_attachments as att, i}
+					<button class="unhoverable transparent_button"
+					onclick={() => window.open(File.get_attachment_url(att.content), "_blank")}
+					onmouseenter={() => hovered_file_attachment = i}
+					onmouseleave={() => hovered_file_attachment = -1}
+					style="cursor: pointer">
+						<div class="attachment_file item">
+							<img src={asset(hovered_file_attachment === i ? "icons/download.svg" : "icons/file.svg")} alt="file" class="filter_icon_main"
+							style="height: 28px; width: 28px; object-fit: contain; margin-right: 6px"/>
+							{Util.get_file_name(att.content)}
+						</div>
+					</button>
+				{/each}
+			</div>
+
+			{#if img_attachments.length === 1}
+			<button onclick={() => shown_attachment = img_attachments[0]} class="transparent_button unhoverable">
+				<img src={File.get_attachment_url(img_attachments[0].content)} class="single_attachment_img"/>
 			</button>
 			{:else}
 			<div>
-				{#each data.attachments as att}
-				<button onclick={() => shown_attachment = att} class="transparent_button unhoverable">
-					<img src={File.get_attachment_url(att.content)} class="attachment_img"
-					style="margin-right: 6px; cursor: pointer"/>
+				{#each img_attachments as att}
+				<button onclick={() => shown_attachment = att} class="transparent_button unhoverable"
+				style="margin-right: 6px; cursor: pointer">
+					<img src={File.get_attachment_url(att.content)} class="attachment_square"/>
 				</button>
 				{/each}
 			</div>
@@ -118,10 +142,25 @@
 	color: var(--clr_text_secondary);
 }
 
+.attachment_file {
+	display: flex;
+	align-items: center;
+	line-break: anywhere;
+
+	color: var(--clr_text);
+	font-size: 18px;
+
+	border-radius: 6px;
+	padding: 8px;
+	margin-bottom: 4px;
+	min-width: min(200px, 10vw);
+}
+
 .single_attachment_img {
 	max-height: 40vh;
 	max-width: 50vw;
 	object-fit: contain;
+	border-radius: 6px;
 
 	cursor: pointer;
 }
