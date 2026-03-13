@@ -80,7 +80,7 @@ std::unordered_map<std::string, std::string> socket_server::parse_query(std::str
 }
 std::string socket_server::parse_token(const ix::WebSocketMessagePtr& msg)
 {
-	static const std::string beg = "zavodchat_token=";
+	static const std::string beg = "zavodchat_token";
 
 	if(msg->openInfo.headers.find("Cookie") == msg->openInfo.headers.end())
 		return "";
@@ -89,5 +89,17 @@ std::string socket_server::parse_token(const ix::WebSocketMessagePtr& msg)
 	std::string::size_type i = cookie.find(beg);
 	if(i == std::string::npos)
 		return "";
-	return cookie.substr(i + beg.size());
+	i = cookie.find('=', i + 1);
+	if(i == std::string::npos)
+		return "";
+	for(++i; i < cookie.size() && std::isspace(cookie[i]); ++i)
+		;
+	if(i >= cookie.size())
+		return "";
+
+	std::string::size_type end_i = cookie.find(';', i + 1);
+	if(end_i == std::string::npos)
+		return "";
+
+	return cookie.substr(i, end_i - i);
 }

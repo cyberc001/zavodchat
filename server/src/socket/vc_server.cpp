@@ -531,7 +531,8 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 				});
 			} else if(msg->type == ix::WebSocketMessageType::Close){
 				// TODO change to code?
-				if(msg->closeInfo.reason == "User is already connected to this channel")
+				if(msg->closeInfo.reason == "User is already connected to this channel"
+					|| conn->user_id == -1)
 					return;
 				
 				std::cerr << "removing user " << conn->user_id << std::endl;

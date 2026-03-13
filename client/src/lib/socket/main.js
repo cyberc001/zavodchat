@@ -139,6 +139,7 @@ export default class MainSocket {
 	constructor(onclose, onerror, onmessage) {
 		this.ws = new WebSocket(PUBLIC_BASE_SOCKET);
 		this.ws.onclose = (e) => {
+			console.log(e);
 			clearInterval(this.ws_ping_intv);
 			onclose(e);
 		};
