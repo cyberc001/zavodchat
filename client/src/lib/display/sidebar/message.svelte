@@ -57,7 +57,6 @@
 	let is_search = $derived(Object.keys(message_search_params).length > 0);
 
 	let message_text = $state("");
-	let prev_message_text = "";
 	let message_status = $state();
 	let message_attachments = $state([]);
 	let message_links = $state([]);
@@ -81,17 +80,21 @@
 
 		console.log("SENDING ATTACHMENTS", $state.snapshot(msg.attachments));
 		let to_upload = message_attachments.length;
-		for(const att of msg.attachments)
-			File.upload(att.content, (res) => {
-				att.content = `/files/upload/${self_user.data.id}/${res.data}`;
-				if(--to_upload === 0)
-					_then(JSON.stringify(msg));
-			},  _catch);
+		for(const att of msg.attachments){
+			if(typeof att.content === "string")
+				--to_upload;
+			else
+				File.upload(att.content, (res) => {
+					att.content = `/files/upload/${self_user.data.id}/${res.data}`;
+					if(--to_upload === 0)
+						_then(JSON.stringify(msg));
+				},  _catch);
+		}
 
 		for(const link of message_links)
 			attachments.push(Util.object_from_object(link, ["type", "content"]));
 
-		if(!to_upload && !message_attachments.length)
+		if(!to_upload)
 			_then(JSON.stringify(msg));
 	};
 
@@ -113,10 +116,12 @@
 			resetMessage(true);
 			msg.status = Message.Status.None;
 			msg.text = prev_text;
+			msg.attachments = prev_attachments;
 		};
 
-		let msg = message_list.getItem(sel.message_edit);
-		let prev_text = msg.text;
+		const msg = message_list.getItem(sel.message_edit);
+		const prev_text = msg.text;
+		const prev_attachments = msg.attachments;
 		msg.status = Message.Status.Editing;
 		sel.message_edit = -1;
 
@@ -125,7 +130,7 @@
 	};
 	const stopEditing = () => {
 		sel.message_edit = -1;
-		message_text = prev_message_text;
+		resetMessage();
 	};
 
 	// Reset scroll when changing channels
@@ -143,8 +148,9 @@
 		hide_ctx_menu={hide_ctx_menu}
 		onclick={() => {
 			sel.message_edit = sel.ctx_message;
-			prev_message_text = message_text;
-			message_text = message_list.getItem(sel.ctx_message).text;
+			const msg = message_list.getItem(sel.ctx_message);
+			message_text = msg.text;
+			message_attachments = msg.attachments.filter((x) => x.type !== Message.AttachmentType.Link);
 		}}
 	/>
 {/snippet}

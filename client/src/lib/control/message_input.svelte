@@ -4,6 +4,7 @@
 	import {asset} from '$app/paths';
 	import {onDestroy} from 'svelte';
 	import Message from '$lib/rest/message.js';
+	import File from '$lib/rest/file.js';
 	import Util from '$lib/util.js';
 
 	let { max_rows = 5,
@@ -129,12 +130,12 @@
 						<img src={asset("icons/close.svg")} alt="remove attachment" class="filter_icon_main" style="width: 32px"/>
 					</button>
 					{#if att.type === Message.AttachmentType.Image}
-						<img src={URL.createObjectURL(att.content)} class="attachment_square"/>
+						<img src={typeof att.content === "string" ? File.get_attachment_url(att.content) : URL.createObjectURL(att.content)} class="attachment_square"/>
 					{:else}
 						<div class="attachment_square">
 							<img src={asset("icons/file.svg")} alt="file" class="filter_icon_main"
 							style="width: 24px; margin-bottom: 4px"/>
-							{att.content.name}
+							{typeof att.content === "string" ? Util.get_file_name(att.content) : att.content.name}
 						</div>
 					{/if}
 				</div>
