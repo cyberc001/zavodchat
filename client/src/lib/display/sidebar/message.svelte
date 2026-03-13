@@ -2,6 +2,7 @@
 	import {asset} from '$app/paths';
 	import {untrack} from 'svelte';
 
+	import Util from '$lib/util.js';
 	import MessageDisplay from '$lib/display/message.svelte';
 	import PaginatedList from '$lib/display/paginated_list.svelte';
 	import MessageInput from '$lib/control/message_input.svelte';
@@ -59,11 +60,13 @@
 	let prev_message_text = "";
 	let message_status = $state();
 	let message_attachments = $state([]);
+	let message_links = $state([]);
 
 	const resetMessage = (keep_content) => {
 		if(!keep_content){
 			message_text = "";
 			message_attachments = [];
+			message_links = [];
 		}
 		message_status = undefined;
 	};
@@ -76,20 +79,20 @@
 			attachments
 		};
 
-		// TODO change counting when handling links
 		console.log("SENDING ATTACHMENTS", $state.snapshot(msg.attachments));
-		let to_upload = msg.attachments.length;
-		for(let att of msg.attachments)
-			switch(att.type){
-				case Message.AttachmentType.Image:
-				case Message.AttachmentType.File:
-					File.upload(att.content, (res) => {
-						att.content = `/files/upload/${self_user.data.id}/${res.data}`;
-						if(--to_upload === 0)
-							_then(JSON.stringify(msg));
-					},  _catch);
-					break;
-			}
+		let to_upload = message_attachments.length;
+		for(const att of msg.attachments)
+			File.upload(att.content, (res) => {
+				att.content = `/files/upload/${self_user.data.id}/${res.data}`;
+				if(--to_upload === 0)
+					_then(JSON.stringify(msg));
+			},  _catch);
+
+		for(const link of message_links)
+			attachments.push(Util.object_from_object(link, ["type", "content"]));
+
+		if(!to_upload && !message_attachments.length)
+			_then(JSON.stringify(msg));
 	};
 
 	const sendMessage = () => {
@@ -125,6 +128,7 @@
 		message_text = prev_message_text;
 	};
 
+	// Reset scroll when changing channels
 	$effect(() => {
 		$inspect.trace();
 		channel_id;
@@ -220,7 +224,7 @@
 			}}
 			/>
 			<MessageInput
-				bind:value={message_text} bind:attachments = {message_attachments}
+				bind:value={message_text} bind:attachments={message_attachments} bind:links={message_links}
 				onsend={sel.message_edit > -1 ? editMessage : sendMessage}
 				status={message_status}
 				actions={sel.message_edit > -1 ? [{text: "Stop editing", func: stopEditing}] : []}

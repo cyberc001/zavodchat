@@ -140,4 +140,41 @@ export default class Util {
 			return fpath;
 		return fpath.substring(Math.max(i, j) + 1);
 	}
+
+	// Web
+	static __pending_fetches = {};
+	static __pending_fetch_last_id = 0;
+	static group_fetch(name, resource, options, _then, _catch){
+		// TODO maybe delete empty sets
+		if(typeof Util.__pending_fetches[name] === "undefined")
+			Util.__pending_fetches[name] = new Set();
+		const id = ++Util.__pending_fetch_last_id;
+		Util.__pending_fetches[name].add(id);
+		fetch(resource, options).then((res) => {
+			if(typeof Util.__pending_fetches[name] !== "undefined" && Util.__pending_fetches[name].has(id)){
+				Util.__pending_fetches[name].delete(id);
+				_then(res);
+			}
+		}).catch(() => {
+			if(typeof Util.__pending_fetches[name] !== "undefined")
+			Util.__pending_fetches[name].delete(id);
+			_catch(res);
+		});
+	}
+	static cancel_fetch_group(name)
+	{
+		delete Util.__pending_fetches[name];
+	}
+
+	static get_page_meta(html){
+		const parser = new DOMParser();
+		const doc = parser.parseFromString(html, "text/html");
+		if(!doc.title)
+			return;
+		const all_meta = doc.getElementsByTagName("meta");
+		for(const meta of all_meta)
+			if(meta.name === "description")
+				return {title: doc.title, desc: meta.content};
+		return doc.title;
+	}
 }

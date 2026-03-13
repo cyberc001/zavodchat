@@ -1,5 +1,6 @@
 <script>
 	import {asset} from '$app/paths';
+	import {untrack} from 'svelte';
 	import Util from '$lib/util.js';
 	import Message from '$lib/rest/message.js';
 	import User from '$lib/rest/user.svelte.js';
@@ -31,6 +32,27 @@
 
 	const img_attachments = $derived(data.attachments.filter((x) => x.type === Message.AttachmentType.Image));
 	const file_attachments = $derived(data.attachments.filter((x) => x.type === Message.AttachmentType.File));
+
+	let link_attachments = $state([]);
+	$effect(() => {
+		link_attachments.length = 0;
+		for(const link of data.attachments){
+			if(link.type !== Message.AttachmentType.Link)
+				continue;
+			const fetch_id = "msg_display_" + link.content;
+			Util.cancel_fetch_group(fetch_id);
+			Util.group_fetch(fetch_id, "/proxy", {headers: {link: link.content}},
+				async (res) => {
+					const html = await res.text();
+					const meta = Util.get_page_meta(html);
+					if(!meta)
+						return;
+					link.title = meta.title;
+					link.desc = meta.desc;
+					untrack(() => link_attachments.push(link));
+			});
+		}
+	});
 
 	let shown_attachment = $state();
 	let hovered_file_attachment = $state(-1);
@@ -106,6 +128,15 @@
 				{/each}
 			</div>
 			{/if}
+
+			<div style="display: flex; flex-direction: column">
+				{#each link_attachments as link}
+					<div class="item link_attachment">
+						<a href={link.content} class="link_attachment_line_limit"><b>{link.title}</b><br></a>
+						<div class="line_limit">{link.desc}</div>
+					</div>
+				{/each}
+			</div>
 		</div>
 	</div>
 </div>

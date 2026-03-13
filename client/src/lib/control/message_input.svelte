@@ -1,10 +1,13 @@
 <script>
+	import axios from 'axios';
+
 	import {asset} from '$app/paths';
-	import {untrack} from 'svelte';
+	import {onDestroy} from 'svelte';
 	import Message from '$lib/rest/message.js';
+	import Util from '$lib/util.js';
 
 	let { max_rows = 5,
-		value = $bindable(""), attachments = $bindable([]),
+		value = $bindable(""), attachments = $bindable([]), links = $bindable([]),
 		status, actions = [],
 		onsend } = $props();
 
@@ -37,6 +40,58 @@
 			files = undefined;
 		}
 	});
+
+	// Detect links in value and turn them into attachments every 3 seconds
+	let last_value_change;
+	$effect(() => {
+		value;
+		if(typeof last_value_change === "undefined")
+			last_value_change = new Date();
+	});
+	const link_intv = setInterval(() => {
+		if(typeof last_value_change === "undefined" || new Date() - last_value_change < 500)
+			return;
+		last_value_change = undefined;
+		console.log("SCANNING LINKS");
+
+		// https://stackoverflow.com/questions/8188645/javascript-regex-to-match-a-url-in-a-field-of-text
+		const re = /([-\.\w]+:\/{2,3})(?!.*[.]{2})(?![-.*\.])((?!.*@\.)[-_\w@^=%&:;~+\.]+(?<![-\.]))(\/[-_\w@^=%&$:;/~+\.]+(?<!\.))?[?]?([-_\w=&@$!|~+]+)*[#]?([-_\w=&@$!|~+]+)*/gi;
+		const matches = [...value.matchAll(re)];
+
+		Util.cancel_fetch_group("link_attachment");
+		let links_left = matches.length;
+		const new_links = [];
+		for(const match of matches)
+			if(match[0]){
+				const link = match[0];
+				Util.group_fetch("link_attachment", "/proxy", {headers: {link}},
+				async (res) => {
+					const html = await res.text();
+					const meta = Util.get_page_meta(html);
+					if(!meta){
+						if(--links_left <= 0)
+							links.splice(0, links.length, ...new_links);
+						return;
+					}
+					new_links.push({content: link,
+							title: meta.title,
+							desc: meta.desc,
+							type: Message.AttachmentType.Link});
+					if(--links_left <= 0)
+						links.splice(0, links.length, ...new_links);
+				},
+				() => {
+					if(--links_left <= 0)
+						links.splice(0, links.length, ...new_links);
+				});
+			} else
+				--links_left;
+		
+		// No matches
+		if(!links_left && !new_links.length)
+			links.length = 0;
+	}, 100);
+	onDestroy(() => removeInterval(link_intv));
 </script>
 
 <div class="message_input">
@@ -68,8 +123,7 @@
 		<div style="display: flex; padding-top: 4px">
 			{#each attachments as att, i}
 				<div class="item message_input_attachment">
-					<button class="hoverable item"
-					style="position: absolute; top: 0; left: 0; padding: 0; border-radius: 0 0 4px 0"
+					<button class="attachment_remove_button hoverable item"
 					onclick={() => attachments.splice(i, 1)}
 					>
 						<img src={asset("icons/close.svg")} alt="remove attachment" class="filter_icon_main" style="width: 32px"/>
@@ -83,6 +137,20 @@
 							{att.content.name}
 						</div>
 					{/if}
+				</div>
+			{/each}
+		</div>
+		<div style="display: flex; flex-direction: column">
+			{#each links as link, i}
+				<div class="item link_attachment">
+					<button class="attachment_remove_button hoverable item"
+					onclick={() => links.splice(i, 1)}
+					style="left: inherit; right: 0px"
+					>
+						<img src={asset("icons/close.svg")} alt="remove attachment" class="filter_icon_main" style="width: 32px"/>
+					</button>
+					<a href={link.content} class="link_attachment_line_limit"><b>{link.title}</b><br></a>
+					<div class="line_limit">{link.desc}</div>
 				</div>
 			{/each}
 		</div>
@@ -142,6 +210,14 @@
 	font-size: 16px;
 }
 
+.attachment_remove_button {
+	position: absolute;
+	top: 0;
+	left: 0;
+
+	padding: 0;
+	border-radius: 0 0 4px 0
+}
 .message_input_attachment {
 	position: relative;
 	border-radius: 4px;

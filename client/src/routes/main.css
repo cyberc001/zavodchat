@@ -97,6 +97,24 @@ button {
 	height: min(150px, 8vw);
 	object-fit: cover;
 }
+.link_attachment {
+	position: relative;
+	
+	border-radius: 4px;
+	margin-top: 4px;
+	padding: 6px;
+
+	width: fit-content;
+	max-width: 80%;
+
+	text-align: left;
+}
+.link_attachment_line_limit {
+	display: -webkit-box;
+	-webkit-line-clamp: 3;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+}
 
 .fullscreen_media {
 	position: absolute;
