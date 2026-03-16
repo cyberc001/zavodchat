@@ -92,7 +92,7 @@
 		if(!links_left && !new_links.length)
 			links.length = 0;
 	}, 100);
-	onDestroy(() => removeInterval(link_intv));
+	onDestroy(() => clearInterval(link_intv));
 </script>
 
 <div class="message_input">

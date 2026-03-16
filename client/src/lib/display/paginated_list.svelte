@@ -170,20 +170,23 @@
 
 	// Scroll back to bottom/top if user hasnt scrolled past the last element and the element changed in size
 	// (ex. an image attachment got loaded)
-	let last_item_resize_obs;
+	let list_resize_obs;
+	let last_list_div_height = -1;
 	$effect(() => {
-		if(div_items.length === 0)
+		if(!list_div)
 			return;
-		const last_item = div_items[reversed ? items.data.length - 1 : 0];
-		if(!last_item)
-			return;
+		list_resize_obs = new ResizeObserver((elements) => {
+			if(!list_div || items.data.length === 0)
+				return;
 
-		last_item_resize_obs = new ResizeObserver((elements) => {
-			const last_item = elements[0].target;
-			if(get_abs_scroll() <= last_item.clientHeight)
+			const last_item = div_items[reversed ? items.data.length - 1 : 0];
+			if(list_div.scrollTop + last_item.clientHeight >= last_list_div_height - list_div.clientHeight)
 				list_div_scroll_top = list_div.scrollTop = reversed ? 2147483648 : 0;
+			last_list_div_height = list_div.scrollHeight;
 		});
-		last_item_resize_obs.observe(last_item);
+		list_resize_obs.observe(list_div);
+		for(const item of Object.values(div_items))
+			list_resize_obs.observe(item);
 	});
 
 	const on_scroll = (e) => {
