@@ -99,7 +99,7 @@ std::string socket_server::parse_token(const ix::WebSocketMessagePtr& msg)
 
 	std::string::size_type end_i = cookie.find(';', i + 1);
 	if(end_i == std::string::npos)
-		return "";
+		end_i = cookie.size();
 
 	return cookie.substr(i, end_i - i);
 }
