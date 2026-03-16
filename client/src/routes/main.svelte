@@ -3,6 +3,8 @@
 	import {asset} from '$app/paths';
 
 	import Util from '$lib/util.js';
+
+	import Params from '$lib/rest/params.js';
 	import Server from '$lib/rest/server.js';
 	import Channel from '$lib/rest/channel.js';
 	import Message from '$lib/rest/message.js';
@@ -62,6 +64,7 @@
 	};
 
 	// Backend data
+	Params.load();
 	let user_self = User.get(-1);
 	let servers = Server.get_list();
 

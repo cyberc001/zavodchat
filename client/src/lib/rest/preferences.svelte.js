@@ -5,7 +5,7 @@ export default class Preferences {
 		loaded: false,
 		loading: false,
 
-		noise_supression: "rnnoise"
+		noise_supression: "browser"
 	});
 	static _inst = new Preferences();
 	static get data(){

@@ -3,9 +3,12 @@
 
 	import {asset} from '$app/paths';
 	import {onDestroy} from 'svelte';
-	import Message from '$lib/rest/message.js';
-	import File from '$lib/rest/file.js';
+
 	import Util from '$lib/util.js';
+
+	import Message from '$lib/rest/message.js';
+	import Params from '$lib/rest/params.js';
+	import File from '$lib/rest/file.js';
 
 	let { max_rows = 5,
 		value = $bindable(""), attachments = $bindable([]), links = $bindable([]),
@@ -34,15 +37,19 @@
 
 	$effect(() => {
 		if(files){
-			for(const file of files)
+			for(const file of files){
+				if(attachments.length >= Params.data.max_attachments)
+					break;
 				attachments.push({type: file.type.startsWith("image") ? Message.AttachmentType.Image
 						  : Message.AttachmentType.File,
 						  content: file});
+			}
 			files = undefined;
+			links.splice(Params.data.max_attachments - attachments.length);
 		}
 	});
 
-	// Detect links in value and turn them into attachments every 3 seconds
+	// Detect links in value and turn them into attachments every 0.5 seconds
 	let last_value_change;
 	$effect(() => {
 		value;
@@ -62,29 +69,38 @@
 		Util.cancel_fetch_group("link_attachment");
 		let links_left = matches.length;
 		const new_links = [];
+
+		const swap_links = () => {
+			if(new_links.length === 0)
+				return;
+			if(--links_left <= 0 || attachments.length + new_links.length > Params.data.max_attachments){
+				console.log("new links", JSON.parse(JSON.stringify(new_links)), Params.data.max_attachments - attachments.length);
+				new_links.splice(Params.data.max_attachments - attachments.length);
+				console.log("spliced new links", new_links);
+				links.splice(0, links.length, ...new_links);
+				new_links.length = 0;
+			}
+		};
+
 		for(const match of matches)
 			if(match[0]){
 				const link = match[0];
 				Util.group_fetch("link_attachment", "/proxy", {headers: {link}},
-				async (res) => {
-					const html = await res.text();
-					const meta = Util.get_page_meta(html);
-					if(!meta){
-						if(--links_left <= 0)
-							links.splice(0, links.length, ...new_links);
-						return;
-					}
-					new_links.push({content: link,
-							title: meta.title,
-							desc: meta.desc,
-							type: Message.AttachmentType.Link});
-					if(--links_left <= 0)
-						links.splice(0, links.length, ...new_links);
-				},
-				() => {
-					if(--links_left <= 0)
-						links.splice(0, links.length, ...new_links);
-				});
+					async (res) => {
+						const html = await res.text();
+						const meta = Util.get_page_meta(html);
+						if(!meta){
+							swap_links();
+							return;
+						}
+						new_links.push({content: link,
+								title: meta.title,
+								desc: meta.desc,
+								type: Message.AttachmentType.Link});
+						swap_links();
+					},
+					() => swap_links()
+				);
 			} else
 				--links_left;
 		
@@ -121,11 +137,15 @@
 			</textarea>
 		</div>
 
-		<div style="display: flex; padding-top: 4px">
+		<div style="display: flex; padding-top: 4px; flex-wrap: wrap">
 			{#each attachments as att, i}
 				<div class="item message_input_attachment">
 					<button class="attachment_remove_button hoverable item"
-					onclick={() => attachments.splice(i, 1)}
+					onclick={() => {
+						attachments.splice(i, 1);
+						// parse links again, in case there were hitting the attachment limit before
+						last_value_change = new Date();
+					}}
 					>
 						<img src={asset("icons/close.svg")} alt="remove attachment" class="filter_icon_main" style="width: 32px"/>
 					</button>
