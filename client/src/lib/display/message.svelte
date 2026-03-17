@@ -1,7 +1,9 @@
 <script>
 	import {asset} from '$app/paths';
 	import {untrack} from 'svelte';
+
 	import Util from '$lib/util.js';
+	import Markdown from '$lib/display/markdown.js';
 	import Message from '$lib/rest/message.js';
 	import User from '$lib/rest/user.svelte.js';
 	import File from '$lib/rest/file.js';
@@ -94,8 +96,8 @@
 			{/if}
 		</div>
 		<div>
-			<div style={data.attachments.length > 0 ? "margin-bottom: 4px" : ""}>
-				{data.text}
+			<div style={data.attachments.length > 0 ? "margin-bottom: 4px" : ""} class="message_text">
+				{@html Markdown.parse(data.text)}
 			</div>
 
 			<div style={(img_attachments.length > 0 ? "margin-bottom: 4px; " : "") + "display: flex; flex-flow: column"}>
@@ -148,6 +150,8 @@
 {/if}
 
 <style>
+@import "hljs_dark_min.css";
+
 .message_panel {
 	width: fit-content;
 	padding: 3px;

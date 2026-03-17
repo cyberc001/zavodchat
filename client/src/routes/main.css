@@ -157,3 +157,51 @@ button {
 	font-size: 24px;
 	overflow-wrap: anywhere;
 }
+
+/* Styles for marked */
+p {
+	margin: 0;
+	display: inline;
+}
+ul, ol {
+	margin: 0;
+	display: inline-grid;
+	padding: 0;
+	list-style-position: inside;
+}
+li {
+	display: inline flow-root list-item;
+}
+pre {
+	margin: 0;
+}
+h1, h2, h3 {
+	margin: 0;
+	display: inline;
+}
+blockquote {
+	margin: 0;
+	display: inline-table;
+	padding: 2px 4px 2px 4px;
+
+	background: var(--clr_bg_item);
+	border-style: none none none solid;
+	border-color: var(--clr_border_item);
+}
+code {
+	background: var(--clr_bg_item);
+	padding: 2px 4px 2px 4px !important; /* !important is to override hljs */
+}
+
+table {
+	border-collapse: collapse;
+	display: inline-table;
+}
+table, td, th {
+	border-width: 1px;
+	border-style: solid;
+	border-color: var(--clr_text);
+}
+td, th {
+	padding: 2px 4px 2px 4px;
+}
