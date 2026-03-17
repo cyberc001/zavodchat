@@ -71,6 +71,9 @@
 	$effect(() => {
 		if(items.loaded && !items.is_full && !items.final && init_items.loaded){
 			console.log("finalizing items", items, $state.snapshot(items.data), start_id);
+
+			last_list_div_height = list_div.scrollHeight;
+
 			items.destroy();
 			if(!init_items.is_full)
 				items = init_items.clone();
@@ -136,14 +139,12 @@
 
 	let scroll_initialized = false;
 	$effect(() => {
+		//$inspect.trace();
 		list_div_scroll_top = list_div.scrollTop;
 
-		console.log("new items", list_div.scrollTop, "\n", items, $state.snapshot(items.data), anchor);
+		console.log("new items", list_div.scrollTop, "\n", items, $state.snapshot(items.data));
 		if(items.data.length === 0 || !div_items[0] || !div_items[items.data.length - 1] || div_items[0].clientHeight === 0)
 			return;
-
-		// TODO
-		last_list_div_height = list_div.scrollHeight;
 
 		if(items.loaded && !scroll_initialized){
 			scroll_initialized = true;
@@ -177,9 +178,10 @@
 				return;
 
 			const last_item = div_items[reversed ? items.data.length - 1 : 0];
+			console.log("SCROLL CONDITION", list_div.scrollTop + last_item.clientHeight, last_list_div_height - list_div.clientHeight, "\n", list_div.scrollTop, last_item.clientHeight, last_list_div_height, list_div.clientHeight);
 			if(reversed ? list_div.scrollTop + last_item.clientHeight >= last_list_div_height - list_div.clientHeight
 					: list_div.scrollTop <= last_item.clientHeight){
-				console.log("SCROLLING TO BOTTOM", list_div.scrollTop + last_item.clientHeight, last_list_div_height - list_div.clientHeight, "\n", list_div.scrollTop, last_item.clientHeight, last_list_div_height, list_div.clientHeight);
+				console.log("SCROLLING TO BOTTOM");
 				list_div_scroll_top = list_div.scrollTop = reversed ? 2147483648 : 0;
 			}
 			last_list_div_height = list_div.scrollHeight;
@@ -214,9 +216,15 @@
 			if(dir > 0 && items.is_full){
 				destroy_old_items = true;
 				console.log("loading more items", $state.snapshot(items.data), items.data[reversed ? items.data.length - advance : advance - 1].id + reverse_sign, !reversed);
+
+				last_list_div_height = list_div.scrollHeight;
+
 				items = _load_items(items.data[reversed ? items.data.length - advance : advance - 1].id  + reverse_sign, range, !reversed);
 			} else if(dir < 0 && can_scroll_before){
 				destroy_old_items = true;
+
+				last_list_div_height = list_div.scrollHeight;
+
 				console.log("loading more items", $state.snapshot(items.data), items.data[reversed ? advance - 1 : items.data.length - advance].id - reverse_sign, reversed);
 				items = _load_items(items.data[reversed ? advance - 1 : items.data.length - advance].id - reverse_sign, range, reversed);
 			}
