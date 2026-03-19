@@ -78,7 +78,6 @@
 			attachments
 		};
 
-		console.log("SENDING ATTACHMENTS", $state.snapshot(msg.attachments));
 		let to_upload = message_attachments.length;
 		for(const att of msg.attachments){
 			if(typeof att.content === "string")
@@ -119,6 +118,7 @@
 			msg.attachments = prev_attachments;
 		};
 
+		message_list.set_anchor(sel.message_edit);
 		const msg = message_list.getItem(sel.message_edit);
 		const prev_text = msg.text;
 		const prev_attachments = msg.attachments;
@@ -159,6 +159,7 @@
 		hide_ctx_menu={hide_ctx_menu}
 		onclick={() => {
 			let msg = message_list.getItem(sel.ctx_message);
+			message_list.set_anchor(sel.ctx_message);
 			msg.status = Message.Status.Deleting;
 			Message.delete(msg.id,
 					() => {}, () => msg.status = Message.Status.None);
@@ -172,7 +173,6 @@
 			message_search_params = {};
 			search_bar.reset();
 			const msg = message_list.getItem(sel.ctx_message);
-			console.log("GO TO", msg);
 			set_highlight_message(msg.id);
 			message_list.reset(msg.id);
 		}}

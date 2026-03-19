@@ -113,7 +113,7 @@
 	// Scroll calculations
 	let div_items = $state({});
 
-	const set_anchor = (i) => {
+	export function set_anchor(i){
 		if(items.data.length === 0)
 			return;
 
