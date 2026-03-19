@@ -1,9 +1,13 @@
 <script>
 	import {asset} from '$app/paths';
+
 	import User from '$lib/rest/user.svelte.js';
 	import Role from '$lib/rest/role.js';
+
 	import ContextMenu from '$lib/control/context_menu.svelte';
 	import ContextMenuAction from '$lib/control/context_menu_action.svelte';
+	import MediaDisplay from '$lib/display/media.svelte';
+
 
 	let {user, server_roles,
 		anchor, anchor_side_x = "left",
@@ -36,6 +40,8 @@
 			}
 		return items;
 	});
+
+	let shown_avatar = $state();
 </script>
 
 {#snippet item_add_role(hide_ctx_menu, i)}
@@ -61,7 +67,10 @@
 		<div class="user_profile_name">
 			<div class="user_avatar_frame">
 				<div class="user_status" style={User.Status.get_style(user?.status)}></div>
-				<img class="user_avatar" src={User.get_avatar_path(user)} alt="avatar"/>
+				<button class="transparent_button unhoverable" style="cursor: pointer"
+				onclick={() => shown_avatar = User.get_avatar_path(user)}>
+					<img class="user_avatar" src={User.get_avatar_path(user)} alt="avatar"/>
+				</button>
 			</div>
 			<b style={Role.get_username_style(user_roles)}>{user?.name}</b>
 		</div>
@@ -99,6 +108,12 @@
 			hide_ctx_menu={() => show_add_role_menu = false}
 			items={add_role_items[0]}
 		/>
+	{/if}
+
+	{#if shown_avatar}
+		<MediaDisplay close_media={() => shown_avatar = undefined}>
+			<img class="fullscreen_media" src={shown_avatar}/>
+		</MediaDisplay>
 	{/if}
 </div>
 
