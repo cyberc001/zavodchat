@@ -20,6 +20,9 @@
 
 <svelte:window
 onblurcapture={(e) => {
+	if(!element)
+		return;
+
 	// element got clicked
 	if(!e.relatedTarget && mouse_in_element)
 		return;
