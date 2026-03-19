@@ -16,26 +16,31 @@
 		status, actions = [],
 		onsend } = $props();
 
-	const div_input = (e) => {
+	let input_div = $state();
+	let sel_i;
+	const div_oninput = (e) => {
 		console.log("SELECTION", window.getSelection().getRangeAt(0));
 
-		let sel_i = Select.get_selection_index(e.target);
-		console.log("event", e);
+		sel_i = Select.get_selection_index(input_div);
 		console.log("sel_i", sel_i);
 
 		value = Select.get_inner_text(e.target);
 		if(value.endsWith("\n"))
 			value = value.substring(0, value.length - 1);
-		console.log(`got value:\n'${value}'\ngot inner html:\n${e.target.innerHTML}`);
-		[e.target.innerHTML, link_candidates] = Markdown.parse(value, true);
-		link_candidates_ts = new Date();
-		console.log(`new value:\n'${value}' ${value.split("\n").length - 1}\nnew html:\n'${e.target.innerHTML}'`);
-
-		Select.set_selection_index(e.target, sel_i);
 	
 		e.preventDefault();
 	};
-	let value_html = $derived(Markdown.parse(value, true));
+	$effect(() => {
+		if(!input_div)
+			return;
+
+		console.log(`got value:\n'${value}'\ngot inner html:\n${input_div.innerHTML}`);
+		[input_div.innerHTML, link_candidates] = Markdown.parse(value, true);
+		link_candidates_ts = new Date();
+		console.log(`new value:\n'${value}' ${value.split("\n").length - 1}\nnew html:\n'${input_div.innerHTML}'`);
+
+		Select.set_selection_index(input_div, sel_i);
+	});
 
 	const div_onkeyup = (e) => {
 		if(!status && e.code === "Enter" && e.ctrlKey
@@ -132,8 +137,8 @@
 			<button class="hoverable transparent_button" onclick={onattach}>
 				<img class="filter_icon_main" src={asset("icons/attachment.svg")}/>
 			</button>
-			<div contenteditable="true" class="item message_input_div" id="message_input"
-				oninput={div_input}
+			<div contenteditable="true" class="item message_input_div" bind:this={input_div}
+				oninput={div_oninput}
 				onkeyup={div_onkeyup}>
 			</div>
 		</div>

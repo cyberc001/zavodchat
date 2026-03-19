@@ -68,16 +68,10 @@
 	onclick={onclick_user} hide_profile={hide_profile} show_ctx_menu={show_ctx_menu}
 	/>
 	{#if status_msg !== ""}
-		{#if typeof status === "string"}
-			<div class="message_status_panel" style="background: var(--clr_bg_text_selection)">
-				{status_msg}
-			</div>
-		{:else}
-			<div class="message_status_panel">
-				<img src={asset("icons/loading.svg")} alt="loading" class="filter_icon_main" style="margin-right: 5px"/>
-				{status_msg}
-			</div>
-		{/if}
+		<div class="message_status_panel">
+			<img src={asset("icons/loading.svg")} alt="loading" class="filter_icon_main" style="margin-right: 5px"/>
+			{status_msg}
+		</div>
 	{/if}
 	<div class={"message_content_panel hoverable" + (highlighted ? " highlighted" : (selected ? " selected" : ""))}
 	style="anchor-name: --{"message_display_" + data.id}"
