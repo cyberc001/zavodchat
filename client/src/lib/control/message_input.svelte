@@ -3,6 +3,8 @@
 
 	import {asset} from '$app/paths';
 	import {onDestroy} from 'svelte';
+	import Markdown from '$lib/display/markdown.js';
+	import Select from '$lib/select.js';
 
 	import Util from '$lib/util.js';
 
@@ -10,20 +12,32 @@
 	import Params from '$lib/rest/params.js';
 	import File from '$lib/rest/file.js';
 
-	let { max_rows = 5,
-		value = $bindable(""), attachments = $bindable([]), links = $bindable([]),
+	let {value = $bindable(), attachments = $bindable([]), links = $bindable([]),
 		status, actions = [],
 		onsend } = $props();
 
-	let textarea_rows = $state(1);
-	$effect(() => {
-		let text_rows = 1;
-		for(let i = 0; i < value.length; ++i)
-			if(value[i] == '\n')
-				++text_rows;
-		textarea_rows = Math.min(text_rows, max_rows);
-	});
-	const textarea_onkeyup = (e) => {
+	const div_input = (e) => {
+		console.log("SELECTION", window.getSelection().getRangeAt(0));
+
+		let sel_i = Select.get_selection_index(e.target);
+		console.log("event", e);
+		console.log("sel_i", sel_i);
+
+		value = Select.get_inner_text(e.target);
+		if(value.endsWith("\n"))
+			value = value.substring(0, value.length - 1);
+		console.log(`got value:\n'${value}'\ngot inner html:\n${e.target.innerHTML}`);
+		[e.target.innerHTML, link_candidates] = Markdown.parse(value, true);
+		link_candidates_ts = new Date();
+		console.log(`new value:\n'${value}' ${value.split("\n").length - 1}\nnew html:\n'${e.target.innerHTML}'`);
+
+		Select.set_selection_index(e.target, sel_i);
+	
+		e.preventDefault();
+	};
+	let value_html = $derived(Markdown.parse(value, true));
+
+	const div_onkeyup = (e) => {
 		if(!status && e.code === "Enter" && e.ctrlKey
 			&& (value.length > 0 || attachments.length > 0))
 			onsend();
@@ -49,25 +63,14 @@
 		}
 	});
 
-	// Detect links in value and turn them into attachments every 0.5 seconds
-	let last_value_change;
-	$effect(() => {
-		value;
-		if(typeof last_value_change === "undefined")
-			last_value_change = new Date();
-	});
+	let link_candidates;
+	let link_candidates_ts = 0;
 	const link_intv = setInterval(() => {
-		if(typeof last_value_change === "undefined" || new Date() - last_value_change < 500)
+		if(!link_candidates || new Date() - link_candidates_ts < 500)
 			return;
-		last_value_change = undefined;
-		console.log("SCANNING LINKS");
-
-		// https://stackoverflow.com/questions/8188645/javascript-regex-to-match-a-url-in-a-field-of-text
-		const re = /([-\.\w]+:\/{2,3})(?!.*[.]{2})(?![-.*\.])((?!.*@\.)[-_\w@^=%&:;~+\.]+(?<![-\.]))(\/[-_\w@^=%&$:;/~+\.]+(?<!\.))?[?]?([-_\w=&@$!|~+]+)*[#]?([-_\w=&@$!|~+]+)*/gi;
-		const matches = [...value.matchAll(re)];
 
 		Util.cancel_fetch_group("link_attachment");
-		let links_left = matches.length;
+		let links_left = link_candidates.length;
 		const new_links = [];
 
 		const swap_links = () => {
@@ -82,31 +85,29 @@
 			}
 		};
 
-		for(const match of matches)
-			if(match[0]){
-				const link = match[0];
-				Util.group_fetch("link_attachment", "/proxy", {headers: {link}},
-					async (res) => {
-						const html = await res.text();
-						const meta = Util.get_page_meta(html);
-						if(!meta){
-							swap_links();
-							return;
-						}
-						new_links.push({content: link,
-								title: meta.title,
-								desc: meta.desc,
-								type: Message.AttachmentType.Link});
+		for(const link of link_candidates){
+			Util.group_fetch("link_attachment", "/proxy", {headers: {link}},
+				async (res) => {
+					const html = await res.text();
+					const meta = Util.get_page_meta(html);
+					if(!meta){
 						swap_links();
-					},
-					() => swap_links()
-				);
-			} else
-				--links_left;
-		
-		// No matches
-		if(!links_left && !new_links.length)
-			links.length = 0;
+						return;
+					}
+					console.log("GOT PAGE META", meta);
+					new_links.push({content: link,
+							title: typeof meta === "string" ? meta : meta.title,
+							desc: meta.desc,
+							type: Message.AttachmentType.Link});
+					swap_links();
+				},
+				() => swap_links()
+			);
+		}
+
+		if(!link_candidates.length)
+			links = [];
+		link_candidates = undefined;
 	}, 100);
 	onDestroy(() => clearInterval(link_intv));
 </script>
@@ -131,10 +132,10 @@
 			<button class="hoverable transparent_button" onclick={onattach}>
 				<img class="filter_icon_main" src={asset("icons/attachment.svg")}/>
 			</button>
-			<textarea class="item message_input_textarea" rows={textarea_rows}
-				bind:value
-				onkeyup={textarea_onkeyup}>
-			</textarea>
+			<div contenteditable="true" class="item message_input_div" id="message_input"
+				oninput={div_input}
+				onkeyup={div_onkeyup}>
+			</div>
 		</div>
 
 		<div style="display: flex; padding-top: 4px; flex-wrap: wrap">
@@ -168,7 +169,7 @@
 					onclick={() => links.splice(i, 1)}
 					style="left: inherit; right: 0px"
 					>
-						<img src={asset("icons/close.svg")} alt="remove attachment" class="filter_icon_main" style="width: 32px"/>
+						<img src={asset("icons/close.svg")} alt="remove link attachment" class="filter_icon_main" style="height: 28px"/>
 					</button>
 					<a href={link.content} class="link_attachment_line_limit"><b>{link.title}</b><br></a>
 					<div class="line_limit">{link.desc}</div>
@@ -218,9 +219,14 @@
 	background: var(--clr_bg_item);
 }
 
-.message_input_textarea {
+.message_input_div {
 	width: 100%;
 	resize: none;
+
+	max-height: 5lh;
+	overflow-y: scroll;
+
+	text-align: left;
 
 	border-color: var(--clr_border_item);
 	border-style: solid;
