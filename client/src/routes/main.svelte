@@ -180,7 +180,11 @@
 			profile_display_params.anchor = document.getElementById(message_id > -1
 						? "user_display_" + id + "_" + message_id
 						: "user_display_" + id);
-			profile_display_params.anchor_side_x = message_id > -1 ? "left" : "right";
+			if(!profile_display_params.anchor){
+				profile_display_params.user = null;
+				profile_display_params.anchor = null;
+			} else
+				profile_display_params.anchor_side_x = message_id > -1 ? "left" : "right";
 		} else {
 			profile_display_params.user = null;
 			profile_display_params.anchor = null;

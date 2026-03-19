@@ -8,7 +8,6 @@
 	import ContextMenuAction from '$lib/control/context_menu_action.svelte';
 	import MediaDisplay from '$lib/display/media.svelte';
 
-
 	let {user, server_roles,
 		anchor, anchor_side_x = "left",
 		hide_profile,
