@@ -40,6 +40,14 @@ config::config(){}
 	else if(!cfg[#param].is_null())\
 		throw std::logic_error{msg_type_error(#param, cfg, "string")};\
 }
+#define GET_PATH(param){\
+	if(cfg[#param].is_string())\
+		(param) = std::filesystem::path(cfg[#param].get<std::string>());\
+	else if(!cfg[#param].is_null())\
+		throw std::logic_error{msg_type_error(#param, cfg, "string")};\
+	std::filesystem::create_directories(param);\
+}
+
 #define GET_BOOL(param){\
 	if(cfg[#param].is_boolean())\
 		(param) = cfg[#param].get<bool>();\
@@ -78,9 +86,9 @@ config::config(std::ifstream& fd)
 		origins.push_back(og.get<std::string>());
 	}
 
-	GET_STRING(user_avatar_path)
-	GET_STRING(server_avatar_path)
-	GET_STRING(file_storage_path)
+	GET_PATH(user_avatar_path)
+	GET_PATH(server_avatar_path)
+	GET_PATH(file_storage_path)
 
 	GET_STRING(rtc_addr)
 	GET_UNSIGNED(rtc_port)
@@ -104,16 +112,11 @@ config::config(std::ifstream& fd)
 	GET_UNSIGNED(max_get_count)
 
 	GET_UNSIGNED(max_user_preference_keys)
-	GET_UNSIGNED(servers_owned_per_user)
+	GET_UNSIGNED(max_servers_owned_per_user)
 	GET_UNSIGNED(max_channels_per_server)
 	GET_UNSIGNED(max_roles_per_server)
 
 	GET_UNSIGNED(max_video_bitrate)
-
-	// create directories for file storage
-	std::filesystem::create_directories(user_avatar_path);
-	std::filesystem::create_directories(server_avatar_path);
-	std::filesystem::create_directories(file_storage_path);
 }
 
 std::string config::get_conn_str() const

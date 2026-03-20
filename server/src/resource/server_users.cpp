@@ -3,7 +3,8 @@
 #include "resource/role_utils.h"
 #include <unordered_map>
 
-server_users_resource::server_users_resource(db_connection_pool& pool) : base_resource(), pool{pool}
+server_users_resource::server_users_resource(webserver& ws, db_connection_pool& pool, const config& cfg):
+	base_resource(ws, "/servers/{server_id}/users", pool, cfg)
 {
 	set_allowing("GET", true);
 }
@@ -22,7 +23,7 @@ std::shared_ptr<http_response> server_users_resource::render_GET(const http_requ
 	err = resource_utils::parse_index(req, "start_id", start_id, 0);
 	if(err) return err;
 	int count;
-	err = resource_utils::parse_index(req, "count", count, 0, max_get_count);
+	err = resource_utils::parse_index(req, "count", count, 0, cfg.max_get_count);
 	if(err) return err;
 	std::string order;
 	err = resource_utils::parse_order(req, order);
@@ -54,7 +55,10 @@ std::shared_ptr<http_response> server_users_resource::render_GET(const http_requ
 	return create_response::string(req, res.dump(), 200);
 }
 
-server_user_id_resource::server_user_id_resource(db_connection_pool& pool, socket_main_server& sserv) : base_resource(), pool{pool}, sserv{sserv}
+server_user_id_resource::server_user_id_resource(webserver& ws, db_connection_pool& pool, const config& cfg,
+					socket_main_server& sserv):
+	base_resource(ws, "/servers/{server_id}/users/{server_user_id}", pool,  cfg),
+	sserv{sserv}
 {
 	set_allowing("GET", true);
 	set_allowing("DELETE", true);
@@ -119,7 +123,10 @@ std::shared_ptr<http_response> server_user_id_resource::render_DELETE(const http
 	return create_response::string(req, "Kicked", 200);
 }
 
-server_user_role_id_resource::server_user_role_id_resource(db_connection_pool& pool, socket_main_server& sserv) : base_resource(), pool{pool}, sserv{sserv}
+server_user_role_id_resource::server_user_role_id_resource(webserver& ws, db_connection_pool& pool, const config& cfg,
+					socket_main_server& sserv):
+	base_resource(ws, "/servers/{server_id}/users/{server_user_id}/roles/{server_role_id}", pool, cfg),
+	sserv{sserv}
 {
 	set_allowing("POST", true);
 	set_allowing("DELETE", true);

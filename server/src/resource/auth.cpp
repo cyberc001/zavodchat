@@ -2,10 +2,10 @@
 #include <resource/utils.h>
 #include <resource/file_utils.h>
 
-auth_resource::auth_resource(db_connection_pool& pool): base_resource(), pool{pool}
+auth_resource::auth_resource(webserver& ws, db_connection_pool& pool, const config& cfg):
+	base_resource(ws, "/auth", pool, cfg)
 {
-	session_time_thr = std::thread(auth_resource::session_time_func, std::ref(*this));
-	
+	session_time_thr = std::thread(auth_resource::session_time_func, std::ref(*this));	
 	set_allowing("POST", true);
 }
 
@@ -42,16 +42,16 @@ std::shared_ptr<http_response> auth_resource::render_POST(const http_request& re
 
 	session_token token = create_session(user_id, tx);
 	auto res = create_response::string(req, token, 200);
-	res->with_cookie("zavodchat_token", token + "; Max-Age=" + std::to_string(session_lifetime) + "; SameSite=None; Secure;");
+	res->with_cookie("zavodchat_token", token + "; Max-Age=" + std::to_string(cfg.session_lifetime) + "; SameSite=None; Secure;");
 	return res;
 }
 
 session_token auth_resource::create_session(int user_id, pqxx::work& tx)
 {
 	pqxx::result r = tx.exec("SELECT user_id FROM sessions WHERE user_id = $1", pqxx::params(user_id));
-	if(r.size() >= sessions_per_user)
+	if(r.size() >= cfg.sessions_per_user)
 		tx.exec("DELETE FROM sessions WHERE token IN (SELECT token FROM sessions WHERE user_id = $1 ORDER BY expiration_time LIMIT 1)", pqxx::params(user_id));
-	r = tx.exec("INSERT INTO sessions(token, user_id, expiration_time) VALUES(gen_random_uuid(), $1, now() + ($2 * interval '1 second')) RETURNING token", pqxx::params(user_id, session_lifetime));
+	r = tx.exec("INSERT INTO sessions(token, user_id, expiration_time) VALUES(gen_random_uuid(), $1, now() + ($2 * interval '1 second')) RETURNING token", pqxx::params(user_id, cfg.session_lifetime));
 	tx.commit();
 	return r[0]["token"].as<session_token>();
 }
@@ -63,11 +63,13 @@ void auth_resource::session_time_func(auth_resource& inst)
 		pqxx::work tx{*conn};
 		tx.exec("DELETE FROM sessions WHERE expiration_time < now()");
 		tx.commit();
-		std::this_thread::sleep_for(std::chrono::seconds(inst.cleanup_period));
+		std::this_thread::sleep_for(std::chrono::seconds(inst.cfg.cleanup_period));
 	}
 }
 
-register_resource::register_resource(db_connection_pool& pool, socket_main_server& sserv): base_resource(), pool{pool}, sserv{sserv}
+register_resource::register_resource(webserver& ws, db_connection_pool& pool, const config& cfg,
+				socket_main_server& sserv):
+	base_resource(ws, "/register", pool, cfg), sserv{sserv}
 {
 	set_allowing("PUT", true);
 	set_allowing("POST", true);
@@ -91,10 +93,10 @@ std::shared_ptr<http_response> register_resource::render_POST(const http_request
 		    displayname = body["displayname"].get<std::string>(),
 		    password = body["password"].get<std::string>();
 
-	if(username.size() < min_username_length)
-		return create_response::string(req, "Username is shorter than " + std::to_string(min_username_length) + " characters", 400);
-	if(password.size() < min_password_length)
-		return create_response::string(req, "Password is shorter than " + std::to_string(min_password_length) + " characters", 400);
+	if(username.size() < cfg.min_username_length)
+		return create_response::string(req, "Username is shorter than " + std::to_string(cfg.min_username_length) + " characters", 400);
+	if(password.size() < cfg.min_password_length)
+		return create_response::string(req, "Password is shorter than " + std::to_string(cfg.min_password_length) + " characters", 400);
 
 	db_connection conn = pool.hold();
 	pqxx::work tx{*conn};
@@ -134,8 +136,8 @@ std::shared_ptr<http_response> register_resource::render_PUT(const http_request&
 	socket_event ev;
 	if(args.find(std::string_view("username")) != args.end()){
 		std::string username = args["username"];
-		if(username.size() < min_username_length)
-			return create_response::string(req, "Username is shorter than " + std::to_string(min_username_length) + " characters", 400);
+		if(username.size() < cfg.min_username_length)
+			return create_response::string(req, "Username is shorter than " + std::to_string(cfg.min_username_length) + " characters", 400);
 		try{
 			tx.exec("UPDATE auth SET username = $1 WHERE user_id = $2", pqxx::params(username, user_id));
 		} catch(pqxx::data_exception& e){
@@ -146,8 +148,8 @@ std::shared_ptr<http_response> register_resource::render_PUT(const http_request&
 	}
 	if(args.find(std::string_view("password")) != args.end()){
 		std::string password = args["password"];
-		if(password.size() < min_password_length)
-			return create_response::string(req, "Password is shorter than " + std::to_string(min_password_length) + " characters", 400);
+		if(password.size() < cfg.min_password_length)
+			return create_response::string(req, "Password is shorter than " + std::to_string(cfg.min_password_length) + " characters", 400);
 
 		try{
 			tx.exec("UPDATE auth SET password = crypt($1, gen_salt('bf')) WHERE user_id = $2", pqxx::params(password, user_id));
@@ -168,7 +170,7 @@ std::shared_ptr<http_response> register_resource::render_PUT(const http_request&
 	}
 	if(args.find(std::string_view("avatar")) != args.end()){
 		std::string fname;
-		err = file_utils::parse_user_avatar(req, "avatar", user_id, fname);
+		err = file_utils::parse_avatar(req, "avatar", user_id, cfg.user_avatar_path, fname);
 		if(err)
 			return err;
 		tx.exec("UPDATE users SET avatar = $1 WHERE user_id = $2", pqxx::params(fname, user_id));

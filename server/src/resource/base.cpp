@@ -6,10 +6,11 @@
 
 size_t base_resource::response_delay = 0;
 
-base_resource::base_resource()
+base_resource::base_resource(webserver& ws, std::string ws_route, db_connection_pool& pool, const config& cfg): pool{pool}, cfg{cfg}
 {
 	disallow_all();
 	set_allowing("OPTIONS", true);
+	ws.register_resource(ws_route, this);
 }
 
 std::shared_ptr<http_response> base_resource::render_OPTIONS(const http_request& req)

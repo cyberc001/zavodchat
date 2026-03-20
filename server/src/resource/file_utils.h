@@ -8,25 +8,19 @@
 class file_utils
 {
 public:
-	/* CONFIG PARAMETERS */
-	static std::string 	// avatars, indefinite storage but 1 image per user/server
-				user_avatar_storage_path,
-				server_avatar_storage_path,
-				// files, limited space per user
-				file_storage_path;
 	static size_t file_storage_size;
+	static std::filesystem::path file_storage_path;
 
 	// Return an error if the file is bigger than the file size limit, cannot be parsed, or is not an image
-	static std::shared_ptr<http_response> parse_user_avatar(const http_request&, std::string arg_name,
-								int user_id, std::string& out_fname);
-	static std::shared_ptr<http_response> parse_server_avatar(const http_request&, std::string arg_name,
-								int server_id, std::string& out_fname);
+	static std::shared_ptr<http_response> parse_avatar(const http_request&, std::string arg_name,
+								int user_id, std::filesystem::path storage_path,
+								std::string& out_fname);
 
 	static std::string generate_fname(size_t sz = 32);
 	static void save_file(const std::string_view& fraw, std::string fpath);
-	static void save_file_aliased(const std::string_view& fraw, std::string path, std::string ext,
+	static void save_file_aliased(const std::string_view& fraw, std::filesystem::path path, std::string ext,
 							int id, std::string& out_fname);
-	static void delete_file_aliased(std::string path, int id, std::string ext);
+	static void delete_file_aliased(std::filesystem::path path, int id, std::string ext);
 
 	static void fs_add_busy(pqxx::work& tx, int user_id, size_t bytes);
 	static void fs_sub_busy(pqxx::work& tx, int user_id, size_t bytes);

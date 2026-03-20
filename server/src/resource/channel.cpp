@@ -2,7 +2,10 @@
 #include "resource/utils.h"
 #include "resource/role_utils.h"
 
-server_channel_resource::server_channel_resource(db_connection_pool& pool, socket_main_server& sserv, socket_vc_server& vcserv): base_resource(), pool{pool}, sserv{sserv}, vcserv{vcserv}
+server_channel_resource::server_channel_resource(webserver& ws, db_connection_pool& pool, const config& cfg,
+					socket_main_server& sserv, socket_vc_server& vcserv):
+	base_resource(ws, "/servers/{server_id}/channels", pool, cfg),
+	sserv{sserv}, vcserv{vcserv}
 {
 	set_allowing("GET", true);
 	set_allowing("POST", true);
@@ -51,8 +54,8 @@ std::shared_ptr<http_response> server_channel_resource::render_POST(const http_r
 	if(err) return err;
 
 	pqxx::result r = tx.exec("SELECT channel_id, name, type FROM channels WHERE server_id = $1", pqxx::params(server_id));
-	if(r.size() >= max_per_server)
-		return create_response::string(req, "Server has more than " + std::to_string(max_per_server) + " channels", 403);
+	if(r.size() >= cfg.max_channels_per_server)
+		return create_response::string(req, "Server has more than " + std::to_string(cfg.max_channels_per_server) + " channels", 403);
 
 	int channel_id;
 	socket_event ev;
@@ -72,7 +75,10 @@ std::shared_ptr<http_response> server_channel_resource::render_POST(const http_r
 	return create_response::string(req, std::to_string(channel_id), 200);
 }
 
-channel_resource::channel_resource(db_connection_pool& pool, socket_main_server& sserv, socket_vc_server& vcserv): base_resource(), pool{pool}, sserv{sserv}, vcserv{vcserv}
+channel_resource::channel_resource(webserver& ws, db_connection_pool& pool, const config& cfg,
+				socket_main_server& sserv, socket_vc_server& vcserv):
+	base_resource(ws, "/channels/{channel_id}", pool, cfg),
+	sserv{sserv}, vcserv{vcserv}
 {
 	set_allowing("GET", true);
 	set_allowing("PUT", true);

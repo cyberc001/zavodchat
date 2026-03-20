@@ -1,7 +1,6 @@
 #ifndef USER_STATUS_H
 #define USER_STATUS_H
 
-#include "db/conn_pool.h"
 #include "socket/main_server.h"
 #include <resource/base.h>
 
@@ -16,12 +15,12 @@
 class user_status_resource : public base_resource
 {
 public:
-	user_status_resource(db_connection_pool& pool, socket_main_server& sserv);
+	user_status_resource(webserver& ws, db_connection_pool& pool, const config& cfg,
+				socket_main_server& sserv);
 
 	std::shared_ptr<http_response> render_PUT(const http_request&);
 
 private:
-	db_connection_pool& pool;
 	socket_main_server& sserv;
 };
 

@@ -19,7 +19,6 @@ export default class Message {
 			cache_id.push(key);
 			cache_id.push(params[key]);
 		}
-		console.log("GET_SEARCH_RANGE", cache_id, params);
 		return Message.message_range_cache.get_state(cache_id,
 			start_id, count,
 			(tree, start_id, count, asc) => {
@@ -31,8 +30,8 @@ export default class Message {
 	}
 
 
-	static send(channel_id, text, _then, _catch){
-		Rest.post("!Sending message", "channels/" + channel_id + "/messages", text,
+	static send(channel_id, data, _then, _catch){
+		Rest.post("!Sending message", "channels/" + channel_id + "/messages", data,
 			(res) => {_then(res.data)}, _catch);
 	}
 	static edit(message_id, text, _then, _catch){

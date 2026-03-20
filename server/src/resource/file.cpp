@@ -2,7 +2,10 @@
 #include "resource/utils.h"
 #include "resource/file_utils.h"
 
-file_resource::file_resource(std::filesystem::path storage_path): base_resource(), storage_path{storage_path}
+file_resource::file_resource(webserver& ws, std::string ws_route, db_connection_pool& pool, const config& cfg,
+		std::filesystem::path storage_path):
+	base_resource(ws, ws_route, pool, cfg),
+	storage_path{storage_path}
 {
 	set_allowing("GET", true);
 }
@@ -14,7 +17,8 @@ std::shared_ptr<http_response> file_resource::render_GET(const http_request& req
 	return res;
 }
 
-server_file_put_resource::server_file_put_resource(db_connection_pool& pool, std::filesystem::path storage_path): base_resource(), pool{pool}, storage_path{storage_path}
+server_file_put_resource::server_file_put_resource(webserver& ws, db_connection_pool& pool, const config& cfg):
+	base_resource(ws, "/files/upload", pool, cfg)
 {
 	set_allowing("POST", true);
 }
@@ -39,15 +43,16 @@ std::shared_ptr<http_response> server_file_put_resource::render_POST(const http_
 	if(err) return err;
 
 	std::string fname = file_utils::generate_fname() + "." + std::string(ext);
-	std::filesystem::create_directories(storage_path / std::to_string(user_id));
-	file_utils::save_file(fraw, storage_path / std::to_string(user_id) / fname);
+	std::filesystem::create_directories(cfg.file_storage_path / std::to_string(user_id));
+	file_utils::save_file(fraw, cfg.file_storage_path / std::to_string(user_id) / fname);
 
 	file_utils::fs_add_busy(tx, user_id, fraw.size());
 	return create_response::string(req, fname, 200);
 }
 
 
-server_file_manage_resource::server_file_manage_resource(db_connection_pool& pool, std::filesystem::path storage_path): base_resource(), pool{pool}, storage_path{storage_path}
+server_file_manage_resource::server_file_manage_resource(webserver& ws, db_connection_pool& pool, const config& cfg):
+	base_resource(ws, "/files/upload/{fname}", pool, cfg)
 {
 	set_allowing("DELETE", true);
 }
@@ -61,9 +66,8 @@ std::shared_ptr<http_response> server_file_manage_resource::render_DELETE(const 
 	if(err) return err;
 
 	std::string_view fname = req.get_arg("fname");
-	//fname = fname.substr(0, fname.find_last_of('.'));
 
-	std::filesystem::path fpath = storage_path / std::to_string(user_id) / fname;
+	std::filesystem::path fpath = cfg.file_storage_path / std::to_string(user_id) / fname;
 	if(!std::filesystem::exists(fpath))
 		return create_response::string(req, "File does not exist", 404);
 
@@ -73,7 +77,8 @@ std::shared_ptr<http_response> server_file_manage_resource::render_DELETE(const 
 	return create_response::string(req, "Deleted", 200);
 }
 
-server_user_file_resource::server_user_file_resource(db_connection_pool& pool, std::filesystem::path storage_path): base_resource(), pool{pool}, storage_path{storage_path}
+server_user_file_resource::server_user_file_resource(webserver& ws, db_connection_pool& pool, const config& cfg):
+	base_resource(ws, "/files/upload/{user_id}/{fname}", pool, cfg)
 {
 	set_allowing("GET", true);
 }
@@ -88,6 +93,6 @@ std::shared_ptr<http_response> server_user_file_resource::render_GET(const http_
 	if(err) return err;
 
 	std::string_view fname = req.get_arg("fname");
-	return create_response::file(req, storage_path / std::to_string(author_id) / fname);
+	return create_response::file(req, cfg.file_storage_path / std::to_string(author_id) / fname);
 }
 

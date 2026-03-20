@@ -3,7 +3,8 @@
 
 #include <nlohmann/json.hpp>
 
-params_resource::params_resource(config& cfg): cfg(cfg)
+params_resource::params_resource(webserver& ws, db_connection_pool& pool, const config& cfg):
+	base_resource(ws, "/params", pool, cfg)
 {
 	set_allowing("GET", true);
 }
@@ -19,7 +20,7 @@ std::shared_ptr<http_response> params_resource::render_GET(const http_request& r
 		{"max_attachments", cfg.max_attachments},
 		{"max_get_count", cfg.max_get_count},
 		{"max_user_preference_keys", cfg.max_user_preference_keys},
-		{"servers_owned_per_user", cfg.servers_owned_per_user},
+		{"max_servers_owned_per_user", cfg.max_servers_owned_per_user},
 		{"max_channels_per_server", cfg.max_channels_per_server},
 		{"max_roles_per_server", cfg.max_roles_per_server},
 		{"max_video_bitrate", cfg.max_video_bitrate}

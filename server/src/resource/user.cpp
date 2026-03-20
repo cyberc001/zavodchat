@@ -3,7 +3,8 @@
 
 #include <iostream>
 
-user_id_resource::user_id_resource(db_connection_pool& pool) : base_resource(), pool{pool}
+user_id_resource::user_id_resource(webserver& ws, db_connection_pool& pool, const config& cfg):
+	base_resource(ws, "/users/{user_id}", pool, cfg)
 {
 	set_allowing("GET", true);
 }

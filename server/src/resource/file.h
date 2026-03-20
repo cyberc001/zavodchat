@@ -5,12 +5,14 @@
 #include <resource/base.h>
 
 // generic http resource that allows read-only file access
+// currently used for server and user avatars
 class file_resource : public base_resource
 {
 public:
-	file_resource(std::filesystem::path storage_path);
+	file_resource(webserver& ws, std::string ws_route, db_connection_pool& pool, const config& cfg,
+			std::filesystem::path storage_path);
 
-	virtual std::shared_ptr<http_response> render_GET(const http_request&); // returns args[fname] binary data if present
+	std::shared_ptr<http_response> render_GET(const http_request&); // returns args[fname] binary data if present
 private:
 	std::filesystem::path storage_path;
 };
@@ -21,37 +23,26 @@ private:
 class server_file_put_resource : public base_resource // no args
 {
 public:
-	server_file_put_resource(db_connection_pool& pool, std::filesystem::path storage_path);
+	server_file_put_resource(webserver& ws, db_connection_pool& pool, const config& cfg);
 
 	std::shared_ptr<http_response> render_POST(const http_request&); // uploads a file in flat_args[file] with extension from args[ext]
 
-	size_t max_ext_size = 10; // not included in config
-private:
-	std::filesystem::path storage_path;
-	db_connection_pool& pool;
+	const size_t max_ext_size = 10; // not included in config
 };
 class server_file_manage_resource : public base_resource // {fname}
 {
 public:
-	server_file_manage_resource(db_connection_pool& pool, std::filesystem::path storage_path);
+	server_file_manage_resource(webserver& ws, db_connection_pool& pool, const config& cfg);
 
 	std::shared_ptr<http_response> render_DELETE(const http_request&);
-
-	size_t max_ext_size = 10; // not included in config
-private:
-	std::filesystem::path storage_path;
-	db_connection_pool& pool;
 };
 
 class server_user_file_resource : public base_resource // {user_id} {fname}
 {
 public:
-	server_user_file_resource(db_connection_pool& pool, std::filesystem::path storage_path);
+	server_user_file_resource(webserver& ws, db_connection_pool& pool, const config& cfg);
 
 	std::shared_ptr<http_response> render_GET(const http_request&);
-private:
-	std::filesystem::path storage_path;
-	db_connection_pool& pool;
 };
 
 #endif

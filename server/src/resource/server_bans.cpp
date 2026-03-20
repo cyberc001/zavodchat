@@ -2,10 +2,10 @@
 #include "resource/utils.h"
 #include "resource/role_utils.h"
 
-server_bans_resource::server_bans_resource(db_connection_pool& pool) : base_resource(), pool{pool}
+server_bans_resource::server_bans_resource(webserver& ws, db_connection_pool& pool, const config& cfg):
+	base_resource(ws, "/servers/{server_id}/bans", pool, cfg)
 {
 	ban_time_thr = std::thread(server_bans_resource::ban_time_func, std::ref(*this));
-
 	set_allowing("GET", true);
 }
 
@@ -26,7 +26,7 @@ std::shared_ptr<http_response> server_bans_resource::render_GET(const http_reque
 	err = resource_utils::parse_index(req, "start_id", start_id, 0);
 	if(err) return err;
 	int count;
-	err = resource_utils::parse_index(req, "count", count, 0, max_get_count);
+	err = resource_utils::parse_index(req, "count", count, 0, cfg.max_get_count);
 	if(err) return err;
 	std::string order;
 	err = resource_utils::parse_order(req, order);
@@ -47,12 +47,15 @@ void server_bans_resource::ban_time_func(server_bans_resource& inst)
 		pqxx::work tx{*conn};
 		tx.exec("DELETE FROM server_bans WHERE expiration_time IS NOT NULL AND expiration_time < now()");
 		tx.commit();
-		std::this_thread::sleep_for(std::chrono::seconds(inst.cleanup_period));
+		std::this_thread::sleep_for(std::chrono::seconds(inst.cfg.cleanup_period));
 	}
 }
 
 
-server_ban_id_resource::server_ban_id_resource(db_connection_pool& pool, socket_main_server& sserv) : base_resource(), pool{pool}, sserv{sserv}
+server_ban_id_resource::server_ban_id_resource(webserver& ws, db_connection_pool& pool, const config& cfg,
+				socket_main_server& sserv):
+	base_resource(ws, "/servers/{server_id}/bans/{server_ban_id}", pool, cfg),
+	sserv{sserv}
 {
 	set_allowing("POST", true);
 	set_allowing("PUT", true);

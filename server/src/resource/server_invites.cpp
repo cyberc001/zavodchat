@@ -2,7 +2,10 @@
 #include "resource/utils.h"
 #include "resource/role_utils.h"
 
-server_invites_resource::server_invites_resource(db_connection_pool& pool, socket_main_server& sserv): base_resource(), pool{pool}, sserv{sserv}
+server_invites_resource::server_invites_resource(webserver& ws, db_connection_pool& pool, const config& cfg,
+				socket_main_server& sserv):
+	base_resource(ws, "/server_invites/{invite_id}", pool, cfg),
+	sserv{sserv}
 {
 	invite_time_thr = std::thread(server_invites_resource::invite_time_func, std::ref(*this));
 
@@ -74,12 +77,13 @@ void server_invites_resource::invite_time_func(server_invites_resource& inst)
 		pqxx::work tx{*conn};
 		tx.exec("DELETE FROM server_invites WHERE expiration_time IS NOT NULL AND expiration_time < now()");
 		tx.commit();
-		std::this_thread::sleep_for(std::chrono::seconds(inst.cleanup_period));
+		std::this_thread::sleep_for(std::chrono::seconds(inst.cfg.cleanup_period));
 	}
 }
 
 
-server_id_invites_resource::server_id_invites_resource(db_connection_pool& pool): base_resource(), pool{pool}
+server_id_invites_resource::server_id_invites_resource(webserver& ws, db_connection_pool& pool, const config& cfg):
+	base_resource(ws, "/servers/{server_id}/invites", pool, cfg)
 {
 	set_allowing("GET", true);
 	set_allowing("POST", true);
@@ -120,8 +124,8 @@ std::shared_ptr<http_response> server_id_invites_resource::render_POST(const htt
 	if(err) return err;
 	
 	pqxx::result r = tx.exec("SELECT server_id FROM server_invites WHERE server_id = $1", pqxx::params(server_id));
-	if(r.size() >= max_per_server)
-		return create_response::string(req, "Server has more than " + std::to_string(max_per_server) + " invites", 403);
+	if(r.size() >= cfg.max_invites_per_server)
+		return create_response::string(req, "Server has more than " + std::to_string(cfg.max_invites_per_server) + " invites", 403);
 
 	std::string expires;
 	err = resource_utils::parse_timestamp(req, "expires", expires);
@@ -137,7 +141,8 @@ std::shared_ptr<http_response> server_id_invites_resource::render_POST(const htt
 }
 
 
-server_invite_id_resource::server_invite_id_resource(db_connection_pool& pool): base_resource(), pool{pool}
+server_invite_id_resource::server_invite_id_resource(webserver& ws, db_connection_pool& pool, const config& cfg):
+	base_resource(ws, "/servers/{server_id}/invites/{invite_id}", pool, cfg)
 {
 	set_allowing("GET", true);
 	set_allowing("PUT", true);

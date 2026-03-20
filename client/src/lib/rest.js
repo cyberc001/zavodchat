@@ -71,7 +71,7 @@ export default class Rest {
 				query += (i == 0 ? "?" : "&") + params[i] + "=" + params[i + 1];
 		return query;
 	}
-	static get_headers(params)
+	static get_headers(params, content)
 	{
 		if(params.length > 0 && typeof params[0] === "object"){
 			let headers = params[0];
@@ -95,7 +95,7 @@ export default class Rest {
 	static post(msg, route, content, _then, _catch, ...params)
 	{
 		let reqi = Notifs.add_notif(msg, Notifs.Types.Ongoing);
-		let headers = Rest.get_headers(params);
+		let headers = Rest.get_headers(params, content);
 		axios.post(PUBLIC_BASE_REST + route + Rest.params_to_query(params),
 				content, headers)
 			.then((data) => {
@@ -112,7 +112,7 @@ export default class Rest {
 	static put(msg, route, content, _then, _catch, ...params)
 	{
 		let reqi = Notifs.add_notif(msg, Notifs.Types.Ongoing);
-		let headers = Rest.get_headers(params);
+		let headers = Rest.get_headers(params, content);
 		axios.put(PUBLIC_BASE_REST + route + Rest.params_to_query(params),
 				content, headers)
 			.then((data) => {

@@ -6,11 +6,8 @@
 
 #include <iostream>
 
-std::string file_utils::user_avatar_storage_path = "/data/avatar/user/";
-std::string file_utils::server_avatar_storage_path = "/data/avatar/server/";
-std::string file_utils::file_storage_path = "/data/upload/";
-
 size_t file_utils::file_storage_size = 1024 * 100;
+std::filesystem::path file_utils::file_storage_path = "/data/upload/";
 
 std::string file_utils::get_image_ext(const std::string_view& fraw)
 {
@@ -35,25 +32,27 @@ void file_utils::save_file(const std::string_view& fraw, std::string fpath)
 	std::ofstream fd(fpath);
 	fd.write(fraw.data(), fraw.size());
 }
-void file_utils::save_file_aliased(const std::string_view& fraw, std::string path, std::string ext,
+void file_utils::save_file_aliased(const std::string_view& fraw, std::filesystem::path path, std::string ext,
 					int id, std::string& out_fname)
 {
 	std::string alias_fname = std::to_string(id) + "." + ext;
-	if(std::filesystem::exists(path + alias_fname)){
-		std::filesystem::remove(std::filesystem::read_symlink(path + alias_fname));
-		std::filesystem::remove(path + alias_fname);
+	std::filesystem::path alias_fpath = path / alias_fname;
+	if(std::filesystem::exists(alias_fpath)){
+		std::filesystem::remove(std::filesystem::read_symlink(alias_fpath));
+		std::filesystem::remove(alias_fpath);
 	}
 
 	out_fname = generate_fname() + "." + ext;
-	save_file(fraw, path + out_fname);
-	std::filesystem::create_symlink(out_fname, path + alias_fname);
+	save_file(fraw, path / out_fname);
+	std::filesystem::create_symlink(out_fname, alias_fpath);
 }
-void file_utils::delete_file_aliased(std::string path, int id, std::string ext)
+void file_utils::delete_file_aliased(std::filesystem::path path, int id, std::string ext)
 {
 	std::string alias_fname = std::to_string(id) + "." + ext;
-	if(std::filesystem::exists(path + alias_fname)){
-		std::filesystem::remove(path / std::filesystem::read_symlink(path + alias_fname));
-		std::filesystem::remove(path + alias_fname);
+	std::filesystem::path alias_fpath = path / alias_fname;
+	if(std::filesystem::exists(alias_fpath)){
+		std::filesystem::remove(path / std::filesystem::read_symlink(alias_fpath));
+		std::filesystem::remove(alias_fpath);
 	}
 }
 
@@ -71,24 +70,15 @@ std::string file_utils::generate_fname(size_t sz)
 }
 
 
-std::shared_ptr<http_response> file_utils::parse_user_avatar(const http_request& req, std::string arg_name,
-								int id, std::string& out_fname)
+std::shared_ptr<http_response> file_utils::parse_avatar(const http_request& req, std::string arg_name,
+								int id, std::filesystem::path storage_path,
+								std::string& out_fname)
 {
 	std::string_view fraw = req.get_arg_flat(arg_name);
 	std::string ext = get_image_ext(fraw);
 	if(!ext.size())
 		return create_response::string(req, "Image has invalid format", 400);
-	save_file_aliased(fraw, user_avatar_storage_path, ext, id, out_fname);
-	return nullptr;
-}
-std::shared_ptr<http_response> file_utils::parse_server_avatar(const http_request& req, std::string arg_name,
-								int id, std::string& out_fname)
-{
-	std::string_view fraw = req.get_arg_flat(arg_name);
-	std::string ext = get_image_ext(fraw);
-	if(!ext.size())
-		return create_response::string(req, "Image has invalid format", 400);
-	save_file_aliased(fraw, server_avatar_storage_path, ext, id, out_fname);
+	save_file_aliased(fraw, storage_path, ext, id, out_fname);
 	return nullptr;
 }
 

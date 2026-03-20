@@ -5,7 +5,10 @@
 
 #include <iostream>
 
-server_roles_resource::server_roles_resource(db_connection_pool& pool, socket_main_server& sserv) : base_resource(), pool{pool}, sserv{sserv}
+server_roles_resource::server_roles_resource(webserver& ws, db_connection_pool& pool, const config& cfg,
+						socket_main_server& sserv):
+	base_resource(ws, "/servers/{server_id}/roles", pool, cfg),
+	sserv{sserv}
 {
 	set_allowing("GET", true);
 	set_allowing("PUT", true);
@@ -57,8 +60,8 @@ std::shared_ptr<http_response> server_roles_resource::render_PUT(const http_requ
 	// Validate array
 	if(!list.is_array())
 		return create_response::string(req, "Content should be a JSON array", 400);
-	if(list.size() >= max_per_server)
-		return create_response::string(req, "Server has more than " + std::to_string(max_per_server) + " roles", 403);
+	if(list.size() >= cfg.max_roles_per_server)
+		return create_response::string(req, "Server has more than " + std::to_string(cfg.max_roles_per_server) + " roles", 403);
 	for(nlohmann::json::iterator i = list.begin(); i != list.end(); ++i){
 		err = role_utils::check_role_json(req, *i);
 		if(err) return err;

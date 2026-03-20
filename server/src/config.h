@@ -1,6 +1,7 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
+#include <filesystem>
 #include <string>
 #include <vector>
 #include <fstream>
@@ -24,9 +25,9 @@ public:
 
 	size_t response_delay = 0;
 
-	std::string user_avatar_path = "/data/avatar/user/",
-			server_avatar_path = "/data/avatar/server/",
-			file_storage_path = "/data/upload/";
+	std::filesystem::path user_avatar_path = "/data/avatar/user/",
+				server_avatar_path = "/data/avatar/server/",
+				file_storage_path = "/data/upload/";
 
 	unsigned min_username_length = 2;
 	unsigned min_password_length = 8;
@@ -42,9 +43,11 @@ public:
 	unsigned max_get_count = 50;
 
 	unsigned max_user_preference_keys = 128;
-	unsigned servers_owned_per_user = 10;
+
+	unsigned max_servers_owned_per_user = 10;
 	unsigned max_channels_per_server = 50;
 	unsigned max_roles_per_server = 50;
+	unsigned max_invites_per_server = 50;
 
 	unsigned max_video_bitrate = 10240000;
 

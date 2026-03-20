@@ -2,7 +2,8 @@
 #include <resource/utils.h>
 #include <unordered_set>
 
-preferences_resource::preferences_resource(db_connection_pool& pool): base_resource(), pool{pool}
+preferences_resource::preferences_resource(webserver& ws, db_connection_pool& pool, const config& cfg):
+	base_resource(ws, "/preferences", pool, cfg)
 {
 	set_allowing("GET", true);
 	set_allowing("PUT", true);
@@ -53,8 +54,8 @@ std::shared_ptr<http_response> preferences_resource::render_PUT(const http_reque
 		if(keys.count(it.key()))
 			tx.exec("UPDATE user_preferences SET value = $3 WHERE user_id = $1 AND key = $2", pqxx::params(user_id, it.key(), json_value_string(it.value())));
 		else {
-			if(keys.size() >= keys_per_user)
-				return create_response::string(req, "Amount of pairs is bigger than " + std::to_string(keys_per_user), 400);
+			if(keys.size() >= cfg.max_user_preference_keys)
+				return create_response::string(req, "Amount of pairs is bigger than " + std::to_string(cfg.max_user_preference_keys), 400);
 			keys.insert(it.key());
 			tx.exec("INSERT INTO user_preferences(user_id, key, value) VALUES($1, $2, $3)", pqxx::params(user_id, it.key(), json_value_string(it.value())));
 		}
@@ -77,8 +78,8 @@ std::shared_ptr<http_response> preferences_resource::render_POST(const http_requ
 	nlohmann::json new_prefs;
 	err = resource_utils::json_from_content(req, new_prefs);
 	if(err) return err;
-	if(new_prefs.size() > keys_per_user)
-		return create_response::string(req, "Amount of pairs is bigger than " + std::to_string(keys_per_user), 400);
+	if(new_prefs.size() > cfg.max_user_preference_keys)
+		return create_response::string(req, "Amount of pairs is bigger than " + std::to_string(cfg.max_user_preference_keys), 400);
 
 	tx.exec("DELETE FROM user_preferences WHERE user_id = $1", pqxx::params(user_id));
 	try {

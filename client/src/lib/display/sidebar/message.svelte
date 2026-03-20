@@ -86,7 +86,7 @@
 				File.upload(att.content, (res) => {
 					att.content = `/files/upload/${self_user.data.id}/${res.data}`;
 					if(--to_upload === 0)
-						_then(JSON.stringify(msg));
+						_then(msg);
 				},  _catch);
 		}
 
@@ -94,7 +94,7 @@
 			attachments.push(Util.object_from_object(link, ["type", "content"]));
 
 		if(!to_upload)
-			_then(JSON.stringify(msg));
+			_then(msg);
 	};
 
 	const sendMessage = () => {

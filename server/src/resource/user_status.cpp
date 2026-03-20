@@ -2,7 +2,10 @@
 #include <resource/utils.h>
 #include <socket/server.h>
 
-user_status_resource::user_status_resource(db_connection_pool& pool, socket_main_server& sserv): base_resource(), pool{pool}, sserv{sserv}
+user_status_resource::user_status_resource(webserver& ws, db_connection_pool& pool, const config& cfg,
+				socket_main_server& sserv):
+	base_resource(ws, "/user_status", pool, cfg),
+	sserv{sserv}
 {
 	set_allowing("PUT", true);
 }

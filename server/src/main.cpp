@@ -40,11 +40,8 @@ int main()
 		db_create_test(cfg.get_conn_str());
 	db_connection_pool pool{cfg.get_conn_str()};
 
-	file_utils::user_avatar_storage_path = cfg.user_avatar_path;
-	file_utils::server_avatar_storage_path = cfg.server_avatar_path;
 	file_utils::file_storage_path = cfg.file_storage_path;
 	file_utils::file_storage_size = cfg.file_storage_size;
-
 
 	base_resource::response_delay = cfg.response_delay;
 
@@ -59,92 +56,45 @@ int main()
 
 	create_response::set_origins(cfg.origins);
 
-	auth_resource auth(pool);
-	auth.session_lifetime = cfg.session_lifetime;
-	auth.cleanup_period = cfg.cleanup_period;
-	auth.sessions_per_user = cfg.sessions_per_user;
-	ws.register_resource("/auth", &auth);
-	register_resource _register(pool, sserv);
-	_register.min_username_length = cfg.min_username_length;
-	_register.min_password_length = cfg.min_password_length;
-	ws.register_resource("/register", &_register);
+	auth_resource auth(ws, pool, cfg);
+	register_resource _register(ws, pool, cfg, sserv);
 
-	server_resource server(pool);
-	server.owned_per_user = cfg.servers_owned_per_user;
-	ws.register_resource("/servers", &server);
-	server_id_resource server_id(pool, sserv);
-	server_id.owned_per_user = cfg.servers_owned_per_user;
-	ws.register_resource("/servers/{server_id}", &server_id);
+	server_resource server(ws, pool, cfg);
+	server_id_resource server_id(ws, pool, cfg, sserv);
 
-	server_users_resource server_users(pool);
-	server_users.max_get_count = cfg.max_get_count;
-	ws.register_resource("/servers/{server_id}/users", &server_users);
-	server_user_id_resource server_user_id(pool, sserv);
-	ws.register_resource("/servers/{server_id}/users/{server_user_id}", &server_user_id);
-	server_user_role_id_resource server_user_role_id(pool, sserv);
-	ws.register_resource("/servers/{server_id}/users/{server_user_id}/roles/{server_role_id}", &server_user_role_id);
+	server_users_resource server_users(ws, pool, cfg);
+	server_user_id_resource server_user_id(ws, pool, cfg, sserv);
+	server_user_role_id_resource server_user_role_id(ws, pool, cfg, sserv);
 
-	server_channel_resource server_channels(pool, sserv, vcserv);
-	server_channels.max_per_server = cfg.max_channels_per_server;
-	ws.register_resource("/servers/{server_id}/channels", &server_channels);
-	channel_resource channel(pool, sserv, vcserv);
-	ws.register_resource("/channels/{channel_id}", &channel);
+	server_channel_resource server_channels(ws, pool, cfg, sserv, vcserv);
+	channel_resource channel(ws, pool, cfg, sserv, vcserv);
 
-	channel_messages_resource channel_messages(pool, sserv);
-	channel_messages.max_get_count = cfg.max_get_count;
-	channel_messages.max_attachments = cfg.max_attachments;
-	ws.register_resource("/channels/{channel_id}/messages", &channel_messages);
-	channel_messages_search_resource channel_messages_search(pool);
-	channel_messages_search.max_get_count = cfg.max_get_count;
-	ws.register_resource("/channels/{channel_id}/messages_search", &channel_messages_search);
-	message_resource message(pool, sserv);
-	message.max_attachments = cfg.max_attachments;
-	ws.register_resource("/messages/{message_id}", &message);
+	channel_messages_resource channel_messages(ws, pool, cfg, sserv);
+	channel_messages_search_resource channel_messages_search(ws, pool, cfg, sserv);
+	message_resource message(ws, pool, cfg, sserv);
+	
+	server_invites_resource server_invites(ws, pool, cfg, sserv);
+	server_id_invites_resource server_id_invites(ws, pool, cfg);
+	server_invite_id_resource server_invite_id(ws, pool, cfg);
 
-	server_invites_resource server_invites(pool, sserv);
-	server_invites.cleanup_period = cfg.cleanup_period;
-	ws.register_resource("/server_invites/{invite_id}", &server_invites);
-	server_id_invites_resource server_id_invites(pool);
-	ws.register_resource("/servers/{server_id}/invites", &server_id_invites);
-	server_invite_id_resource server_invite_id(pool);
-	ws.register_resource("/servers/{server_id}/invites/{invite_id}", &server_invite_id);
+	server_bans_resource server_bans(ws, pool, cfg);
+	server_ban_id_resource server_ban_id(ws, pool, cfg, sserv);
 
-	server_bans_resource server_bans(pool);
-	server_bans.max_get_count = cfg.max_get_count;
-	server_bans.cleanup_period = cfg.cleanup_period;
-	ws.register_resource("/servers/{server_id}/bans", &server_bans);
-	server_ban_id_resource server_ban_id(pool, sserv);
-	ws.register_resource("/servers/{server_id}/bans/{server_ban_id}", &server_ban_id);
+	user_id_resource user_id(ws, pool, cfg);
+	user_status_resource user_status(ws, pool, cfg, sserv);
 
-	user_id_resource user_id(pool);
-	ws.register_resource("/users/{user_id}", &user_id);
+	server_roles_resource server_roles(ws, pool, cfg, sserv);
 
-	user_status_resource user_status(pool, sserv);
-	ws.register_resource("/user_status", &user_status);
+	file_resource user_avatars(ws, "/files/avatar/user/{fname}", pool, cfg, cfg.user_avatar_path);
+	file_resource server_avatars(ws, "/files/avatar/server/{fname}", pool, cfg, cfg.server_avatar_path);
 
-	server_roles_resource server_roles(pool, sserv);
-	server_roles.max_per_server = cfg.max_roles_per_server;
-	ws.register_resource("/servers/{server_id}/roles", &server_roles);
+	server_file_put_resource server_file_put(ws, pool, cfg);
+	server_file_manage_resource server_file_manage(ws, pool, cfg);
+	server_user_file_resource server_user_file(ws, pool, cfg);
 
-	file_resource user_avatars(cfg.user_avatar_path);
-	ws.register_resource("/files/avatar/user/{fname}", &user_avatars);
-	file_resource server_avatars(cfg.server_avatar_path);
-	ws.register_resource("/files/avatar/server/{fname}", &server_avatars);
+	preferences_resource preferences(ws, pool, cfg);
 
-	server_file_put_resource server_file_put(pool, cfg.file_storage_path);
-	ws.register_resource("/files/upload/", &server_file_put);
-	server_file_manage_resource server_file_manage(pool, cfg.file_storage_path);
-	ws.register_resource("/files/upload/{fname}", &server_file_manage);
-	server_user_file_resource server_user_file(pool, cfg.file_storage_path);
-	ws.register_resource("/files/upload/{user_id}/{fname}", &server_user_file);
-
-	preferences_resource preferences(pool);
-	preferences.keys_per_user = cfg.max_user_preference_keys;
-	ws.register_resource("/preferences", &preferences);
-
-	params_resource params(cfg);
-	ws.register_resource("/params", &params);
-
+	params_resource params(ws, pool, cfg);
 
 	ws.start(false);
 	std::cerr << "Listening for HTTPS on port " << cfg.https_port << "...\n";

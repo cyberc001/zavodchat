@@ -2,8 +2,6 @@
 #include "resource/utils.h"
 #include "resource/role_utils.h"
 
-#include <iostream>
-
 std::shared_ptr<http_response> message_get_params(const http_request& req, pqxx::work& tx, unsigned max_get_count,
 							int& user_id, int& server_id, int& channel_id,
 							int& start_id, int& count, std::string& id_query)
@@ -25,7 +23,10 @@ std::shared_ptr<http_response> message_get_params(const http_request& req, pqxx:
 	return nullptr;
 }
 
-channel_messages_resource::channel_messages_resource(db_connection_pool& pool, socket_main_server& sserv) : base_resource(), pool{pool}, sserv{sserv}
+channel_messages_resource::channel_messages_resource(webserver& ws, db_connection_pool& pool, const config& cfg,
+					socket_main_server& sserv):
+	base_resource(ws, "/channels/{channel_id}/messages", pool, cfg),
+	sserv{sserv}
 {
 	set_allowing("GET", true);
 	set_allowing("POST", true);
@@ -41,7 +42,7 @@ std::shared_ptr<http_response> channel_messages_resource::render_GET(const http_
 	int user_id, server_id, channel_id;
 	int start_id, count;
 	std::string id_query;
-	auto err = message_get_params(req, tx, max_get_count,
+	auto err = message_get_params(req, tx, cfg.max_get_count,
 					user_id, server_id, channel_id,
 					start_id, count, id_query);
 	if(err)
@@ -68,7 +69,6 @@ std::shared_ptr<http_response> channel_messages_resource::render_POST(const http
 	err = role_utils::check_permission1(req, tx, server_id, user_id, PERM1_CREATE_MESSAGES);
 	if(err) return err;
 
-
 	nlohmann::json body;
 	err = resource_utils::json_from_content(req, body);
 	if(err)
@@ -92,7 +92,7 @@ std::shared_ptr<http_response> channel_messages_resource::render_POST(const http
 	std::vector<pqxx::row> attachment_rows;
 	if(body["attachments"].is_array()){
 		auto& att = body["attachments"];
-		if(att.size() > max_attachments)
+		if(att.size() > cfg.max_attachments)
 			return create_response::string(req, "Too many attachments", 400);
 		for(auto val = att.begin(); val != att.end(); ++val){
 			std::string content; unsigned att_type;
@@ -141,7 +141,10 @@ std::shared_ptr<http_response> channel_messages_resource::parse_attachment(const
 	return nullptr;
 }
 
-channel_messages_search_resource::channel_messages_search_resource(db_connection_pool& pool) : pool{pool}
+channel_messages_search_resource::channel_messages_search_resource(webserver& ws, db_connection_pool& pool, const config& cfg,
+						socket_main_server& sserv):
+	base_resource(ws, "/channels/{channel_id}/messages_search", pool, cfg),
+	sserv{sserv}
 {
 	set_allowing("POST", true);
 }
@@ -155,7 +158,7 @@ std::shared_ptr<http_response> channel_messages_search_resource::render_POST(con
 	int user_id, server_id, channel_id;
 	int start_id, count;
 	std::string id_query;
-	auto err = message_get_params(req, tx, max_get_count,
+	auto err = message_get_params(req, tx, cfg.max_get_count,
 					user_id, server_id, channel_id,
 					start_id, count, id_query);
 	if(err)
@@ -215,7 +218,10 @@ std::shared_ptr<http_response> channel_messages_search_resource::render_POST(con
 }
 
 
-message_resource::message_resource(db_connection_pool& pool, socket_main_server& sserv) : pool{pool}, sserv{sserv}
+message_resource::message_resource(webserver& ws, db_connection_pool& pool, const config& cfg,
+						socket_main_server& sserv):
+	base_resource(ws, "/messages/{message_id}", pool, cfg),
+	sserv{sserv}
 {
 	set_allowing("GET", true);
 	set_allowing("PUT", true);
@@ -277,7 +283,7 @@ std::shared_ptr<http_response> message_resource::render_PUT(const http_request& 
 	std::vector<pqxx::row> attachment_rows;
 	if(body["attachments"].is_array()){
 		auto& att = body["attachments"];
-		if(att.size() > max_attachments)
+		if(att.size() > cfg.max_attachments)
 			return create_response::string(req, "Too many attachments", 400);
 
 		tx.exec("DELETE FROM message_attachments WHERE message_id = $1", pqxx::params(message_id));

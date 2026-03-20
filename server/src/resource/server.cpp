@@ -4,7 +4,8 @@
 #include "resource/role_utils.h"
 #include <nlohmann/json.hpp>
 
-server_resource::server_resource(db_connection_pool& pool): base_resource(), pool{pool}
+server_resource::server_resource(webserver& ws, db_connection_pool& pool, const config& cfg):
+	base_resource(ws, "/servers", pool, cfg)
 {
 	set_allowing("GET", true);
 	set_allowing("POST", true);
@@ -40,8 +41,8 @@ std::shared_ptr<http_response> server_resource::render_POST(const http_request& 
 
 	pqxx::result r;
 	r = tx.exec("SELECT owner_id FROM servers WHERE owner_id = $1", pqxx::params(user_id));
-	if(r.size() >= owned_per_user)
-		return create_response::string(req, "User owns more than " + std::to_string(owned_per_user) + " servers", 403);
+	if(r.size() >= cfg.max_servers_owned_per_user)
+		return create_response::string(req, "User owns more than " + std::to_string(cfg.max_servers_owned_per_user) + " servers", 403);
 
 	std::string_view name = req.get_arg("name");
 	int server_id;
@@ -57,7 +58,7 @@ std::shared_ptr<http_response> server_resource::render_POST(const http_request& 
 	auto args = req.get_args();
 	if(args.find(std::string_view("avatar")) != args.end()){
 		std::string fname;
-		err = file_utils::parse_server_avatar(req, "avatar", server_id, fname);
+		err = file_utils::parse_avatar(req, "avatar", server_id, cfg.server_avatar_path, fname);
 		if(err)
 			return err;
 		tx.exec("UPDATE servers SET avatar = $1 WHERE server_id = $2", pqxx::params(fname, server_id));
@@ -69,7 +70,10 @@ std::shared_ptr<http_response> server_resource::render_POST(const http_request& 
 }
 
 
-server_id_resource::server_id_resource(db_connection_pool& pool, socket_main_server& sserv): base_resource(), pool{pool}, sserv{sserv}
+server_id_resource::server_id_resource(webserver& ws, db_connection_pool& pool, const config& cfg,
+				socket_main_server& sserv):
+	base_resource(ws, "/servers/{server_id}", pool, cfg),
+	sserv{sserv}
 {
 	set_allowing("GET", true);
 	set_allowing("PUT", true);
@@ -122,8 +126,8 @@ std::shared_ptr<http_response> server_id_resource::render_PUT(const http_request
 			return create_response::string(req, "User is already an owner", 202);
 
 		pqxx::result r = tx.exec("SELECT owner_id FROM servers WHERE owner_id = $1", pqxx::params(new_owner_id));
-		if(r.size() >= owned_per_user)
-			return create_response::string(req, "User owns more than " + std::to_string(owned_per_user) + " servers", 403);
+		if(r.size() >= cfg.max_servers_owned_per_user)
+			return create_response::string(req, "User owns more than " + std::to_string(cfg.max_servers_owned_per_user) + " servers", 403);
 
 
 		err = resource_utils::check_server_member(req, new_owner_id, server_id, tx);
@@ -139,7 +143,7 @@ std::shared_ptr<http_response> server_id_resource::render_PUT(const http_request
 	}
 	if(args.find(std::string_view("avatar")) != args.end()){
 		std::string fname;
-		err = file_utils::parse_server_avatar(req, "avatar", server_id, fname);
+		err = file_utils::parse_avatar(req, "avatar", server_id, cfg.server_avatar_path, fname);
 		if(err)
 			return err;
 		tx.exec("UPDATE servers SET avatar = $1 WHERE server_id = $2", pqxx::params(fname, server_id));
@@ -184,7 +188,7 @@ std::shared_ptr<http_response> server_id_resource::render_DELETE(const http_requ
 	if(!r[0]["avatar"].is_null()){
 		std::string avatar_fpath = r[0]["avatar"].as<std::string>();
 		std::string ext = avatar_fpath.substr(avatar_fpath.rfind('.') + 1);
-		file_utils::delete_file_aliased(file_utils::server_avatar_storage_path, server_id, ext);
+		file_utils::delete_file_aliased(cfg.server_avatar_path, server_id, ext);
 	}
 
 	return create_response::string(req, "Deleted", 200);
