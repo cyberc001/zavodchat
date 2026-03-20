@@ -109,6 +109,91 @@ paths:
       responses:
         '404':
           description: Не существует пользователя с таким user_id
+
+  /friends:
+    get:
+      summary: Список друзей
+      parameters:
+        - $ref: "#/parameters/zavodchat_token"
+      responses:
+        '200':
+          description: "Список друзей"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+  /friend_requests:
+    get:
+      summary: Список запросов дружбы
+      parameters:
+        - $ref: "#/parameters/zavodchat_token"
+      responses:
+        '200':
+          description: "Список пользователей, от которых есть исходящий запрос дружбы"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+  /friends/$user_id:
+    post:
+      parameters:
+        - $ref: "#/parameters/zavodchat_token"
+      summary: Отправить запрос дружбы
+      responses:
+        '200':
+          description: "Запрос дружбы был отправлен"
+        '202':
+          description: "Пользователь уже состоит в друзьях"
+        '403':
+          description: "Пользователь заблокировал вас"
+    delete:
+      parameters:
+        - $ref: "#/parameters/zavodchat_token"
+      summary: Удалить из друзей
+      responses:
+        '200':
+          description: "Пользователь был удалён из друзей"
+        '404':
+          description: "Пользователь не состоит в друзьях"
+  
+  /blocked_users:
+    get:
+      summary: Список заблокированных пользователей
+      parameters:
+        - $ref: "#/parameters/zavodchat_token"
+      responses:
+        '200':
+          description: "Список заблокированных пользователей"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+  /blocked_users/$user_id:
+    post:
+      parameters:
+        - $ref: "#/parameters/zavodchat_token"
+      summary: Заблокировать пользователя
+      responses:
+        '200':
+          description: "Пользователь был заблокирован"
+        '202':
+          description: "Пользователь уже заблокирован"
+    delete:
+      parameters:
+        - $ref: "#/parameters/zavodchat_token"
+      summary: Разблокировать пользователя
+      responses:
+        '200':
+          description: "Пользователь разблокирован"
+        '202':
+          description: "Пользователь не был заблокирован"
+
   /servers:
     get:
       summary: Список серверов, в которых состоит пользователь
@@ -1014,7 +1099,7 @@ components:
           type: integer
           description: Минимальная длина имени пользователя при регистрации / изменении пароля
           example: 2
-        servers_owned_per_user:
+        max_servers_owned_per_user:
           type: integer
           description: Максимальное количество серверов, которыми может владеть один пользователь
           example: 10
