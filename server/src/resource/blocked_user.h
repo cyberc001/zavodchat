@@ -1,0 +1,24 @@
+#ifndef RESOURCE_BLOCKED_USERS_H
+#define RESOURCE_BLOCKED_USERS_H
+
+#include "socket/main_server.h"
+#include <resource/base.h>
+
+class blocked_users_resource : public base_resource
+{
+public:
+	blocked_users_resource(webserver& ws, db_connection_pool& pool, const config& cfg);
+
+	std::shared_ptr<http_response> render_GET(const http_request&);
+};
+
+class blocked_users_id_resource : public base_resource
+{
+public:
+	blocked_users_id_resource(webserver& ws, db_connection_pool& pool, const config& cfg);
+
+	std::shared_ptr<http_response> render_POST(const http_request&);
+	std::shared_ptr<http_response> render_DELETE(const http_request&);
+};
+
+#endif

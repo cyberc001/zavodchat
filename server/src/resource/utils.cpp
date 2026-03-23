@@ -155,14 +155,14 @@ std::string resource_utils::color_to_string(int color)
 	return ss.str();
 }
 
-std::shared_ptr<http_response> resource_utils::parse_friend_user_id(const http_request& req, pqxx::work& tx, int& friend_user_id)
+std::shared_ptr<http_response> resource_utils::parse_user_id(const http_request& req, pqxx::work& tx, int& user_id)
 {
 	try{
-		friend_user_id = std::stoi(std::string(req.get_arg("user_id")));
+		user_id = std::stoi(std::string(req.get_arg("user_id")));
 	} catch(std::invalid_argument& e){
-		return create_response::string(req, "Invalid friend user ID", 400);
+		return create_response::string(req, "Invalid user ID", 400);
 	}
-	pqxx::result r = tx.exec("SELECT user_id FROM users WHERE user_id = $1", pqxx::params(friend_user_id));
+	pqxx::result r = tx.exec("SELECT user_id FROM users WHERE user_id = $1", pqxx::params(user_id));
 	if(!r.size())
 		return create_response::string(req, "User does not exist", 404);
 	return nullptr;

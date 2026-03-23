@@ -40,6 +40,7 @@ void db_init(std::string conn_str)
 		tx.exec("CREATE TABLE IF NOT EXISTS sessions(token UUID PRIMARY KEY, user_id INTEGER REFERENCES users ON DELETE CASCADE NOT NULL, expiration_time TIMESTAMP WITH TIME ZONE)");
 
 		tx.exec("CREATE TABLE IF NOT EXISTS friends(user1_id INTEGER REFERENCES users ON DELETE CASCADE NOT NULL, user2_id INTEGER REFERENCES users ON DELETE CASCADE NOT NULL, is_request BOOLEAN NOT NULL)");
+		tx.exec("CREATE TABLE IF NOT EXISTS blocked_users(user1_id INTEGER REFERENCES users ON DELETE CASCADE NOT NULL, user2_id INTEGER REFERENCES users ON DELETE CASCADE NOT NULL)");
 
 		tx.exec("CREATE TABLE IF NOT EXISTS servers(server_id SERIAL PRIMARY KEY, name VARCHAR(64) NOT NULL, avatar VARCHAR(128), owner_id INTEGER REFERENCES users NOT NULL, default_role_id INTEGER NOT NULL DEFAULT -1, head_role_id INTEGER NOT NULL DEFAULT -1)");
 		tx.exec("CREATE TABLE IF NOT EXISTS server_invites(invite_id UUID PRIMARY KEY, server_id INTEGER REFERENCES servers ON DELETE CASCADE NOT NULL, expiration_time TIMESTAMP WITH TIME ZONE)");
@@ -177,6 +178,8 @@ void db_create_test(std::string conn_str)
 
 		// Make test1 and test2 friends
 		tx.exec("INSERT INTO friends(user1_id, user2_id, is_request) VALUES($1, $2, false)", pqxx::params(user_id_1, user_id_2));
+		// Make test1 block test3
+		tx.exec("INSERT INTO blocked_users(user1_id, user2_id) VALUES($1, $2)", pqxx::params(user_id_1, user_id_3));
 
 		tx.commit();
 	}

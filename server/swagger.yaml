@@ -181,11 +181,14 @@ paths:
       parameters:
         - $ref: "#/parameters/zavodchat_token"
       summary: Заблокировать пользователя
+      description: Также удаляет пользователя из друзей.
       responses:
         '200':
           description: "Пользователь был заблокирован"
         '202':
           description: "Пользователь уже заблокирован"
+        '400':
+          description: "Нельзя заблокировать себя"
     delete:
       parameters:
         - $ref: "#/parameters/zavodchat_token"

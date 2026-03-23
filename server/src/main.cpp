@@ -4,6 +4,7 @@
 #include "config.h"
 
 #include "resource/auth.h"
+#include "resource/blocked_user.h"
 #include "resource/server.h"
 #include "resource/user.h"
 #include "resource/file.h"
@@ -63,6 +64,9 @@ int main()
 	friends_resource friends(ws, pool, cfg);
 	friend_requests_resource friend_requests(ws, pool, cfg);
 	friends_id_resource friends_id(ws, pool, cfg, sserv);
+
+	blocked_users_resource blocked_users(ws, pool, cfg);
+	blocked_users_id_resource blocked_users_id(ws, pool, cfg);
 
 	server_resource server(ws, pool, cfg);
 	server_id_resource server_id(ws, pool, cfg, sserv);

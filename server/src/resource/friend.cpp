@@ -90,7 +90,7 @@ std::shared_ptr<http_response> friends_id_resource::render_POST(const http_reque
 	if(err) return err;
 
 	int friend_user_id;
-	err = resource_utils::parse_friend_user_id(req, tx, friend_user_id);
+	err = resource_utils::parse_user_id(req, tx, friend_user_id);
 	if(err) return err;
 
 	if(user_id == friend_user_id)
@@ -129,7 +129,7 @@ std::shared_ptr<http_response> friends_id_resource::render_DELETE(const http_req
 	if(err) return err;
 
 	int friend_user_id;
-	err = resource_utils::parse_friend_user_id(req, tx, friend_user_id);
+	err = resource_utils::parse_user_id(req, tx, friend_user_id);
 	if(err) return err;
 
 	pqxx::result r = tx.exec("SELECT user1_id, user2_id, is_request FROM friends WHERE (user1_id = $1 AND user2_id = $2) OR (user1_id = $2 AND user2_id = $1)", pqxx::params(user_id, friend_user_id));
