@@ -61,6 +61,11 @@ void db_init(std::string conn_str)
 		tx.exec("CREATE INDEX IF NOT EXISTS session_user_ids ON sessions (user_id)");
 		tx.exec("CREATE INDEX IF NOT EXISTS session_expire ON sessions (expiration_time)");
 
+		tx.exec("CREATE INDEX IF NOT EXISTS friends_user1 ON friends(user1_id)");
+		tx.exec("CREATE INDEX IF NOT EXISTS friends_user2 ON friends(user2_id)");
+		tx.exec("CREATE INDEX IF NOT EXISTS blocked_user1 ON friends(user1_id)");
+		tx.exec("CREATE INDEX IF NOT EXISTS blocked_user2 ON friends(user2_id)");
+
 		tx.exec("CREATE INDEX IF NOT EXISTS role_prev_id ON roles (prev_role_id)");
 		tx.exec("CREATE INDEX IF NOT EXISTS server_x_user ON user_x_server (server_id)");
 		tx.exec("CREATE INDEX IF NOT EXISTS role_x_user ON user_x_server (role_id)");
