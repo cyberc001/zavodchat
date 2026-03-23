@@ -142,22 +142,24 @@ paths:
     post:
       parameters:
         - $ref: "#/parameters/zavodchat_token"
-      summary: Отправить запрос дружбы
+      summary: Отправить или принять запрос дружбы
       responses:
         '200':
-          description: "Запрос дружбы был отправлен"
+          description: "Запрос дружбы был отправлен или принят"
         '202':
-          description: "Пользователь уже состоит в друзьях"
+          description: "Пользователь уже состоит в друзьях / запрос дружбы уже отправлен"
+        '400':
+          description: "Нельзя отправить запрос дружбы себе"
         '403':
           description: "Пользователь заблокировал вас"
     delete:
       parameters:
         - $ref: "#/parameters/zavodchat_token"
-      summary: Удалить из друзей
+      summary: Удалить из друзей или отменить/отклонить запрос дружбы
       responses:
         '200':
-          description: "Пользователь был удалён из друзей"
-        '404':
+          description: "Пользователь был удалён из друзей / запрос дружбы был отменён (отклонён)"
+        '403':
           description: "Пользователь не состоит в друзьях"
   
   /blocked_users:
