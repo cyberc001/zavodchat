@@ -1,7 +1,6 @@
 #ifndef RESOURCE_CHANNEL_MESSAGES_H
 #define RESOURCE_CHANNEL_MESSAGES_H
 
-#include "db/conn_pool.h"
 #include "socket/main_server.h"
 #include <resource/base.h>
 

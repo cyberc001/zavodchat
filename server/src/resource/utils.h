@@ -49,6 +49,8 @@ public:
 	static std::shared_ptr<http_response> string_to_color(const http_request&, std::string str, int& color);
 	static std::string color_to_string(int color);
 
+	static std::shared_ptr<http_response> parse_friend_user_id(const http_request&, pqxx::work&, int& friend_user_id);
+
 	static std::shared_ptr<http_response> parse_server_id(const http_request&, int user_id, pqxx::work&, int& server_id);
 	static std::shared_ptr<http_response> parse_server_id(const http_request&, pqxx::work&, int& user_id, int& server_id);
 

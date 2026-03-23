@@ -8,6 +8,7 @@
 #include "resource/user.h"
 #include "resource/file.h"
 #include "resource/file_utils.h"
+#include "resource/friend.h"
 #include "resource/server_users.h"
 #include "resource/channel.h"
 #include "resource/message.h"
@@ -58,6 +59,10 @@ int main()
 
 	auth_resource auth(ws, pool, cfg);
 	register_resource _register(ws, pool, cfg, sserv);
+
+	friends_resource friends(ws, pool, cfg);
+	friend_requests_resource friend_requests(ws, pool, cfg);
+	friends_id_resource friends_id(ws, pool, cfg, sserv);
 
 	server_resource server(ws, pool, cfg);
 	server_id_resource server_id(ws, pool, cfg, sserv);

@@ -1,0 +1,123 @@
+#include "resource/friend.h"
+#include "resource/utils.h"
+
+std::shared_ptr<http_response> get_friends(const http_request& req, pqxx::work& tx, int user_id, bool is_request)
+{
+	nlohmann::json res = nlohmann::json::array();
+	pqxx::result r = tx.exec("SELECT user_id, name, avatar, status FROM (SELECT user1_id, user2_id FROM friends WHERE (user1_id = $1 OR user2_id = $1) AND is_request = $2) JOIN users ON (user_id = user1_id OR user_id = user2_id) WHERE user_id != $1", pqxx::params(user_id, is_request));
+	for(size_t i = 0; i < r.size(); ++i)
+		res += resource_utils::user_json_from_row(r[i]);
+	return create_response::string(req, res.dump(), 200);
+}
+
+friends_resource::friends_resource(webserver& ws, db_connection_pool& pool, const config& cfg):
+	base_resource(ws, "/friends", pool, cfg)
+{
+	set_allowing("GET", true);
+}
+
+std::shared_ptr<http_response> friends_resource::render_GET(const http_request& req)
+{
+	base_resource::render_GET(req);
+
+	db_connection conn = pool.hold();
+	pqxx::work tx{*conn};
+
+	int user_id;
+	auto err = resource_utils::parse_session_token(req, tx, user_id);
+	if(err) return err;
+
+	return get_friends(req, tx, user_id, false);
+}
+
+friend_requests_resource::friend_requests_resource(webserver& ws, db_connection_pool& pool, const config& cfg):
+	base_resource(ws, "/friend_requests", pool, cfg)
+{
+	set_allowing("GET", true);
+}
+
+std::shared_ptr<http_response> friend_requests_resource::render_GET(const http_request& req)
+{
+	base_resource::render_GET(req);
+
+	db_connection conn = pool.hold();
+	pqxx::work tx{*conn};
+
+	int user_id;
+	auto err = resource_utils::parse_session_token(req, tx, user_id);
+	if(err) return err;
+
+	return get_friends(req, tx, user_id, true);
+}
+
+friends_id_resource::friends_id_resource(webserver& ws, db_connection_pool& pool, const config& cfg,
+						socket_main_server& sserv):
+	base_resource(ws, "/friends/{user_id}", pool, cfg),
+	sserv{sserv}
+{
+	set_allowing("POST", true);
+	set_allowing("DELETE", true);
+}
+
+std::shared_ptr<http_response> friends_id_resource::render_POST(const http_request& req)
+{
+	base_resource::render_POST(req);
+
+	db_connection conn = pool.hold();
+	pqxx::work tx{*conn};
+
+	int user_id;
+	auto err = resource_utils::parse_session_token(req, tx, user_id);
+	if(err) return err;
+
+	int friend_user_id;
+	err = resource_utils::parse_friend_user_id(req, tx, friend_user_id);
+	if(err) return err;
+
+	if(user_id == friend_user_id)
+		return create_response::string(req, "Cannot add yourself as a friend", 400);
+
+	pqxx::result r = tx.exec("SELECT user1_id, user2_id, is_request FROM friends WHERE (user1_id = $1 AND user2_id = $2) OR (user1_id = $2 AND user2_id = $1)", pqxx::params(user_id, friend_user_id));
+	// If users are not friends and dont have any requests to each other, create one
+	if(!r.size()){
+		tx.exec("INSERT INTO friends(user1_id, user2_id, is_request) VALUES($1, $2, true)", pqxx::params(user_id, friend_user_id));
+		tx.commit();
+		return create_response::string(req, "Friend request was sent", 200);
+	}
+
+	if(!r[0]["is_request"].as<bool>())
+		return create_response::string(req, "User is already a friend", 202);
+	// Check request direction (from whom?)
+	if(r[0]["user1_id"].as<int>() == user_id) // From user
+		return create_response::string(req, "Friend request was already sent", 202);
+	// From friend_user_id: accept it
+	tx.exec("UPDATE friends SET is_request=false WHERE user1_id = $1 AND user2_id = $2", pqxx::params(friend_user_id, user_id));
+	tx.commit();
+	return create_response::string(req, "Friend request was accepted", 200);
+}
+
+std::shared_ptr<http_response> friends_id_resource::render_DELETE(const http_request& req)
+{
+	base_resource::render_DELETE(req);
+
+	db_connection conn = pool.hold();
+	pqxx::work tx{*conn};
+
+	int user_id;
+	auto err = resource_utils::parse_session_token(req, tx, user_id);
+	if(err) return err;
+
+	int friend_user_id;
+	err = resource_utils::parse_friend_user_id(req, tx, friend_user_id);
+	if(err) return err;
+
+	pqxx::result r = tx.exec("SELECT user1_id, user2_id, is_request FROM friends WHERE (user1_id = $1 AND user2_id = $2) OR (user1_id = $2 AND user2_id = $1)", pqxx::params(user_id, friend_user_id));
+	if(!r.size())
+		return create_response::string(req, "User is not a friend, and no friend request was sent", 403);
+	tx.exec("DELETE FROM friends WHERE user1_id = $1 AND user2_id = $2", pqxx::params(r[0]["user1_id"].as<int>(), r[0]["user2_id"].as<int>()));
+	tx.commit();
+
+	return create_response::string(req, r[0]["is_request"].as<bool>() ? 
+					(r[0]["user1_id"].as<int>() == user_id ? "Cancelled friend request" : "Denied friend request") :
+					"Removed friend", 200);
+}

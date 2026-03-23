@@ -37,7 +37,9 @@ void db_init(std::string conn_str)
 
 		tx.exec("CREATE TABLE IF NOT EXISTS users(user_id SERIAL PRIMARY KEY, name VARCHAR(64) NOT NULL, avatar VARCHAR(128), status INTEGER NOT NULL, fs_busy BIGINT NOT NULL DEFAULT 0)");
 		tx.exec("CREATE TABLE IF NOT EXISTS auth(auth_id SERIAL PRIMARY KEY, username VARCHAR(64) UNIQUE NOT NULL, password TEXT NOT NULL, user_id INTEGER REFERENCES users NOT NULL)");
-		tx.exec("CREATE TABLE IF NOT EXISTS sessions(token UUID PRIMARY KEY, user_id INTEGER REFERENCES users NOT NULL, expiration_time TIMESTAMP WITH TIME ZONE)");
+		tx.exec("CREATE TABLE IF NOT EXISTS sessions(token UUID PRIMARY KEY, user_id INTEGER REFERENCES users ON DELETE CASCADE NOT NULL, expiration_time TIMESTAMP WITH TIME ZONE)");
+
+		tx.exec("CREATE TABLE IF NOT EXISTS friends(user1_id INTEGER REFERENCES users ON DELETE CASCADE NOT NULL, user2_id INTEGER REFERENCES users ON DELETE CASCADE NOT NULL, is_request BOOLEAN NOT NULL)");
 
 		tx.exec("CREATE TABLE IF NOT EXISTS servers(server_id SERIAL PRIMARY KEY, name VARCHAR(64) NOT NULL, avatar VARCHAR(128), owner_id INTEGER REFERENCES users NOT NULL, default_role_id INTEGER NOT NULL DEFAULT -1, head_role_id INTEGER NOT NULL DEFAULT -1)");
 		tx.exec("CREATE TABLE IF NOT EXISTS server_invites(invite_id UUID PRIMARY KEY, server_id INTEGER REFERENCES servers ON DELETE CASCADE NOT NULL, expiration_time TIMESTAMP WITH TIME ZONE)");
@@ -122,6 +124,7 @@ void db_create_test(std::string conn_str)
 	}
 	if(!created_any_users)
 		return;
+
 	// Create 2 test servers
 	{
 		pqxx::work tx{conn};
@@ -159,6 +162,7 @@ void db_create_test(std::string conn_str)
 		}
 		int user_id_3 = r[0]["user_id"].as<int>();
 
+		// Give a few more roles to test1 and test2 on test_server1
 		tx.exec("INSERT INTO user_x_server(user_id, server_id, role_id) VALUES($1, $2, $3)", pqxx::params(user_id_1, server_id_1, default_role_id_1));
 		tx.exec("INSERT INTO user_x_server(user_id, server_id, role_id) VALUES($1, $2, $3)", pqxx::params(user_id_1, server_id_2, default_role_id_2));
 		tx.exec("INSERT INTO user_x_server(user_id, server_id, role_id) VALUES($1, $2, $3)", pqxx::params(user_id_2, server_id_1, default_role_id_1));
@@ -170,6 +174,9 @@ void db_create_test(std::string conn_str)
 		tx.exec("INSERT INTO user_x_server(user_id, server_id, role_id) VALUES($1, $2, $3)", pqxx::params(user_id_2, server_id_2, default_role_id_2));
 		tx.exec("INSERT INTO user_x_server(user_id, server_id, role_id) VALUES($1, $2, $3)", pqxx::params(user_id_3, server_id_1, default_role_id_1));
 		tx.exec("INSERT INTO user_x_server(user_id, server_id, role_id) VALUES($1, $2, $3)", pqxx::params(user_id_3, server_id_2, default_role_id_2));
+
+		// Make test1 and test2 friends
+		tx.exec("INSERT INTO friends(user1_id, user2_id, is_request) VALUES($1, $2, false)", pqxx::params(user_id_1, user_id_2));
 
 		tx.commit();
 	}
