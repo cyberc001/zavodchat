@@ -63,6 +63,9 @@ public:
 	static std::shared_ptr<http_response> parse_server_user_id(const http_request&, int server_id, pqxx::work&, int& server_user_id);
 	static std::shared_ptr<http_response> parse_server_ban_id(const http_request&, int server_id, pqxx::work&, int& server_ban_id);
 
+	// Check if user_to_id has user_from_id unblocked.
+	static std::shared_ptr<http_response> check_user_unblocked(const http_request&, int user_from_id, int user_to_id, pqxx::work&);
+
 	// Checks if server's owner_id == user_id.
 	static std::shared_ptr<http_response> check_server_owner(const http_request&, int user_id, int server_id, pqxx::work&);
 	// Separate check for user being a member of a server. Used when user is not the one that puts a request.

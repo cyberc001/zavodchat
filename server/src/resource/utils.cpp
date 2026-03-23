@@ -255,6 +255,15 @@ std::shared_ptr<http_response> resource_utils::parse_server_ban_id(const http_re
 	return nullptr;
 }
 
+
+std::shared_ptr<http_response> resource_utils::check_user_unblocked(const http_request& req, int user_from_id, int user_to_id, pqxx::work& tx)
+{
+	pqxx::result r = tx.exec("SELECT user1_id FROM blocked_users WHERE user1_id = $1 AND user2_id = $2", pqxx::params(user_from_id, user_to_id));
+	if(r.size())
+		return create_response::string(req, "This user blocked you", 403);
+	return nullptr;
+}
+
 std::shared_ptr<http_response> resource_utils::check_server_owner(const http_request& req, int user_id, int server_id, pqxx::work& tx)
 {
 	pqxx::result r = tx.exec("SELECT owner_id FROM servers WHERE server_id = $1", pqxx::params(server_id));
