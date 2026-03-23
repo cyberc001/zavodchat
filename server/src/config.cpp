@@ -111,10 +111,15 @@ config::config(std::ifstream& fd)
 
 	GET_UNSIGNED(max_get_count)
 
-	GET_UNSIGNED(max_user_preference_keys)
 	GET_UNSIGNED(max_servers_owned_per_user)
+	GET_UNSIGNED(max_friends_per_user)
+	GET_UNSIGNED(max_blocked_per_user)
+
 	GET_UNSIGNED(max_channels_per_server)
 	GET_UNSIGNED(max_roles_per_server)
+	GET_UNSIGNED(max_invites_per_server)
+
+	GET_UNSIGNED(max_user_preference_keys)
 
 	GET_UNSIGNED(max_video_bitrate)
 }

@@ -45,6 +45,9 @@ public:
 	unsigned max_user_preference_keys = 128;
 
 	unsigned max_servers_owned_per_user = 10;
+	unsigned max_friends_per_user = 200;
+	unsigned max_blocked_per_user = 200;
+
 	unsigned max_channels_per_server = 50;
 	unsigned max_roles_per_server = 50;
 	unsigned max_invites_per_server = 50;

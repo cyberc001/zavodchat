@@ -102,6 +102,10 @@ std::shared_ptr<http_response> friends_id_resource::render_POST(const http_reque
 		err = resource_utils::check_user_unblocked(req, user_id, friend_user_id, tx);
 		if(err) return err;
 
+		r = tx.exec("SELECT user1_id FROM friends WHERE user1_id = $1 OR user2_id = $1", pqxx::params(user_id));
+		if(r.size() >= cfg.max_friends_per_user)
+			return create_response::string(req, "Too many friends", 403);
+
 		tx.exec("INSERT INTO friends(user1_id, user2_id, is_request) VALUES($1, $2, true)", pqxx::params(user_id, friend_user_id));
 		tx.commit();
 		send_friend_event(tx, sserv, user_id, friend_user_id, "friend_request_received");

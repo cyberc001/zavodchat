@@ -151,7 +151,7 @@ paths:
         '400':
           description: "Нельзя отправить запрос дружбы себе"
         '403':
-          description: "Пользователь заблокировал вас"
+          description: "Пользователь заблокировал вас / слишком много друзей"
     delete:
       parameters:
         - $ref: "#/parameters/zavodchat_token"
@@ -189,6 +189,8 @@ paths:
           description: "Пользователь уже заблокирован"
         '400':
           description: "Нельзя заблокировать себя"
+        '403':
+          description: "Слишком много заблокированных пользователей"
     delete:
       parameters:
         - $ref: "#/parameters/zavodchat_token"

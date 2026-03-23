@@ -55,6 +55,10 @@ std::shared_ptr<http_response> blocked_users_id_resource::render_POST(const http
 	if(r.size())
 		return create_response::string(req, "User is already blocked", 202);
 
+	r = tx.exec("SELECT user1_id FROM blocked_users WHERE user1_id = $1", pqxx::params(user_id));
+	if(r.size() >= cfg.max_blocked_per_user)
+		return create_response::string(req, "Too many blocked users", 403);
+
 	tx.exec("INSERT INTO blocked_users VALUES($1, $2)", pqxx::params(user_id, block_user_id));
 	tx.exec("DELETE FROM friends WHERE (user1_id = $1 AND user2_id = $2) OR (user1_id = $2 AND user1_id = $1)", pqxx::params(user_id, block_user_id));
 	tx.commit();

@@ -31,6 +31,9 @@
 	"sessions_per_user": 8,
 
 	"max_servers_owned_per_user": 10,
+	"max_friends_per_user": 200,
+	"max_blocked_per_user": 200,
+
 	"max_channels_per_server": 50,
 	"max_roles_per_server": 50,
 	"max_invites_per_server": 50,
