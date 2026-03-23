@@ -10,6 +10,25 @@ std::shared_ptr<http_response> get_friends(const http_request& req, pqxx::work& 
 	return create_response::string(req, res.dump(), 200);
 }
 
+void send_friend_event(pqxx::work& tx, socket_main_server& sserv,
+			int user_id_from, int user_id_to, std::string name)
+{
+	socket_event ev;
+	pqxx::result r = tx.exec("SELECT user_id, name, avatar, status FROM users WHERE user_id = $1", pqxx::params(user_id_from));
+	ev.data = resource_utils::user_json_from_row(r[0]);
+	ev.name = name;
+	sserv.send_to_user(user_id_to, tx, ev);
+}
+void send_friend_id_event(pqxx::work& tx, socket_main_server& sserv,
+			int user_id_from, int user_id_to, std::string name)
+{
+	socket_event ev;
+	ev.data["id"] = user_id_from;
+	ev.name = name;
+	sserv.send_to_user(user_id_to, tx, ev);
+}
+
+
 friends_resource::friends_resource(webserver& ws, db_connection_pool& pool, const config& cfg):
 	base_resource(ws, "/friends", pool, cfg)
 {
@@ -82,6 +101,7 @@ std::shared_ptr<http_response> friends_id_resource::render_POST(const http_reque
 	if(!r.size()){
 		tx.exec("INSERT INTO friends(user1_id, user2_id, is_request) VALUES($1, $2, true)", pqxx::params(user_id, friend_user_id));
 		tx.commit();
+		send_friend_event(tx, sserv, user_id, friend_user_id, "friend_request_received");
 		return create_response::string(req, "Friend request was sent", 200);
 	}
 
@@ -93,6 +113,7 @@ std::shared_ptr<http_response> friends_id_resource::render_POST(const http_reque
 	// From friend_user_id: accept it
 	tx.exec("UPDATE friends SET is_request=false WHERE user1_id = $1 AND user2_id = $2", pqxx::params(friend_user_id, user_id));
 	tx.commit();
+	send_friend_event(tx, sserv, user_id, friend_user_id, "friend_request_accepted");
 	return create_response::string(req, "Friend request was accepted", 200);
 }
 
@@ -117,7 +138,15 @@ std::shared_ptr<http_response> friends_id_resource::render_DELETE(const http_req
 	tx.exec("DELETE FROM friends WHERE user1_id = $1 AND user2_id = $2", pqxx::params(r[0]["user1_id"].as<int>(), r[0]["user2_id"].as<int>()));
 	tx.commit();
 
-	return create_response::string(req, r[0]["is_request"].as<bool>() ? 
-					(r[0]["user1_id"].as<int>() == user_id ? "Cancelled friend request" : "Denied friend request") :
-					"Removed friend", 200);
+	if(r[0]["is_request"].as<bool>()){
+		if(r[0]["user1_id"].as<int>() == user_id){
+			send_friend_id_event(tx, sserv, user_id, friend_user_id, "friend_request_cancelled");
+			return create_response::string(req, "Cancelled friend request", 200);
+		} else {
+			send_friend_id_event(tx, sserv, user_id, friend_user_id, "friend_request_denied");
+			return create_response::string(req, "Denied friend request", 200);
+		}
+	}
+	send_friend_id_event(tx, sserv, user_id, friend_user_id, "friend_removed");
+	return create_response::string(req, "Removed friend", 200);
 }
