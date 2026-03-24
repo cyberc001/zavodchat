@@ -22,6 +22,9 @@
 .tab_panel {
 	width: 100%;
 	height: 100%;
+
+	display: flex;
+	flex-direction: column;
 }
 .tab_button_panel {
 	margin-top: 6px;
@@ -30,6 +33,8 @@
 	margin-top: 12px;
 	margin-left: 10px;
 	margin-right: 10px;
+
+	overflow-y: scroll;
 }
 
 .tab_name {
