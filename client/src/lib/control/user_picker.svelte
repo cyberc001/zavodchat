@@ -80,6 +80,7 @@
 @import "style.css";
 
 .user_list_panel {
+	z-index: 1000;
 	position: absolute;
 	border-style: solid;
 	border-radius: 4px;
