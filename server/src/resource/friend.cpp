@@ -1,24 +1,6 @@
 #include "resource/friend.h"
 #include "resource/utils.h"
 
-std::shared_ptr<http_response> get_friends(const http_request& req, pqxx::work& tx, int user_id, bool is_request)
-{
-	nlohmann::json res = nlohmann::json::array();
-	pqxx::result r = tx.exec("SELECT user_id, name, avatar, status FROM (SELECT user1_id, user2_id FROM friends WHERE (user1_id = $1 OR user2_id = $1) AND is_request = $2) JOIN users ON (user_id = user1_id OR user_id = user2_id) WHERE user_id != $1", pqxx::params(user_id, is_request));
-	for(size_t i = 0; i < r.size(); ++i)
-		res += resource_utils::user_json_from_row(r[i]);
-	return create_response::string(req, res.dump(), 200);
-}
-
-void send_friend_event(pqxx::work& tx, socket_main_server& sserv,
-			int user_id_from, int user_id_to, std::string name)
-{
-	socket_event ev;
-	pqxx::result r = tx.exec("SELECT user_id, name, avatar, status FROM users WHERE user_id = $1", pqxx::params(user_id_from));
-	ev.data = resource_utils::user_json_from_row(r[0]);
-	ev.name = name;
-	sserv.send_to_user(user_id_to, tx, ev);
-}
 void send_friend_id_event(pqxx::work& tx, socket_main_server& sserv,
 			int user_id_from, int user_id_to, std::string name)
 {
@@ -46,7 +28,11 @@ std::shared_ptr<http_response> friends_resource::render_GET(const http_request& 
 	auto err = resource_utils::parse_session_token(req, tx, user_id);
 	if(err) return err;
 
-	return get_friends(req, tx, user_id, false);
+	nlohmann::json res = nlohmann::json::array();
+	pqxx::result r = tx.exec("SELECT user1_id, user2_id FROM friends WHERE (user1_id = $1 OR user2_id = $1) AND NOT is_request", pqxx::params(user_id));
+	for(size_t i = 0; i < r.size(); ++i)
+		res += r[i]["user1_id"].as<int>() == user_id ? r[i]["user2_id"].as<int>() : r[i]["user1_id"].as<int>();
+	return create_response::string(req, res.dump(), 200);
 }
 
 friend_requests_resource::friend_requests_resource(webserver& ws, db_connection_pool& pool, const config& cfg):
@@ -66,7 +52,20 @@ std::shared_ptr<http_response> friend_requests_resource::render_GET(const http_r
 	auto err = resource_utils::parse_session_token(req, tx, user_id);
 	if(err) return err;
 
-	return get_friends(req, tx, user_id, true);
+	int incoming = 1;
+	auto args = req.get_args();
+	if(args.find(std::string_view("incoming")) != args.end()){
+		auto err = resource_utils::parse_index(req, "incoming", incoming);
+		if(err) return err;
+		if(incoming != 0 && incoming != 1)
+			return create_response::string(req, "Invalid 'incoming' value", 400);
+	}
+
+	nlohmann::json res = nlohmann::json::array();
+	pqxx::result r = tx.exec("SELECT user1_id, user2_id FROM friends WHERE " + std::string(incoming ? "user2_id" : "user1_id") + " = $1 AND is_request", pqxx::params(user_id));
+	for(size_t i = 0; i < r.size(); ++i)
+		res += r[i]["user1_id"].as<int>() == user_id ? r[i]["user2_id"].as<int>() : r[i]["user1_id"].as<int>();
+	return create_response::string(req, res.dump(), 200);
 }
 
 friends_id_resource::friends_id_resource(webserver& ws, db_connection_pool& pool, const config& cfg,
@@ -108,7 +107,7 @@ std::shared_ptr<http_response> friends_id_resource::render_POST(const http_reque
 
 		tx.exec("INSERT INTO friends(user1_id, user2_id, is_request) VALUES($1, $2, true)", pqxx::params(user_id, friend_user_id));
 		tx.commit();
-		send_friend_event(tx, sserv, user_id, friend_user_id, "friend_request_received");
+		send_friend_id_event(tx, sserv, user_id, friend_user_id, "friend_request_received");
 		return create_response::string(req, "Friend request was sent", 200);
 	}
 
@@ -120,7 +119,7 @@ std::shared_ptr<http_response> friends_id_resource::render_POST(const http_reque
 	// From friend_user_id: accept it
 	tx.exec("UPDATE friends SET is_request=false WHERE user1_id = $1 AND user2_id = $2", pqxx::params(friend_user_id, user_id));
 	tx.commit();
-	send_friend_event(tx, sserv, user_id, friend_user_id, "friend_request_accepted");
+	send_friend_id_event(tx, sserv, user_id, friend_user_id, "friend_request_accepted");
 	return create_response::string(req, "Friend request was accepted", 200);
 }
 

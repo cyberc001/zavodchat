@@ -1,7 +1,7 @@
 <script>
 	import FocusManager from '$lib/focus_manager.svelte';
 	import DatePicker from '$lib/control/date_picker.svelte';
-	import ServerUserPicker from '$lib/control/server_user_picker.svelte';
+	import UserPicker from '$lib/control/user_picker.svelte';
 
 	let {server_id, // can be undefined if "server_user" is not used
 		elements,
@@ -52,7 +52,7 @@
 						--margin-bottom="6px"
 					/>
 				{:else if e.type === "server_user"}
-					<ServerUserPicker label_text={e.label} bind:value={params[e.param]}
+					<UserPicker label_text={e.label} bind:value={params[e.param]}
 						server_id={server_id}
 						--margin-bottom="6px"
 					/>

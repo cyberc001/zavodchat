@@ -38,6 +38,88 @@ wscat -nc 'wss://localhost:445?channel=2'
 * status: ?int<br>
 Статус, который будет выставлен пользователю вместо "не в сети" (см. `user_status/ POST`).
 
+## Друзья
+
+### friend_request_received
+
+Новый входящий запрос дружбы.
+
+Пример:
+```js
+{
+	"data":
+	{
+		"id": 2
+	},
+	"name": "friend_request_received"
+}
+```
+
+### friend_request_accepted
+
+Исходящий запрос дружбы был принят.
+
+Пример:
+```js
+{
+	"data":
+	{
+		"id": 2
+	},
+	"name": "friend_request_accepted"
+}
+```
+
+### friend_request_cancelled
+
+Входящий запрос дружбы был отменён.
+
+Пример:
+
+```js
+{
+	"data":
+	{
+		"id": 2
+	},
+	"name": "friend_request_cancelled"
+}
+```
+
+
+### friend_request_denied
+
+Исходящий запрос дружбы был отклонён.
+
+Пример:
+
+```js
+{
+	"data":
+	{
+		"id": 1
+	},
+	"name": "friend_request_denied"
+}
+```
+
+### friend_removed
+
+Пользователь удалил вас из друзей.
+
+Пример:
+
+```js
+{
+	"data":
+	{
+		"id": 1
+	},
+	"name": "friend_removed"
+}
+```
+
+
 ## Сообщения
 
 ### message_created

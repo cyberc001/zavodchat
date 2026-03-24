@@ -4,7 +4,8 @@
 	import UserDisplay from '$lib/display/user.svelte';
 	import PaginatedList from '$lib/display/paginated_list.svelte';
 
-	let {server_id, value = $bindable()} = $props();
+	let {server_id, // if undefined, regular users are searched
+		value = $bindable()} = $props();
 
 	let self = $state();
 	let user_list = $state();
@@ -16,6 +17,11 @@
 		user_name;
 		user_list?.reset();
 	});
+
+	export function reset(){
+		value = undefined;
+		user_name = "";
+	}
 </script>
 
 
@@ -36,7 +42,7 @@
 	/>
 {/snippet}
 
-<div style="position: relative" bind:this={self}>
+<div style="position: relative;" bind:this={self}>
 	<input autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
 		class="settings_control"
 		style={"width:var(--width, 200px); margin-bottom: var(--margin-bottom, 12px)" +
@@ -53,11 +59,13 @@
 	/>
 
 	{#if show_list}
-		<div class="server_user_list_panel item"
+		<div class="user_list_panel item"
 			style={user_list && user_list.getItemCount() > 0 ? "" : "display: none"}>
 			<PaginatedList
 				render_item={render_user}
-				load_items={(index, range, asc) => User.get_server_range(server_id, index, range, asc, user_name)}
+				load_items={(index, range, asc) => server_id ? User.get_server_range(server_id, index, range, asc, user_name)
+										: User.get_range(index, range, asc, user_name)
+				}
 				bind:this={user_list}
 				to_latest_text="Up"
 				auto_height=true
@@ -71,7 +79,7 @@
 <style>
 @import "style.css";
 
-.server_user_list_panel {
+.user_list_panel {
 	position: absolute;
 	border-style: solid;
 	border-radius: 4px;

@@ -76,6 +76,9 @@ button {
 }
 
 .transparent_button {
+	color: var(--clr_text);
+	font-size: 16px;
+
 	border-style: none;
 	padding: 0;
 }

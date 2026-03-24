@@ -4,12 +4,13 @@
 	import SidebarServerAction from '$lib/display/sidebar/server_action.svelte';
 
 	const {servers, selected_server,
-		show_server, ctx_server,
+		show_server, show_friends, ctx_server,
 		create_server} = $props();
 </script>
 
 <div style="display: flex; flex-direction: column">
 	<div class="panel sidebar_servers">
+		<SidebarServerAction icon={asset("icons/friends.svg")} action={show_friends}/>
 		{#if !servers.loaded}
 			<img src={asset("icons/loading.svg")} alt="loading" class="filter_icon_main" style="width: 48px"/>
 		{:else}

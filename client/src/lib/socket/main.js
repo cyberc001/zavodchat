@@ -1,6 +1,7 @@
 import {PUBLIC_BASE_SOCKET} from '$env/static/public';
 
 import Util from '$lib/util';
+import Friends from '$lib/rest/friends.js';
 import Message from '$lib/rest/message.js';
 import User from '$lib/rest/user.svelte.js';
 import Server from '$lib/rest/server.js';
@@ -12,6 +13,23 @@ export default class MainSocket {
 	ws;
 
 	static socket_event_handlers = {
+		friend_request_received: function(data) {
+			Friends.in_requests_cache.add_user_id_to_list(0, data.id);
+		},
+		friend_request_accepted: function(data) {
+			Friends.friend_cache.add_user_id_to_list(0, data.id);
+			Friends.out_requests_cache.remove_from_list(0, data.id);
+		},
+		friend_request_denied: function(data) {
+			Friends.out_requests_cache.remove_from_list(0, data.id);
+		},
+		friend_request_cancelled: function(data) {
+			Friends.in_requests_cache.remove_from_list(0, data.id);
+		},
+		friend_removed: function(data) {
+			Friends.friend_cache.remove_from_list(0, data.id);
+		},
+
 		message_edited: function(data) {
 			data.status = Message.Status.None;
 			Message.message_range_cache.update(data.channel_id, data);

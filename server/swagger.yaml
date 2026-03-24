@@ -123,21 +123,27 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/User'
+                  $ref: '#/components/schemas/UserId'
   /friend_requests:
     get:
       summary: Список запросов дружбы
       parameters:
         - $ref: "#/parameters/zavodchat_token"
+        - name: incoming
+          in: query
+          description: Если incoming = 0, то возвращаются исходящие запросы дружбы. Иначе (и по умолчанию), возвращаются входящие запросы.
+          schema:
+            type: integer
+            example: 0
       responses:
         '200':
-          description: "Список пользователей, от которых есть исходящий запрос дружбы"
+          description: "Список пользователей, от которых есть исходящий или входящий запрос дружбы"
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/User'
+                  $ref: '#/components/schemas/UserId'
   /friends/$user_id:
     post:
       parameters:
@@ -936,6 +942,10 @@ components:
         status:
           type: integer
           example: 0
+    UserId:
+        type: integer
+        description: "ID пользователя. Клиенту необходимо получить данные о пользователе через GET /users/$user_id"
+        example: 3
     UserBan:
       type: object
       properties:

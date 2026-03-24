@@ -3,6 +3,13 @@
 
 #include <resource/base.h>
 
+class user_resource : public base_resource
+{
+public:
+	user_resource(webserver& ws, db_connection_pool& pool, const config& cfg);
+	std::shared_ptr<http_response> render_GET(const http_request&);
+};
+
 class user_id_resource : public base_resource
 {
 public:

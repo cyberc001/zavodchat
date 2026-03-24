@@ -43,6 +43,7 @@
 	import SidebarServer from '$lib/display/sidebar/server.svelte';
 	import SidebarChannel from '$lib/display/sidebar/channel.svelte';
 	import SidebarMessage from '$lib/display/sidebar/message.svelte';
+	import SidebarFriends from '$lib/display/sidebar/friends.svelte';
 
 	import UserDisplay from '$lib/display/user.svelte';
 	import UserProfileDisplay from '$lib/display/user_profile.svelte';
@@ -82,12 +83,12 @@
 							if(settings_params.server_id === data.id)
 								closeSettings();
 							if(data.id === sel.server)
-								hideServer();
+								showServer(-1);
 						} else if((name === "user_kicked" || name === "user_banned") && data.id === user_self.data.id){
 							if(settings_params.server_id === data.id)
 								closeSettings();
 							if(data.server_id === sel.server)
-								hideServer();
+								showServer(-1);
 						} else if((name === "channel_deleted" || (name === "channel_edited" && data.type === Channel.Type.Voice)
 								) && sel.channel === data.id){
 							showServer(sel.server);
@@ -136,22 +137,19 @@
 	}
 
 	// Events
-	const hideServer = (id) => {
-		sel.server = -1;
-		sel.channel = -1;
-
-		server = {};
-		channels = undefined;
-	};
 	const showServer = (id) => {
 		sel.server = id;
-		if(id > -1)
-			server_user_list?.reset();
 		sel.channel = -1;
 
-		server = Server.get(id);
-		server_roles = Role.get_list(id);
-		channels = Channel.get_list(id);
+		if(id > -1){
+			server_user_list?.reset();
+			server = Server.get(id);
+			server_roles = Role.get_list(id);
+			channels = Channel.get_list(id);
+		} else {
+			server = {};
+			channels = undefined;
+		}
 	};
 
 	const showChannel = (id, i) => {
@@ -277,6 +275,7 @@
 			<div style="display: flex; height: 100%">
 				<SidebarServer servers={servers} selected_serever={sel.server}
 					show_server={(server) => showServer(server.id)}
+					show_friends={() => showServer(-1)}
 					ctx_server={(self, e, server) => {
 						setSettingsParams({server_id: server.id});
 						showCtxMenu(self, e, [action_settings_server]);
@@ -327,11 +326,15 @@
 		</div>
 	</div>
 
-	<SidebarMessage server_id={sel.server} channel_id={sel.channel}
-		sel_message_id={sel.user.message_id} sel_user_id={sel.user.id}
-		show_ctx_menu={showCtxMenu} show_user={showUser}
-		show_ban={showBan}
-	/>
+	{#if sel.server > -1}
+		<SidebarMessage server_id={sel.server} channel_id={sel.channel}
+			sel_message_id={sel.user.message_id} sel_user_id={sel.user.id}
+			show_ctx_menu={showCtxMenu} show_user={showUser}
+			show_ban={showBan}
+		/>
+	{:else}
+		<SidebarFriends />
+	{/if}
 
 	{#if sel.server > -1}
 		<div class="panel sidebar_users">

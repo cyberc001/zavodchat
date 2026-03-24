@@ -89,6 +89,7 @@ int main()
 	server_bans_resource server_bans(ws, pool, cfg);
 	server_ban_id_resource server_ban_id(ws, pool, cfg, sserv);
 
+	user_resource user(ws, pool, cfg);
 	user_id_resource user_id(ws, pool, cfg);
 	user_status_resource user_status(ws, pool, cfg, sserv);
 

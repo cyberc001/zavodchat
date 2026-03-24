@@ -24,10 +24,9 @@ export class IDCache {
 
 	// ID: [int1, int2, ..., intN]
 	state_refs_id(id){
-		if(typeof id === "number")
-			return id.toString();
-		else if(typeof id === "object") // array
+		if(typeof id === "object") // array
 			return id.join();
+		return id.toString();
 	}
 
 	get_state(_id, load_func){

@@ -6,6 +6,7 @@ import {asset} from '$app/paths';
 
 export default class User {
 	static user_cache = new IDCache();
+	static user_range_cache = new RangeCache();
 	static user_server_cache = new IDCache();
 	static user_server_range_cache = new RangeCache();
 
@@ -35,8 +36,9 @@ export default class User {
 			user_data.data[f] = data[f];
 
 		// for each server that user shared with the client
-		for(const server_id of user_data.data.servers)
-			User.update_cache_server(server_id, data);
+		if(user_data.data.servers)
+			for(const server_id of user_data.data.servers)
+				User.update_cache_server(server_id, data);
 	}
 
 	static update_cache_server(server_id, data){
@@ -63,6 +65,19 @@ export default class User {
 	}
 	static get_nocache(user_id, _then, _catch){
 		Rest.get("users/" + user_id, (res) => _then(res.data), _catch);
+	}
+
+	static get_range(start_id, count, asc, displayname, _catch){
+		console.log("GET_RANGE", displayname, User.user_range_cache.cache);
+		return User.user_range_cache.get_state(displayname,
+			start_id, count,
+			(tree, start_id, count, asc) => {
+				Rest.get("users",
+						(res) => {
+							tree.set_state(start_id, count, res.data, asc);
+						}, _catch,
+						"start_id", start_id, "count", count, "order", asc ? 1 : 0, "displayname", displayname);
+			}, asc, true);
 	}
 
 

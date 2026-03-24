@@ -1,7 +1,44 @@
 #include "resource/user.h"
 #include "resource/utils.h"
 
-#include <iostream>
+user_resource::user_resource(webserver& ws, db_connection_pool& pool, const config& cfg):
+	base_resource(ws, "/users", pool, cfg)
+{
+	set_allowing("GET", true);
+}
+
+std::shared_ptr<http_response> user_resource::render_GET(const http_request& req)
+{
+	base_resource::render_GET(req);
+
+	db_connection conn = pool.hold();
+	pqxx::work tx{*conn};
+
+	int start_id;
+	auto err = resource_utils::parse_index(req, "start_id", start_id, 0);
+	if(err) return err;
+	int count;
+	err = resource_utils::parse_index(req, "count", count, 0, cfg.max_get_count);
+	if(err) return err;
+	std::string order;
+	err = resource_utils::parse_order(req, order);
+	if(err) return err;
+
+	pqxx::params pr(start_id, count);
+
+	std::string where_displayname = "";
+	auto args = req.get_args();
+	if(args.find(std::string_view("displayname")) != args.end()){
+		pr.append(std::string(args["displayname"]));
+		where_displayname = "AND name LIKE '%' || $" + std::to_string(pr.size()) + " || '%'";
+	}
+
+	pqxx::result r = tx.exec("SELECT user_id, name, avatar, status FROM users WHERE user_id " + std::string(order == "DESC" ? "<=" : ">=") + " $1 " + where_displayname + " ORDER BY user_id " + order + " LIMIT $2 ", pr);
+	nlohmann::json res = nlohmann::json::array();
+	for(size_t i = 0; i < r.size(); ++i)
+		res += resource_utils::user_json_from_row(r[i]);
+	return create_response::string(req, res.dump(), 200);
+}
 
 user_id_resource::user_id_resource(webserver& ws, db_connection_pool& pool, const config& cfg):
 	base_resource(ws, "/users/{user_id}", pool, cfg)
