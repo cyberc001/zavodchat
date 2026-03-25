@@ -2,27 +2,6 @@
 #include "resource/utils.h"
 #include "resource/role_utils.h"
 
-std::shared_ptr<http_response> message_get_params(const http_request& req, pqxx::work& tx, unsigned max_get_count,
-							int& user_id, int& server_id, int& channel_id,
-							int& start_id, int& count, std::string& id_query)
-{
-	auto err = resource_utils::parse_channel_id(req, tx, user_id, server_id, channel_id);
-	if(err) return err;
-
-	err = resource_utils::parse_index(req, "start_id", start_id, 0);
-	if(err) return err;
-	err = resource_utils::parse_index(req, "count", count, 0, max_get_count);
-	if(err) return err;
-
-	std::string order;
-	err = resource_utils::parse_order(req, order);
-	if(err) return err;
-
-	id_query = "AND message_id " + std::string(order == "DESC" ? "<=" : ">=") + " $2 ORDER BY sent " + order + " LIMIT $3";
-
-	return nullptr;
-}
-
 channel_messages_resource::channel_messages_resource(webserver& ws, db_connection_pool& pool, const config& cfg,
 					socket_main_server& sserv):
 	base_resource(ws, "/channels/{channel_id}/messages", pool, cfg),
@@ -40,16 +19,17 @@ std::shared_ptr<http_response> channel_messages_resource::render_GET(const http_
 	pqxx::work tx{*conn};
 
 	int user_id, server_id, channel_id;
-	int start_id, count;
-	std::string id_query;
-	auto err = message_get_params(req, tx, cfg.max_get_count,
-					user_id, server_id, channel_id,
-					start_id, count, id_query);
+	auto err = resource_utils::parse_channel_id(req, tx, user_id, server_id, channel_id);
+	if(err) return err;
+
+	pqxx::params pr(channel_id);
+	std::string pg_query;
+	err = resource_utils::pagination_query(req, cfg, "message_id", pr, pg_query);
 	if(err)
 		return err;
 
 	nlohmann::json res = nlohmann::json::array();
-	pqxx::result r = tx.exec("SELECT message_id, author_id, sent, last_edited, text FROM messages WHERE channel_id = $1 " + id_query, pqxx::params(channel_id, start_id, count));
+	pqxx::result r = tx.exec("SELECT message_id, author_id, sent, last_edited, text FROM messages WHERE channel_id = $1 " + pg_query, pr);
 	for(size_t i = 0; i < r.size(); ++i){
 		pqxx::result r_att = tx.exec("SELECT type, content FROM message_attachments WHERE message_id = $1", pqxx::params(r[i]["message_id"].as<int>()));
 		res += resource_utils::message_json_from_row(r[i], r_att);
@@ -156,11 +136,12 @@ std::shared_ptr<http_response> channel_messages_search_resource::render_POST(con
 	pqxx::work tx{*conn};
 
 	int user_id, server_id, channel_id;
-	int start_id, count;
-	std::string id_query;
-	auto err = message_get_params(req, tx, cfg.max_get_count,
-					user_id, server_id, channel_id,
-					start_id, count, id_query);
+	auto err = resource_utils::parse_channel_id(req, tx, user_id, server_id, channel_id);
+	if(err) return err;
+
+	std::string pg_query;
+	pqxx::params pr(channel_id);
+	err = resource_utils::pagination_query(req, cfg, "message_id", pr, pg_query);
 	if(err)
 		return err;
 
@@ -169,10 +150,7 @@ std::shared_ptr<http_response> channel_messages_search_resource::render_POST(con
 	if(err)
 		return err;
 
-	pqxx::params pr(channel_id, start_id, count);
-
 	std::string q_where = "";
-	
 
 	if(body["content"].type() == nlohmann::json::value_t::string){
 		pr.append(body["content"].get<std::string>());
@@ -206,7 +184,7 @@ std::shared_ptr<http_response> channel_messages_search_resource::render_POST(con
 	nlohmann::json res = nlohmann::json::array();
 	pqxx::result r;
 	try{
-		r = tx.exec("SELECT message_id, author_id, sent, last_edited, text FROM messages WHERE channel_id = $1 " + q_where + " " + id_query, pr);
+		r = tx.exec("SELECT message_id, author_id, sent, last_edited, text FROM messages WHERE channel_id = $1 " + q_where + " " + pg_query, pr);
 	} catch(pqxx::data_exception& e){
 		return create_response::string(req, "Invalid date/time format in search query", 400);
 	}

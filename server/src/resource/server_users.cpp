@@ -19,17 +19,10 @@ std::shared_ptr<http_response> server_users_resource::render_GET(const http_requ
 	auto err = resource_utils::parse_server_id(req, tx, user_id, server_id);
 	if(err) return err;
 
-	int start_id;
-	err = resource_utils::parse_index(req, "start_id", start_id, 0);
+	std::string pg_query;
+	pqxx::params pr(server_id);
+	err = resource_utils::pagination_query(req, cfg, "user_id", pr, pg_query);
 	if(err) return err;
-	int count;
-	err = resource_utils::parse_index(req, "count", count, 0, cfg.max_get_count);
-	if(err) return err;
-	std::string order;
-	err = resource_utils::parse_order(req, order);
-	if(err) return err;
-
-	pqxx::params pr(server_id, start_id, count);
 
 	std::string displayname = "", where_displayname = "";
 	auto args = req.get_args();
@@ -38,7 +31,7 @@ std::shared_ptr<http_response> server_users_resource::render_GET(const http_requ
 		where_displayname = "AND name LIKE '%' || $" + std::to_string(pr.size()) + " || '%'";
 	}
 
-	pqxx::result r = tx.exec("SELECT user_id, name, avatar, status, role_id FROM user_x_server NATURAL JOIN users WHERE user_id IN (SELECT DISTINCT ON(user_id) user_id FROM user_x_server WHERE server_id = $1 AND user_id " + std::string(order == "DESC" ? "<=" : ">=") + " $2 ORDER BY user_id " + order + " LIMIT $3) AND server_id = $1 " + where_displayname + " ORDER BY user_id " + order, pr); // select first distinct 'count' users, then get all user_id-role_id entries for those selected users
+	pqxx::result r = tx.exec("SELECT user_id, name, avatar, status, role_id FROM user_x_server NATURAL JOIN users WHERE user_id IN (SELECT DISTINCT ON(user_id) user_id FROM user_x_server WHERE server_id = $1" + pg_query + ") AND server_id = $1 " + where_displayname, pr); // select first distinct 'count' users, then get all user_id-role_id entries for those selected users
 	std::unordered_map<int, size_t> r_users; // for O(1) access to users already inserted in res to append role_ids to them
 	nlohmann::json res = nlohmann::json::array();
 	for(size_t i = 0; i < r.size(); ++i){

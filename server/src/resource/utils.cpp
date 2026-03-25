@@ -313,6 +313,29 @@ std::shared_ptr<http_response> resource_utils::parse_invite_id(const http_reques
 	return std::shared_ptr<http_response>(nullptr);
 }
 
+/* Pagination */
+
+std::shared_ptr<http_response> resource_utils::pagination_query(const http_request& req, const config& cfg, std::string sort_column,
+							pqxx::params& params, std::string& query)
+{
+	int start_id;
+	auto err = resource_utils::parse_index(req, "start_id", start_id, 0);
+	if(err) return err;
+	int count;
+	err = resource_utils::parse_index(req, "count", count, 0, cfg.max_get_count);
+	if(err) return err;
+	std::string order;
+	err = resource_utils::parse_order(req, order);
+	if(err) return err;
+
+	params.append(start_id);
+	size_t pri_start = params.size();
+	params.append(count);
+
+	query = " AND " + sort_column + std::string(order == "DESC" ? " <=" : " >=") + " $" + std::to_string(pri_start) + " ORDER BY " + sort_column + " " + order + " LIMIT $" + std::to_string(pri_start + 1) + " ";
+	return nullptr;
+}
+
 /* JSON */
 
 std::shared_ptr<http_response> resource_utils::json_from_content(const http_request& req, nlohmann::json& data)

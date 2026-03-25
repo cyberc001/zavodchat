@@ -22,18 +22,12 @@ std::shared_ptr<http_response> server_bans_resource::render_GET(const http_reque
 	err = role_utils::check_permission1(req, tx, server_id, user_id, PERM1_BAN_MEMBERS);
 	if(err) return err;
 
-	int start_id;
-	err = resource_utils::parse_index(req, "start_id", start_id, 0);
-	if(err) return err;
-	int count;
-	err = resource_utils::parse_index(req, "count", count, 0, cfg.max_get_count);
-	if(err) return err;
-	std::string order;
-	err = resource_utils::parse_order(req, order);
-	if(err) return err;
+	std::string pg_query;
+	pqxx::params pr(server_id);
+	err = resource_utils::pagination_query(req, cfg, "ban_id", pr, pg_query);
 
 	nlohmann::json res = nlohmann::json::array();
-	pqxx::result r = tx.exec("SELECT ban_id, expiration_time, user_id, name, avatar, status FROM server_bans NATURAL JOIN users WHERE server_id = $1 AND ban_id " + std::string(order == "DESC" ? "<=" : ">=") +" $2 ORDER BY ban_id " + order + " LIMIT $3", pqxx::params(server_id, start_id, count));
+	pqxx::result r = tx.exec("SELECT ban_id, expiration_time, user_id, name, avatar, status FROM server_bans NATURAL JOIN users WHERE server_id = $1" + pg_query, pr);
 	for(size_t i = 0; i < r.size(); ++i)
 		res += resource_utils::ban_json_from_row(r[i]);
 

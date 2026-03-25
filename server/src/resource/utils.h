@@ -9,6 +9,8 @@
 #include <httpserver.hpp>
 using namespace httpserver;
 
+#include "config.h"
+
 class create_response
 {
 public:
@@ -75,6 +77,11 @@ public:
 	static std::shared_ptr<http_response> parse_invite_id(const http_request&, int server_id, pqxx::work&, std::string& invite_id);
 	// Same as above, but also checks if server has the invite
 	static std::shared_ptr<http_response> parse_invite_id(const http_request&, pqxx::work&, std::string& invite_id);
+
+	/* Pagination */
+	static std::shared_ptr<http_response> pagination_query(const http_request&, const config&, std::string sort_column,
+							pqxx::params& params, std::string& query);
+	static std::string pagination_query(const http_request&);
 
 	/* JSON */
 	static std::shared_ptr<http_response> json_from_content(const http_request&, nlohmann::json&);
