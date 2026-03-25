@@ -6,6 +6,7 @@
 	import Button from '$lib/control/button.svelte';
 	import UserPicker from '$lib/control/user_picker.svelte';
 
+	import BlockedUsers from '$lib/rest/blocked_users.js';
 	import Friends from '$lib/rest/friends.js';
 
 	let friends = Friends.get();
@@ -57,6 +58,10 @@
 					<button class="transparent_button hoverable"
 					onclick={() => Friends.deny_request(req.data.id)}>
 						<img src={asset("icons/close.svg")} alt="deny friend request" class="filter_icon_main" style="width: 32px"/>
+					</button>
+					<button class="transparent_button hoverable"
+					onclick={() => BlockedUsers.block_user(req.data.id)}>
+						<img src={asset("icons/block.svg")} alt="block user" class="filter_icon_main" style="width: 32px"/>
 					</button>
 				{:else}
 					<button class="transparent_button hoverable"

@@ -15,10 +15,13 @@ public:
 class blocked_users_id_resource : public base_resource
 {
 public:
-	blocked_users_id_resource(webserver& ws, db_connection_pool& pool, const config& cfg);
+	blocked_users_id_resource(webserver& ws, db_connection_pool& pool, const config& cfg,
+					socket_main_server& sserv);
 
 	std::shared_ptr<http_response> render_POST(const http_request&);
 	std::shared_ptr<http_response> render_DELETE(const http_request&);
+private:
+	socket_main_server& sserv;
 };
 
 #endif

@@ -81,10 +81,8 @@
 	let role_list_selected_idx = $state(-1);
 
 	$effect(() => {
-		if(server_roles.loaded){
-			state_roles.changes_override = SettingsTabState.ChangesState.Inherit;
+		if(server_roles.loaded)
 			state_roles.set_default_state("list", server_roles.data);
-		}
 	});
 
 	function perm_to_toggle_value(x){

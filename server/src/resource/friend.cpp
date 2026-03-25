@@ -98,7 +98,7 @@ std::shared_ptr<http_response> friends_id_resource::render_POST(const http_reque
 	pqxx::result r = tx.exec("SELECT user1_id, user2_id, is_request FROM friends WHERE (user1_id = $1 AND user2_id = $2) OR (user1_id = $2 AND user2_id = $1)", pqxx::params(user_id, friend_user_id));
 	// If users are not friends and dont have any requests to each other, create one
 	if(!r.size()){
-		err = resource_utils::check_user_unblocked(req, user_id, friend_user_id, tx);
+		err = resource_utils::check_user_unblocked(req, friend_user_id, user_id, tx);
 		if(err) return err;
 
 		r = tx.exec("SELECT user1_id FROM friends WHERE user1_id = $1 OR user2_id = $1", pqxx::params(user_id));

@@ -34,6 +34,8 @@
 	margin-left: 10px;
 	margin-right: 10px;
 
+	height: 100%;
+
 	overflow-y: scroll;
 }
 

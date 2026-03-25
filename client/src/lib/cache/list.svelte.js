@@ -26,7 +26,7 @@ export class ListCache extends IDCache {
 		const id = this.state_refs_id(_id);
 		if(this.has_state(id)){
 			const data = this.get_state(id).data;
-			let i = data.findIndex((x) => x.id === data_id || x.data.id === data_id);
+			let i = data.findIndex((x) => x.id === data_id || x.data?.id === data_id);
 			if(i !== -1)
 				data.splice(i, 1);
 		}

@@ -66,7 +66,7 @@ int main()
 	friends_id_resource friends_id(ws, pool, cfg, sserv);
 
 	blocked_users_resource blocked_users(ws, pool, cfg);
-	blocked_users_id_resource blocked_users_id(ws, pool, cfg);
+	blocked_users_id_resource blocked_users_id(ws, pool, cfg, sserv);
 
 	server_resource server(ws, pool, cfg);
 	server_id_resource server_id(ws, pool, cfg, sserv);

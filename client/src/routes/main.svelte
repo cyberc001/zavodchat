@@ -11,6 +11,7 @@
 	import User from '$lib/rest/user.svelte.js';
 	import Role from '$lib/rest/role.js';
 	import Ban from '$lib/rest/ban.js';
+	import BlockedUsers from '$lib/rest/blocked_users.js';
 
 	import MainSocket from '$lib/socket/main.js';
 	import VCSocket from '$lib/socket/vc.svelte.js';
@@ -244,6 +245,13 @@
 		onclick={() => showBan(sel.ctx_user_id)}
 	/>
 {/snippet}
+{#snippet action_block_user(hide_ctx_menu)}
+	<ContextMenuAction icon={asset("icons/block.svg")} text="Block"
+		hide_ctx_menu={hide_ctx_menu}
+		onclick={() => BlockedUsers.block_user(sel.ctx_user_id,
+							() => {}, () => {})}
+	/>
+{/snippet}
 
 {#snippet user_volume()}
 	<div style="padding: 4px">
@@ -345,7 +353,7 @@
 				onclick={() => showUser(user.id, -1)}
 				show_ctx_menu={(anchor, e) => {
 					sel.ctx_user_id = user.id;
-					showCtxMenu(anchor, e, [action_kick_user, action_ban_user]);
+					showCtxMenu(anchor, e, [action_kick_user, action_ban_user, action_block_user]);
 				}}
 				/>
 			{/snippet}

@@ -191,6 +191,10 @@ paths:
       responses:
         '200':
           description: "Пользователь был заблокирован"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
         '202':
           description: "Пользователь уже заблокирован"
         '400':

@@ -26,8 +26,10 @@ std::shared_ptr<http_response> blocked_users_resource::render_GET(const http_req
 }
 
 
-blocked_users_id_resource::blocked_users_id_resource(webserver& ws, db_connection_pool& pool, const config& cfg):
-	base_resource(ws, "/blocked_users/{user_id}", pool, cfg)
+blocked_users_id_resource::blocked_users_id_resource(webserver& ws, db_connection_pool& pool, const config& cfg,
+							socket_main_server& sserv):
+	base_resource(ws, "/blocked_users/{user_id}", pool, cfg),
+	sserv{sserv}
 {
 	set_allowing("POST", true);
 	set_allowing("DELETE", true);
@@ -59,10 +61,21 @@ std::shared_ptr<http_response> blocked_users_id_resource::render_POST(const http
 	if(r.size() >= cfg.max_blocked_per_user)
 		return create_response::string(req, "Too many blocked users", 403);
 
+	r = tx.exec("SELECT user1_id, user2_id, is_request FROM friends WHERE (user1_id = $1 AND user2_id = $2) OR (user1_id = $2 AND user2_id = $1)", pqxx::params(user_id, block_user_id));
+	
 	tx.exec("INSERT INTO blocked_users VALUES($1, $2)", pqxx::params(user_id, block_user_id));
-	tx.exec("DELETE FROM friends WHERE (user1_id = $1 AND user2_id = $2) OR (user1_id = $2 AND user1_id = $1)", pqxx::params(user_id, block_user_id));
+	tx.exec("DELETE FROM friends WHERE (user1_id = $1 AND user2_id = $2) OR (user1_id = $2 AND user2_id = $1)", pqxx::params(user_id, block_user_id));
 	tx.commit();
-	return create_response::string(req, "User was blocked", 200);
+
+	if(r.size()){
+		socket_event ev;
+		ev.data["id"] = user_id;
+		ev.name = r[0]["is_request"].as<bool>() ? "friend_request_denied" : "friend_removed";
+		sserv.send_to_user(block_user_id, tx, ev);
+	}
+
+	r = tx.exec("SELECT user_id, name, avatar, status FROM users WHERE user_id = $1", pqxx::params(block_user_id));
+	return create_response::string(req, resource_utils::user_json_from_row(r[0]).dump(), 200);
 }
 
 std::shared_ptr<http_response> blocked_users_id_resource::render_DELETE(const http_request& req)
