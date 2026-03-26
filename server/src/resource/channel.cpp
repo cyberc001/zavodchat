@@ -112,6 +112,9 @@ std::shared_ptr<http_response> channel_resource::render_PUT(const http_request& 
 	auto err = resource_utils::parse_channel_id(req, tx, user_id, server_id, channel_id);
 	if(err) return err;
 
+	if(server_id == -1)
+		return create_response::string(req, "Cannot change a DM channel", 403);
+
 	err = role_utils::check_permission1(req, tx, server_id, user_id, PERM1_MANAGE_CHANNELS);
 	if(err) return err;
 
@@ -157,6 +160,9 @@ std::shared_ptr<http_response> channel_resource::render_DELETE(const http_reques
 	pqxx::work tx{*conn};
 	auto err = resource_utils::parse_channel_id(req, tx, user_id, server_id, channel_id);
 	if(err) return err;
+
+	if(server_id == -1)
+		return create_response::string(req, "Cannot change a DM channel", 403);
 
 	err = role_utils::check_permission1(req, tx, server_id, user_id, PERM1_MANAGE_CHANNELS);
 	if(err) return err;

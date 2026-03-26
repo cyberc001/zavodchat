@@ -195,10 +195,17 @@ std::shared_ptr<http_response> resource_utils::parse_channel_id(const http_reque
 	} catch(std::invalid_argument& e){
 		return create_response::string(req, "Invalid channel ID", 400);
 	}
+
 	pqxx::result r = tx.exec("SELECT channel_id, server_id FROM channels WHERE server_id IN (SELECT server_id FROM user_x_server WHERE user_id = $1) AND channel_id = $2", pqxx::params(user_id, channel_id));
-	if(!r.size())
-		return create_response::string(req, "Channel does not exist", 404);
-	server_id = r[0]["server_id"].as<int>();
+	if(!r.size()){
+		// Try to find a DM channel
+		r = tx.exec("SELECT channel_id FROM channels WHERE (user1_id = $1 OR user2_id = $1) AND channel_id = $2", pqxx::params(user_id, channel_id));
+		if(!r.size())
+			return create_response::string(req, "Channel does not exist", 404);
+		else
+			server_id = -1;
+	} else
+		server_id = r[0]["server_id"].as<int>();
 	return std::shared_ptr<http_response>(nullptr);
 }
 std::shared_ptr<http_response> resource_utils::parse_channel_id(const http_request& req, pqxx::work& tx, int& user_id, int& server_id, int& channel_id)
@@ -348,14 +355,12 @@ std::shared_ptr<http_response> resource_utils::json_from_content(const http_requ
 	return nullptr;
 }
 
-void resource_utils::json_set_ids(nlohmann::json& data, int server_id)
-{
-	data["server_id"] = server_id;
-}
 void resource_utils::json_set_ids(nlohmann::json& data, int server_id, int channel_id)
 {
-	data["server_id"] = server_id;
-	data["channel_id"] = channel_id;
+	if(server_id != -1)
+		data["server_id"] = server_id;
+	if(channel_id != -1)
+		data["channel_id"] = channel_id;
 }
 
 nlohmann::json resource_utils::user_json_from_row(const pqxx::row& r)
@@ -381,11 +386,13 @@ nlohmann::json resource_utils::server_json_from_row(const pqxx::row& r)
 
 nlohmann::json resource_utils::channel_json_from_row(const pqxx::row& r)
 {
-	return {
+	nlohmann::json res = {
 		{"id", r["channel_id"].as<int>()},
-		{"name", r["name"].as<std::string>()},
 		{"type", r["type"].as<int>()}
 	};
+	if(!r["name"].is_null())
+		res += {"name", r["name"].as<std::string>()};
+	return res;
 }
 
 nlohmann::json resource_utils::message_json_from_row(const pqxx::row& msg_row, const std::vector<pqxx::row>& attachment_rows)

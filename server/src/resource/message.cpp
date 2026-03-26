@@ -46,8 +46,10 @@ std::shared_ptr<http_response> channel_messages_resource::render_POST(const http
 	auto err = resource_utils::parse_channel_id(req, tx, user_id, server_id, channel_id);
 	if(err) return err;
 
-	err = role_utils::check_permission1(req, tx, server_id, user_id, PERM1_CREATE_MESSAGES);
-	if(err) return err;
+	if(server_id != -1){
+		err = role_utils::check_permission1(req, tx, server_id, user_id, PERM1_CREATE_MESSAGES);
+		if(err) return err;
+	}
 
 	nlohmann::json body;
 	err = resource_utils::json_from_content(req, body);
@@ -63,7 +65,7 @@ std::shared_ptr<http_response> channel_messages_resource::render_POST(const http
 	int message_id;
 	pqxx::result msg_res;
 	try{
-		msg_res = tx.exec("INSERT INTO messages(channel_id, server_id, author_id, sent, last_edited, text) VALUES($1, $2, $3, now(), now(), $4) RETURNING message_id, author_id, sent, last_edited, text, channel_id", pqxx::params(channel_id, server_id, user_id, text));
+		msg_res = tx.exec("INSERT INTO messages(channel_id, author_id, sent, last_edited, text) VALUES($1, $2, now(), now(), $3) RETURNING message_id, author_id, sent, last_edited, text, channel_id", pqxx::params(channel_id, user_id, text));
 		message_id = msg_res[0]["message_id"].as<int>();
 	} catch(pqxx::data_exception& e){
 		return create_response::string(req, "Message is too long", 400);

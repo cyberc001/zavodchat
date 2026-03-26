@@ -7,6 +7,7 @@
 #include "resource/blocked_user.h"
 #include "resource/server.h"
 #include "resource/user.h"
+#include "resource/dm.h"
 #include "resource/file.h"
 #include "resource/file_utils.h"
 #include "resource/friend.h"
@@ -77,6 +78,9 @@ int main()
 
 	server_channel_resource server_channels(ws, pool, cfg, sserv, vcserv);
 	channel_resource channel(ws, pool, cfg, sserv, vcserv);
+
+	dm_resource dm(ws, pool, cfg, vcserv);
+	dm_id_resource dm_id(ws, pool, cfg);
 
 	channel_messages_resource channel_messages(ws, pool, cfg, sserv);
 	channel_messages_search_resource channel_messages_search(ws, pool, cfg, sserv);

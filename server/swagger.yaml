@@ -211,6 +211,35 @@ paths:
         '202':
           description: "Пользователь не был заблокирован"
 
+  /dms:
+    get:
+      parameters:
+        - $ref: "#/parameters/zavodchat_token"
+      summary: Пагинированный список каналов для личных сообщений
+      responses:
+        '200':
+          description: "Список каналов и последних сообщений"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DMChannel'
+  /dms/$user_id:
+    post:
+      parameters:
+        - $ref: "#/parameters/zavodchat_token"
+      summary: Получить ID каналов личных сообщений с пользователем
+      description: Создаёт каналы, если их нет.
+      responses:
+        '200':
+          description: "ID каналов"
+          content:
+            application/json:
+              schema:
+                type: integer
+                example:
+                  - 5
+                  - 6
+
   /servers:
     get:
       summary: Список серверов, в которых состоит пользователь
@@ -1024,6 +1053,26 @@ components:
           type: array
           items:
               $ref: '#/components/schemas/VCState'
+    DMChannel:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 2
+        name:
+          type: string
+          example: channel_test_vc
+        type:
+          description: 0 - текстовый, 1 - голосовой
+          type: integer
+          example: 1
+        vc_users:
+          description: user_id пользователей, которые подключены к голосовому каналу
+          type: array
+          items:
+              $ref: '#/components/schemas/VCState'
+        last_message:
+          $ref: '#/components/schemas/Message'
     Attachment:
       type: object
       properties:

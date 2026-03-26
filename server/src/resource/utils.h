@@ -86,8 +86,7 @@ public:
 	/* JSON */
 	static std::shared_ptr<http_response> json_from_content(const http_request&, nlohmann::json&);
 
-	static void json_set_ids(nlohmann::json& data, int server_id);
-	static void json_set_ids(nlohmann::json& data, int server_id, int channel_id);
+	static void json_set_ids(nlohmann::json& data, int server_id, int channel_id = -1);
 
 	static nlohmann::json user_json_from_row(const pqxx::row& r);
 	static nlohmann::json server_json_from_row(const pqxx::row& r);
