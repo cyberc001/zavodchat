@@ -32,6 +32,7 @@ enum video_state
 class socket_vc_connection : public socket_connection
 {
 public:
+	std::chrono::system_clock::time_point join_ts;
 	int server_id = -1, channel_id = -1;
 	std::shared_ptr<rtc::PeerConnection> rtc_conn;
 

@@ -154,6 +154,8 @@ export default class MainSocket {
 						channel_list_data.vc_users[data.id].user = User.get_server(data.server_id, data.id);
 					}
 				}
+			} else {
+				console.log("ITS YOUR FRIEND PHONING IN", data);
 			}
 		},
 		user_left_vc: function(data) {

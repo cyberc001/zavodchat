@@ -4,6 +4,23 @@
 
 #include <iostream>
 
+std::string tp_to_iso(const std::chrono::system_clock::time_point& tp)
+{
+	time_t t = std::chrono::system_clock::to_time_t(tp);
+	struct tm local_tm;
+	struct tm* tm = gmtime_r(&t, &local_tm);
+	long long ts = std::chrono::duration_cast<std::chrono::milliseconds>(tp.time_since_epoch()).count();
+
+	std::stringstream ss;
+	ss << std::setfill('0')
+	   << std::put_time(tm, "%FT%H:%M:")
+	   << std::setw(2) << ts / 1000 % 60 << '.'
+	   << std::setw(3) << ts % 1000
+	   << std::put_time(tm, "%z");
+	return ss.str();
+}
+
+
 /*** socket_vc_connection ***/
 
 std::string socket_vc_connection::get_new_mid()
@@ -26,6 +43,7 @@ nlohmann::json socket_vc_connection::get_vc_state()
 {	
 	return {
 		{"id", user_id},
+		{"joined", tp_to_iso(join_ts)},
 		{"mute", mute},
 		{"deaf", deaf},
 		{"video", get_recv_video_track() ? video_state::SCREEN : video_state::DISABLED}
@@ -515,6 +533,8 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 					return;
 				}
 				std::cerr << "parsed state" << std::endl;
+
+				conn->join_ts = std::chrono::system_clock::now();
 
 				conn->init_rtc(rtc_addr, rtc_port, rtc_cert, rtc_key);
 				std::cerr << "initialized rtc" << std::endl;

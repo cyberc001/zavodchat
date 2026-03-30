@@ -5,7 +5,10 @@
 	const {channel,
 		show_channel} = $props();
 
-	let user = $derived(User.get(channel.user_id));
+	let user = $state(User.get(channel.user_id));
+	$effect(() => {
+		user = User.get(channel.user_id);
+	});
 </script>
 
 <div class="dm_frame">

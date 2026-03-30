@@ -55,11 +55,12 @@ export class IDCache {
 				load_func(this, id);
 			return obj;
 		}
+		obj = obj.deref();
 		if(!obj.loaded && !obj.loading && load_func){
 			obj.loading = true;
 			load_func(this, id);
 		}
-		return obj.deref();
+		return obj;
 	}
 	// Should be called from get_state(, load_func), therefore id is not parsed twice
 	set_state(id, data){
