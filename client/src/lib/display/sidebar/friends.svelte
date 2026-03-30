@@ -47,14 +47,27 @@ buttons={[{text: "Remove", action: () => Friends.remove_friend(user_to_remove.da
 				<div class="friend_actions">
 					{#if friend.loaded}
 					<button class="transparent_button hoverable"
-					onclick={() => DM.open(friend.data.id, (res) => {
+					onclick={() => console.log("loading friend", $state.snapshot(friends), $state.snapshot(friend)) + DM.open(friend.data.id, (res) => {
 						const ch = Channel.get(res.data[0]);
 						ch.notify_on_load(() => {
+							ch.data.name = friend.data.name;
+							ch.data.linked_vc_id = res.data[1];
 							show_channel(ch.data);
 						});
 					})}>
-						<img src={asset("icons/channel_text.svg")} alt="remove friend" class="filter_icon_main" style="width: 32px"/>
+						<img src={asset("icons/channel_text.svg")} alt="text friend" class="filter_icon_main" style="width: 32px"/>
 					</button>
+					<button class="transparent_button hoverable"
+					onclick={() => DM.open(friend.data.id, (res) => {
+						const ch = Channel.get(res.data[1]);
+						ch.notify_on_load(() => {
+							ch.data.name = friend.data.name;
+							show_channel(ch.data);
+						});
+					})}>
+						<img src={asset("icons/call.svg")} alt="call friend" class="filter_icon_main" style="width: 32px"/>
+					</button>
+
 					<button class="transparent_button hoverable"
 					onclick={() => {
 						user_to_remove = friend;

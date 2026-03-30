@@ -3,6 +3,7 @@
 	import SidebarChannelElement from '$lib/display/sidebar/channel_element.svelte';
 	import SidebarChannelAction from '$lib/display/sidebar/channel_action.svelte';
 	import DMElement from '$lib/display/sidebar/dm.svelte';
+	import ServerHead from '$lib/display/sidebar/server_head.svelte';
 
 	import MediaDisplay from '$lib/display/media.svelte';
 	import PaginatedList from '$lib/display/paginated_list.svelte';
@@ -29,11 +30,7 @@
 <div style="display: flex; flex-direction: column">
 	<div class="panel sidebar_channels">
 		{#if channels}
-			<div class="sidebar_channel_name">
-				{#if server.data?.name}
-					{server.data?.name}
-				{/if}
-			</div>
+			<ServerHead server={server} />
 	
 			{#if !channels.loaded}
 				<div style="text-align: center; margin-top: 6px">
@@ -85,14 +82,5 @@
 }
 .sidebar_channel_actions {
 	height: 32px;
-}
-.sidebar_channel_name {
-	padding: 8px 0 8px 8px;
-
-	border-width: 2px;
-	border-style: none none solid none;
-	border-color: var(--clr_border);
-
-	font-size: 24px;
 }
 </style>

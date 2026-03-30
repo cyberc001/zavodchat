@@ -26,9 +26,9 @@
 	}}
 />
 
-<div class="search_bar_frame" bind:this={self}>
+<div style="position: relative" bind:this={self}>
 	<input autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
-		class="settings_control" style="width:var(--width, 240px)"
+		class="settings_control" style="width:var(--width, 240px); margin-bottom:var(--margin-bottom, 12px)"
 		bind:value={content}
 		onkeyup={(e) => {
 			if(e.code === "Enter"){
@@ -56,6 +56,10 @@
 						server_id={server_id}
 						--margin-bottom="6px"
 					/>
+				{:else if e.type === "user"}
+					<UserPicker label_text={e.label} bind:value={params[e.param]}
+						--margin-bottom="6px"
+					/>
 				{/if}
 			{/each}
 		</div>
@@ -64,12 +68,14 @@
 
 <style>
 @import "style.css";
-.search_bar_frame {
-	display: flex;
-	flex-direction: column;
-	margin-bottom: 12px;
-}
 .search_bar_params {
+	position: absolute;
+	z-index: 1000;
+	top: 100%;
+	/* same width as parent */
+	left: 0;
+	right: 0;
+
 	padding: 6px 0 0 6px;
 	border-style: solid;
 	border-radius: 4px;

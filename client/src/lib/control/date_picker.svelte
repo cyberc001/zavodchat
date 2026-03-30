@@ -7,7 +7,7 @@
 
 <div class="settings_date_picker_frame">
 	<p class="settings_control_label">{label_text}</p>
-	<input type="date" class="settings_control" style="width:var(--width, 160px)"
+	<input type="date" class="settings_control" style="width:var(--width, 200px)"
 	bind:value={
 		() => {
 			if(!value)

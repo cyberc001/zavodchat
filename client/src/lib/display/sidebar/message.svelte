@@ -7,17 +7,17 @@
 	import PaginatedList from '$lib/display/paginated_list.svelte';
 	import MessageInput from '$lib/control/message_input.svelte';
 	import ContextMenuAction from '$lib/control/context_menu_action.svelte';
-
-	import SearchBar from '$lib/control/search_bar.svelte';
+	import ChannelHead from '$lib/display/sidebar/channel_head.svelte';
 
 	import Message from '$lib/rest/message.js';
+	import Channel from '$lib/rest/channel.js';
 	import User from '$lib/rest/user.svelte.js';
 	import Role from '$lib/rest/role.js';
 	import File from '$lib/rest/file.js';
 
 	let {server_id, channel_id,
 		sel_message_id, sel_user_id,
-		show_ctx_menu, show_user, show_ban} = $props();
+		show_ctx_menu, show_user, show_ban, show_channel} = $props();
 
 	let self_user = User.get(-1);
 
@@ -50,8 +50,8 @@
 		}, 5000);
 	}
 
+	let channel_head = $state();
 	let message_list = $state();
-	let search_bar = $state();
 
 	let message_search_params = $state({});
 	let is_search = $derived(Object.keys(message_search_params).length > 0);
@@ -171,7 +171,7 @@
 		hide_ctx_menu={hide_ctx_menu}
 		onclick={() => {
 			message_search_params = {};
-			search_bar.reset();
+			channel_head.reset();
 			const msg = message_list.getItem(sel.ctx_message);
 			set_highlight_message(msg.id);
 			message_list.reset(msg.id);
@@ -198,7 +198,17 @@
 
 <div class="panel sidebar_message">
 	{#if channel_id > -1}
-	<div style="height: 100%; position: relative">
+	<div style="height: 100%; position: relative; display: flex; flex-direction: column">
+		<ChannelHead bind:this={channel_head}
+		channel={Channel.get(channel_id)} server_id={server_id}
+		onsearch={(params) => {
+			sel.highlight_message = -1;
+			message_search_params = params;
+			message_list.reset();
+		}}
+		show_channel={show_channel}
+		/>
+
 		<div class="sidebar_message_content">
 			{#snippet render_message(i, item)}
 				<MessageDisplay data={item}
@@ -238,21 +248,6 @@
 				actions={sel.message_edit > -1 ? [{text: "Stop editing", func: stopEditing}] : []}
 			/>
 		</div>
-
-		<div class="sidebar_message_search">
-			<SearchBar server_id={server_id} bind:this={search_bar}
-				elements={[
-					{type: "server_user", label: "Author", param: "author_id"},
-					{type: "date", label: "Date from", param: "date_from"},
-					{type: "date", label: "Date until", param: "date_until"}
-				]}
-				onsearch={(params) => {
-					sel.highlight_message = -1;
-					message_search_params = params;
-					message_list.reset();
-				}}
-			/>
-		</div>
 	</div>
 	{/if}
 </div>
@@ -262,7 +257,8 @@
 	width: 100%;
 }
 .sidebar_message_content {
-	height: 100%;
+	flex-grow: 1;
+	min-height: 0;
 
 	display: flex;
 	flex-direction: column;

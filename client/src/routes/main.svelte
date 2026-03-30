@@ -154,7 +154,7 @@
 		console.log("show channel", ch);
 		if(ch.type === Channel.Type.Voice){
 			let old_socket_vc = socket_vc;
-			socket_vc = new VCSocket(user_self.data.id, id, (close) => {
+			socket_vc = new VCSocket(user_self.data.id, ch.id, (close) => {
 				if(close.reason === "User is already connected to this channel")
 					socket_vc = old_socket_vc;
 			});
@@ -337,6 +337,7 @@
 			sel_message_id={sel.user.message_id} sel_user_id={sel.user.id}
 			show_ctx_menu={showCtxMenu} show_user={showUser}
 			show_ban={showBan}
+			show_channel={showChannel}
 		/>
 	{:else if sel.server === -1}
 		<SidebarFriends show_channel={showChannel}/>

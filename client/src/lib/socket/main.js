@@ -145,34 +145,40 @@ export default class MainSocket {
 		},
 
 		user_joined_vc: function(data) {
-			if(Channel.channel_list_cache.has_state(data.server_id)){
-				let list = Channel.channel_list_cache.get_state(data.server_id);
-				let channel_list_data = Channel.channel_list_cache.get_state(data.server_id).data.find((x) => x.id === data.channel_id);
-				if(channel_list_data && channel_list_data.vc_users){
-					channel_list_data.vc_users[data.id] = Util.object_from_object(data, ["id", "mute", "deaf"]);
-					channel_list_data.vc_users[data.id].user = User.get_server(data.server_id, data.id);
+			if(typeof(data.server_id) !== "undefined"){
+				if(Channel.channel_list_cache.has_state(data.server_id)){
+					let list = Channel.channel_list_cache.get_state(data.server_id);
+					let channel_list_data = Channel.channel_list_cache.get_state(data.server_id).data.find((x) => x.id === data.channel_id);
+					if(channel_list_data && channel_list_data.vc_users){
+						channel_list_data.vc_users[data.id] = Util.object_from_object(data, ["id", "mute", "deaf"]);
+						channel_list_data.vc_users[data.id].user = User.get_server(data.server_id, data.id);
+					}
 				}
 			}
 		},
 		user_left_vc: function(data) {
-			if(Channel.channel_list_cache.has_state(data.server_id)){
-				let list = Channel.channel_list_cache.get_state(data.server_id);
-				let channel_list_data = Channel.channel_list_cache.get_state(data.server_id).data.find((x) => x.id === data.channel_id);
-				if(channel_list_data && channel_list_data.vc_users)
-					delete channel_list_data.vc_users[data.id];
+			if(typeof(data.server_id) !== "undefined"){
+				if(Channel.channel_list_cache.has_state(data.server_id)){
+					let list = Channel.channel_list_cache.get_state(data.server_id);
+					let channel_list_data = Channel.channel_list_cache.get_state(data.server_id).data.find((x) => x.id === data.channel_id);
+					if(channel_list_data && channel_list_data.vc_users)
+						delete channel_list_data.vc_users[data.id];
+				}
 			}
 		},
 		user_changed_vc_state: function(data) {
-			if(Channel.channel_list_cache.has_state(data.server_id)){
-				let list = Channel.channel_list_cache.get_state(data.server_id);
-				let channel_list_data = Channel.channel_list_cache.get_state(data.server_id).data.find((x) => x.id === data.channel_id);
-				if(channel_list_data && channel_list_data.vc_users){
-					if(typeof data.mute !== "undefined")
-						channel_list_data.vc_users[data.id].mute = data.mute;
-					if(typeof data.deaf !== "undefined")
-						channel_list_data.vc_users[data.id].deaf = data.deaf;
-					if(typeof data.video !== "undefined")
-						channel_list_data.vc_users[data.id].video = data.video;
+			if(typeof(data.server_id) !== "undefined"){
+				if(Channel.channel_list_cache.has_state(data.server_id)){
+					let list = Channel.channel_list_cache.get_state(data.server_id);
+					let channel_list_data = Channel.channel_list_cache.get_state(data.server_id).data.find((x) => x.id === data.channel_id);
+					if(channel_list_data && channel_list_data.vc_users){
+						if(typeof data.mute !== "undefined")
+							channel_list_data.vc_users[data.id].mute = data.mute;
+						if(typeof data.deaf !== "undefined")
+							channel_list_data.vc_users[data.id].deaf = data.deaf;
+						if(typeof data.video !== "undefined")
+							channel_list_data.vc_users[data.id].video = data.video;
+					}
 				}
 			}
 		}

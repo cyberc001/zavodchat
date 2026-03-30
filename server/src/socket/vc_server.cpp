@@ -463,15 +463,24 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 						return;
 					}
 
-					r = tx.exec("SELECT type, server_id, channel_id FROM channels WHERE channel_id = $1 AND type = $2", pqxx::params(conn->channel_id, static_cast<int>(CHANNEL_VOICE)));
+					r = tx.exec("SELECT type, server_id, channel_id, user1_id, user2_id FROM channels WHERE channel_id = $1 AND type = $2", pqxx::params(conn->channel_id, static_cast<int>(CHANNEL_VOICE)));
 					if(!r.size()){
 						conn->close(ix::WebSocketCloseConstants::kNormalClosureCode, "User has no access to the channel or it does not exist");
 						return;
 					}
-					conn->server_id = r[0]["server_id"].as<int>();
-					if(!resource_utils::check_server_member(conn->user_id, conn->server_id, tx)){
-						conn->close(ix::WebSocketCloseConstants::kNormalClosureCode, "User has no access to the channel or it does not exist");
-						return;
+
+					if(r[0]["server_id"].is_null()){
+						int user1_id = r[0]["user1_id"].as<int>(), user2_id = r[0]["user2_id"].as<int>();
+						if(user1_id != conn->user_id && user2_id != conn->user_id){
+							conn->close(ix::WebSocketCloseConstants::kNormalClosureCode, "User has no access to the channel or it does not exist");
+							return;
+						}
+					} else {
+						conn->server_id = r[0]["server_id"].as<int>();
+						if(!resource_utils::check_server_member(conn->user_id, conn->server_id, tx)){
+							conn->close(ix::WebSocketCloseConstants::kNormalClosureCode, "User has no access to the channel or it does not exist");
+							return;
+						}
 					}
 				}
 				std::cerr << "validated, user_id=" << conn->user_id << " channel_id=" << conn->channel_id << " server_id=" << conn->server_id << std::endl;
