@@ -19,6 +19,7 @@
 				return;
 
 			const last_item = div_items[reversed ? items.data.length - 1 : 0];
+			console.log("NEW ITEM CHECK", get_abs_scroll(), last_item.clientHeight);
 			if(get_abs_scroll() > last_item.clientHeight)
 				set_anchor(reversed ? items.data.length - 1 : 0);
 			else
@@ -67,14 +68,11 @@
 			items = _load_items(start_id, range, !reversed);
 	
 		anchor = {};
-		scroll_initialized = false;
 	}
 
 	$effect(() => {
 		if(items.loaded && !items.is_full && !items.final && init_items.loaded){
 			console.log("finalizing items", items, $state.snapshot(items.data), start_id);
-
-			last_list_div_height = list_div.scrollHeight;
 
 			items.destroy();
 			if(!init_items.is_full)
@@ -126,6 +124,8 @@
 		if(div_items[0] === null)
 			return;
 
+		console.log("SETTING ANCHOR", i, $state.snapshot(items.data));
+
 		if(i >= items.data.length)
 			i = items.data.length - 1;
 
@@ -142,57 +142,26 @@
 		list_div_scroll_height = list_div.scrollHeight;
 	});
 
-	let scroll_initialized = false;
-	$effect(() => {
-		//$inspect.trace();
-		list_div_scroll_top = list_div.scrollTop;
-
-		console.log("new items", list_div.scrollTop, "\n", items, $state.snapshot(items.data));
-		if(items.data.length === 0 || !div_items[0] || !div_items[items.data.length - 1] || div_items[0].clientHeight === 0)
-			return;
-
-		if(items.loaded && !scroll_initialized){
-			scroll_initialized = true;
-			list_div_scroll_top = list_div.scrollTop = reversed ? 2147483648 : 0;
-		}
-
-		if(typeof anchor.id !== "undefined"){
-			const anchor_el = div_items[items.data.findIndex((x) => items.tree.key(x) === anchor.id)];
-			console.log("ANCHOR", anchor, "ITEMS", $state.snapshot(items.data), "\n", anchor_el, "\n", list_div.scrollTop, anchor_el?.offsetTop);
-			if(anchor_el)
-				list_div.scrollTop += (anchor_el.offsetTop - list_div.scrollTop) - anchor.top;
-			console.log("SCROLL TOP AFTER ANCHORING", list_div.scrollTop);
-		}
-	
-		if(typeof start_id !== "undefined" && items.loaded){
-			let start_div = div_items[items.data.findIndex((x) => items.tree.key(x) === start_id)];
-			start_div.scrollIntoView(true);
-			start_id = undefined;
-		}
-
-		list_div_scroll_top = list_div.scrollTop;
-	});
-
 	// Scroll back to bottom/top if user hasnt scrolled past the last element and the element changed in size
 	// (ex. an image attachment got loaded)
 	// It is assumed that div_items only grow in size and not shrink (therefore only previous list_div.scrollHeight is kept track of, and the same is false for div_items)
 	let list_resize_obs;
-	let last_list_div_height = -1;
 	$effect(() => {
 		if(!list_div)
 			return;
 		list_resize_obs = new ResizeObserver((elements) => {
-			if(!list_div || items.data.length === 0 || div_items.length === 0)
+			// Observers might be active when this component is off-screen
+			if(!list_div)
 				return;
 
-			const last_item = div_items[reversed ? items.data.length - 1 : 0];
-			console.log("SCROLL CONDITION", list_div.scrollTop + last_item.clientHeight, last_list_div_height - list_div.clientHeight, "\n", list_div.scrollTop, last_item.clientHeight, last_list_div_height, list_div.clientHeight, "\n", $state.snapshot(items.data));
-			if(reversed ? list_div.scrollTop + last_item.clientHeight >= last_list_div_height - list_div.clientHeight
-					: list_div.scrollTop <= last_item.clientHeight){
-				console.log("SCROLLING TO BOTTOM");
+			if(typeof(anchor.top) === "undefined")
 				list_div_scroll_top = list_div.scrollTop = reversed ? 2147483648 : 0;
-			}
-			last_list_div_height = list_div.scrollHeight;
+			else {
+				const anchor_el = div_items[items.data.findIndex((x) => items.tree.key(x) === anchor.id)];
+				console.log("ANCHOR", anchor, "ITEMS", $state.snapshot(items.data), "\n", anchor_el, "\n", list_div.scrollTop, anchor_el?.offsetTop);
+				if(anchor_el)
+					list_div.scrollTop += (anchor_el.offsetTop - list_div.scrollTop) - anchor.top;	
+			}	
 		});
 		list_resize_obs.observe(list_div);
 		for(const item of Object.values(div_items))
@@ -208,7 +177,6 @@
 		let next_scroll_top = list_div.scrollTop + e.deltaY * 0.3;
 
 		const max_scroll = list_div.scrollHeight - list_div.clientHeight;
-		console.log("scroll", list_div.scrollTop, next_scroll_top, max_scroll);
 		if(next_scroll_top >= max_scroll || next_scroll_top < 0){
 			let dir = Math.sign(e.deltaY) * reverse_sign;
 
@@ -225,13 +193,11 @@
 				destroy_old_items = true;
 				console.log("loading more items", $state.snapshot(items.data), items.tree.key(items.data[reversed ? items.data.length - advance : advance - 1]) + reverse_sign, !reversed);
 
-				last_list_div_height = list_div.scrollHeight;
 
 				items = _load_items(items.tree.key(items.data[reversed ? items.data.length - advance : advance - 1]) + reverse_sign, range, !reversed);
 			} else if(dir < 0 && can_scroll_before){
 				destroy_old_items = true;
 
-				last_list_div_height = list_div.scrollHeight;
 
 				console.log("loading more items", $state.snapshot(items.data), items.tree.key(items.data[reversed ? advance - 1 : items.data.length - advance]) - reverse_sign, reversed);
 				items = _load_items(items.tree.key(items.data[reversed ? advance - 1 : items.data.length - advance]) - reverse_sign, range, reversed);
@@ -240,6 +206,9 @@
 				old_items.destroy();
 		} else
 			list_div.scrollTop = next_scroll_top;
+
+		if(typeof anchor.id !== "undefined")
+			anchor.top += (list_div_scroll_top - list_div.scrollTop);
 		list_div_scroll_top = list_div.scrollTop;
 	};
 

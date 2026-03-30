@@ -272,14 +272,15 @@ class DataTree {
 	}
 	update(data){
 		let d = this._tree.find(data);
-		if(d)
+		if(d){
 			for(const key of Object.keys(data))
 				d[key] = data[key];
 
-		for(const obs of this.get_observers(this.key(data), this.key(data))){
-			if(obs.onupdate)
-				obs.onupdate(obs, this.key(data));
-			obs.set(this, this.key(data), 1);
+			for(const obs of this.get_observers(this.key(data), this.key(data))){
+				if(obs.onupdate)
+					obs.onupdate(obs, this.key(data));
+				obs.set(this, this.key(data), 1);
+			}
 		}
 	}
 
