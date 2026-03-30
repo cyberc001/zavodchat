@@ -3,6 +3,7 @@
 	import User from '$lib/rest/user.svelte.js';
 	import UserDisplay from '$lib/display/user.svelte';
 	import PaginatedList from '$lib/display/paginated_list.svelte';
+	import {onDestroy} from 'svelte';
 
 	let {server_id, // if undefined, regular users are searched
 		value = $bindable()} = $props();
@@ -13,14 +14,27 @@
 
 	let user_name = $state("");
 	let prev_user_name = $state("");
-	$effect(() => {
-		user_name;
-		user_list?.reset();
-	});
+
+	let list_user_name_ts = 0;
+	let list_user_name = $state("");
+	const list_user_name_intv = setInterval(() => {
+		if(list_user_name === user_name || new Date() - list_user_name_ts < 500)
+			return;
+		list_user_name = user_name;
+		list_user_name_ts = new Date();
+		if(user_list)
+			user_list.reset();
+	}, 100);
+	onDestroy(() => clearInterval(list_user_name_intv));
+
 
 	export function reset(){
 		value = undefined;
+		list_user_name_ts = 0;
+		list_user_name = "";
 		user_name = "";
+		if(user_list)
+			user_list.reset();
 	}
 </script>
 
@@ -63,8 +77,8 @@
 			style={user_list && user_list.getItemCount() > 0 ? "" : "display: none"}>
 			<PaginatedList
 				render_item={render_user}
-				load_items={(index, range, asc) => server_id ? User.get_server_range(server_id, index, range, asc, user_name)
-										: User.get_range(index, range, asc, user_name)
+				load_items={(index, range, asc) => server_id ? User.get_server_range(server_id, index, range, asc, list_user_name)
+										: User.get_range(index, range, asc, list_user_name)
 				}
 				bind:this={user_list}
 				to_latest_text="Up"

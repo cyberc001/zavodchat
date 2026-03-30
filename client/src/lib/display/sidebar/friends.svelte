@@ -78,7 +78,7 @@ buttons={[{text: "Remove", action: () => Friends.remove_friend(user_to_remove.da
 				<UserDisplay user={req.data} display_status={false}/>
 
 				<div class="friend_actions">
-				{#if friend.loaded}
+				{#if req.loaded}
 				{#if args.requests === in_requests}
 					<button class="transparent_button hoverable"
 					onclick={() => Friends.accept_or_create_request(req.data.id)}>
