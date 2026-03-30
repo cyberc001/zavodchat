@@ -84,7 +84,7 @@
 								closeSettings();
 							if(data.id === sel.server)
 								showServer(-1);
-						} else if((name === "user_kicked" || name === "user_banned") && data.id === user_self.data.id){
+						} else if((name === "user_kicked" || name === "user_banned") && data.user.id === user_self.data.id){
 							if(settings_params.server_id === data.id)
 								closeSettings();
 							if(data.server_id === sel.server)
