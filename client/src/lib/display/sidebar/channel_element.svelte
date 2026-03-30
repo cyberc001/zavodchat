@@ -19,7 +19,7 @@
 		style={(last ? "border-style: solid none solid none" : "")
 			+ "; anchor-name: --channel_" + channel.id
 			+ "; padding: 4px 0px 4px 4px; border-color: var(--clr_border)"}
-		onclick={() => show_channel(channel.id)}
+		onclick={() => show_channel(channel)}
 		bind:this={self}
 		oncontextmenu={(e) => {
 			event.preventDefault();

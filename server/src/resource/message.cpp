@@ -314,6 +314,8 @@ std::shared_ptr<http_response> message_resource::render_DELETE(const http_reques
 
 	pqxx::result r = tx.exec("SELECT author_id FROM messages WHERE message_id = $1", pqxx::params(message_id));
 	if(r[0]["author_id"].as<int>() != user_id){ // not an author, but still can have the permission
+		if(server_id == -1)
+			return create_response::string(req, "Cannot delete a direct message of someone else", 403);
 		err = role_utils::check_permission1(req, tx, server_id, user_id, PERM1_DELETE_MESSAGES);
 		if(err) return err;
 	}

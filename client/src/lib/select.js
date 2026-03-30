@@ -14,7 +14,6 @@ export default class Select {
 	}
 
 	static __get_selection_index(el, range){
-		console.log("__get_selection_index()", el, "\n", range.startContainer, range.startOffset, window.getSelection().rangeCount);
 		if(el === range.startContainer){
 			if(el.nodeType === Node.TEXT_NODE)
 				return [true, range.startOffset];
@@ -24,11 +23,9 @@ export default class Select {
 				idx += Select.__get_total_text_ln(el.childNodes[i]);
 			return [true, idx];
 		}
-		console.log("scanning child nodes");
 		let i = 0;
 		for(const child of el.childNodes){
 			const [found, adv] = Select.__get_selection_index(child, range);
-			console.log("child node result", found, i, adv);
 			if(found)
 				return [true, i + adv];
 			i += adv;
@@ -49,11 +46,9 @@ export default class Select {
 		const ln = Select.__get_total_text_ln(el);
 
 		if(!el.childNodes.length){
-			console.log("set_selection_index", el, idx, "\nchildren\n", el.childNodes);
 			if(idx < ln){
 				window.getSelection().removeAllRanges();
 				const range = document.createRange();
-				console.log("setting index", idx, "for", el);
 				if(el.nodeType === Node.TEXT_NODE)
 					range.setStart(el, idx);
 				else
@@ -75,7 +70,6 @@ export default class Select {
 		if(!Select.__set_selection_index(el, idx)){
 			window.getSelection().removeAllRanges();
 			const range = document.createRange();
-			console.log("setting index", idx, "past", el, "\n", el.childNodes);
 			const last_child = el.childNodes[el.childNodes.length - 1];
 			if(!last_child){
 				range.setStart(el, 0);
@@ -84,7 +78,6 @@ export default class Select {
 				range.collapse(false);
 			}
 			window.getSelection().addRange(range);
-			console.log("selected", window.getSelection().getRangeAt(0).startContainer, window.getSelection().getRangeAt(0).startOffset);
 			el.focus();
 		}
 	}
@@ -101,7 +94,6 @@ export default class Select {
 				text += "\n";
 				break;
 		}
-		console.log("get_inner_text", el, text);
 		return text;
 	}
 };

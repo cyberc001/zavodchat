@@ -28,16 +28,18 @@ std::shared_ptr<http_response> dm_resource::render_GET(const http_request& req)
 		return err;
 
 	nlohmann::json res = nlohmann::json::array();
-	pqxx::result r = tx.exec("SELECT * FROM channels LEFT JOIN LATERAL (SELECT * FROM messages WHERE messages.channel_id = channels.channel_id ORDER BY message_id DESC LIMIT 1) ON true WHERE user1_id = $1 OR user2_id = $1" + pg_query, pr);
+	pqxx::result r = tx.exec("SELECT * FROM channels LEFT JOIN LATERAL (SELECT * FROM messages WHERE messages.channel_id = channels.channel_id ORDER BY message_id DESC LIMIT 1) ON true WHERE type = 0 AND (user1_id = $1 OR user2_id = $1)" + pg_query, pr);
 
 	for(size_t i = 0; i < r.size(); ++i){
 		nlohmann::json channel_json = resource_utils::channel_json_from_row(r[i]);
+		int user1_id = r[i]["user1_id"].as<int>(), user2_id = r[i]["user2_id"].as<int>();
+		channel_json["user_id"] = user1_id == user_id ? user2_id : user1_id;
 		if(!r[i]["message_id"].is_null()){
 			pqxx::result attachment_rows;
 			channel_json["last_message"] = resource_utils::message_json_from_row(r[i], attachment_rows);
 		}
-		if(channel_json["type"] == CHANNEL_VOICE)
-			channel_json["vc_users"] = vcserv.get_channel_users(channel_json["id"]);
+		//if(channel_json["type"] == CHANNEL_VOICE)
+		//	channel_json["vc_users"] = vcserv.get_channel_users(channel_json["id"]);
 		res += channel_json;
 	}
 

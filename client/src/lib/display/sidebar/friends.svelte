@@ -8,6 +8,10 @@
 
 	import BlockedUsers from '$lib/rest/blocked_users.js';
 	import Friends from '$lib/rest/friends.js';
+	import DM from '$lib/rest/dm.js';
+	import Channel from '$lib/rest/channel.js';
+
+	const {show_channel} = $props();
 
 	let friends = Friends.get();
 	let in_requests = Friends.get_requests(true);
@@ -31,6 +35,15 @@
 				<UserDisplay user={friend.data}/>
 
 				<div class="friend_actions">
+					<button class="transparent_button hoverable"
+					onclick={() => DM.open(friend.data.id, (res) => {
+						const ch = Channel.get(res.data[0]);
+						ch.notify_on_load(() => {
+							show_channel(ch.data);
+						});
+					})}>
+						<img src={asset("icons/channel_text.svg")} alt="remove friend" class="filter_icon_main" style="width: 32px"/>
+					</button>
 					<button class="transparent_button hoverable"
 					onclick={() => Friends.remove_friend(friend.data.id)}>
 						<img src={asset("icons/close.svg")} alt="remove friend" class="filter_icon_main" style="width: 32px"/>

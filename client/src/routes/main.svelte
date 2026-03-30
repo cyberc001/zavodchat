@@ -72,7 +72,6 @@
 
 	let server = $state();
 	let server_roles = $state();
-	let channels = $state();
 
 	// Sockets
 	let socket_vc = $state();
@@ -146,15 +145,14 @@
 			server_user_list?.reset();
 			server = Server.get(id);
 			server_roles = Role.get_list(id);
-			channels = Channel.get_list(id);
 		} else {
-			server = {};
-			channels = undefined;
+			server = undefined;
 		}
 	};
 
-	const showChannel = (id, i) => {
-		if(channels.data[i].type === Channel.Type.Voice){
+	const showChannel = (ch) => {
+		console.log("show channel", ch);
+		if(ch.type === Channel.Type.Voice){
 			let old_socket_vc = socket_vc;
 			socket_vc = new VCSocket(user_self.data.id, id, (close) => {
 				if(close.reason === "User is already connected to this channel")
@@ -162,7 +160,7 @@
 			});
 		} else {
 			showUser(-1, -1);
-			sel.channel = id;
+			sel.channel = ch.id;
 		}
 	};
 
@@ -291,7 +289,7 @@
 					create_server={() => sel.settings_tabs = create_server.tabs()}
 				/>
 
-				<SidebarChannel server={server} channels={channels} selected_channel={sel.channel}
+				<SidebarChannel server={server} selected_channel={sel.channel}
 					socket_vc={socket_vc}
 					show_channel={showChannel}
 					ctx_channel={(self, e, channel) => {
@@ -334,14 +332,17 @@
 		</div>
 	</div>
 
-	{#if sel.server > -1}
+	{#if sel.channel > -1}
 		<SidebarMessage server_id={sel.server} channel_id={sel.channel}
 			sel_message_id={sel.user.message_id} sel_user_id={sel.user.id}
 			show_ctx_menu={showCtxMenu} show_user={showUser}
 			show_ban={showBan}
 		/>
+	{:else if sel.server === -1}
+		<SidebarFriends show_channel={showChannel}/>
 	{:else}
-		<SidebarFriends />
+		<div class="panel" style="width: 100%; height: 100%">
+		</div>
 	{/if}
 
 	{#if sel.server > -1}

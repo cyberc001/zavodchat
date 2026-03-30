@@ -19,10 +19,7 @@
 	let input_div = $state();
 	let sel_i;
 	const div_oninput = (e) => {
-		console.log("SELECTION", window.getSelection().getRangeAt(0));
-
 		sel_i = Select.get_selection_index(input_div);
-		console.log("sel_i", sel_i);
 
 		value = Select.get_inner_text(e.target);
 		if(value.endsWith("\n"))
@@ -34,10 +31,8 @@
 		if(!input_div)
 			return;
 
-		console.log(`got value:\n'${value}'\ngot inner html:\n${input_div.innerHTML}`);
 		[input_div.innerHTML, link_candidates] = Markdown.parse(value, true);
 		link_candidates_ts = new Date();
-		console.log(`new value:\n'${value}' ${value.split("\n").length - 1}\nnew html:\n'${input_div.innerHTML}'`);
 
 		Select.set_selection_index(input_div, sel_i);
 	});
@@ -82,9 +77,7 @@
 			if(new_links.length === 0)
 				return;
 			if(--links_left <= 0 || attachments.length + new_links.length > Params.data.max_attachments){
-				console.log("new links", JSON.parse(JSON.stringify(new_links)), Params.data.max_attachments - attachments.length);
 				new_links.splice(Params.data.max_attachments - attachments.length);
-				console.log("spliced new links", new_links);
 				links.splice(0, links.length, ...new_links);
 				new_links.length = 0;
 			}
@@ -99,7 +92,6 @@
 						swap_links();
 						return;
 					}
-					console.log("GOT PAGE META", meta);
 					new_links.push({content: link,
 							title: typeof meta === "string" ? meta : meta.title,
 							desc: meta.desc,

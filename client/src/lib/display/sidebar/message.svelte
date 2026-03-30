@@ -224,9 +224,11 @@
 			render_item={render_message}
 			load_items={(start_id, range, asc) => Message.get_search_range(channel_id, start_id, range, asc, message_search_params)}
 			augment_item={(msg) => {
-					msg.author = User.get_server(server_id, msg.author_id);
-					if(server_roles)
-						msg.author_roles = Role.get_user_roles(msg.author.data, server_roles.data);
+				msg.author = server_id > -1 ? User.get_server(server_id, msg.author_id) : User.get(msg.author_id);
+				//console.log("AUGMENTING", server_id, server_id > -1, $state.snapshot(msg));
+				//console.log("GET USER", $state.snapshot(User.get(msg.author_id)));
+				if(server_roles)
+					msg.author_roles = Role.get_user_roles(msg.author.data, server_roles.data);
 			}}
 			/>
 			<MessageInput

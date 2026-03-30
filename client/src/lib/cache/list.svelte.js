@@ -8,7 +8,7 @@ export class ListObserver extends IDObserver {
 		this.data.splice(0, this.data.length);
 		for(const d of data)
 			this.data.push(d);
-		this.loaded = true;
+		this.set_loaded();
 	}
 }
 

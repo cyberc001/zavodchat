@@ -222,11 +222,18 @@ std::shared_ptr<http_response> resource_utils::parse_message_id(const http_reque
 	} catch(std::invalid_argument& e){
 		return create_response::string(req, "Invalid message ID", 400);
 	}
-	pqxx::result r = tx.exec("SELECT message_id, channel_id, server_id FROM messages WHERE channel_id IN (SELECT channel_id FROM channels WHERE server_id IN (SELECT server_id FROM user_x_server WHERE user_id = $1)) AND message_id = $2", pqxx::params(user_id, message_id));
-	if(!r.size())
-		return create_response::string(req, "Message does not exist", 404);
-	channel_id = r[0]["channel_id"].as<int>();
-	server_id = r[0]["server_id"].as<int>();
+	pqxx::result r = tx.exec("SELECT message_id, channel_id, server_id FROM messages NATURAL JOIN channels WHERE channel_id IN (SELECT channel_id FROM channels WHERE server_id IN (SELECT server_id FROM user_x_server WHERE user_id = $1)) AND message_id = $2", pqxx::params(user_id, message_id));
+	if(!r.size()){
+		// Try to find a direct message
+		pqxx::result r = tx.exec("SELECT message_id, channel_id FROM messages NATURAL JOIN channels WHERE channel_id IN (SELECT channel_id FROM channels WHERE user1_id = $1 OR user2_id = $1) AND message_id = $2", pqxx::params(user_id, message_id));
+		if(!r.size())
+			return create_response::string(req, "Message does not exist", 404);
+		channel_id = r[0]["channel_id"].as<int>();
+		server_id = -1;
+	} else {
+		channel_id = r[0]["channel_id"].as<int>();
+		server_id = r[0]["server_id"].is_null() ? -1 : r[0]["server_id"].as<int>();
+	}
 	return std::shared_ptr<http_response>(nullptr);
 }
 std::shared_ptr<http_response> resource_utils::parse_message_id(const http_request& req, pqxx::work& tx, int& user_id, int& server_id, int& channel_id, int& message_id)

@@ -8,6 +8,9 @@ import Server from '$lib/rest/server.js';
 import Channel from '$lib/rest/channel.js';
 import Role from '$lib/rest/role.js';
 import Ban from '$lib/rest/ban.js';
+import DM from '$lib/rest/dm.js';
+
+import {RangeCache} from '$lib/cache/range.svelte.js';
 
 export default class MainSocket {
 	ws;
@@ -33,12 +36,34 @@ export default class MainSocket {
 		message_edited: function(data) {
 			data.status = Message.Status.None;
 			Message.message_range_cache.update(data.channel_id, data);
+			DM.channel_range_cache.update(0, {last_message: data});
 		},
 		message_deleted: function(data) {
 			Message.message_range_cache.remove(data.channel_id, data.id);
+
+			// Get new latest message
+			const msgs = Message.get_range(data.channel_id, RangeCache.max_id, 1, false);
+			msgs.notify_on_load(() => {
+				const ch = DM.channel_range_cache.find(0, (x) => x.id === data.channel_id);
+				if(ch){
+					DM.channel_range_cache.remove(0, ch.last_message.id);
+					if(msgs.data.length > 0){
+						ch.last_message = msgs.data[0];
+						DM.channel_range_cache.insert(0, ch);
+					}
+				}
+			});
 		},
 		message_created: function(data) {
+			console.log("message_created", data);
 			Message.message_range_cache.insert(data.channel_id, data);
+			// TODO keep a separate data structure that allows O(log N) search
+			const ch = DM.channel_range_cache.find(0, (x) => x.id === data.channel_id);
+			if(ch){
+				DM.channel_range_cache.remove(0, ch.last_message.id);
+				ch.last_message = data;
+				DM.channel_range_cache.insert(0, ch);
+			}
 		},
 
 		user_changed: function(data) {

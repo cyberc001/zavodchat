@@ -12,7 +12,7 @@
 	const _load_items = (start_id, count, asc) => {
 		const new_items = load_items(start_id, count, asc);
 		new_items.onupdate = (obs, id) => {
-			set_anchor(items.data.findIndex((x) => x.id === id));
+			set_anchor(items.data.findIndex((x) => obs.tree.key(x) === id));
 		};
 		new_items.oninsert = (obs, id) => {
 			if(!can_scroll_before || div_items.length === 0)
@@ -30,12 +30,14 @@
 				
 			let i = 0;
 			for(; i < items.data.length; ++i)
-				if(items.data[i].id === id)
+				if(obs.tree.key(items.data[i]) === id)
 					break;
 			if(i === 0)
 				i = 1;
 			else
 				--i;
+
+			console.log("SETTING ANCHOR", i, "\n", $state.snapshot(items.data), obs, $state.snapshot(obs.data));
 
 			set_anchor(i);
 		};
@@ -104,9 +106,9 @@
 
 	let reverse_sign = $derived(reversed ? -1 : 1);
 	let can_scroll_before = $derived.by(() => {
-		return (init_items.data.length > 0 && items.data.length > 0 && reverse_sign * (items.data[0].id - init_items.data[0].id) > 0);
+		return (init_items.data.length > 0 && items.data.length > 0 && reverse_sign * (items.tree.key(items.data[0]) - init_items.tree.key(init_items.data[0])) > 0);
 	});
-	//let can_scroll_before = $derived(init_items.data.length > 0 && items.data.length > 0 && reverse_sign * (items.data[0].id - init_items.data[0].id) > 0);
+	//let can_scroll_before = $derived(init_items.data.length > 0 && items.data.length > 0 && reverse_sign * (items.tree.key(items.data[0]) - init_items.tree.key(init_items.data[0])) > 0);
 
 	let list_div = $state();
 
@@ -124,8 +126,11 @@
 		if(div_items[0] === null)
 			return;
 
+		if(i >= items.data.length)
+			i = items.data.length - 1;
+
 		anchor = {
-			id: items.data[i].id,
+			id: items.tree.key(items.data[i]),
 			top: div_items[i].offsetTop - list_div.scrollTop
 		};
 	};
@@ -152,12 +157,15 @@
 		}
 
 		if(typeof anchor.id !== "undefined"){
-			const anchor_el = div_items[items.data.findIndex((x) => x.id === anchor.id)];
-			list_div.scrollTop += (anchor_el.offsetTop - list_div.scrollTop) - anchor.top;
+			const anchor_el = div_items[items.data.findIndex((x) => items.tree.key(x) === anchor.id)];
+			console.log("ANCHOR", anchor, "ITEMS", $state.snapshot(items.data), "\n", anchor_el, "\n", list_div.scrollTop, anchor_el?.offsetTop);
+			if(anchor_el)
+				list_div.scrollTop += (anchor_el.offsetTop - list_div.scrollTop) - anchor.top;
+			console.log("SCROLL TOP AFTER ANCHORING", list_div.scrollTop);
 		}
 	
 		if(typeof start_id !== "undefined" && items.loaded){
-			let start_div = div_items[items.data.findIndex((x) => x.id === start_id)];
+			let start_div = div_items[items.data.findIndex((x) => items.tree.key(x) === start_id)];
 			start_div.scrollIntoView(true);
 			start_id = undefined;
 		}
@@ -174,11 +182,11 @@
 		if(!list_div)
 			return;
 		list_resize_obs = new ResizeObserver((elements) => {
-			if(!list_div || items.data.length === 0)
+			if(!list_div || items.data.length === 0 || div_items.length === 0)
 				return;
 
 			const last_item = div_items[reversed ? items.data.length - 1 : 0];
-			console.log("SCROLL CONDITION", list_div.scrollTop + last_item.clientHeight, last_list_div_height - list_div.clientHeight, "\n", list_div.scrollTop, last_item.clientHeight, last_list_div_height, list_div.clientHeight);
+			console.log("SCROLL CONDITION", list_div.scrollTop + last_item.clientHeight, last_list_div_height - list_div.clientHeight, "\n", list_div.scrollTop, last_item.clientHeight, last_list_div_height, list_div.clientHeight, "\n", $state.snapshot(items.data));
 			if(reversed ? list_div.scrollTop + last_item.clientHeight >= last_list_div_height - list_div.clientHeight
 					: list_div.scrollTop <= last_item.clientHeight){
 				console.log("SCROLLING TO BOTTOM");
@@ -215,18 +223,18 @@
 			let destroy_old_items = false;
 			if(dir > 0 && items.is_full){
 				destroy_old_items = true;
-				console.log("loading more items", $state.snapshot(items.data), items.data[reversed ? items.data.length - advance : advance - 1].id + reverse_sign, !reversed);
+				console.log("loading more items", $state.snapshot(items.data), items.tree.key(items.data[reversed ? items.data.length - advance : advance - 1]) + reverse_sign, !reversed);
 
 				last_list_div_height = list_div.scrollHeight;
 
-				items = _load_items(items.data[reversed ? items.data.length - advance : advance - 1].id  + reverse_sign, range, !reversed);
+				items = _load_items(items.tree.key(items.data[reversed ? items.data.length - advance : advance - 1]) + reverse_sign, range, !reversed);
 			} else if(dir < 0 && can_scroll_before){
 				destroy_old_items = true;
 
 				last_list_div_height = list_div.scrollHeight;
 
-				console.log("loading more items", $state.snapshot(items.data), items.data[reversed ? advance - 1 : items.data.length - advance].id - reverse_sign, reversed);
-				items = _load_items(items.data[reversed ? advance - 1 : items.data.length - advance].id - reverse_sign, range, reversed);
+				console.log("loading more items", $state.snapshot(items.data), items.tree.key(items.data[reversed ? advance - 1 : items.data.length - advance]) - reverse_sign, reversed);
+				items = _load_items(items.tree.key(items.data[reversed ? advance - 1 : items.data.length - advance]) - reverse_sign, range, reversed);
 			}
 			if(destroy_old_items)
 				old_items.destroy();

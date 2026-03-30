@@ -1,10 +1,9 @@
-import {IDCache} from '$lib/cache/id.svelte.js';
+import {IDCache, IDObserver} from '$lib/cache/id.svelte.js';
 import {RBTree} from 'bintrees';
 import Util from '$lib/util.js';
 
-class RangeObserver {
+class RangeObserver extends IDObserver {
 	data = $state([]);
-	loaded = $state(false);
 	start_id = 0; count = 0;
 	asc; asc_items;
 	order_sign = $derived(this.asc ? 1 : -1);
@@ -17,6 +16,7 @@ class RangeObserver {
 	onupdate; onremove; oninsert;
 
 	constructor(tree, start_id, count, load_func, asc, asc_items){
+		super();
 		this.start_id = start_id;
 		this.count = count;
 		this.asc = asc; this.asc_items = asc_items;
@@ -40,13 +40,13 @@ class RangeObserver {
 
 	find_closest_start_iter(tree){
 		if(this.asc)
-			return tree._tree.lowerBound({id: this.start_id});
+			return tree._tree.lowerBound(tree.key_dummy(this.start_id));
 		else {
-			const iter = tree._tree.lowerBound({id: this.start_id});
+			const iter = tree._tree.lowerBound(tree.key_dummy(this.start_id));
 			if(!iter.data())
 				iter.prev();
 			while(iter.data()){
-				if(iter.data().id <= this.start_id)
+				if(tree.key(iter.data()) <= this.start_id)
 					return iter;
 				iter.prev();
 			}
@@ -54,13 +54,13 @@ class RangeObserver {
 	}
 
 	set(tree, start_id, count){
+		//console.log("SET OBS", this, JSON.parse(JSON.stringify(tree)), $state.snapshot(this.data), "\n\n", start_id, count);
 		let iter = this.find_closest_start_iter(tree);
 		if(!iter){
-			this.loaded = true; // for zero-length data arrays
+			this.set_loaded(); // for zero-length data arrays
 			return;
 		}
 
-		console.log("BEFORE SET OBS", this, JSON.parse(JSON.stringify(tree)), $state.snapshot(this.data));
 		const inv_items = typeof this.asc_items !== "undefined" && this.asc_items !== this.asc;
 		let i = inv_items ? this.count - 1 : 0;
 		let missing_id = false;
@@ -69,39 +69,41 @@ class RangeObserver {
 			this.data[inv_items ? i-- : i++] = dat;
 			if(this.asc){
 				iter.next();
-				if(iter.data() && iter.data().id !== dat.next_id)
+				if(iter.data() && tree.key(iter.data()) !== dat.next_id)
 					break;
 			} else {
 				iter.prev();
-				if(iter.data() && iter.data().id !== dat.prev_id)
+				if(iter.data() && tree.key(iter.data()) !== dat.prev_id)
 					break;
 			}
 		}
-		console.log("CHECKING SPLICE", inv_items, i, $state.snapshot(this.data));
 		if(inv_items && i >= 0)
 			this.data.splice(0, i + 1);
 
-		this.loaded = true;
-		console.log("AFTER SET OBS", this, $state.snapshot(this.data));
+		this.set_loaded();
+		//console.log("AFTER SET OBS", this, $state.snapshot(this.data), "\n", tree);
 	}
 
 	find(id){
-		return Util.bin_search(this.data, (x) => (x.id - id) * this.order_sign);
+		return Util.bin_search(this.data, (x) => (this.tree.key(x) - id) * this.order_sign);
 	}
 	remove(id){
 		const i = this.find(id);
 		if(i !== -1)
 			this.data.splice(i, 1);
 		// Try to load more
-		this.loaded = false;
-		this.load_func(this.tree, this.start_id, this.count, this.asc);
+		if(!this.loading){
+			this.loaded = false;
+			this.loading = true;
+			this.load_func(this.tree, this.start_id, this.count, this.asc);
+		}
 	}
 
 	get min_id(){
-		return Math.min(this.data[0].id, this.data[this.data.length - 1].id);
+		return Math.min(this.tree.key(this.data[0]), this.tree.key(this.data[this.data.length - 1]));
 	}
 	get max_id(){
-		return Math.max(this.data[0].id, this.data[this.data.length - 1].id);
+		return Math.max(this.tree.key(this.data[0]), this.tree.key(this.data[this.data.length - 1]));
 	}
 
 	get end_id(){
@@ -153,9 +155,12 @@ class DataTree {
 		return iter;
 	}
 
-	constructor(){
+	key; key_dummy;
+	constructor(key, key_dummy){
+		this.key = key;
+		this.key_dummy = key_dummy;
 		this._tree = new RBTree((a, b) => {
-			return a.id - b.id;
+			return this.key(a) - this.key(b);
 		});
 	}
 
@@ -175,14 +180,14 @@ class DataTree {
 		}
 
 		if(obs.asc){
-			let end = this._tree.lowerBound({id: obs.max_id});
-			if(typeof end.data().next_id === "undefined" && (this.max_id === -1 || end.data().id < this.max_id))
+			let end = this._tree.lowerBound(this.key_dummy(obs.max_id));
+			if(typeof end.data().next_id === "undefined" && (this.max_id === -1 || this.key(end.data()) < this.max_id))
 				return false;
 			if(typeof end.data().next_id !== "undefined" && !this._tree.find({id: end.data().next_id}))
 				return false;
 		} else {
-			let beg = this._tree.lowerBound({id: obs.min_id});
-			if(typeof beg.data().prev_id === "undefined" && (this.min_id === RangeCache.max_id || beg.data().id > this.min_id))
+			let beg = this._tree.lowerBound(this.key_dummy(obs.min_id));
+			if(typeof beg.data().prev_id === "undefined" && (this.min_id === RangeCache.max_id || this.key(beg.data()) > this.min_id))
 				return false;
 			if(typeof beg.data().prev_id !== "undefined" && !this._tree.find({id: beg.data().prev_id}))
 				return false;
@@ -190,7 +195,6 @@ class DataTree {
 		return true;
 	}
 	set_state(start_id, count, data, asc){
-		console.trace();
 		for(let i = 0; i < data.length; ++i){
 			let f = this._tree.find(data[i]);
 			if(!f){
@@ -199,31 +203,28 @@ class DataTree {
 			}
 			if(asc){
 				if(i > 0)
-					f.prev_id = data[i - 1].id;
+					f.prev_id = this.key(data[i - 1]);
 				if(i < data.length - 1)
-					f.next_id = data[i + 1].id;
+					f.next_id = this.key(data[i + 1]);
 			} else {
 				if(i > 0)
-					f.next_id = data[i - 1].id;
+					f.next_id = this.key(data[i - 1]);
 				if(i < data.length - 1)
-					f.prev_id = data[i + 1].id;
+					f.prev_id = this.key(data[i + 1]);
 			}
 		}
 		if(data.length > 0 && count > data.length){
 			if(asc){
-				if(data[data.length - 1].id > this.max_id)
-					this.max_id = data[data.length - 1].id;
+				if(this.key(data[data.length - 1]) > this.max_id)
+					this.max_id = this.key(data[data.length - 1]);
 			} else {
-				if(data[data.length - 1].id < this.min_id)
-					this.min_id = data[data.length - 1].id;
+				if(this.key(data[data.length - 1]) < this.min_id)
+					this.min_id = this.key(data[data.length - 1]);
 			}
 		}
-		const end_id = data.length > 0 ? data[data.length - 1].id : start_id;
-		console.log("updating observers", start_id, end_id);
-		for(const obs of this.get_observers(start_id, end_id)){
-			console.log("got", obs);
+		const end_id = data.length > 0 ? this.key(data[data.length - 1]) : start_id;
+		for(const obs of this.get_observers(start_id, end_id))
 			obs.set(this, start_id, count);
-		}
 	}
 
 	// Update next and previous elements, similar to linked lists
@@ -243,17 +244,17 @@ class DataTree {
 
 		if(update){
 			this.update_neighbours(data,
-						(next) => {next.prev_id = data.id; data.next_id = next.id;},
-						(prev) => {prev.next_id = data.id; data.prev_id = prev.id;});
-			for(const obs of this.get_observers(data.id, data.id, true)){
+						(next) => {next.prev_id = this.key(data); data.next_id = this.key(next);},
+						(prev) => {prev.next_id = this.key(data); data.prev_id = this.key(prev);});
+			for(const obs of this.get_observers(this.key(data), this.key(data), true)){
 				if(obs.oninsert)
-					obs.oninsert(obs, data.id);
-				obs.set(this, data.id, obs.count);
+					obs.oninsert(obs, this.key(data));
+				obs.set(this, this.key(data), obs.count);
 			}
 		}
 	}
 	remove(id, update){
-		let data = this._tree.find({id});
+		let data = this._tree.find(this.key_dummy(id));
 
 		if(update){
 			if(data)
@@ -267,7 +268,7 @@ class DataTree {
 			}
 		}
 
-		this._tree.remove({id});
+		this._tree.remove(this.key_dummy(id));
 	}
 	update(data){
 		let d = this._tree.find(data);
@@ -275,16 +276,20 @@ class DataTree {
 			for(const key of Object.keys(data))
 				d[key] = data[key];
 
-		for(const obs of this.get_observers(data.id, data.id)){
+		for(const obs of this.get_observers(this.key(data), this.key(data))){
 			if(obs.onupdate)
-				obs.onupdate(obs, data.id);
-			obs.set(this, data.id, 1);
+				obs.onupdate(obs, this.key(data));
+			obs.set(this, this.key(data), 1);
 		}
 	}
 
 	reload(){
-		for(const obs of this.get_observers())
-			obs.load_func(this, obs.start_id, obs.count, obs.asc);
+		for(const obs of this.get_observers()){
+			if(!obs.loading){
+				obs.loading = true;
+				obs.load_func(this, obs.start_id, obs.count, obs.asc);
+			}
+		}
 	}
 
 	// This function runs in O(NM) + O(KlogN), where N - tree size, M - observer count, K - deleted entries count
@@ -309,7 +314,7 @@ class DataTree {
 			let data = iter.data();
 			let can_delete = true;
 			for(const obs of ranges){
-				if(obs.has(data.id)){
+				if(obs.has(this.key(data))){
 					can_delete = false;
 					break;
 				}
@@ -328,8 +333,19 @@ class DataTree {
 export class RangeCache extends IDCache {
 	static max_id = 2147483647;
 
+	key;
+	constructor(key, key_dummy){
+		super();
+		if(!key){
+			key = (x) => x.id;
+			key_dummy = (id) => {return {id}};
+		}
+		this.key = key;
+		this.key_dummy = key_dummy;
+	}
+
 	_default_state_constructor(){
-		return new DataTree();
+		return new DataTree(this.key, this.key_dummy);
 	}
 
 	intv = setInterval(() => {
@@ -358,6 +374,18 @@ export class RangeCache extends IDCache {
 			tree.update(data);
 	}
 
+	find(_id, f){
+		const tree = this.get_tree(_id);
+		if(tree){
+			const iter = tree._tree.iterator();
+			iter.next();
+			while(iter.data()){
+				if(f(iter.data()))
+					return iter.data();
+				iter.next();
+			}
+		}
+	}
 	reload(_id){
 		const tree = this.get_tree(_id);
 		if(tree)
@@ -374,11 +402,13 @@ export class RangeCache extends IDCache {
 
 		let nobs = new RangeObserver(tree, start_id, count, load_func, !!asc, asc_items);
 		nobs.loaded = tree.has_enough(nobs);
-		console.log("GET_STATE", _id, nobs.loaded, nobs, $state.snapshot(nobs.data));
+		//console.log("GET_STATE", _id, nobs.loaded, nobs, $state.snapshot(nobs.data));
 		tree.observers.push(new WeakRef(nobs));
 
-		if(!nobs.loaded)
+		if(!nobs.loaded){
+			nobs.loading = true;
 			load_func(tree, start_id, count, asc);
+		}
 
 		return nobs;
 	}

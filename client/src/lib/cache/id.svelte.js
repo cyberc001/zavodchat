@@ -1,11 +1,27 @@
 export class IDObserver {
 	data = $state({});
 	loaded = $state(false);
+	loading = $state(false);
 
 	set_data(data){
 		for(const key in data)
 			this.data[key] = data[key];
+		this.set_loaded();
+	}
+
+	load_cb;
+	set_loaded(){
 		this.loaded = true;
+		this.loading = false;
+		if(this.load_cb)
+			this.load_cb();
+		this.load_cb = undefined;
+	}
+	notify_on_load(cb){
+		if(this.loaded)
+			cb();
+		else
+			this.load_cb = cb;
 	}
 }
 
@@ -38,6 +54,10 @@ export class IDCache {
 			if(load_func)
 				load_func(this, id);
 			return obj;
+		}
+		if(!obj.loaded && !obj.loading && load_func){
+			obj.loading = true;
+			load_func(this, id);
 		}
 		return obj.deref();
 	}
