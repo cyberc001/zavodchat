@@ -5,6 +5,7 @@
 	import UserDisplay from '$lib/display/user.svelte';
 	import Button from '$lib/control/button.svelte';
 	import UserPicker from '$lib/control/user_picker.svelte';
+	import Dialog from '$lib/control/dialog.svelte';
 
 	import BlockedUsers from '$lib/rest/blocked_users.js';
 	import Friends from '$lib/rest/friends.js';
@@ -19,9 +20,18 @@
 
 	let user_picker = $state();
 	let user_to_add = $state();
+
+	let friend_remove_confirm = $state();
+	let user_to_remove = $state();
 </script>
 
 {#snippet tab_friends()}
+<Dialog bind:this={friend_remove_confirm}
+question={`Remove ${user_to_remove?.data?.name} from friends?`}
+buttons={[{text: "Remove", action: () => Friends.remove_friend(user_to_remove.data.id)},
+	  {text: "Cancel"}]}
+>
+</Dialog>
 	{#if friends.loaded}
 		<div style="display: flex; width: 100%">
 			<UserPicker bind:value={user_to_add} bind:this={user_picker}
@@ -35,6 +45,7 @@
 				<UserDisplay user={friend.data}/>
 
 				<div class="friend_actions">
+					{#if friend.loaded}
 					<button class="transparent_button hoverable"
 					onclick={() => DM.open(friend.data.id, (res) => {
 						const ch = Channel.get(res.data[0]);
@@ -45,9 +56,13 @@
 						<img src={asset("icons/channel_text.svg")} alt="remove friend" class="filter_icon_main" style="width: 32px"/>
 					</button>
 					<button class="transparent_button hoverable"
-					onclick={() => Friends.remove_friend(friend.data.id)}>
+					onclick={() => {
+						user_to_remove = friend;
+						friend_remove_confirm.show();
+					}}>
 						<img src={asset("icons/close.svg")} alt="remove friend" class="filter_icon_main" style="width: 32px"/>
 					</button>
+					{/if}
 				</div>
 			</div>
 		{/each}
@@ -63,6 +78,7 @@
 				<UserDisplay user={req.data} display_status={false}/>
 
 				<div class="friend_actions">
+				{#if friend.loaded}
 				{#if args.requests === in_requests}
 					<button class="transparent_button hoverable"
 					onclick={() => Friends.accept_or_create_request(req.data.id)}>
@@ -81,6 +97,7 @@
 					onclick={() => Friends.deny_request(req.data.id)}>
 						<img src={asset("icons/close.svg")} alt="cancel friend request" class="filter_icon_main" style="width: 32px"/>
 					</button>
+				{/if}
 				{/if}
 				</div>
 			</div>
