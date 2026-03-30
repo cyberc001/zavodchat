@@ -63,7 +63,8 @@ export default class MainSocket {
 				DM.channel_range_cache.remove(0, ch.last_message.id);
 				ch.last_message = data;
 				DM.channel_range_cache.insert(0, ch);
-			}
+			} else if(typeof(data.server_id) === "undefined") // potentially new DM channel
+				DM.channel_range_cache.reload(0);
 		},
 
 		user_changed: function(data) {
