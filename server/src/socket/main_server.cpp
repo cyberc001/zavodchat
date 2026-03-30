@@ -118,10 +118,15 @@ void socket_main_server::send_to_user(int user_id, pqxx::work& tx, socket_event 
 void socket_main_server::send_to_user_observers(int user_id, pqxx::work& tx, socket_event event)
 {
 	std::string dumped = event.dump();
-	pqxx::result r = tx.exec("SELECT DISTINCT ON(user_id) user_id, server_id FROM user_x_server WHERE server_id IN (SELECT server_id FROM user_x_server WHERE user_id = $1)", pqxx::params(user_id));
+	pqxx::result r1 = tx.exec("SELECT DISTINCT ON(user_id) user_id FROM user_x_server WHERE server_id IN (SELECT server_id FROM user_x_server WHERE user_id = $1)", pqxx::params(user_id)),
+		     r2 = tx.exec("SELECT user1_id, user2_id FROM friends WHERE user1_id = $1 OR user2_id = $1", pqxx::params(user_id));
 
-	for(size_t i = 0; i < r.size(); ++i){
-		int user_id = r[i]["user_id"].as<int>();
+	for(size_t i = 0; i < r1.size(); ++i){
+		int user_id = r1[i]["user_id"].as<int>();
 		try_send_to_conn(user_id, dumped);
+	}
+	for(size_t i = 0; i < r2.size(); ++i){
+		int user1_id = r2[i]["user1_id"].as<int>(), user2_id = r2[i]["user2_id"].as<int>();
+		try_send_to_conn(user1_id == user_id ? user2_id : user1_id, dumped);
 	}
 }
