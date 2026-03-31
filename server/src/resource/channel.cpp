@@ -94,8 +94,8 @@ std::shared_ptr<http_response> channel_resource::render_GET(const http_request& 
 	auto err = resource_utils::parse_channel_id(req, tx, user_id, server_id, channel_id);
 	if(err) return err;
 
-	pqxx::result r = tx.exec("SELECT channel_id, name, type FROM channels WHERE channel_id = $1", pqxx::params(channel_id));
-	nlohmann::json channel_json = resource_utils::channel_json_from_row(r[0]);
+	pqxx::result r = tx.exec("SELECT channel_id, name, type, user1_id, user2_id FROM channels WHERE channel_id = $1", pqxx::params(channel_id));
+	nlohmann::json channel_json = resource_utils::channel_json_from_row(r[0], user_id);
 
 	if(channel_json["type"] == CHANNEL_VOICE)
 		channel_json["vc_users"] = vcserv.get_channel_users(channel_id);

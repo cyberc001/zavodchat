@@ -2,12 +2,24 @@
 	import {asset} from '$app/paths';
 	import VCSocket from '$lib/socket/vc.svelte.js';
 
+	import User from '$lib/rest/user.svelte.js';
+
 	const {socket_vc, end_call} = $props();
+
+	let other_user = $state();
+	$effect(() => {
+		if(socket_vc.channel.loaded && typeof(socket_vc.channel.data.other_user_id) !== "undefined")
+			other_user = User.get(socket_vc.channel.data.other_user_id);
+		else
+			other_user = undefined;
+	});
+
+	let name = $derived(other_user ? other_user.data.name : socket_vc.channel.data.name);
 </script>
 
 <div class="panel vc_panel" style="border-bottom: none">
 	<div style="display: flex; align-items: center; margin-bottom: 6px">
-		{socket_vc.channel.data.name}
+		{name}
 
 		<div style="margin-left: auto; display: flex">
 			<button class="hoverable transparent_button"

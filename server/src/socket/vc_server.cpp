@@ -50,6 +50,11 @@ nlohmann::json socket_vc_connection::get_vc_state()
 	};
 }
 
+
+socket_vc_channel::socket_vc_channel(socket_vc_server& vcserv):
+	vcserv{vcserv}
+{}
+
 void socket_vc_connection::init_rtc(std::string rtc_addr, int rtc_port, std::string rtc_cert, std::string rtc_key)
 {
 	auto conf = rtc::Configuration();
@@ -310,7 +315,7 @@ std::mutex& socket_vc_connection::get_mutex()
 
 /*** socket_vc_channel ***/
 
-void socket_vc_channel::add_user(std::shared_ptr<socket_vc_connection> conn, thread_pool& thr_pool)
+void socket_vc_channel::add_user(std::shared_ptr<socket_vc_connection> conn)
 {
 	auto _users = get_users();
 
@@ -332,7 +337,7 @@ void socket_vc_channel::add_user(std::shared_ptr<socket_vc_connection> conn, thr
 
 	{
 		std::shared_ptr<rtc::Track> recv_audio = conn->get_audio_track(-1);
-		recv_audio->onMessage([this, conn, recv_audio, &thr_pool](rtc::binary message) mutable {
+		recv_audio->onMessage([this, conn, recv_audio](rtc::binary message) mutable {
 			auto _users = get_users();
 			for(auto i = _users.begin(); i != _users.end(); ++i){
 				if(conn == *i)
@@ -345,6 +350,9 @@ void socket_vc_channel::add_user(std::shared_ptr<socket_vc_connection> conn, thr
 						send_track->send(message.data(), message.size());
 				}
 			}
+
+			if(is_inactive())
+				vcserv.close_channel(conn->channel_id, "Inactive for too long");
 		}, nullptr);
 	}
 
@@ -365,6 +373,8 @@ void socket_vc_channel::remove_user(std::shared_ptr<socket_vc_connection> conn)
 
 	std::lock_guard lock(mut);
 	users.erase(conn->user_id);
+	if(users.size() == 1)
+		busy_ts = std::chrono::system_clock::now();
 	std::cerr << "REMOVED " << conn.get() << std::endl;
 }
 std::shared_ptr<socket_vc_connection> socket_vc_channel::get_user(int user_id)
@@ -373,7 +383,7 @@ std::shared_ptr<socket_vc_connection> socket_vc_channel::get_user(int user_id)
 	return users.find(user_id) == users.end() ? nullptr : users[user_id];
 }
 
-void socket_vc_channel::enable_user_video(std::shared_ptr<socket_vc_connection> conn, thread_pool& thr_pool)
+void socket_vc_channel::enable_user_video(std::shared_ptr<socket_vc_connection> conn)
 {
 	auto _users = get_users();
 	for(auto i = _users.begin(); i != _users.end(); ++i){
@@ -389,7 +399,7 @@ void socket_vc_channel::enable_user_video(std::shared_ptr<socket_vc_connection> 
 
 	{
 		std::shared_ptr<rtc::Track> recv_video = conn->get_recv_video_track();
-		recv_video->onMessage([this, conn, recv_video, &thr_pool](rtc::binary message){
+		recv_video->onMessage([this, conn, recv_video](rtc::binary message){
 			auto _users = get_users();
 			for(auto i = _users.begin(); i != _users.end(); ++i){
 				if(conn == *i)
@@ -430,6 +440,17 @@ std::vector<std::shared_ptr<socket_vc_connection>> socket_vc_channel::get_users(
 		res.push_back(it->second);
 	return res;
 }
+size_t socket_vc_channel::get_user_count()
+{
+	std::lock_guard lock(mut);
+	return users.size();
+}
+
+bool socket_vc_channel::is_inactive()
+{
+	std::lock_guard lock(mut);
+	return users.size() < 2 && (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - busy_ts)).count() > inactive_channel_time;
+}
 
 /*** socket_vc_server ***/
 
@@ -437,7 +458,9 @@ thread_local std::mt19937 socket_vc_server::rng{std::random_device{}()};
 
 socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert, int port,
 				db_connection_pool& pool, socket_main_server& sserv,
-				std::string _rtc_addr, int _rtc_port): socket_server(https_key, https_cert, port, pool), pool{pool}, sserv{sserv}, rtc_addr{_rtc_addr}, rtc_port{_rtc_port}, rtc_cert{https_cert}, rtc_key{https_key}
+				std::string _rtc_addr, int _rtc_port):
+	socket_server(https_key, https_cert, port, pool), pool{pool}, sserv{sserv},
+	rtc_addr{_rtc_addr}, rtc_port{_rtc_port}, rtc_cert{https_cert}, rtc_key{https_key}
 {
 	rtc::InitLogger(rtc::LogLevel::Debug);
 
@@ -539,9 +562,10 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 				conn->init_rtc(rtc_addr, rtc_port, rtc_cert, rtc_key);
 				std::cerr << "initialized rtc" << std::endl;
 
-				channels.emplace(conn->channel_id, std::make_shared<socket_vc_channel>());
-				channels[conn->channel_id]->add_user(conn, thr_pool);
-				std::cerr << "added user to channel" << std::endl;
+				channels.emplace(conn->channel_id, std::make_shared<socket_vc_channel>(*this));
+				std::shared_ptr<socket_vc_channel> ch = channels[conn->channel_id];
+				channels[conn->channel_id]->add_user(conn);
+				std::cerr << "added user to channel " << conn->channel_id << std::endl;
 
 				conn->rtc_conn->onStateChange([this, conn](rtc::PeerConnection::State state){
 					if(state == rtc::PeerConnection::State::Connected){
@@ -579,6 +603,9 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 				// TODO change to code?
 				if(msg->closeInfo.reason != "User is connecting to a different channel")
 					users.erase(conn->user_id);
+
+				if(!channels[conn->channel_id]->get_user_count())
+					channels.erase(conn->channel_id);
 			} else if(msg->type == ix::WebSocketMessageType::Message){
 				socket_event ev;
 				try{
@@ -659,7 +686,7 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 					}
 
 					conn->add_recv_video_track(cd, bitrate);
-					channels[conn->channel_id]->enable_user_video(conn, thr_pool);
+					channels[conn->channel_id]->enable_user_video(conn);
 
 					db_connection db_conn = this->pool.hold();
 					pqxx::work tx{*db_conn};
@@ -691,11 +718,19 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 }
 
 
+void socket_vc_server::close_channel(int channel_id, std::string reason)
+{
+	channels.if_contains(channel_id, [reason](std::pair<int, std::shared_ptr<socket_vc_channel>> p){
+		auto _users = p.second->get_users();
+		for(auto i = _users.begin(); i != _users.end(); ++i)
+			(*i)->close(ix::WebSocketCloseConstants::kNormalClosureCode, reason);
+	});
+}
+
 void socket_vc_server::send_to_channel(int channel_id, pqxx::work& tx, socket_event event)
 {
-	std::string dumped = event.dump();
-
-	channels.if_contains(channel_id, [&dumped](std::pair<int, std::shared_ptr<socket_vc_channel>> p){
+	channels.if_contains(channel_id, [&event](std::pair<int, std::shared_ptr<socket_vc_channel>> p){
+		std::string dumped = event.dump();
 		auto _users = p.second->get_users();
 		for(auto i = _users.begin(); i != _users.end(); ++i)
 			(*i)->send(dumped);
@@ -714,6 +749,7 @@ nlohmann::json socket_vc_server::get_channel_users(int channel_id)
 	std::cerr << "got users for " << channel_id << std::endl;
 	return out;
 }
+
 
 codec socket_vc_server::check_codec(std::string str)
 {

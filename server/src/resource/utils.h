@@ -90,7 +90,8 @@ public:
 
 	static nlohmann::json user_json_from_row(const pqxx::row& r);
 	static nlohmann::json server_json_from_row(const pqxx::row& r);
-	static nlohmann::json channel_json_from_row(const pqxx::row& r);
+	// user_id > -1 -> could be a private channel (in that case, attempt to write to other_user_id field)
+	static nlohmann::json channel_json_from_row(const pqxx::row& r, int user_id = -1);
 
 	static nlohmann::json message_json_from_row(const pqxx::row& msg_row, const std::vector<pqxx::row>& attachment_rows);
 	static nlohmann::json message_json_from_row(const pqxx::row& msg_row, const pqxx::result& attachment_rows);

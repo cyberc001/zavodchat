@@ -11,8 +11,10 @@ void send_friend_id_event(pqxx::work& tx, socket_main_server& sserv,
 }
 
 
-friends_resource::friends_resource(webserver& ws, db_connection_pool& pool, const config& cfg):
-	base_resource(ws, "/friends", pool, cfg)
+friends_resource::friends_resource(webserver& ws, db_connection_pool& pool, const config& cfg,
+					socket_vc_server& vcserv):
+	base_resource(ws, "/friends", pool, cfg),
+	vcserv{vcserv}
 {
 	set_allowing("GET", true);
 }
@@ -29,9 +31,20 @@ std::shared_ptr<http_response> friends_resource::render_GET(const http_request& 
 	if(err) return err;
 
 	nlohmann::json res = nlohmann::json::array();
-	pqxx::result r = tx.exec("SELECT user1_id, user2_id FROM friends WHERE (user1_id = $1 OR user2_id = $1) AND NOT is_request", pqxx::params(user_id));
-	for(size_t i = 0; i < r.size(); ++i)
-		res += r[i]["user1_id"].as<int>() == user_id ? r[i]["user2_id"].as<int>() : r[i]["user1_id"].as<int>();
+	pqxx::result r = tx.exec("SELECT friends.user1_id, friends.user2_id, channel_id FROM friends "
+				 "LEFT JOIN channels ON ((friends.user1_id = channels.user1_id AND friends.user2_id = channels.user2_id) OR (friends.user1_id = channels.user2_id AND friends.user2_id = channels.user1_id)) AND type = 1 "
+				 "WHERE (friends.user1_id = $1 OR friends.user2_id = $1) AND NOT is_request",
+				 pqxx::params(user_id));
+
+	for(size_t i = 0; i < r.size(); ++i){
+		nlohmann::json f = {{"id", r[i]["user1_id"].as<int>() == user_id ? r[i]["user2_id"].as<int>() : r[i]["user1_id"].as<int>()}};
+		if(!r[i]["channel_id"].is_null()){
+			int channel_id = r[i]["channel_id"].as<int>();
+			f["vc_channel_id"] = channel_id;
+			f["vc_users"] = vcserv.get_channel_users(channel_id);
+		}
+		res += f;
+	}
 	return create_response::string(req, res.dump(), 200);
 }
 

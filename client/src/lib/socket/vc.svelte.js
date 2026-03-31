@@ -117,6 +117,7 @@ export default class VCSocket {
 	audio = $state({});
 	video = $state({});
 
+	is_connected = $state(false);
 	state = $state({text: "Waiting for first offer", color: "var(--clr_text_warning)"});
 	set_state(text, color){
 		this.state.text = text;
@@ -296,6 +297,7 @@ export default class VCSocket {
 
 			// Report state changes
 			this.rtc.onconnectionstatechange = () => {
+				this.is_connected = false;
 				switch(this.rtc.connectionState){
 					case "connecting":
 						this.set_state("ICE is connecting", "--clr_text_warning");
@@ -307,11 +309,13 @@ export default class VCSocket {
 						this.set_state("ICE has failed", "--clr_text_error");
 						break;
 					case "connected":
+						this.is_connected = true;
 						this.set_state("Connected", "--clr_text_success");
 						break;
 				}
 			};
 			this.rtc.onsignalingstatechange = () => {
+				this.is_connected = false;
 				switch(this.rtc.signalingState){
 					case "have-local-offer":
 						this.set_state("RTC has a local offer", "--clr_text_warning");
@@ -320,6 +324,7 @@ export default class VCSocket {
 						this.set_state("RTC has a remote offer", "--clr_text_warning");
 						break;
 					case "stable":
+						this.is_connected = true;
 						this.set_state("Connected", "--clr_text_success");
 						break;
 				}

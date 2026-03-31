@@ -2,7 +2,6 @@
 #define SOCKET_VC_SERVER_H
 
 #include "socket/main_server.h"
-#include "thread_pool.h"
 #include "rtc/rtc.hpp"
 #include <unordered_map>
 #include <unordered_set>
@@ -95,20 +94,34 @@ private:
 	bool video_recv_is_open = false;
 };
 
+class socket_vc_server;
+
 class socket_vc_channel
 {
 public:
-	void add_user(std::shared_ptr<socket_vc_connection>, thread_pool& thr_pool);
+	socket_vc_channel(socket_vc_server& vcserv);
+
+	void add_user(std::shared_ptr<socket_vc_connection>);
 	void remove_user(std::shared_ptr<socket_vc_connection>);
 	std::shared_ptr<socket_vc_connection> get_user(int user_id);
 
-	void enable_user_video(std::shared_ptr<socket_vc_connection>, thread_pool& thr_pool);
+	void enable_user_video(std::shared_ptr<socket_vc_connection>);
 	void disable_user_video(std::shared_ptr<socket_vc_connection>);
 
 	std::vector<std::shared_ptr<socket_vc_connection>> get_users();
+	size_t get_user_count();
+
+	bool is_inactive();
 private:
+	socket_vc_server& vcserv;
+
+	// Last time point when two or more users were present; used in private calls
+	std::chrono::system_clock::time_point busy_ts = std::chrono::system_clock::now();
+
 	std::mutex mut;
 	std::unordered_map<int, std::shared_ptr<socket_vc_connection>> users;
+
+	static const size_t inactive_channel_time = 10000;
 };
 
 class socket_vc_server : public socket_server
@@ -119,6 +132,8 @@ public:
 	socket_vc_server(std::string https_key, std::string https_cert, int port,
 				db_connection_pool& pool, socket_main_server& sserv,
 				std::string rtc_addr, int rtc_port);
+
+	void close_channel(int channel_id, std::string reason);
 
 	void send_to_channel(int channel_id, pqxx::work& tx, socket_event event); // only sends event to users currently connected to voice channel
 	
@@ -148,7 +163,8 @@ private:
 	int rtc_port;
 	std::string rtc_cert, rtc_key;
 
-	thread_pool thr_pool;
+	std::thread inactive_channel_thr;
+	static const size_t inactive_channel_check_period = 1000;
 };
 
 #endif

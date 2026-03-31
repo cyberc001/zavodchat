@@ -391,7 +391,7 @@ nlohmann::json resource_utils::server_json_from_row(const pqxx::row& r)
 	return res;
 }
 
-nlohmann::json resource_utils::channel_json_from_row(const pqxx::row& r)
+nlohmann::json resource_utils::channel_json_from_row(const pqxx::row& r, int user_id)
 {
 	nlohmann::json res = {
 		{"id", r["channel_id"].as<int>()},
@@ -399,6 +399,10 @@ nlohmann::json resource_utils::channel_json_from_row(const pqxx::row& r)
 	};
 	if(!r["name"].is_null())
 		res += {"name", r["name"].as<std::string>()};
+	if(user_id > -1 && !r["user1_id"].is_null()){
+		int user1_id = r["user1_id"].as<int>(), user2_id = r["user2_id"].as<int>();
+		res += {"other_user_id", user1_id == user_id ? user2_id : user1_id};
+	}
 	return res;
 }
 

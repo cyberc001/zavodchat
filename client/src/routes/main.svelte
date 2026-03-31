@@ -53,6 +53,7 @@
 	import ContextMenu from '$lib/control/context_menu.svelte';
 	import ContextMenuAction from '$lib/control/context_menu_action.svelte';
 
+	import IncomingCall from '$lib/control/incoming_call.svelte';
 	import Dialog from '$lib/control/dialog.svelte';
 	import NotifDisplay from '$lib/display/notif.svelte';
 
@@ -388,6 +389,8 @@
 {/if}
 
 {/if}
+
+<IncomingCall socket_vc={socket_vc} show_channel={showChannel}/>
 
 <NotifDisplay/>
 

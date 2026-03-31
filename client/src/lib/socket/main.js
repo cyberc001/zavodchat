@@ -147,7 +147,6 @@ export default class MainSocket {
 		user_joined_vc: function(data) {
 			if(typeof(data.server_id) !== "undefined"){
 				if(Channel.channel_list_cache.has_state(data.server_id)){
-					let list = Channel.channel_list_cache.get_state(data.server_id);
 					let channel_list_data = Channel.channel_list_cache.get_state(data.server_id).data.find((x) => x.id === data.channel_id);
 					if(channel_list_data && channel_list_data.vc_users){
 						channel_list_data.vc_users[data.id] = Util.object_from_object(data, ["id", "mute", "deaf"]);
@@ -155,7 +154,18 @@ export default class MainSocket {
 					}
 				}
 			} else {
-				console.log("ITS YOUR FRIEND PHONING IN", data);
+				if(Friends.friend_cache.has_state(0)){
+					const friend_data = Friends.friend_cache.get_state(0).data.find((x) => x.id === data.id);
+					if(friend_data){
+						console.log("FRIEND STATE", friend_data.vc_users, friend_data.vc_users?.length);
+						if(friend_data.vc_users)
+							friend_data.vc_users.push(data);
+						else
+							friend_data.vc_users = [data];
+						friend_data.vc_channel_id = data.channel_id;
+						console.log("FRIEND STATE AFTER", friend_data.vc_users, friend_data.vc_users?.length);
+					}
+				}
 			}
 		},
 		user_left_vc: function(data) {
@@ -166,6 +176,15 @@ export default class MainSocket {
 					if(channel_list_data && channel_list_data.vc_users)
 						delete channel_list_data.vc_users[data.id];
 				}
+			} else {
+				if(Friends.friend_cache.has_state(0)){
+					const friend_data = Friends.friend_cache.get_state(0).data.find((x) => x.id === data.id);
+					if(friend_data?.vc_users){
+						let i = friend_data.vc_users.findIndex((x) => x.id === data.id);
+						if(i > -1)
+							friend_data.vc_users.splice(i, 1);
+					}
+				}			
 			}
 		},
 		user_changed_vc_state: function(data) {

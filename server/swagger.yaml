@@ -123,7 +123,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/UserId'
+                  $ref: '#/components/schemas/Friend'
   /friend_requests:
     get:
       summary: Список запросов дружбы
@@ -1026,6 +1026,19 @@ components:
         deaf:
           type: integer
           example: 0
+    Friend:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 33
+        vc_channel_id:
+          type: integer
+          example: 11
+        vc_users:
+          type: array
+          items:
+            $ref: '#/components/schemas/VCState'
     Server:
       type: object
       properties:
@@ -1042,8 +1055,13 @@ components:
           type: integer
           example: 2
         name:
+          description: Может отсутствовать, тогда other_user_id присутствует и указывает на другого пользователя
           type: string
           example: channel_test_vc
+        other_user_id:
+          description: ID другого пользователя, если это личные сообщения / звонки
+          type: integer
+          example: 3
         type:
           description: 0 - текстовый, 1 - голосовой
           type: integer

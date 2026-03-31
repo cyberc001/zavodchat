@@ -12,8 +12,8 @@ export default class Friends {
 			Rest.get("friends",
 				(res) => {
 					for(let i = 0; i < res.data.length; ++i){
-						res.data[i] = User.get(res.data[i], _catch);
-						res.data[i].data.id = res.data[i]; // set id even if User is not cached
+						res.data[i].user = User.get(res.data[i].id, _catch);
+						res.data[i].user.data.id = res.data[i].id; // set id even if User is not cached
 					}
 					cache.set_state(id, res.data);
 				},

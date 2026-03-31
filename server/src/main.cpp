@@ -62,7 +62,7 @@ int main()
 	auth_resource auth(ws, pool, cfg);
 	register_resource _register(ws, pool, cfg, sserv);
 
-	friends_resource friends(ws, pool, cfg);
+	friends_resource friends(ws, pool, cfg, vcserv);
 	friend_requests_resource friend_requests(ws, pool, cfg);
 	friends_id_resource friends_id(ws, pool, cfg, sserv);
 

@@ -3,10 +3,23 @@
 
 	import SearchBar from '$lib/control/search_bar.svelte';
 
+	import User from '$lib/rest/user.svelte.js';
 	import Channel from '$lib/rest/channel.js';
+	import DM from '$lib/rest/dm.js';
 
 	const {channel, server_id,
 		onsearch, show_channel} = $props();
+
+	let other_user = $state();
+	$effect(() => {
+		if(channel.loaded && typeof(channel.data.other_user_id) !== "undefined")
+			other_user = User.get(channel.data.other_user_id);
+		else
+			other_user = undefined;
+	});
+
+	let is_loaded = $derived(channel.loaded && (!other_user || other_user.loaded));
+	let name = $derived(other_user ? other_user.data.name : channel.data.name);
 
 	let search_bar = $state();
 	export function reset(){
@@ -15,21 +28,22 @@
 </script>
 
 <div class="channel_head">
-{#if channel.loaded}
-	{channel.data.name}
+{#if is_loaded}
+	{name}
 {:else}
 	&nbsp;
 {/if}
 
 <div style="margin-left: auto; display: flex">
-	{#if typeof(channel.data.linked_vc_id) !== "undefined"}
+	{#if other_user}
 		<button class="transparent_button hoverable"
 		style="margin-right: 4px"
 		onclick={() => {
-			const ch = Channel.get(channel.data.linked_vc_id);
-			ch.notify_on_load(() => {
-				ch.data.name = channel.data.name;
-				show_channel(ch.data);
+			DM.open(other_user.data.id, (res) => {
+				const ch = Channel.get(res.data[1]);
+				ch.notify_on_load(() => {
+					show_channel(ch.data);
+				});
 			});
 		}}>
 			<img src={asset("icons/call.svg")} alt="call friend" class="filter_icon_main" style="width: 32px"/>
