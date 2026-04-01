@@ -135,7 +135,7 @@ export default class VCSocket {
 		this.ws.onclose = (e) => {
 			this.is_connected = false;
 			clearInterval(this.ws_ping_intv);
-			console.log("closing ws with rtc", this.rtc);
+			console.log("closing ws with rtc\n", this.rtc, "\n", e);
 			if(this.rtc)
 				this.rtc.close();
 			// close all streams to make socket GC properly and prevent audio duplication
@@ -144,7 +144,7 @@ export default class VCSocket {
 			for(const track of Object.values(this.tracks))
 				track.destroy();
 			onclose(e);
-			this.set_state("Disconnected", "--clr_text_error");
+			this.set_state(e.reason ? e.reason : "Disconnected", "--clr_text_error");
 			Sound.play(asset("sounds/vc_leave.ogg"));
 		}
 		this.ws.onerror = onerror;
