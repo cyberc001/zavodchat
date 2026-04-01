@@ -516,6 +516,18 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 							conn->close(ix::WebSocketCloseConstants::kNormalClosureCode, "User has no access to the channel or it does not exist");
 							return;
 						}
+						if(user1_id == user2_id){
+							conn->close(ix::WebSocketCloseConstants::kNormalClosureCode, "Cannot call yourself");
+							return;
+						}
+
+						r = tx.exec("SELECT user1_id FROM friends WHERE NOT is_request AND "
+							    "((user1_id = $1 AND user2_id = $2) OR (user1_id = $2 AND user2_id = $1))",
+							    pqxx::params(user1_id, user2_id));
+						if(!r.size()){
+							conn->close(ix::WebSocketCloseConstants::kNormalClosureCode, "User is not a friend");
+							return;
+						}
 					} else {
 						conn->server_id = r[0]["server_id"].as<int>();
 						if(!resource_utils::check_server_member(conn->user_id, conn->server_id, tx)){
@@ -588,9 +600,11 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 					|| conn->user_id == -1)
 					return;
 				
-				std::cerr << "removing user " << conn->user_id << std::endl;
-				channels[conn->channel_id]->remove_user(conn);
-				std::cerr << "removed user " << conn->user_id << std::endl;
+				channels.erase_if(conn->channel_id, [conn](std::pair<int, std::shared_ptr<socket_vc_channel>> p){
+					p.second->remove_user(conn);
+					return !p.second->get_user_count();
+				});
+				std::cerr << "ERASED ? " << channels.size() << std::endl;
 
 				db_connection db_conn = this->pool.hold();
 				pqxx::work tx{*db_conn};
@@ -604,8 +618,6 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 				if(msg->closeInfo.reason != "User is connecting to a different channel")
 					users.erase(conn->user_id);
 
-				if(!channels[conn->channel_id]->get_user_count())
-					channels.erase(conn->channel_id);
 			} else if(msg->type == ix::WebSocketMessageType::Message){
 				socket_event ev;
 				try{
