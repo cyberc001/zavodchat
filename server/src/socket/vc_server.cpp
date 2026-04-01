@@ -599,11 +599,19 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 				if(msg->closeInfo.reason == "User is already connected to this channel"
 					|| conn->user_id == -1)
 					return;
-				
-				channels.erase_if(conn->channel_id, [conn](std::pair<int, std::shared_ptr<socket_vc_channel>> p){
+		
+				// Close the channel if:
+				// - Server channel has zero users
+				// - Private call has 1 user left, and since it's a close event, one of the users ended the call
+				bool close = false;
+				channels.if_contains(conn->channel_id, [&close, conn](std::pair<int, std::shared_ptr<socket_vc_channel>> p){
 					p.second->remove_user(conn);
-					return !p.second->get_user_count();
+					size_t cnt = p.second->get_user_count();
+					if(conn->server_id > -1 ? !cnt : cnt < 2)
+						close = true;
 				});
+				if(close)
+					close_channel(conn->channel_id, "Call ended");
 
 				db_connection db_conn = this->pool.hold();
 				pqxx::work tx{*db_conn};
