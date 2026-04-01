@@ -2,6 +2,8 @@
 	import {asset} from '$app/paths';
 	import {onDestroy, untrack} from 'svelte';
 
+	import Sound from '$lib/sound.js';
+
 	import Button from '$lib/control/button.svelte';
 
 	import Friends from '$lib/rest/friends.js';
@@ -32,13 +34,18 @@
 		}
 	});
 
-	const onkeyup = (e) => {
-		//if(e.key === "Escape")
-		//	close_incall();
-	};
+	let is_playing_ringtone = $derived(incoming_call && incoming_call.user.loaded);
+	$effect(() => {
+		if(is_playing_ringtone)
+			Sound.play_ringtone(asset("sounds/in_call.ogg"));
+		else
+			Sound.stop_ringtone();
+	});
+
 	document.addEventListener("keyup", onkeyup);
 	onDestroy(() => {
 		document.removeEventListener("keyup", onkeyup);
+		Sound.stop_ringtone();
 	});
 </script>
 
