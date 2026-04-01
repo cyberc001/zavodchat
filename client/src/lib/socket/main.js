@@ -145,6 +145,18 @@ export default class MainSocket {
 		},
 
 		user_joined_vc: function(data) {
+			if(Channel.channel_cache.has_state(data.channel_id)){
+				let channel_data = Channel.channel_cache.get_state(data.channel_id);
+				console.log("GOT CHANNEL DATA", channel_data, data);
+				if(channel_data.data.vc_users){
+					channel_data.data.vc_users[data.id] = Util.object_from_object(data, ["id", "mute", "deaf"]);
+					channel_data.data.vc_users[data.id].user = typeof(channel_data.data.other_user_id) === "undefined" ?
+											User.get_server(data.server_id, data.id) :
+											User.get(data.id);
+					console.log("INSERTED USER", channel_data);
+				}
+			}
+
 			if(typeof(data.server_id) !== "undefined"){
 				if(Channel.channel_list_cache.has_state(data.server_id)){
 					let channel_list_data = Channel.channel_list_cache.get_state(data.server_id).data.find((x) => x.id === data.channel_id);
@@ -169,6 +181,12 @@ export default class MainSocket {
 			}
 		},
 		user_left_vc: function(data) {
+			if(Channel.channel_cache.has_state(data.channel_id)){
+				let channel_data = Channel.channel_cache.get_state(data.channel_id);
+				if(channel_data.data.vc_users)
+					delete channel_data.data.vc_users[data.id];
+			}
+
 			if(typeof(data.server_id) !== "undefined"){
 				if(Channel.channel_list_cache.has_state(data.server_id)){
 					let list = Channel.channel_list_cache.get_state(data.server_id);
@@ -188,6 +206,18 @@ export default class MainSocket {
 			}
 		},
 		user_changed_vc_state: function(data) {
+			if(Channel.channel_cache.has_state(data.channel_id)){
+				let channel_data = Channel.channel_cache.get_state(data.channel_id);
+				if(channel_data.data.vc_users){
+					if(typeof data.mute !== "undefined")
+						channel_data.data.vc_users[data.id].mute = data.mute;
+					if(typeof data.deaf !== "undefined")
+						channel_data.data.vc_users[data.id].deaf = data.deaf;
+					if(typeof data.video !== "undefined")
+						channel_data.data.vc_users[data.id].video = data.video;
+				}
+			}
+
 			if(typeof(data.server_id) !== "undefined"){
 				if(Channel.channel_list_cache.has_state(data.server_id)){
 					let list = Channel.channel_list_cache.get_state(data.server_id);

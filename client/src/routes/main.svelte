@@ -165,6 +165,11 @@
 		}
 	};
 
+	const endCall = () => {
+		if(socket_vc)
+			socket_vc.end_call();
+		socket_vc = undefined;
+	};
 
 	let profile_display_params = $state({
 		user: null, anchor: null, anchor_side_x: "left"
@@ -321,10 +326,7 @@
 		</div>
 
 		{#if socket_vc}
-			<VCPanel socket_vc={socket_vc} end_call={() => {
-				socket_vc.end_call();
-				socket_vc = undefined;
-			}}/>
+			<VCPanel socket_vc={socket_vc} end_call={endCall}/>
 		{/if}
 		<div class="panel profile_panel">
 			{#if !user_self.loaded}
@@ -347,9 +349,10 @@
 	{#if sel.channel > -1}
 		<SidebarMessage server_id={sel.server} channel_id={sel.channel}
 			sel_message_id={sel.user.message_id} sel_user_id={sel.user.id}
+			socket_vc={socket_vc}
 			show_ctx_menu={showCtxMenu} show_user={showUser}
 			show_ban={showBan}
-			show_channel={showChannel}
+			show_channel={showChannel} end_call={endCall}
 		/>
 	{:else if sel.server === -1}
 		<SidebarFriends show_channel={showChannel}/>

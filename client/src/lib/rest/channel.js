@@ -30,7 +30,18 @@ export default class Channel {
 	static get(channel_id, _catch){
 		return Channel.channel_cache.get_state(channel_id, (cache, id) => {
 			Rest.get("channels/" + channel_id,
-				(res) => cache.set_state(id, res.data),
+				(res) => {
+					let vc_users = {};
+					if(res.data.vc_users)
+						for(const state of res.data.vc_users){
+							vc_users[state.id] = state;
+							vc_users[state.id].user = typeof(res.data.other_user_id) === "undefined" ?
+											User.get_server(server_id, state.id, _catch) :
+											User.get(state.id, _catch);
+						}
+					res.data.vc_users = vc_users;
+					cache.set_state(id, res.data);
+				},
 				_catch);
 		});
 	}
@@ -56,12 +67,11 @@ export default class Channel {
 					let list = res.data;
 					for(const ch of list){
 						let vc_users = {};
-						if(ch.vc_users){
+						if(ch.vc_users)
 							for(const state of ch.vc_users){
 								vc_users[state.id] = state;
 								vc_users[state.id].user = User.get_server(server_id, state.id, _catch);
 							}
-						}
 						ch.vc_users = vc_users;
 					}
 					cache.set_state(id, list);

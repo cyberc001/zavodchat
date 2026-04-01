@@ -7,7 +7,9 @@
 	import PaginatedList from '$lib/display/paginated_list.svelte';
 	import MessageInput from '$lib/control/message_input.svelte';
 	import ContextMenuAction from '$lib/control/context_menu_action.svelte';
+
 	import ChannelHead from '$lib/display/sidebar/channel_head.svelte';
+	import PrivateCall from '$lib/control/private_call.svelte';
 
 	import Message from '$lib/rest/message.js';
 	import Channel from '$lib/rest/channel.js';
@@ -17,7 +19,9 @@
 
 	let {server_id, channel_id,
 		sel_message_id, sel_user_id,
-		show_ctx_menu, show_user, show_ban, show_channel} = $props();
+		socket_vc,
+		show_ctx_menu, show_user, show_ban,
+		show_channel, end_call} = $props();
 
 	let self_user = User.get(-1);
 
@@ -208,6 +212,8 @@
 		}}
 		show_channel={show_channel}
 		/>
+
+		<PrivateCall socket_vc={socket_vc} end_call={end_call}/>
 
 		<div class="sidebar_message_content">
 			{#snippet render_message(i, item)}
