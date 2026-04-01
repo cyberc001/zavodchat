@@ -16,9 +16,10 @@ using namespace httpserver;
 #define PERM1_MANAGE_INVITES			6
 #define PERM1_SPEAK_IN_VC			7
 #define PERM1_MANAGE_ROLES			8
+#define PERM1_MANAGE_VC				9
 
-#define PERM1_COUNT				9
-#define PERM1_DEFAULT				0b100110101010101001
+#define PERM1_COUNT				10
+#define PERM1_DEFAULT				0b10100110101010101001
 
 
 /* Don't forget to tx.commit(), utils do not commit automatically to avoid closing a transaction. */

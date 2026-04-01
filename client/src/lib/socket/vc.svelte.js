@@ -133,6 +133,7 @@ export default class VCSocket {
 
 		this.ws = new WebSocket(PUBLIC_BASE_SOCKET_VC + "?channel=" + channel_id);
 		this.ws.onclose = (e) => {
+			this.is_connected = false;
 			clearInterval(this.ws_ping_intv);
 			console.log("closing ws with rtc", this.rtc);
 			if(this.rtc)

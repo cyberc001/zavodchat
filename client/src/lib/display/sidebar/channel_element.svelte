@@ -41,7 +41,7 @@
 				bind:this={vc_user_divs[vc_state.id]}
 				oncontextmenu={(e) => {
 					event.preventDefault();
-					ctx_vc_user(self, e, vc_state);
+					ctx_vc_user(self, e, channel.id, vc_state);
 				}}
 			>
 				<img src={User.get_avatar_path(vc_state.user.data)}

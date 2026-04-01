@@ -38,4 +38,15 @@ private:
 	socket_vc_server& vcserv;
 };
 
+class channel_user_id_resource : public base_resource
+{
+public:
+	channel_user_id_resource(webserver& ws, db_connection_pool& pool, const config& cfg,
+				socket_vc_server& vcserv);
+
+	std::shared_ptr<http_response> render_DELETE(const http_request&);
+private:
+	socket_vc_server& vcserv;
+};
+
 #endif

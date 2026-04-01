@@ -69,6 +69,12 @@ export default class Channel {
 		});
 	}
 
+
+	static kick_user(channel_id, user_id, _then, _catch){
+		Rest.delete("Kicking user from channel", "channels/" + channel_id + "/users/" + user_id,
+				_then, _catch);
+	}
+
 	static Type = {
 		Text: 0,
 		Voice: 1

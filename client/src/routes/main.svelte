@@ -102,7 +102,7 @@
 		user: {
 			id: -1, message_id: -1
 		},
-		ctx_user_id: -1
+		ctx_user_id: -1, ctx_channel_id: -1
 	});
 
 	let server_user_list = $state();
@@ -253,11 +253,21 @@
 {/snippet}
 
 {#snippet user_volume()}
+	{#if socket_vc?.is_connected}
 	<div style="padding: 4px">
 		<Slider text="User volume" bind:value={() => Math.floor(socket_vc.audio[sel.ctx_user_id].volume * 100),
 						(x) => socket_vc.audio[sel.ctx_user_id].set_volume(x / 100)}
 			display_value={(value) => value + "%"}/>
 	</div>
+	{/if}
+{/snippet}
+{#snippet action_kick_channel_user(hide_ctx_menu)}
+	<ContextMenuAction icon={asset("icons/kick.svg")} text="Kick"
+		hide_ctx_menu={hide_ctx_menu}
+		onclick={() => {
+			Channel.kick_user(sel.ctx_channel_id, sel.ctx_user_id, () => {});
+		}}
+	/>
 {/snippet}
 
 
@@ -297,11 +307,12 @@
 						setSettingsParams({channel_id: channel.id});
 						showCtxMenu(self, e, [action_settings_channel, action_delete_channel]);
 					}}
-					ctx_vc_user={(self, e, vc_state) => {
+					ctx_vc_user={(self, e, channel_id, vc_state) => {
 						if(vc_state.id === user_self.data.id)
 							return;
+						sel.ctx_channel_id = channel_id;
 						sel.ctx_user_id = vc_state.id;
-						showCtxMenu(self, e, [user_volume]);
+						showCtxMenu(self, e, [user_volume, action_kick_channel_user]);
 					}}
 					create_channel={() => {
 						sel.settings_tabs = create_channel.tabs();

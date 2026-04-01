@@ -178,3 +178,44 @@ std::shared_ptr<http_response> channel_resource::render_DELETE(const http_reques
 
 	return create_response::string(req, "Deleted", 200);
 }
+
+
+channel_user_id_resource::channel_user_id_resource(webserver& ws, db_connection_pool& pool, const config& cfg,
+						socket_vc_server& vcserv):
+	base_resource(ws, "/channels/{channel_id}/users/{user_id}", pool, cfg),
+	vcserv{vcserv}
+{
+	set_allowing("DELETE", true);
+}
+
+std::shared_ptr<http_response> channel_user_id_resource::render_DELETE(const http_request& req)
+{
+	base_resource::render_DELETE(req);
+
+	int user_id, channel_id, server_id;
+	db_connection conn = pool.hold();
+	pqxx::work tx{*conn};
+	auto err = resource_utils::parse_channel_id(req, tx, user_id, server_id, channel_id);
+	if(err) return err;
+
+	int other_user_id;
+	err = resource_utils::parse_user_id(req, tx, other_user_id);
+	if(err) return err;
+
+	pqxx::result r = tx.exec("SELECT type FROM channels WHERE channel_id = $1", pqxx::params(channel_id));
+	if(r[0]["type"].as<int>() != CHANNEL_VOICE)
+		return create_response::string(req, "Not a voice channel", 400);
+
+	if(server_id > -1){
+		err = role_utils::check_permission1(req, tx, server_id, user_id, PERM1_MANAGE_VC);
+		if(err) return err;
+	} else {
+		// If user themselves are calling/in the call, forbid kicking the other participant
+		if(vcserv.has_user(channel_id, user_id))
+			return create_response::string(req, "Cannot kick the other user while in the call", 403);
+	}
+
+	if(vcserv.kick_user(channel_id, other_user_id, server_id > -1 ? "Kicked by administrator" : "Call denied"))
+		return create_response::string(req, "Kicked", 200);
+	return create_response::string(req, "User is not in this voice channel", 404);
+}

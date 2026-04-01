@@ -583,7 +583,19 @@ paths:
                 items:
                   $ref: '#/components/schemas/Message'
         '403':
-          description: Неправильный start (< 0, >= количеству пользователей) / слишком большой count / канал не текстовый
+          description: Неправильный start (< 0, >= количеству пользователей) / слишком большой count / канал не Текстовый
+  /channels/$channel_id/users/$user_id:
+    delete:
+      summary: Выгнать пользователя из голосового канала
+      parameters:
+        - $ref: "#/parameters/zavodchat_token"
+      responses:
+        '400':
+          description: Не голосовой канал
+        '403':
+          description: Нет прав на управление голосовыми каналами / пользователь уже находится в личном звонке
+        '200':
+          description: Пользователь был кикнут из канала
   /messages/$message_id:
     get:
       summary: Информация о сообщении

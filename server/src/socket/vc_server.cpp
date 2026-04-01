@@ -604,7 +604,6 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 					p.second->remove_user(conn);
 					return !p.second->get_user_count();
 				});
-				std::cerr << "ERASED ? " << channels.size() << std::endl;
 
 				db_connection db_conn = this->pool.hold();
 				pqxx::work tx{*db_conn};
@@ -730,6 +729,17 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 }
 
 
+bool socket_vc_server::kick_user(int channel_id, int user_id, std::string reason)
+{
+	bool kicked = false;
+	users.if_contains(user_id, [channel_id, reason, &kicked](std::pair<int, std::shared_ptr<socket_vc_connection>> p){
+		if(p.second->channel_id != channel_id)
+			return;
+		p.second->close(ix::WebSocketCloseConstants::kNormalClosureCode, reason);
+		kicked = true;
+	});
+	return kicked;
+}
 void socket_vc_server::close_channel(int channel_id, std::string reason)
 {
 	channels.if_contains(channel_id, [reason](std::pair<int, std::shared_ptr<socket_vc_channel>> p){
@@ -749,16 +759,24 @@ void socket_vc_server::send_to_channel(int channel_id, pqxx::work& tx, socket_ev
 	});
 }
 
+
+bool socket_vc_server::has_user(int channel_id, int user_id)
+{
+	bool has = false;
+	channels.if_contains(channel_id, [&has, user_id](std::pair<int, std::shared_ptr<socket_vc_channel>> p){
+		has = !!p.second->get_user(user_id);
+	});
+	return has;
+}
+
 nlohmann::json socket_vc_server::get_channel_users(int channel_id)
 {
-	std::cerr << "getting channel users for " << channel_id << std::endl;
 	nlohmann::json out = nlohmann::json::array();
 	channels.if_contains(channel_id, [&out](std::pair<int, std::shared_ptr<socket_vc_channel>> p){
 		auto _users = p.second->get_users();
 		for(auto i = _users.begin(); i != _users.end(); ++i)
 			out += (*i)->get_vc_state();
 	});
-	std::cerr << "got users for " << channel_id << std::endl;
 	return out;
 }
 

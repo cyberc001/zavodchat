@@ -215,7 +215,7 @@ std::shared_ptr<http_response> role_utils::check_permission1(const http_request&
 				return nullptr;
 	}
 
-	return create_response::string(req, "Server has only default permissions", 500);
+	return create_response::string(req, "User has only default permissions", 500);
 }
 std::shared_ptr<http_response> role_utils::check_validity_perms1(const http_request& req, long long perms1)
 {

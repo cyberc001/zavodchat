@@ -133,10 +133,14 @@ public:
 				db_connection_pool& pool, socket_main_server& sserv,
 				std::string rtc_addr, int rtc_port);
 
+	// channel_id is used to verify that user is exactly in this channel
+	// Returns true if user was in that channel (so they got kicked)
+	bool kick_user(int channel_id, int user_id, std::string reason);
 	void close_channel(int channel_id, std::string reason);
 
 	void send_to_channel(int channel_id, pqxx::work& tx, socket_event event); // only sends event to users currently connected to voice channel
-	
+
+	bool has_user(int channel_id, int user_id);	
 	nlohmann::json get_channel_users(int channel_id); // get users connected to voice channel
 
 

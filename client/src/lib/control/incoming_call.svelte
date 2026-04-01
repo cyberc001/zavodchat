@@ -50,6 +50,8 @@
 		<div class="incall_actions">
 			<Button text="Decline" --margin-bottom="0"
 			onclick={() => {
+				Channel.kick_user(incoming_call.channel_id, incoming_call.user.data.id,
+						() => {});
 			}}
 			/>
 			<Button text="Accept" --margin-bottom="0"
