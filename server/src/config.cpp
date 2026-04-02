@@ -122,6 +122,7 @@ config::config(std::ifstream& fd)
 	GET_UNSIGNED(max_user_preference_keys)
 
 	GET_UNSIGNED(max_video_bitrate)
+	GET_UNSIGNED(inactive_channel_time)
 }
 
 std::string config::get_conn_str() const

@@ -12,6 +12,7 @@
 	import Role from '$lib/rest/role.js';
 	import Ban from '$lib/rest/ban.js';
 	import BlockedUsers from '$lib/rest/blocked_users.js';
+	import DM from '$lib/rest/dm.js';
 
 	import MainSocket from '$lib/socket/main.js';
 	import VCSocket from '$lib/socket/vc.svelte.js';
@@ -127,6 +128,13 @@
 		ctx_menu_params.items = items;
 		ctx_menu_params.visible = true;
 	};
+	const showVCCtxMenu = (self, e, channel_id, vc_state) => {
+		if(vc_state.id === user_self.data.id)
+			return;
+		sel.ctx_channel_id = channel_id;
+		sel.ctx_user_id = vc_state.id;
+		showCtxMenu(self, e, [user_volume, action_kick_channel_user]);
+	};
 	const hideCtxMenu = () => {
 		ctx_menu_params.visible = false;
 		showUser(-1, -1);
@@ -152,13 +160,24 @@
 	};
 
 	const showChannel = (ch) => {
-		console.log("show channel", ch);
+		console.log("show channel", ch.id, ch.vc_users, ch.type);
 		if(ch.type === Channel.Type.Voice){
 			let old_socket_vc = socket_vc;
 			socket_vc = new VCSocket(user_self.data.id, ch.id, (close) => {
 				if(close.reason === "User is already connected to this channel")
 					socket_vc = old_socket_vc;
 			});
+
+			if(typeof(ch.other_user_id) !== "undefined"){
+				let dm = DM.open(ch.other_user_id);
+				dm.notify_on_load(() => {
+					let text_ch = Channel.get(dm.data[0]);
+					text_ch.notify_on_load(() => {
+						showServer(-1);
+						showChannel(text_ch.data);
+					});
+				});
+			}
 		} else {
 			showUser(-1, -1);
 			sel.channel = ch.id;
@@ -258,7 +277,7 @@
 {/snippet}
 
 {#snippet user_volume()}
-	{#if socket_vc?.is_connected}
+	{#if socket_vc?.is_connected && socket_vc.audio[sel.ctx_user_id]}
 	<div style="padding: 4px">
 		<Slider text="User volume" bind:value={() => Math.floor(socket_vc.audio[sel.ctx_user_id].volume * 100),
 						(x) => socket_vc.audio[sel.ctx_user_id].set_volume(x / 100)}
@@ -350,7 +369,7 @@
 		<SidebarMessage server_id={sel.server} channel_id={sel.channel}
 			sel_message_id={sel.user.message_id} sel_user_id={sel.user.id}
 			socket_vc={socket_vc}
-			show_ctx_menu={showCtxMenu} show_user={showUser}
+			show_ctx_menu={showCtxMenu} ctx_vc_user={showVCCtxMenu} show_user={showUser}
 			show_ban={showBan}
 			show_channel={showChannel} end_call={endCall}
 		/>
@@ -395,6 +414,10 @@
 	/>
 {/if}
 
+<IncomingCall socket_vc={socket_vc} show_channel={showChannel}/>
+
+<NotifDisplay/>
+
 {#if ctx_menu_params.visible}
 	<ContextMenu
 		anchor={ctx_menu_params.anchor} off={ctx_menu_params.off}
@@ -403,10 +426,6 @@
 {/if}
 
 {/if}
-
-<IncomingCall socket_vc={socket_vc} show_channel={showChannel}/>
-
-<NotifDisplay/>
 
 <Dialog bind:this={ban.dialog}
 	question="Ban user?"

@@ -71,7 +71,7 @@ class VCAudioTrack extends VCTrack {
 			let track = VCAudioTrack._glbl_tracks[id];
 
 			if(track.analyser){
-				if(track.processor && !track.ctx_dest.stream.getTracks()[0].enabled){
+				if(track.ctx_dest && !track.ctx_dest.stream.getTracks()[0].enabled){
 					// Muted microphone track
 					track.amplitude = 0;
 					continue;
@@ -198,6 +198,11 @@ export default class VCSocket {
 		}
 	}
 
+
+	// Users
+	has_user(user_id){
+		return this.channel.loaded && typeof(this.channel.data.vc_users[user_id]) !== "undefined";
+	}
 
 	// Audio management
 	static AudioState = {

@@ -44,5 +44,6 @@
 
 	"max_get_count": 50,
 
-	"max_video_bitrate": 10240000
+	"max_video_bitrate": 10240000,
+	"inactive_channel_time": 30000
 }

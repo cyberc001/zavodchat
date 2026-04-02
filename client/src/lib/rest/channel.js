@@ -35,9 +35,7 @@ export default class Channel {
 					if(res.data.vc_users)
 						for(const state of res.data.vc_users){
 							vc_users[state.id] = state;
-							vc_users[state.id].user = typeof(res.data.other_user_id) === "undefined" ?
-											User.get_server(server_id, state.id, _catch) :
-											User.get(state.id, _catch);
+							vc_users[state.id].user = User.get(state.id, _catch);
 						}
 					res.data.vc_users = vc_users;
 					cache.set_state(id, res.data);

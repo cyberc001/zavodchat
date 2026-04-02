@@ -1,6 +1,6 @@
 FROM ubuntu:24.04
 
-RUN apt-get update && apt-get install -y build-essential cmake autotools-dev automake libtool pkg-config git zlib1g-dev libssl-dev libmicrohttpd-dev libgnutls28-dev libpq-dev nlohmann-json3-dev
+RUN apt-get update && apt-get install -y build-essential cmake autotools-dev automake libtool pkg-config git gdb zlib1g-dev libssl-dev libmicrohttpd-dev libgnutls28-dev libpq-dev nlohmann-json3-dev
 
 RUN mkdir /3rdparty
 

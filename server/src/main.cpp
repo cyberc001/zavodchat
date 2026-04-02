@@ -53,9 +53,7 @@ int main()
 								.https_mem_key(cfg.https_key)
 								.https_mem_cert(cfg.https_cert);
 	socket_main_server sserv(cfg.https_key, cfg.https_cert, cfg.ws_port, pool);
-	socket_vc_server vcserv(cfg.https_key, cfg.https_cert, cfg.ws_vc_port,
-					pool, sserv, cfg.rtc_addr, cfg.rtc_port);
-	vcserv.max_video_bitrate = cfg.max_video_bitrate;
+	socket_vc_server vcserv(cfg, pool, sserv);
 
 	create_response::set_origins(cfg.origins);
 

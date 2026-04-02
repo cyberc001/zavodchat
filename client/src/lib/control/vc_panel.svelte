@@ -1,10 +1,17 @@
 <script>
 	import {asset} from '$app/paths';
+	import {onDestroy} from 'svelte';
+
 	import VCSocket from '$lib/socket/vc.svelte.js';
+
+	import Sound from '$lib/sound.js';
 
 	import User from '$lib/rest/user.svelte.js';
 
+
 	const {socket_vc, end_call} = $props();
+
+	let self_user = User.get(-1);
 
 	let other_user = $state();
 	$effect(() => {
@@ -12,6 +19,18 @@
 			other_user = User.get(socket_vc.channel.data.other_user_id);
 		else
 			other_user = undefined;
+	});
+
+	$effect(() => {
+		// If self user is in the call, but the other user isnt, it's an outgoing call and ringtone should play
+		if(self_user.loaded && other_user?.loaded && socket_vc &&
+			socket_vc.has_user(self_user.data.id) && !socket_vc.has_user(other_user.data.id))
+			Sound.play_ringtone(asset("sounds/out_call.ogg"));
+		else
+			Sound.stop_ringtone();
+	});
+	onDestroy(() => {
+		Sound.stop_ringtone();
 	});
 
 	let name = $derived(other_user ? other_user.data.name : socket_vc.channel.data.name);

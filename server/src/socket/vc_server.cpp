@@ -51,8 +51,8 @@ nlohmann::json socket_vc_connection::get_vc_state()
 }
 
 
-socket_vc_channel::socket_vc_channel(socket_vc_server& vcserv):
-	vcserv{vcserv}
+socket_vc_channel::socket_vc_channel(int server_id, socket_vc_server& vcserv):
+	server_id{server_id}, vcserv{vcserv}
 {}
 
 void socket_vc_connection::init_rtc(std::string rtc_addr, int rtc_port, std::string rtc_cert, std::string rtc_key)
@@ -66,11 +66,13 @@ void socket_vc_connection::init_rtc(std::string rtc_addr, int rtc_port, std::str
 	rtc_conn = std::make_shared<rtc::PeerConnection>(conf);
 
 	rtc_conn->onSignalingStateChange([this, rtc_addr](rtc::PeerConnection::SignalingState state){
+		std::cerr << "signalling state changed for " << this->user_id << " " << state << std::endl;
 		if(state == rtc::PeerConnection::SignalingState::HaveLocalOffer)
 			// New local offer
 			send_offer(rtc_addr);
 	});
 	rtc_conn->onGatheringStateChange([this, rtc_addr](rtc::PeerConnection::GatheringState state){
+		std::cerr << "gathering state changed for " << this->user_id << " " << state << std::endl;
 		if(state == rtc::PeerConnection::GatheringState::Complete)
 			// Connection established
 			send_offer(rtc_addr);
@@ -449,18 +451,18 @@ size_t socket_vc_channel::get_user_count()
 bool socket_vc_channel::is_inactive()
 {
 	std::lock_guard lock(mut);
-	return users.size() < 2 && (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - busy_ts)).count() > inactive_channel_time;
+	if(server_id > -1)
+		return false;
+	return users.size() < 2 && (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - busy_ts)).count() > vcserv.cfg.inactive_channel_time;
 }
 
 /*** socket_vc_server ***/
 
 thread_local std::mt19937 socket_vc_server::rng{std::random_device{}()};
 
-socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert, int port,
-				db_connection_pool& pool, socket_main_server& sserv,
-				std::string _rtc_addr, int _rtc_port):
-	socket_server(https_key, https_cert, port, pool), pool{pool}, sserv{sserv},
-	rtc_addr{_rtc_addr}, rtc_port{_rtc_port}, rtc_cert{https_cert}, rtc_key{https_key}
+socket_vc_server::socket_vc_server(const config& cfg, db_connection_pool& pool, socket_main_server& sserv):
+	socket_server(cfg.https_key, cfg.https_cert, cfg.ws_vc_port, pool),
+	cfg{cfg}, pool{pool}, sserv{sserv}
 {
 	rtc::InitLogger(rtc::LogLevel::Debug);
 
@@ -571,10 +573,10 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 
 				conn->join_ts = std::chrono::system_clock::now();
 
-				conn->init_rtc(rtc_addr, rtc_port, rtc_cert, rtc_key);
+				conn->init_rtc(this->cfg.rtc_addr, this->cfg.rtc_port, this->cfg.https_cert, this->cfg.https_key);
 				std::cerr << "initialized rtc" << std::endl;
 
-				channels.emplace(conn->channel_id, std::make_shared<socket_vc_channel>(*this));
+				channels.emplace(conn->channel_id, std::make_shared<socket_vc_channel>(conn->server_id, *this));
 				std::shared_ptr<socket_vc_channel> ch = channels[conn->channel_id];
 				channels[conn->channel_id]->add_user(conn);
 				std::cerr << "added user to channel " << conn->channel_id << std::endl;
@@ -599,6 +601,7 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 				if(msg->closeInfo.reason == "User is already connected to this channel"
 					|| conn->user_id == -1)
 					return;
+				std::cerr << "closing user " << conn->user_id << std::endl;
 		
 				// Close the channel if:
 				// - Server channel has zero users
@@ -610,6 +613,7 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 					if(conn->server_id > -1 ? !cnt : cnt < 2)
 						close = true;
 				});
+				std::cerr << "close_channel? " << close << std::endl;
 				if(close)
 					close_channel(conn->channel_id, "Call ended");
 
@@ -625,6 +629,7 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 				if(msg->closeInfo.reason != "User is connecting to a different channel")
 					users.erase(conn->user_id);
 
+				std::cerr << "closed user" << std::endl;
 			} else if(msg->type == ix::WebSocketMessageType::Message){
 				socket_event ev;
 				try{
@@ -692,7 +697,7 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 						}
 					}
 
-					int bitrate = max_video_bitrate;
+					unsigned bitrate = this->cfg.max_video_bitrate;
 					if(ev.data.contains("bitrate")){
 						if(!ev.data["bitrate"].is_number_unsigned()){
 							socket_event ev;
@@ -701,7 +706,7 @@ socket_vc_server::socket_vc_server(std::string https_key, std::string https_cert
 							conn->send(ev.dump());
 							return;
 						}
-						bitrate = std::min(ev.data["bitrate"].get<int>(), max_video_bitrate);
+						bitrate = std::min(ev.data["bitrate"].get<unsigned>(), this->cfg.max_video_bitrate);
 					}
 
 					conn->add_recv_video_track(cd, bitrate);
@@ -780,12 +785,14 @@ bool socket_vc_server::has_user(int channel_id, int user_id)
 
 nlohmann::json socket_vc_server::get_channel_users(int channel_id)
 {
+	std::cerr << "getting channel users for " << channel_id << std::endl;
 	nlohmann::json out = nlohmann::json::array();
 	channels.if_contains(channel_id, [&out](std::pair<int, std::shared_ptr<socket_vc_channel>> p){
 		auto _users = p.second->get_users();
 		for(auto i = _users.begin(); i != _users.end(); ++i)
 			out += (*i)->get_vc_state();
 	});
+	std::cerr << "got channel users for " << channel_id << std::endl;
 	return out;
 }
 

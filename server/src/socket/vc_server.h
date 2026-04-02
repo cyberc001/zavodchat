@@ -3,6 +3,7 @@
 
 #include "socket/main_server.h"
 #include "rtc/rtc.hpp"
+#include "config.h"
 #include <unordered_map>
 #include <unordered_set>
 #include <functional>
@@ -99,7 +100,7 @@ class socket_vc_server;
 class socket_vc_channel
 {
 public:
-	socket_vc_channel(socket_vc_server& vcserv);
+	socket_vc_channel(int server_id, socket_vc_server& vcserv);
 
 	void add_user(std::shared_ptr<socket_vc_connection>);
 	void remove_user(std::shared_ptr<socket_vc_connection>);
@@ -113,6 +114,7 @@ public:
 
 	bool is_inactive();
 private:
+	int server_id;
 	socket_vc_server& vcserv;
 
 	// Last time point when two or more users were present; used in private calls
@@ -120,8 +122,6 @@ private:
 
 	std::mutex mut;
 	std::unordered_map<int, std::shared_ptr<socket_vc_connection>> users;
-
-	static const size_t inactive_channel_time = 10000;
 };
 
 class socket_vc_server : public socket_server
@@ -129,9 +129,7 @@ class socket_vc_server : public socket_server
 public:
 	static thread_local std::mt19937 rng;
 
-	socket_vc_server(std::string https_key, std::string https_cert, int port,
-				db_connection_pool& pool, socket_main_server& sserv,
-				std::string rtc_addr, int rtc_port);
+	socket_vc_server(const config& cfg, db_connection_pool& pool, socket_main_server& sserv);
 
 	// channel_id is used to verify that user is exactly in this channel
 	// Returns true if user was in that channel (so they got kicked)
@@ -143,8 +141,7 @@ public:
 	bool has_user(int channel_id, int user_id);	
 	nlohmann::json get_channel_users(int channel_id); // get users connected to voice channel
 
-
-	int max_video_bitrate = 10240000;
+	const config& cfg;
 private:
 	codec check_codec(std::string);
 
@@ -162,10 +159,6 @@ private:
 
 	db_connection_pool& pool;
 	socket_main_server& sserv;
-
-	std::string rtc_addr;
-	int rtc_port;
-	std::string rtc_cert, rtc_key;
 
 	std::thread inactive_channel_thr;
 	static const size_t inactive_channel_check_period = 1000;

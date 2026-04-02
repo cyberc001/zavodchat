@@ -39,8 +39,9 @@
 		<button class="transparent_button hoverable"
 		style="margin-right: 4px"
 		onclick={() => {
-			DM.open(other_user.data.id, (res) => {
-				const ch = Channel.get(res.data[1]);
+			let dm = DM.open(other_user.data.id);
+			dm.notify_on_load(() => {
+				const ch = Channel.get(dm.data[1]);
 				ch.notify_on_load(() => {
 					show_channel(ch.data);
 				});

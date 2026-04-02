@@ -23,6 +23,16 @@
 
 	let friend_remove_confirm = $state();
 	let user_to_remove = $state();
+
+	const showDMChannel = (user_id, idx) => {
+		let dm = DM.open(user_id);
+		dm.notify_on_load(() => {
+			const ch = Channel.get(dm.data[idx]);
+			ch.notify_on_load(() => {
+				show_channel(ch.data);
+			});
+		});
+	};
 </script>
 
 {#snippet tab_friends()}
@@ -47,21 +57,12 @@ buttons={[{text: "Remove", action: () => Friends.remove_friend(user_to_remove.da
 				<div class="friend_actions">
 					{#if friend.user.loaded}
 					<button class="transparent_button hoverable"
-					onclick={() => DM.open(friend.user.data.id, (res) => {
-						const ch = Channel.get(res.data[0]);
-						ch.notify_on_load(() => {
-							show_channel(ch.data);
-						});
-					})}>
+					onclick={() => showDMChannel(friend.user.data.id, 0)}>
 						<img src={asset("icons/channel_text.svg")} alt="text friend" class="filter_icon_main" style="width: 32px"/>
 					</button>
+
 					<button class="transparent_button hoverable"
-					onclick={() => DM.open(friend.user.data.id, (res) => {
-						const ch = Channel.get(res.data[1]);
-						ch.notify_on_load(() => {
-							show_channel(ch.data);
-						});
-					})}>
+					onclick={() => showDMChannel(friend.user.data.id, 1)}>
 						<img src={asset("icons/call.svg")} alt="call friend" class="filter_icon_main" style="width: 32px"/>
 					</button>
 

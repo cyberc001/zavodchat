@@ -162,7 +162,7 @@ std::shared_ptr<http_response> channel_resource::render_DELETE(const http_reques
 	if(err) return err;
 
 	if(server_id == -1)
-		return create_response::string(req, "Cannot change a DM channel", 403);
+		return create_response::string(req, "Cannot delete a DM channel", 403);
 
 	err = role_utils::check_permission1(req, tx, server_id, user_id, PERM1_MANAGE_CHANNELS);
 	if(err) return err;

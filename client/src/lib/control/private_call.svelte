@@ -4,29 +4,56 @@
 	import Util from '$lib/util.js';
 	import VCSocket from '$lib/socket/vc.svelte.js';
 
+	import Button from '$lib/control/button.svelte';
+
 	import User from '$lib/rest/user.svelte.js';
 
-	const {socket_vc, end_call} = $props();
+	const {socket_vc,
+		end_call, ctx_vc_user} = $props();
 
-	$effect(() => {
-		console.log("CHANNEL", $state.snapshot(socket_vc?.channel.data));
+	let self = $state();
+
+	let self_user = User.get(-1);
+
+	let vc_users = $derived.by(() => {
+		if(!socket_vc || !socket_vc.channel.data.vc_users)
+			return [];
+		let users = Object.values(socket_vc.channel.data.vc_users);
+		if(typeof(socket_vc.channel.data.other_user_id) !== "undefined" && users.length < 2){
+			// Trying to call the other user; add a dummy voice state
+			users.push({
+				user: User.get(socket_vc.channel.data.other_user_id)
+			});
+		}
+		return users;
 	});
 </script>
 
-{#if typeof(socket_vc?.channel?.data?.other_user_id) !== "undefined" && Object.keys(socket_vc.channel.data.vc_users).length}
-<div class="item private_call_container">
+{#if self_user.loaded && typeof(socket_vc?.channel?.data?.other_user_id) !== "undefined" &&
+	typeof(socket_vc?.channel?.data?.vc_users[self_user.data.id]) !== "undefined"}
+<div class="item private_call_container" bind:this={self}>
 	<div class="private_call_users">
-		{#each Object.values(socket_vc.channel.data.vc_users) as vc_state}
-			<div class="private_call_user">
+		{#each vc_users as vc_state}
+			<div class="private_call_user"
+				oncontextmenu={(e) => {
+					event.preventDefault();
+					// Don't allow dummy users
+					if(typeof(vc_state.id) === "undefined")
+						return;
+					ctx_vc_user(self, e, socket_vc.channel.data.id, vc_state);
+				}}
+			>
 			{#if vc_state?.user?.loaded}
 				<img class="user_avatar" src={User.get_avatar_path(vc_state.user.data)}
 					style={"border-color: #00FF00"
 						+ (socket_vc && socket_vc.audio[vc_state.user.data.id] ?
 							Util.padded_hex(Math.min(socket_vc.audio[vc_state.user.data.id].amplitude / 10, 1) * 255)
 							: "00")
+						+ (typeof(vc_state.id) === "undefined" ? ";filter: brightness(40%)" : "")
 					}
 				/>
 				<b style="text-align: center">{vc_state.user.data.name}</b>
+
 				<div class="vc_state">
 					{#if vc_state.video > VCSocket.VideoState.Disabled}
 						<div style="background: red; height: 24px; border-radius: 4px; font-size: 18px; padding: 0 3px 0 3px; margin-right: 3px; display: inline-block">
@@ -58,37 +85,29 @@
 	</div>
 
 	<div class="actions">
-		<button class="hoverable transparent_button"
+		<Button icon={asset("icons/screen_share" + (socket_vc.video_state === VCSocket.VideoState.Screen ? "_stop" : "") + ".svg")}
+			--padding-bottom="0px"
 			onclick={() => {
 				socket_vc.set_video_state(socket_vc.video_state === VCSocket.VideoState.Disabled ?
 								VCSocket.VideoState.Screen : VCSocket.VideoState.Disabled);
 			}}
-		>
-			<img src={asset("icons/screen_share" + (socket_vc.video_state === VCSocket.VideoState.Screen ? "_stop" : "") + ".svg")}
-			alt={socket_vc.video_state === VCSocket.VideoState.Screen ? "stop sharing screen" : "share screen"} class="filter_icon_main" style="width: 24px">
-		</button>
-
-		<button class="hoverable transparent_button"
+		/>
+		<Button icon={asset("/icons/" + (socket_vc.mute == VCSocket.AudioState.None ? "not_" : "") + "muted.svg")}
+			--padding-bottom="0px"
 			onclick={() => {
 				socket_vc.toggle_mute();
 			}}
-		>
-			<img src={asset("/icons/" + (socket_vc.mute == VCSocket.AudioState.None ? "not_" : "") + "muted.svg")}
-				alt={(socket_vc.mute == VCSocket.AudioState.None ? "" : "un") + "mute"} class="filter_icon_main" style="width: 24px">
-		</button>
-		<button class="hoverable transparent_button"
+		/>
+		<Button icon={asset("icons/" + (socket_vc.deaf == VCSocket.AudioState.None ? "not_" : "") + "deaf.svg")}
+			--padding-bottom="0px"
 			onclick={() => {
 				socket_vc.toggle_deaf();
 			}}
-		>
-			<img src={asset("icons/" + (socket_vc.deaf == VCSocket.AudioState.None ? "not_" : "") + "deaf.svg")}
-				alt={(socket_vc.deaf == VCSocket.AudioState.None ? "" : "un") + "deafen"} class="filter_icon_main" style="width: 24px">
-		</button>
-		<button class="hoverable transparent_button"
+		/>
+		<Button icon={asset("icons/hang.svg")}
+			--padding-bottom="0px"
 			onclick={end_call}
-		>
-			<img src={asset("icons/hang.svg")} alt="end call" class="filter_icon_main" style="width: 24px">
-		</button>
+		/>
 	</div>
 </div>
 {/if}
@@ -96,6 +115,8 @@
 <style>
 .private_call_container {
 	text-align: center;
+
+	anchor-name: --private_call_container;
 }
 
 .private_call_users {

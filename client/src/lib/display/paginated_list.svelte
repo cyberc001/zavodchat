@@ -124,10 +124,13 @@
 		if(div_items[0] === null)
 			return;
 
-		console.log("SETTING ANCHOR", i, $state.snapshot(items.data));
-
 		if(i >= items.data.length)
 			i = items.data.length - 1;
+
+		if(!div_items[i])
+			return;
+
+		console.log("SETTING ANCHOR", i, $state.snapshot(items.data), $state.snapshot(div_items));
 
 		anchor = {
 			id: items.tree.key(items.data[i]),

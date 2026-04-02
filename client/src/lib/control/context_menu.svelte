@@ -34,7 +34,25 @@
 	position-visibility: no-overflow;
 	width: fit-content;
 	z-index: 20;
+
+	position-try-fallbacks: --fallback_right, --fallback_left, --fallback_top, --fallback_bottom;
 }
+@position-try --fallback_right {
+	left: unset;
+	right: anchor(right);
+}
+@position-try --fallback_left {
+	left: anchor(left);
+}
+@position-try --fallback_top {
+	top: anchor(top);
+}
+@position-try --fallback_bottom {
+	top: unset;
+	bottom: anchor(bottom);
+}
+
+
 .context_menu_item {
 	width: 100%;
 	display: flex;

@@ -53,7 +53,7 @@ public:
 	unsigned max_invites_per_server = 50;
 
 	unsigned max_video_bitrate = 10240000;
-
+	unsigned inactive_channel_time = 30000;
 private:
 	std::string db_host; unsigned db_port = 5432;
 	std::string db_user, db_password, db_name;

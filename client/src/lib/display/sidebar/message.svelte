@@ -20,7 +20,7 @@
 	let {server_id, channel_id,
 		sel_message_id, sel_user_id,
 		socket_vc,
-		show_ctx_menu, show_user, show_ban,
+		show_ctx_menu, ctx_vc_user, show_user, show_ban,
 		show_channel, end_call} = $props();
 
 	let self_user = User.get(-1);
@@ -213,7 +213,8 @@
 		show_channel={show_channel}
 		/>
 
-		<PrivateCall socket_vc={socket_vc} end_call={end_call}/>
+		<PrivateCall socket_vc={socket_vc}
+				end_call={end_call} ctx_vc_user={ctx_vc_user}/>
 
 		<div class="sidebar_message_content">
 			{#snippet render_message(i, item)}
