@@ -22,7 +22,11 @@ std::shared_ptr<http_response> server_channel_resource::render_GET(const http_re
 	if(err) return err;
 
 	nlohmann::json res = nlohmann::json::array();
-	pqxx::result r = tx.exec("SELECT channel_id, name, type FROM channels WHERE server_id = $1", pqxx::params(server_id));
+	pqxx::result r = tx.exec("SELECT channels.channel_id, name, type, notification_count FROM channels "
+				 "LEFT JOIN channel_notifications ON channel_notifications.channel_id = channels.channel_id "
+				 "AND channel_notifications.user_id = $2 "
+				 "WHERE server_id = $1"
+				, pqxx::params(server_id, user_id));
 
 	for(size_t i = 0; i < r.size(); ++i){
 		nlohmann::json channel_json = resource_utils::channel_json_from_row(r[i]);
@@ -94,7 +98,11 @@ std::shared_ptr<http_response> channel_resource::render_GET(const http_request& 
 	auto err = resource_utils::parse_channel_id(req, tx, user_id, server_id, channel_id);
 	if(err) return err;
 
-	pqxx::result r = tx.exec("SELECT channel_id, name, type, user1_id, user2_id FROM channels WHERE channel_id = $1", pqxx::params(channel_id));
+	pqxx::result r = tx.exec("SELECT channels.channel_id, name, type, user1_id, user2_id, notification_count FROM channels "
+				 "LEFT JOIN channel_notifications ON channel_notifications.channel_id = channels.channel_id "
+				 "AND channel_notifications.user_id = $2 "
+				 "WHERE channels.channel_id = $1"
+				 , pqxx::params(channel_id, user_id));
 	nlohmann::json channel_json = resource_utils::channel_json_from_row(r[0], user_id);
 
 	if(channel_json["type"] == CHANNEL_VOICE)

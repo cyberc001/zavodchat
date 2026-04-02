@@ -65,6 +65,8 @@ public:
 	static std::shared_ptr<http_response> parse_server_user_id(const http_request&, int server_id, pqxx::work&, int& server_user_id);
 	static std::shared_ptr<http_response> parse_server_ban_id(const http_request&, int server_id, pqxx::work&, int& server_ban_id);
 
+	static int get_channel_other_user_id(int channel_id, int user_id, pqxx::work&);
+
 	// Check if user_to_id has user_from_id unblocked.
 	static std::shared_ptr<http_response> check_user_unblocked(const http_request&, int user_from_id, int user_to_id, pqxx::work&);
 
@@ -82,6 +84,9 @@ public:
 	static std::shared_ptr<http_response> pagination_query(const http_request&, const config&, std::string sort_column,
 							pqxx::params& params, std::string& query);
 	static std::string pagination_query(const http_request&);
+
+	/* Notifications */
+	static void inc_notification(int channel_id, int user_id, pqxx::work&);
 
 	/* JSON */
 	static std::shared_ptr<http_response> json_from_content(const http_request&, nlohmann::json&);

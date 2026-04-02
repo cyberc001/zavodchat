@@ -270,6 +270,14 @@ std::shared_ptr<http_response> resource_utils::parse_server_ban_id(const http_re
 }
 
 
+int resource_utils::get_channel_other_user_id(int channel_id, int user_id, pqxx::work& tx)
+{
+	pqxx::result r = tx.exec("SELECT user1_id, user2_id FROM channels WHERE channel_id=$1", pqxx::params(channel_id));
+	int user1_id = r[0]["user1_id"].as<int>(), user2_id = r[0]["user2_id"].as<int>();
+	return user_id == user1_id ? user2_id : user1_id;
+}
+
+
 std::shared_ptr<http_response> resource_utils::check_user_unblocked(const http_request& req, int user_from_id, int user_to_id, pqxx::work& tx)
 {
 	pqxx::result r = tx.exec("SELECT user1_id FROM blocked_users WHERE user1_id = $1 AND user2_id = $2", pqxx::params(user_from_id, user_to_id));
@@ -350,6 +358,16 @@ std::shared_ptr<http_response> resource_utils::pagination_query(const http_reque
 	return nullptr;
 }
 
+/* Notifications */
+void resource_utils::inc_notification(int channel_id, int user_id, pqxx::work& tx)
+{
+	tx.exec("INSERT INTO channel_notifications(channel_id, user_id) VALUES($1, $2) "
+		"ON CONFLICT(channel_id, user_id) DO UPDATE "
+		"SET notification_count = channel_notifications.notification_count + 1",
+		pqxx::params(channel_id, user_id));
+}
+
+
 /* JSON */
 
 std::shared_ptr<http_response> resource_utils::json_from_content(const http_request& req, nlohmann::json& data)
@@ -399,6 +417,8 @@ nlohmann::json resource_utils::channel_json_from_row(const pqxx::row& r, int use
 	};
 	if(!r["name"].is_null())
 		res += {"name", r["name"].as<std::string>()};
+	if(!r["notification_count"].is_null())
+		res += {"unread_messages", r["notification_count"].as<int>()};
 	if(user_id > -1 && !r["user1_id"].is_null()){
 		int user1_id = r["user1_id"].as<int>(), user2_id = r["user2_id"].as<int>();
 		res += {"other_user_id", user1_id == user_id ? user2_id : user1_id};

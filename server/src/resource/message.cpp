@@ -22,8 +22,8 @@ std::shared_ptr<http_response> channel_messages_resource::render_GET(const http_
 	auto err = resource_utils::parse_channel_id(req, tx, user_id, server_id, channel_id);
 	if(err) return err;
 
-	pqxx::params pr(channel_id);
 	std::string pg_query;
+	pqxx::params pr(channel_id);
 	err = resource_utils::pagination_query(req, cfg, "message_id", pr, pg_query);
 	if(err)
 		return err;
@@ -34,6 +34,10 @@ std::shared_ptr<http_response> channel_messages_resource::render_GET(const http_
 		pqxx::result r_att = tx.exec("SELECT type, content FROM message_attachments WHERE message_id = $1", pqxx::params(r[i]["message_id"].as<int>()));
 		res += resource_utils::message_json_from_row(r[i], r_att);
 	}
+
+	tx.exec("DELETE FROM channel_notifications WHERE channel_id=$1 AND user_id=$2", pqxx::params(channel_id, user_id));
+	tx.commit();
+
 	return create_response::string(req, res.dump(), 200);
 }
 std::shared_ptr<http_response> channel_messages_resource::render_POST(const http_request& req)
@@ -46,7 +50,7 @@ std::shared_ptr<http_response> channel_messages_resource::render_POST(const http
 	auto err = resource_utils::parse_channel_id(req, tx, user_id, server_id, channel_id);
 	if(err) return err;
 
-	if(server_id != -1){
+	if(server_id > -1){
 		err = role_utils::check_permission1(req, tx, server_id, user_id, PERM1_CREATE_MESSAGES);
 		if(err) return err;
 	}
@@ -90,6 +94,10 @@ std::shared_ptr<http_response> channel_messages_resource::render_POST(const http
 			}
 		}
 	}
+
+	// Create a notification for private messages
+	if(server_id < 0)
+		resource_utils::inc_notification(channel_id, resource_utils::get_channel_other_user_id(channel_id, user_id, tx), tx);
 
 	tx.commit();
 
@@ -194,6 +202,10 @@ std::shared_ptr<http_response> channel_messages_search_resource::render_POST(con
 		pqxx::result r_att = tx.exec("SELECT type, content FROM message_attachments WHERE message_id = $1", pqxx::params(r[i]["message_id"].as<int>()));
 		res += resource_utils::message_json_from_row(r[i], r_att);
 	}
+
+	tx.exec("DELETE FROM channel_notifications WHERE channel_id=$1 AND user_id=$2", pqxx::params(channel_id, user_id));
+	tx.commit();
+
 	return create_response::string(req, res.dump(), 200);
 }
 

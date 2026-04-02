@@ -463,6 +463,7 @@ paths:
   /channels/$channel_id/messages:
     get:
       summary: Пагинированный список сообщений
+      description: При любом правильном запросе все сообщения в этом канале считаются прочитанными.
       parameters:
         - $ref: "#/parameters/zavodchat_token"
         - name: start_id
@@ -1096,6 +1097,10 @@ components:
           description: 0 - текстовый, 1 - голосовой
           type: integer
           example: 1
+        unread_messages:
+          description: Количество непрочитанных сообщений
+          type: integer
+          example: 3
         vc_users:
           description: user_id пользователей, которые подключены к голосовому каналу
           type: array
