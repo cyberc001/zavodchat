@@ -19,8 +19,6 @@
 		{#if !user.loaded}
 			<img src={asset("icons/loading.svg")} alt="loading" class="filter_icon_main" style="width: 32px"/>
 		{:else}
-			<button class="transparent_button hoverable"
-			onclick={() => show_channel(channel.id)}>
 			<div style="display: flex; align-items: center">
 				<div style="position: relative">
 					<img class="user_avatar" src={User.get_avatar_path(user.data)} alt="avatar"/>
@@ -33,7 +31,6 @@
 					<span class="dm_text">{channel.last_message?.text}</span>
 				</div>
 			</div>
-			</button>
 		{/if}
 	</button>
 </div>
@@ -43,6 +40,8 @@
 	box-sizing: border-box;
 	width: 100%;
 	padding: 12px;
+
+	overflow-x: hidden;
 }
 .dm_text {
 	white-space: nowrap;
