@@ -11,6 +11,9 @@ import Ban from '$lib/rest/ban.js';
 import DM from '$lib/rest/dm.js';
 import Notifications from '$lib/rest/notifications.js';
 
+import {asset} from '$app/paths';
+import Sound from '$lib/sound.js';
+
 import {RangeCache} from '$lib/cache/range.svelte.js';
 
 export default class MainSocket {
@@ -61,6 +64,9 @@ export default class MainSocket {
 
 			const add_notif = _this.self_user.loaded && _this.self_user.data.id !== data.author_id && _this.sel.channel !== data.channel_id;
 
+			if(add_notif)
+				Sound.play(asset("sounds/notification.ogg"));
+
 			if(add_notif && Notifications.notification_cache.has_state(0))
 				++Notifications.notification_cache.get_state(0).data.dm_notifications;
 
@@ -76,7 +82,7 @@ export default class MainSocket {
 				DM.channel_range_cache.insert(0, ch);
 
 				if(add_notif && Channel.channel_cache.has_state(data.channel_id))
-					Util.inc_or_set(Channel.channel_cache.get_state(data.channel_id), "unread_messages");
+					Util.inc_or_set(Channel.channel_cache.get_state(data.channel_id).data, "unread_messages");
 				else if(!add_notif)
 					Notifications.remove_channel(data.channel_id);
 			} else if(typeof(data.server_id) === "undefined") // potentially new DM channel
