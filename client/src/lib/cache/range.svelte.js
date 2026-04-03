@@ -413,4 +413,7 @@ export class RangeCache extends IDCache {
 
 		return nobs;
 	}
+	has_state(_id){
+		return typeof this.cache[this.state_refs_id(_id)] !== "undefined";
+	}
 }

@@ -22,7 +22,12 @@
 			<button class="transparent_button hoverable"
 			onclick={() => show_channel(channel.id)}>
 			<div style="display: flex; align-items: center">
-				<img class="user_avatar" src={User.get_avatar_path(user)} alt="avatar"/>
+				<div style="position: relative">
+					<img class="user_avatar" src={User.get_avatar_path(user.data)} alt="avatar"/>
+					{#if channel.unread_messages}
+					<div class="notif_circle">{channel.unread_messages}</div>
+					{/if}
+				</div>
 				<div class="dm_channel_frame">
 					<b class="dm_text">{user.data.name}</b>
 					<span class="dm_text">{channel.last_message?.text}</span>

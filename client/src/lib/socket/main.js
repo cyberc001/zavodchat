@@ -9,6 +9,7 @@ import Channel from '$lib/rest/channel.js';
 import Role from '$lib/rest/role.js';
 import Ban from '$lib/rest/ban.js';
 import DM from '$lib/rest/dm.js';
+import Notifications from '$lib/rest/notifications.js';
 
 import {RangeCache} from '$lib/cache/range.svelte.js';
 
@@ -54,15 +55,30 @@ export default class MainSocket {
 				}
 			});
 		},
-		message_created: function(data) {
+		message_created: function(data, _this) {
 			console.log("message_created", data);
 			Message.message_range_cache.insert(data.channel_id, data);
+
+			const add_notif = _this.self_user.loaded && _this.self_user.data.id !== data.author_id && _this.sel.channel !== data.channel_id;
+
+			if(add_notif && Notifications.notification_cache.has_state(0))
+				++Notifications.notification_cache.get_state(0).data.dm_notifications;
+
 			// TODO keep a separate data structure that allows O(log N) search
 			const ch = DM.channel_range_cache.find(0, (x) => x.id === data.channel_id);
 			if(ch){
 				DM.channel_range_cache.remove(0, ch.last_message.id);
+				if(add_notif)
+					Util.inc_or_set(ch, "unread_messages");
+				else
+					Notifications.remove_channel(data.channel_id);
 				ch.last_message = data;
 				DM.channel_range_cache.insert(0, ch);
+
+				if(add_notif && Channel.channel_cache.has_state(data.channel_id))
+					Util.inc_or_set(Channel.channel_cache.get_state(data.channel_id), "unread_messages");
+				else if(!add_notif)
+					Notifications.remove_channel(data.channel_id);
 			} else if(typeof(data.server_id) === "undefined") // potentially new DM channel
 				DM.channel_range_cache.reload(0);
 		},
@@ -235,9 +251,13 @@ export default class MainSocket {
 		}
 	};
 
+	sel; self_user;
 	ws_ping_intv;
 
-	constructor(onclose, onerror, onmessage) {
+	constructor(sel, onclose, onerror, onmessage){
+		this.sel = sel;
+		this.self_user = User.get(-1);
+
 		this.ws = new WebSocket(PUBLIC_BASE_SOCKET);
 		this.ws.onclose = (e) => {
 			console.log(e);
@@ -249,7 +269,7 @@ export default class MainSocket {
 		this.ws.onmessage = (e) => {
 			const _data = JSON.parse(e.data);
 			if(Object.hasOwn(MainSocket.socket_event_handlers, _data.name))
-				MainSocket.socket_event_handlers[_data.name](_data.data);
+				MainSocket.socket_event_handlers[_data.name](_data.data, this);
 			else
 				console.warn("Unhandled main WebSocket event", _data);
 			if(onmessage)

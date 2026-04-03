@@ -35,9 +35,6 @@ std::shared_ptr<http_response> channel_messages_resource::render_GET(const http_
 		res += resource_utils::message_json_from_row(r[i], r_att);
 	}
 
-	tx.exec("DELETE FROM channel_notifications WHERE channel_id=$1 AND user_id=$2", pqxx::params(channel_id, user_id));
-	tx.commit();
-
 	return create_response::string(req, res.dump(), 200);
 }
 std::shared_ptr<http_response> channel_messages_resource::render_POST(const http_request& req)
@@ -202,9 +199,6 @@ std::shared_ptr<http_response> channel_messages_search_resource::render_POST(con
 		pqxx::result r_att = tx.exec("SELECT type, content FROM message_attachments WHERE message_id = $1", pqxx::params(r[i]["message_id"].as<int>()));
 		res += resource_utils::message_json_from_row(r[i], r_att);
 	}
-
-	tx.exec("DELETE FROM channel_notifications WHERE channel_id=$1 AND user_id=$2", pqxx::params(channel_id, user_id));
-	tx.commit();
 
 	return create_response::string(req, res.dump(), 200);
 }

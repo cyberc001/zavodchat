@@ -463,7 +463,6 @@ paths:
   /channels/$channel_id/messages:
     get:
       summary: Пагинированный список сообщений
-      description: При любом правильном запросе все сообщения в этом канале считаются прочитанными.
       parameters:
         - $ref: "#/parameters/zavodchat_token"
         - name: start_id
@@ -889,6 +888,28 @@ paths:
           description: Роль успешно отобрана
         '400':
           description: Попытка отобрать роль по умолчанию
+
+  /notifications:
+    get:
+      summary: Информация об уведомлениях
+      parameters:
+        - $ref: "#/parameters/zavodchat_token"
+      responses:
+        '200':
+          description: Уведомления
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notifications'
+  /notifications/channels/$channel_id:
+    delete:
+      summary: Пометить все сообщения в канале прочитанными
+      parameters:
+        - $ref: "#/parameters/zavodchat_token"
+      responses:
+        '200':
+          description: Уведомления успешно удалены
+
   /files/avatar/user/$filename:
     get:
       summary: Аватар пользователя
@@ -1172,6 +1193,13 @@ components:
         perms1:
           type: integer
           example: 158377
+    
+    Notifications:
+      type: object
+      properties:
+        dm_notifications:
+          type: integer
+          example: 7
     
     Config:
       type: object

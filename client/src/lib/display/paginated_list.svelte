@@ -19,6 +19,8 @@
 				return;
 
 			const last_item = div_items[reversed ? items.data.length - 1 : 0];
+			if(!last_item)
+				return;
 			console.log("NEW ITEM CHECK", get_abs_scroll(), last_item.clientHeight);
 			if(get_abs_scroll() > last_item.clientHeight)
 				set_anchor(reversed ? items.data.length - 1 : 0);
@@ -145,31 +147,33 @@
 		list_div_scroll_height = list_div.scrollHeight;
 	});
 
-	// Scroll back to bottom/top if user hasnt scrolled past the last element and the element changed in size
-	// (ex. an image attachment got loaded)
-	// It is assumed that div_items only grow in size and not shrink (therefore only previous list_div.scrollHeight is kept track of, and the same is false for div_items)
 	let list_resize_obs;
+	let list_mut_obs;
+	const list_mut_cb = (elements) => {
+		// Observers might be active when this component is off-screen
+		if(!list_div)
+			return;
+
+		if(typeof(anchor.top) === "undefined")
+			list_div_scroll_top = list_div.scrollTop = reversed ? 2147483648 : 0;
+		else {
+			const anchor_el = div_items[items.data.findIndex((x) => items.tree.key(x) === anchor.id)];
+			console.log("ANCHOR", anchor, "ITEMS", $state.snapshot(items.data), "\n", anchor_el, "\n", list_div.scrollTop, anchor_el?.offsetTop);
+			if(anchor_el)
+				list_div.scrollTop += (anchor_el.offsetTop - list_div.scrollTop) - anchor.top;	
+		}	
+	};
 	$effect(() => {
 		if(!list_div)
 			return;
-		list_resize_obs = new ResizeObserver((elements) => {
-			// Observers might be active when this component is off-screen
-			if(!list_div)
-				return;
-
-			if(typeof(anchor.top) === "undefined")
-				list_div_scroll_top = list_div.scrollTop = reversed ? 2147483648 : 0;
-			else {
-				const anchor_el = div_items[items.data.findIndex((x) => items.tree.key(x) === anchor.id)];
-				console.log("ANCHOR", anchor, "ITEMS", $state.snapshot(items.data), "\n", anchor_el, "\n", list_div.scrollTop, anchor_el?.offsetTop);
-				if(anchor_el)
-					list_div.scrollTop += (anchor_el.offsetTop - list_div.scrollTop) - anchor.top;	
-			}	
-		});
+		list_resize_obs = new ResizeObserver(list_mut_cb);
 		list_resize_obs.observe(list_div);
 		for(const item of Object.values(div_items))
 			if(item)
 				list_resize_obs.observe(item);
+
+		list_mut_obs = new MutationObserver(list_mut_cb);
+		list_mut_obs.observe(list_div, {childList: true, subtree: true, attributes: true});
 	});
 
 	const on_scroll = (e) => {
@@ -196,11 +200,9 @@
 				destroy_old_items = true;
 				console.log("loading more items", $state.snapshot(items.data), items.tree.key(items.data[reversed ? items.data.length - advance : advance - 1]) + reverse_sign, !reversed);
 
-
 				items = _load_items(items.tree.key(items.data[reversed ? items.data.length - advance : advance - 1]) + reverse_sign, range, !reversed);
 			} else if(dir < 0 && can_scroll_before){
 				destroy_old_items = true;
-
 
 				console.log("loading more items", $state.snapshot(items.data), items.tree.key(items.data[reversed ? advance - 1 : items.data.length - advance]) - reverse_sign, reversed);
 				items = _load_items(items.tree.key(items.data[reversed ? advance - 1 : items.data.length - advance]) - reverse_sign, range, reversed);
@@ -212,6 +214,9 @@
 
 		if(typeof anchor.id !== "undefined")
 			anchor.top += (list_div_scroll_top - list_div.scrollTop);
+		else if(div_items[0])
+			set_anchor(0);
+
 		list_div_scroll_top = list_div.scrollTop;
 	};
 

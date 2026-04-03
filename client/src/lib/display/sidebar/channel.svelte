@@ -10,6 +10,7 @@
 
 	import Channel from '$lib/rest/channel.js';
 	import DM from '$lib/rest/dm.js';
+	import Notifications from '$lib/rest/notifications.js';
 
 	const {server, selected_channel,
 		socket_vc,
@@ -24,6 +25,20 @@
 			vc_video_elem.srcObject = new MediaStream([socket_vc.watched_video]);
 			vc_video_elem.play();
 		}
+	});
+
+	// Remove notifications on an actively read DM channel
+	let channel = $state();
+	$effect(() => {
+		if(selected_channel > -1)
+			channel = Channel.get(selected_channel);
+		else
+			channel = undefined;
+	});
+	$effect(() => {
+		if(channel?.loaded && typeof(channel.data.other_user_id) !== "undefined" &&
+			channel.data.unread_messages)
+			Notifications.remove_channel(channel.data.id);
 	});
 </script>
 

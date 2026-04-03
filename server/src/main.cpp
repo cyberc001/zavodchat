@@ -17,6 +17,7 @@
 #include "resource/server_invites.h"
 #include "resource/server_bans.h"
 #include "resource/role.h"
+#include "resource/notifications.h"
 #include "resource/user_status.h"
 #include "resource/params.h"
 #include "resource/preferences.h"
@@ -91,6 +92,9 @@ int main()
 
 	server_bans_resource server_bans(ws, pool, cfg);
 	server_ban_id_resource server_ban_id(ws, pool, cfg, sserv);
+
+	notifications_resource notifications(ws, pool, cfg);
+	notification_channel_resource notification_channel(ws, pool, cfg);
 
 	user_resource user(ws, pool, cfg);
 	user_id_resource user_id(ws, pool, cfg);

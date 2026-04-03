@@ -177,4 +177,16 @@ export default class Util {
 				return {title: doc.title, desc: meta.content};
 		return doc.title;
 	}
+
+	// Other stuff
+	static inc_or_set(obj, key, val)
+	{
+		if(!val)
+			val = 1;
+
+		if(!obj[key])
+			obj[key] = val;
+		else
+			obj[key] += val;
+	}
 }

@@ -75,28 +75,6 @@
 	let server = $state();
 	let server_roles = $state();
 
-	// Sockets
-	let socket_vc = $state();
-	let socket_main = new MainSocket(setError, setError,
-					(name, data) => {
-						socket_vc?.on_main_message(name, data);
-
-						if(name === "server_deleted"){
-							if(settings_params.server_id === data.id)
-								closeSettings();
-							if(data.id === sel.server)
-								showServer(-1);
-						} else if((name === "user_kicked" || name === "user_banned") && data.user.id === user_self.data.id){
-							if(settings_params.server_id === data.id)
-								closeSettings();
-							if(data.server_id === sel.server)
-								showServer(-1);
-						} else if((name === "channel_deleted" || (name === "channel_edited" && data.type === Channel.Type.Voice)
-								) && sel.channel === data.id){
-							showServer(sel.server);
-						}
-					});
-
 	// UI state
 	let sel = $state({
 		server: -1, channel: -1,
@@ -144,6 +122,29 @@
 		sel.settings_tabs = undefined;
 		settings_params = {};
 	}
+
+	// Sockets
+	let socket_vc = $state();
+	let socket_main = new MainSocket(sel,
+					setError, setError,
+					(name, data) => {
+						socket_vc?.on_main_message(name, data);
+
+						if(name === "server_deleted"){
+							if(settings_params.server_id === data.id)
+								closeSettings();
+							if(data.id === sel.server)
+								showServer(-1);
+						} else if((name === "user_kicked" || name === "user_banned") && data.user.id === user_self.data.id){
+							if(settings_params.server_id === data.id)
+								closeSettings();
+							if(data.server_id === sel.server)
+								showServer(-1);
+						} else if((name === "channel_deleted" || (name === "channel_edited" && data.type === Channel.Type.Voice)
+								) && sel.channel === data.id){
+							showServer(sel.server);
+						}
+					});
 
 	// Events
 	const showServer = (id) => {

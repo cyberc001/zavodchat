@@ -12,14 +12,14 @@
 
 	let other_user = $state();
 	$effect(() => {
-		if(channel.loaded && typeof(channel.data.other_user_id) !== "undefined")
+		if(channel?.loaded && typeof(channel.data.other_user_id) !== "undefined")
 			other_user = User.get(channel.data.other_user_id);
 		else
 			other_user = undefined;
 	});
 
-	let is_loaded = $derived(channel.loaded && (!other_user || other_user.loaded));
-	let name = $derived(other_user ? other_user.data.name : channel.data.name);
+	let is_loaded = $derived(channel?.loaded && (!other_user || other_user.loaded));
+	let name = $derived(other_user ? other_user.data.name : channel?.data.name);
 
 	let search_bar = $state();
 	export function reset(){

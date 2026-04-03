@@ -3,14 +3,20 @@
 	import SidebarServerElement from '$lib/display/sidebar/server_element.svelte';
 	import SidebarServerAction from '$lib/display/sidebar/server_action.svelte';
 
+	import Notifications from '$lib/rest/notifications.js';
+
 	const {servers, selected_server,
 		show_server, show_friends, ctx_server,
 		create_server} = $props();
+
+	let notifs = Notifications.get();
+	let friend_notifs = $derived(notifs.loaded ? notifs.data.dm_notifications : undefined);
 </script>
 
 <div style="display: flex; flex-direction: column">
 	<div class="panel sidebar_servers">
-		<SidebarServerAction icon={asset("icons/friends.svg")} action={show_friends}/>
+		<SidebarServerAction icon={asset("icons/friends.svg")} action={show_friends}
+		notif_count={friend_notifs}/>
 		{#if !servers.loaded}
 			<img src={asset("icons/loading.svg")} alt="loading" class="filter_icon_main" style="width: 48px"/>
 		{:else}
