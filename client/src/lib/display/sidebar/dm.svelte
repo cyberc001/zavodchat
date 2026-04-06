@@ -22,8 +22,8 @@
 			<div style="display: flex; align-items: center">
 				<div style="position: relative">
 					<img class="user_avatar" src={User.get_avatar_path(user.data)} alt="avatar"/>
-					{#if channel.unread_messages}
-					<div class="notif_circle">{channel.unread_messages}</div>
+					{#if channel.notifications}
+					<div class="notif_circle">{channel.notifications}</div>
 					{/if}
 				</div>
 				<div class="dm_channel_frame">

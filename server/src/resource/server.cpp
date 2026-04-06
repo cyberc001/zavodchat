@@ -23,7 +23,11 @@ std::shared_ptr<http_response> server_resource::render_GET(const http_request& r
 	if(err) return err;
 
 	nlohmann::json res = nlohmann::json::array();
-	pqxx::result r = tx.exec("SELECT distinct server_id, name, avatar FROM user_x_server NATURAL JOIN servers WHERE user_id = $1", pqxx::params(user_id));
+	pqxx::result r = tx.exec("SELECT DISTINCT servers.server_id, name, avatar, notification_count FROM user_x_server NATURAL JOIN servers "
+				 "LEFT JOIN notifications ON notifications.server_id = servers.server_id "
+				 "WHERE user_x_server.user_id = $1 "
+				 "ORDER BY servers.server_id",
+				 pqxx::params(user_id));
 	for(size_t i = 0; i < r.size(); ++i)
 		res += resource_utils::server_json_from_row(r[i]);
 	return create_response::string(req, res.dump(), 200);
@@ -90,7 +94,10 @@ std::shared_ptr<http_response> server_id_resource::render_GET(const http_request
 	auto err = resource_utils::parse_server_id(req, tx, user_id, server_id);
 	if(err) return err;
 
-	pqxx::result r = tx.exec("SELECT server_id, name, avatar FROM servers WHERE server_id = $1", pqxx::params(server_id));
+	pqxx::result r = tx.exec("SELECT DISTINCT servers.server_id, name, avatar, notification_count FROM servers "
+				 "LEFT JOIN notifications ON notifications.server_id = servers.server_id "
+				 "WHERE servers.server_id = $1",
+				 pqxx::params(server_id));
 	return create_response::string(req, resource_utils::server_json_from_row(r[0]).dump(), 200);
 }
 std::shared_ptr<http_response> server_id_resource::render_PUT(const http_request& req)

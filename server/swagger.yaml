@@ -1082,6 +1082,10 @@ components:
         avatar:
           type: string
           example: avatar_453912.png
+        notifications:
+          description: Количество уведомлений (упоминаний)
+          type: integer
+          example: 5
     Channel:
       type: object
       properties:
@@ -1100,6 +1104,10 @@ components:
           description: 0 - текстовый, 1 - голосовой
           type: integer
           example: 1
+        notifications:
+          description: Количество уведомлений (упоминаний)
+          type: integer
+          example: 2
         vc_users:
           description: user_id пользователей, которые подключены к голосовому каналу
           type: array
@@ -1118,7 +1126,7 @@ components:
           description: 0 - текстовый, 1 - голосовой
           type: integer
           example: 1
-        unread_messages:
+        notifications:
           description: Количество непрочитанных сообщений
           type: integer
           example: 3

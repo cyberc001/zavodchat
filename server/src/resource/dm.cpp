@@ -30,8 +30,8 @@ std::shared_ptr<http_response> dm_resource::render_GET(const http_request& req)
 	nlohmann::json res = nlohmann::json::array();
 	pqxx::result r = tx.exec("SELECT * FROM channels LEFT JOIN LATERAL "
 				 "(SELECT * FROM messages WHERE messages.channel_id = channels.channel_id ORDER BY message_id DESC LIMIT 1) ON true "
-				 "LEFT JOIN channel_notifications ON channel_notifications.channel_id = channels.channel_id "
-				 "AND channel_notifications.user_id = $1 "
+				 "LEFT JOIN notifications ON notifications.channel_id = channels.channel_id "
+				 "AND notifications.user_id = $1 "
 				 "WHERE type = 0 AND (user1_id = $1 OR user2_id = $1)"
 				+ pg_query, pr);
 

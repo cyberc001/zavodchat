@@ -75,14 +75,14 @@ export default class MainSocket {
 			if(ch){
 				DM.channel_range_cache.remove(0, ch.last_message.id);
 				if(add_notif)
-					Util.inc_or_set(ch, "unread_messages");
+					Util.inc_or_set(ch, "notifications");
 				else
 					Notifications.remove_channel(data.channel_id);
 				ch.last_message = data;
 				DM.channel_range_cache.insert(0, ch);
 
 				if(add_notif && Channel.channel_cache.has_state(data.channel_id))
-					Util.inc_or_set(Channel.channel_cache.get_state(data.channel_id).data, "unread_messages");
+					Util.inc_or_set(Channel.channel_cache.get_state(data.channel_id).data, "notifications");
 				else if(!add_notif)
 					Notifications.remove_channel(data.channel_id);
 			} else if(typeof(data.server_id) === "undefined") // potentially new DM channel

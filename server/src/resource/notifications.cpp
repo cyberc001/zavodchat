@@ -16,8 +16,8 @@ std::shared_ptr<http_response> notifications_resource::render_GET(const http_req
 	auto err = resource_utils::parse_session_token(req, tx, user_id);
 	if(err) return err;
 
-	pqxx::result r = tx.exec("SELECT SUM(notification_count) FROM channel_notifications "
-				 "JOIN channels ON channel_notifications.channel_id = channels.channel_id "
+	pqxx::result r = tx.exec("SELECT SUM(notification_count) FROM notifications "
+				 "JOIN channels ON notifications.channel_id = channels.channel_id "
 				 "WHERE user_id = $1 AND user1_id IS NOT NULL",
 				 pqxx::params(user_id));
 	nlohmann::json res = {
@@ -42,7 +42,7 @@ std::shared_ptr<http_response> notification_channel_resource::render_DELETE(cons
 	auto err = resource_utils::parse_channel_id(req, tx, user_id, server_id, channel_id);
 	if(err) return err;
 
-	tx.exec("DELETE FROM channel_notifications WHERE channel_id=$1 AND user_id=$2", pqxx::params(channel_id, user_id));
+	tx.exec("DELETE FROM notifications WHERE channel_id=$1 AND user_id=$2", pqxx::params(channel_id, user_id));
 	tx.commit();
 
 	return create_response::string(req, "Removed notifications", 200);

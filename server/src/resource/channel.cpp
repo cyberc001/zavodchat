@@ -23,9 +23,9 @@ std::shared_ptr<http_response> server_channel_resource::render_GET(const http_re
 
 	nlohmann::json res = nlohmann::json::array();
 	pqxx::result r = tx.exec("SELECT channels.channel_id, name, type, notification_count FROM channels "
-				 "LEFT JOIN channel_notifications ON channel_notifications.channel_id = channels.channel_id "
-				 "AND channel_notifications.user_id = $2 "
-				 "WHERE server_id = $1"
+				 "LEFT JOIN notifications ON notifications.channel_id = channels.channel_id "
+				 "AND notifications.user_id = $2 "
+				 "WHERE channels.server_id = $1"
 				, pqxx::params(server_id, user_id));
 
 	for(size_t i = 0; i < r.size(); ++i){
@@ -99,8 +99,8 @@ std::shared_ptr<http_response> channel_resource::render_GET(const http_request& 
 	if(err) return err;
 
 	pqxx::result r = tx.exec("SELECT channels.channel_id, name, type, user1_id, user2_id, notification_count FROM channels "
-				 "LEFT JOIN channel_notifications ON channel_notifications.channel_id = channels.channel_id "
-				 "AND channel_notifications.user_id = $2 "
+				 "LEFT JOIN notifications ON notifications.channel_id = channels.channel_id "
+				 "AND notifications.user_id = $2 "
 				 "WHERE channels.channel_id = $1"
 				 , pqxx::params(channel_id, user_id));
 	nlohmann::json channel_json = resource_utils::channel_json_from_row(r[0], user_id);

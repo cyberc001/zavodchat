@@ -2,6 +2,8 @@
 #include "resource/utils.h"
 #include "resource/role_utils.h"
 
+#include <iostream>
+
 channel_messages_resource::channel_messages_resource(webserver& ws, db_connection_pool& pool, const config& cfg,
 					socket_main_server& sserv):
 	base_resource(ws, "/channels/{channel_id}/messages", pool, cfg),
@@ -92,9 +94,11 @@ std::shared_ptr<http_response> channel_messages_resource::render_POST(const http
 		}
 	}
 
-	// Create a notification for private messages
+	// Create notifications
 	if(server_id < 0)
-		resource_utils::inc_notification(channel_id, resource_utils::get_channel_other_user_id(channel_id, user_id, tx), tx);
+		resource_utils::inc_notification(-1, channel_id, resource_utils::get_channel_other_user_id(channel_id, user_id, tx), tx);
+	else
+		resource_utils::parse_mentions(text, server_id, channel_id, user_id, tx);
 
 	tx.commit();
 

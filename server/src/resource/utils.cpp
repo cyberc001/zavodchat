@@ -5,8 +5,6 @@
 #include <unistd.h>
 #include <iosfwd>
 
-#include <iostream>
-
 std::vector<std::string> create_response::origins;
 void create_response::set_origins(std::vector<std::string> _origins)
 {
@@ -359,15 +357,64 @@ std::shared_ptr<http_response> resource_utils::pagination_query(const http_reque
 }
 
 /* Notifications */
-void resource_utils::inc_notification(int channel_id, int user_id, pqxx::work& tx)
+void resource_utils::inc_notification(int server_id, int channel_id, int user_id, pqxx::work& tx)
 {
-	tx.exec("INSERT INTO channel_notifications(channel_id, user_id) VALUES($1, $2) "
+	pqxx::params pr(channel_id, user_id);
+	if(server_id > -1)
+		pr.append(server_id);
+	tx.exec("INSERT INTO notifications(" + std::string(server_id > -1 ? "server_id, " : "") + "channel_id, user_id) "
+		"VALUES(" + std::string(server_id > -1 ? "$3, " : "") + "$1, $2) "
 		"ON CONFLICT(channel_id, user_id) DO UPDATE "
-		"SET notification_count = channel_notifications.notification_count + 1",
-		pqxx::params(channel_id, user_id));
+		"SET notification_count = notifications.notification_count + 1",
+		pr);
 }
+void resource_utils::parse_mentions(const std::string& text, int server_id, int channel_id, int user_id, pqxx::work& tx)
+{
+	std::vector<int> parsed;
 
+	static const size_t max_mentions = 16;
+	if(!text.size())
+		return;
 
+	int state = 0;
+	size_t id_start;
+	for(size_t i = 0; i < text.size() && parsed.size() < max_mentions; ++i)
+		switch(state){
+			case 0: // Seeking a mention
+				if(text[i] == '@')
+					state = 1;
+				break;
+			case 1: // Seeking mention type (u)
+				if(text[i] == 'u' && i < text.size() - 1 && isdigit(text[i + 1])){
+					id_start = i + 1;
+					state = 2;
+				} else
+					state = 0;
+				break;
+			case 2: // Reading ID
+				if(!isdigit(text[i]) || i == text.size() - 1){
+					state = 0;
+					int id = std::strtoul(text.substr(id_start, i - id_start + (i == text.size() - 1)).c_str(), nullptr, 10);
+					if(id != user_id)
+						parsed.push_back(id);
+				}
+				break;
+		}
+
+	if(!parsed.size())
+		return;
+
+	std::stringstream ss;
+	for(size_t i = 0; i < parsed.size(); ++i){
+		if(i > 0)
+			ss << ",";
+		ss << parsed[i];
+	}
+	pqxx::result r = tx.exec("SELECT DISTINCT ON(user_id) user_id FROM user_x_server WHERE server_id = $1 AND user_id IN (" + ss.str() + ")",
+				 pqxx::params(server_id));
+	for(size_t i = 0; i < r.size(); ++i)
+		inc_notification(server_id, channel_id, r[i]["user_id"].as<int>(), tx);
+}
 /* JSON */
 
 std::shared_ptr<http_response> resource_utils::json_from_content(const http_request& req, nlohmann::json& data)
@@ -406,6 +453,8 @@ nlohmann::json resource_utils::server_json_from_row(const pqxx::row& r)
 				{"name", r["name"].as<std::string>()}};
 	if(!r["avatar"].is_null())
 		res += {"avatar", r["avatar"].as<std::string>()};
+	if(!r["notification_count"].is_null())
+		res += {"notifications", r["notification_count"].as<int>()};
 	return res;
 }
 
@@ -418,7 +467,7 @@ nlohmann::json resource_utils::channel_json_from_row(const pqxx::row& r, int use
 	if(!r["name"].is_null())
 		res += {"name", r["name"].as<std::string>()};
 	if(!r["notification_count"].is_null())
-		res += {"unread_messages", r["notification_count"].as<int>()};
+		res += {"notifications", r["notification_count"].as<int>()};
 	if(user_id > -1 && !r["user1_id"].is_null()){
 		int user1_id = r["user1_id"].as<int>(), user2_id = r["user2_id"].as<int>();
 		res += {"other_user_id", user1_id == user_id ? user2_id : user1_id};

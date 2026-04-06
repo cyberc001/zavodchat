@@ -37,7 +37,7 @@
 	});
 	$effect(() => {
 		if(channel?.loaded && typeof(channel.data.other_user_id) !== "undefined" &&
-			channel.data.unread_messages)
+			channel.data.notifications)
 			Notifications.remove_channel(channel.data.id);
 	});
 </script>

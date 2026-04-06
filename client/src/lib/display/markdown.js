@@ -2,6 +2,26 @@ import {Marked} from 'marked';
 import {markedHighlight} from "marked-highlight";
 import hljs from 'highlight.js';
 
+const __md_mention = {
+	name: "mention",
+	level: "inline",
+
+	start(src){ return src.indexOf('@'); },
+	tokenizer(src, tokens){
+		const match = src.match(/^@u\d+/);
+		if(match)
+			return {
+				type: "mention",
+				raw: match[0],
+				text: match[0]
+			};
+		return false;
+	},
+	renderer(token){
+		return `<span style="background: var(--clr_bg_selected)">${token.raw}</span>`;
+	}
+}
+
 export default class Markdown {
 	static marked = new Marked(
 		markedHighlight({
@@ -22,6 +42,8 @@ export default class Markdown {
 
 	static marked_overlay = new Marked({
 		breaks: true,
+
+		extensions: [__md_mention],
 		renderer: {
 			strong(token){
 				const [m1, m2] = Markdown.__get_md_markers(token);
@@ -36,8 +58,7 @@ export default class Markdown {
 				return `<del>${m1}${this.parser.parseInline(token.tokens)}${m2}</del>`;
 			},
 			codespan(token){
-				const [m1, m2] = Markdown.__get_md_markers(token);
-				return `<code>${m1}${token.text}${m2}</code>`;
+				return `<code>${token.raw}</code>`;
 			}
 		},
 
@@ -59,11 +80,14 @@ export default class Markdown {
 	}
 };
 
-Markdown.marked.use({renderer: {
-	image(token){
-		return token.raw;
+Markdown.marked.use({
+	renderer: {
+		image(token){
+			return token.raw;
+		},
+		blockquote(token){
+			return `<blockquote>${this.parser.parse(token.tokens)}</blockquote>`;
+		}
 	},
-	blockquote(token){
-		return `<blockquote>${this.parser.parse(token.tokens)}</blockquote>`;
-	}
-}});
+	extensions: [__md_mention]
+});

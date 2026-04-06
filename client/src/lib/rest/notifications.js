@@ -21,27 +21,27 @@ export default class Notifications {
 			const channel_id = parseInt(_channel_id);
 			Rest.delete("", "notifications/channels/" + channel_id,
 			() => {
-				let unread_messages;
+				let notifications;
 				if(Channel.channel_cache.has_state(channel_id)){
 					const ch = Channel.channel_cache.get_state(channel_id);
-					if(ch.data.unread_messages)
-						unread_messages = ch.data.unread_messages;
-					delete ch.data.unread_messages;
+					if(ch.data.notifications)
+						notifications = ch.data.notifications;
+					delete ch.data.notifications;
 				}
 				// TODO update server list
 	
 				if(DM.channel_range_cache.has_state(0)){
 					const ch = DM.channel_range_cache.find(0, (x) => x.id === channel_id);
 					if(ch){
-						if(ch.unread_messages)
-							unread_messages = ch.unread_messages;
-						delete ch.unread_messages;
+						if(ch.notifications)
+							notifications = ch.notifications;
+						delete ch.notifications;
 						DM.channel_range_cache.update(0, ch);
 					}
 				}
 
-				if(unread_messages && Notifications.notification_cache.has_state(0))
-					Notifications.notification_cache.get_state(0).data.dm_notifications -= unread_messages;
+				if(notifications && Notifications.notification_cache.has_state(0))
+					Notifications.notification_cache.get_state(0).data.dm_notifications -= notifications;
 			});
 		}
 		Notifications.channels_todelete = {};

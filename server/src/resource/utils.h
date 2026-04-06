@@ -86,7 +86,10 @@ public:
 	static std::string pagination_query(const http_request&);
 
 	/* Notifications */
-	static void inc_notification(int channel_id, int user_id, pqxx::work&);
+	// server_id can be -1
+	static void inc_notification(int server_id, int channel_id, int user_id, pqxx::work&);
+
+	static void parse_mentions(const std::string& text, int server_id, int channel_id, int user_id, pqxx::work&);
 
 	/* JSON */
 	static std::shared_ptr<http_response> json_from_content(const http_request&, nlohmann::json&);
