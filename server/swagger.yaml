@@ -1083,9 +1083,9 @@ components:
           type: string
           example: avatar_453912.png
         notifications:
-          description: Количество уведомлений (упоминаний)
+          description: Если поле = 0, то есть новые сообщения. Если поле > 0, то также есть упоминания.
           type: integer
-          example: 5
+          example: 0
     Channel:
       type: object
       properties:
@@ -1105,7 +1105,7 @@ components:
           type: integer
           example: 1
         notifications:
-          description: Количество уведомлений (упоминаний)
+          description: Если поле = 0, то есть новые сообщения. Если поле > 0, то также есть упоминания.
           type: integer
           example: 2
         vc_users:
@@ -1148,6 +1148,25 @@ components:
           type: string
           description: URL к файлу либо ссылке
           example: "/files/upload/1/94fkwekl1u93w.png"
+    Mention:
+      type: object
+      properties:
+        type:
+          type: integer
+          description: 1 - упоминание пользователя, 2 - упоминание роли, 3 - упоминание всех в канале
+          example: 1
+        begin_i:
+          type: integer
+          description: Индекс первого символа упоминания в тексте сообщения
+          example: 3
+        end_i:
+          type: integer
+          description: Индекс последнего символа упоминания в тексте сообщения (включительно)
+          example: 6
+        id:
+          type: integer
+          description: ID объекта, который упоминается (присутствует для типов 1 и 2).
+          example: 44
     Message:
       type: object
       properties:
@@ -1169,10 +1188,15 @@ components:
           type: string
           example: "папа ты купил молоко?"
         attachments:
-          description: приложения к сообщению
+          description: Приложения к сообщению
           type: array
           items:
               $ref: '#/components/schemas/Attachment'
+        mentions:
+          description: Упоминания в сообщении
+          type: array
+          items:
+              $ref: '#/components/schemas/Mention'
     Invite:
       type: object
       properties:

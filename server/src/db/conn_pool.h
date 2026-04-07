@@ -6,6 +6,7 @@
 #include <memory>
 #include <mutex>
 #include <condition_variable>
+#include <unordered_set>
 
 class db_connection_pool;
 
@@ -15,7 +16,13 @@ public:
 	db_connection(std::shared_ptr<pqxx::connection> conn, db_connection_pool& pool);
 	~db_connection();
 	pqxx::connection& operator*();
+
+	// Returns false is statement is already prepared.
+	bool prepare(std::string name, std::string query);
+
 private:
+	std::unordered_set<std::string> prepared_statements;
+
 	std::shared_ptr<pqxx::connection> conn;
 	db_connection_pool& pool;
 };

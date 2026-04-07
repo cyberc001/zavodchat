@@ -4,6 +4,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <iosfwd>
+#include "resource/notification_utils.h"
 
 std::vector<std::string> create_response::origins;
 void create_response::set_origins(std::vector<std::string> _origins)
@@ -268,6 +269,33 @@ std::shared_ptr<http_response> resource_utils::parse_server_ban_id(const http_re
 }
 
 
+std::vector<int> resource_utils::get_channel_users(int channel_id, pqxx::work& tx)
+{
+	std::vector<int> out;
+	pqxx::result r = tx.exec("SELECT server_id, user1_id, user2_id FROM channels WHERE channel_id = $1",
+				 pqxx::params(channel_id));
+	if(r[0]["server_id"].is_null()){
+		out.push_back(r[0]["user1_id"].as<int>());
+		out.push_back(r[0]["user2_id"].as<int>());
+	} else {
+		int server_id = r[0]["server_id"].as<int>();
+		r = tx.exec("SELECT user_id FROM user_x_server WHERE server_id = $1 GROUP BY user_id",
+			    pqxx::params(server_id));
+		for(size_t i = 0; i < r.size(); ++i)
+			out.push_back(r[i]["user_id"].as<int>());
+	}
+	return out;
+}
+std::vector<int> resource_utils::get_role_users(int role_id, pqxx::work& tx)
+{
+	std::vector<int> out;
+	pqxx::result r = tx.exec("SELECT user_id FROM user_x_server WHERE role_id = $1",
+				pqxx::params(role_id));
+	for(size_t i = 0; i < r.size(); ++i)
+		out.push_back(r[i]["user_id"].as<int>());
+	return out;
+}
+
 int resource_utils::get_channel_other_user_id(int channel_id, int user_id, pqxx::work& tx)
 {
 	pqxx::result r = tx.exec("SELECT user1_id, user2_id FROM channels WHERE channel_id=$1", pqxx::params(channel_id));
@@ -356,65 +384,6 @@ std::shared_ptr<http_response> resource_utils::pagination_query(const http_reque
 	return nullptr;
 }
 
-/* Notifications */
-void resource_utils::inc_notification(int server_id, int channel_id, int user_id, pqxx::work& tx)
-{
-	pqxx::params pr(channel_id, user_id);
-	if(server_id > -1)
-		pr.append(server_id);
-	tx.exec("INSERT INTO notifications(" + std::string(server_id > -1 ? "server_id, " : "") + "channel_id, user_id) "
-		"VALUES(" + std::string(server_id > -1 ? "$3, " : "") + "$1, $2) "
-		"ON CONFLICT(channel_id, user_id) DO UPDATE "
-		"SET notification_count = notifications.notification_count + 1",
-		pr);
-}
-void resource_utils::parse_mentions(const std::string& text, int server_id, int channel_id, int user_id, pqxx::work& tx)
-{
-	std::vector<int> parsed;
-
-	static const size_t max_mentions = 16;
-	if(!text.size())
-		return;
-
-	int state = 0;
-	size_t id_start;
-	for(size_t i = 0; i < text.size() && parsed.size() < max_mentions; ++i)
-		switch(state){
-			case 0: // Seeking a mention
-				if(text[i] == '@')
-					state = 1;
-				break;
-			case 1: // Seeking mention type (u)
-				if(text[i] == 'u' && i < text.size() - 1 && isdigit(text[i + 1])){
-					id_start = i + 1;
-					state = 2;
-				} else
-					state = 0;
-				break;
-			case 2: // Reading ID
-				if(!isdigit(text[i]) || i == text.size() - 1){
-					state = 0;
-					int id = std::strtoul(text.substr(id_start, i - id_start + (i == text.size() - 1)).c_str(), nullptr, 10);
-					if(id != user_id)
-						parsed.push_back(id);
-				}
-				break;
-		}
-
-	if(!parsed.size())
-		return;
-
-	std::stringstream ss;
-	for(size_t i = 0; i < parsed.size(); ++i){
-		if(i > 0)
-			ss << ",";
-		ss << parsed[i];
-	}
-	pqxx::result r = tx.exec("SELECT DISTINCT ON(user_id) user_id FROM user_x_server WHERE server_id = $1 AND user_id IN (" + ss.str() + ")",
-				 pqxx::params(server_id));
-	for(size_t i = 0; i < r.size(); ++i)
-		inc_notification(server_id, channel_id, r[i]["user_id"].as<int>(), tx);
-}
 /* JSON */
 
 std::shared_ptr<http_response> resource_utils::json_from_content(const http_request& req, nlohmann::json& data)
@@ -483,13 +452,39 @@ nlohmann::json resource_utils::message_json_from_row(const pqxx::row& msg_row, c
 		{"sent", msg_row["sent"].as<std::string>()},
 		{"edited", msg_row["last_edited"].as<std::string>()},
 		{"text", msg_row["text"].as<std::string>()},
-		{"attachments", nlohmann::json::array()}
+		{"attachments", nlohmann::json::array()},
+		{"mentions", nlohmann::json::array()}
 	};
 	for(auto i = attachment_rows.begin(); i != attachment_rows.end(); ++i)
 		r["attachments"].push_back({
 			{"type", (*i)["type"].as<unsigned>()},
 			{"content", (*i)["content"].as<std::string>()}
 		});
+
+	pqxx::array_parser parser = msg_row["mentions"].as_array();
+	auto obj = parser.get_next();
+	int mention_data[4]; size_t mention_data_ln = 0;
+	while(obj.first != pqxx::array_parser::juncture::done){
+		if(obj.first == pqxx::array_parser::juncture::string_value)
+			mention_data[mention_data_ln++] = std::strtol(obj.second.c_str(), nullptr, 10);
+		
+		if(mention_data_ln){
+			mention_types type = static_cast<mention_types>(mention_data[0]);
+			if(mention_data_ln >= 3 + mention::type_has_id(type)){
+				nlohmann::json m = {
+					{"type", type},
+					{"begin_i", mention_data[1]},
+					{"end_i", mention_data[2]}
+				};
+				if(mention_data_ln > 3)
+					m["id"] = mention_data[3];
+				r["mentions"].push_back(m);
+				mention_data_ln = 0;
+			}
+		}
+
+		obj = parser.get_next();
+	}
 	return r;
 }
 nlohmann::json resource_utils::message_json_from_row(const pqxx::row& msg_row, const pqxx::result& _attachment_rows)

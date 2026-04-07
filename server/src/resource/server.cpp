@@ -23,8 +23,8 @@ std::shared_ptr<http_response> server_resource::render_GET(const http_request& r
 	if(err) return err;
 
 	nlohmann::json res = nlohmann::json::array();
-	pqxx::result r = tx.exec("SELECT DISTINCT servers.server_id, name, avatar, notification_count FROM user_x_server NATURAL JOIN servers "
-				 "LEFT JOIN notifications ON notifications.server_id = servers.server_id "
+	pqxx::result r = tx.exec("SELECT DISTINCT ON(servers.server_id) servers.server_id, name, avatar, notification_count FROM user_x_server NATURAL JOIN servers "
+				 "LEFT JOIN notifications ON notifications.server_id = servers.server_id AND notifications.user_id = $1 "
 				 "WHERE user_x_server.user_id = $1 "
 				 "ORDER BY servers.server_id",
 				 pqxx::params(user_id));

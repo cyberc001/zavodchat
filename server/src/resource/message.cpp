@@ -1,6 +1,7 @@
 #include "resource/message.h"
 #include "resource/utils.h"
 #include "resource/role_utils.h"
+#include "resource/notification_utils.h"
 
 #include <iostream>
 
@@ -31,7 +32,7 @@ std::shared_ptr<http_response> channel_messages_resource::render_GET(const http_
 		return err;
 
 	nlohmann::json res = nlohmann::json::array();
-	pqxx::result r = tx.exec("SELECT message_id, author_id, sent, last_edited, text FROM messages WHERE channel_id = $1 " + pg_query, pr);
+	pqxx::result r = tx.exec("SELECT * FROM messages WHERE channel_id = $1 " + pg_query, pr);
 	for(size_t i = 0; i < r.size(); ++i){
 		pqxx::result r_att = tx.exec("SELECT type, content FROM message_attachments WHERE message_id = $1", pqxx::params(r[i]["message_id"].as<int>()));
 		res += resource_utils::message_json_from_row(r[i], r_att);
@@ -65,10 +66,29 @@ std::shared_ptr<http_response> channel_messages_resource::render_POST(const http
 	if(!text.size() && (!body["attachments"].is_array() || !body["attachments"].size()))
 		return create_response::string(req, "Empty messages without attachments are forbidden", 400);
 
+	// Create notifications
+	std::vector<std::vector<int>> mentions;
+	if(server_id < 0)
+		notification_utils::inc_notification(-1, channel_id, resource_utils::get_channel_other_user_id(channel_id, user_id, tx), tx);
+	else {
+		std::vector<mention> _mentions = notification_utils::parse_mentions(text, server_id, channel_id, tx);
+		mentions = mention::to_array(_mentions);
+
+		// Create ping notifications
+		notification_utils::inc_notification(server_id, channel_id, user_id, _mentions,
+							conn, tx);
+		// Create unread message notifications
+		std::vector<int> user_ids = resource_utils::get_channel_users(channel_id, tx);
+		notification_utils::ensure_notification(server_id, channel_id, user_id, user_ids,
+							conn, tx);
+	}
+
 	int message_id;
 	pqxx::result msg_res;
 	try{
-		msg_res = tx.exec("INSERT INTO messages(channel_id, author_id, sent, last_edited, text) VALUES($1, $2, now(), now(), $3) RETURNING message_id, author_id, sent, last_edited, text, channel_id", pqxx::params(channel_id, user_id, text));
+		msg_res = tx.exec("INSERT INTO messages(channel_id, author_id, sent, last_edited, text, mentions) "
+				  "VALUES($1, $2, now(), now(), $3, $4) RETURNING message_id, author_id, sent, last_edited, text, channel_id, mentions",
+				  pqxx::params(channel_id, user_id, text, mentions));
 		message_id = msg_res[0]["message_id"].as<int>();
 	} catch(pqxx::data_exception& e){
 		return create_response::string(req, "Message is too long", 400);
@@ -93,12 +113,6 @@ std::shared_ptr<http_response> channel_messages_resource::render_POST(const http
 			}
 		}
 	}
-
-	// Create notifications
-	if(server_id < 0)
-		resource_utils::inc_notification(-1, channel_id, resource_utils::get_channel_other_user_id(channel_id, user_id, tx), tx);
-	else
-		resource_utils::parse_mentions(text, server_id, channel_id, user_id, tx);
 
 	tx.commit();
 
@@ -195,7 +209,7 @@ std::shared_ptr<http_response> channel_messages_search_resource::render_POST(con
 	nlohmann::json res = nlohmann::json::array();
 	pqxx::result r;
 	try{
-		r = tx.exec("SELECT message_id, author_id, sent, last_edited, text FROM messages WHERE channel_id = $1 " + q_where + " " + pg_query, pr);
+		r = tx.exec("SELECT * FROM messages WHERE channel_id = $1 " + q_where + " " + pg_query, pr);
 	} catch(pqxx::data_exception& e){
 		return create_response::string(req, "Invalid date/time format in search query", 400);
 	}
@@ -228,7 +242,7 @@ std::shared_ptr<http_response> message_resource::render_GET(const http_request& 
 	auto err = resource_utils::parse_message_id(req, tx, user_id, server_id, channel_id, message_id);
 	if(err) return err;
 
-	pqxx::result r = tx.exec("SELECT message_id, author_id, sent, last_edited, text FROM messages WHERE message_id = $1", pqxx::params(message_id));
+	pqxx::result r = tx.exec("SELECT * FROM messages WHERE message_id = $1", pqxx::params(message_id));
 	pqxx::result r_att = tx.exec("SELECT type, content FROM message_attachments WHERE message_id = $1", pqxx::params(r[0]["message_id"].as<int>()));
 	nlohmann::json res = resource_utils::message_json_from_row(r[0], r_att);
 	return create_response::string(req, res.dump(), 200);
@@ -247,7 +261,6 @@ std::shared_ptr<http_response> message_resource::render_PUT(const http_request& 
 	if(r[0]["author_id"].as<int>() != user_id)
 		return create_response::string(req, "User is not the author of the mssage", 403);
 
-
 	nlohmann::json body;
 	err = resource_utils::json_from_content(req, body);
 	if(err)
@@ -264,10 +277,17 @@ std::shared_ptr<http_response> message_resource::render_PUT(const http_request& 
 			if(!r.size())
 				return create_response::string(req, "Empty messages without attachments are forbidden", 400);
 		}
-		msg_res = tx.exec("UPDATE messages SET text = $1 WHERE message_id = $2 RETURNING message_id, author_id, sent, last_edited, text, channel_id", pqxx::params(text, message_id));
+
+		std::vector<std::vector<int>> mentions;
+		if(server_id > -1){
+			std::vector<mention> _mentions = notification_utils::parse_mentions(text, server_id, channel_id, tx);
+			mentions = mention::to_array(_mentions);
+		}
+
+		msg_res = tx.exec("UPDATE messages SET text = $1, mentions = $2 WHERE message_id = $3 RETURNING *", pqxx::params(text, mentions, message_id));
 		edited = true;
 	} else
-		msg_res = tx.exec("SELECT message_id, author_id, sent, last_edited, text FROM messages WHERE message_id = $1", pqxx::params(message_id));
+		msg_res = tx.exec("SELECT * FROM messages WHERE message_id = $1", pqxx::params(message_id));
 
 	// Replace the whole attachments array if requested, get attachment rows regardless
 	std::vector<pqxx::row> attachment_rows;

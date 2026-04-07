@@ -11,6 +11,15 @@ pqxx::connection& db_connection::operator*()
 	return *conn;
 }
 
+bool db_connection::prepare(std::string name, std::string query)
+{
+	if(prepared_statements.count(name))
+		return false;
+	prepared_statements.insert(name);
+	conn->prepare(name, query);
+	return true;
+}
+
 db_connection_pool::db_connection_pool(std::string conn_str, size_t conn_cnt)
 {
 	this->conn_str = conn_str;

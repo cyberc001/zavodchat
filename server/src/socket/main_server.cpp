@@ -97,18 +97,9 @@ void socket_main_server::send_to_server(int server_id, pqxx::work& tx, socket_ev
 void socket_main_server::send_to_channel(int channel_id, pqxx::work& tx, socket_event event)
 {
 	std::string dumped = event.dump();
-	pqxx::result r = tx.exec("SELECT server_id, user1_id, user2_id FROM channels WHERE channel_id = $1", pqxx::params(channel_id));
-	if(r[0]["server_id"].is_null()){
-		try_send_to_conn(r[0]["user1_id"].as<int>(), dumped);
-		try_send_to_conn(r[0]["user2_id"].as<int>(), dumped);
-	} else {
-		int server_id = r[0]["server_id"].as<int>();
-		r = tx.exec("SELECT user_id FROM user_x_server WHERE server_id = $1 GROUP BY user_id", pqxx::params(server_id));
-		for(size_t i = 0; i < r.size(); ++i){
-			int user_id = r[i]["user_id"].as<int>();
-			try_send_to_conn(user_id, dumped);
-		}
-	}
+	std::vector<int> user_id = resource_utils::get_channel_users(channel_id, tx);
+	for(auto i = user_id.begin(); i != user_id.end(); ++i)
+		try_send_to_conn(*i, dumped);
 }
 void socket_main_server::send_to_user(int user_id, pqxx::work& tx, socket_event event)
 {

@@ -52,7 +52,9 @@ void db_init(std::string conn_str)
 		tx.exec("CREATE TABLE IF NOT EXISTS channels(channel_id SERIAL PRIMARY KEY, server_id INTEGER REFERENCES servers ON DELETE CASCADE, name VARCHAR(64), user1_id INTEGER REFERENCES users ON DELETE CASCADE, user2_id INTEGER REFERENCES users ON DELETE CASCADE, type INTEGER NOT NULL)"); // server_id is not null - server channel; otherwise user1_id and user2_id should be set - DM channel (or private call)
 		tx.exec("CREATE TABLE IF NOT EXISTS notifications(server_id INTEGER REFERENCES servers ON DELETE CASCADE, channel_id INTEGER REFERENCES channels ON DELETE CASCADE NOT NULL, user_id INTEGER REFERENCES users ON DELETE CASCADE NOT NULL, notification_count INTEGER NOT NULL DEFAULT 1, PRIMARY KEY(channel_id, user_id))"); // server_id is only used to make queueing server notifications much easier
 
-		tx.exec("CREATE TABLE IF NOT EXISTS messages(message_id SERIAL PRIMARY KEY, channel_id INTEGER REFERENCES channels ON DELETE CASCADE NOT NULL, author_id INTEGER REFERENCES users NOT NULL, sent TIMESTAMP WITH TIME ZONE NOT NULL, last_edited TIMESTAMP WITH TIME ZONE NOT NULL, text VARCHAR(2000) NOT NULL)");
+		// 'mentions' is a 2d array with structure:
+		// {type, begin_i, end_i, id (optional)}
+		tx.exec("CREATE TABLE IF NOT EXISTS messages(message_id SERIAL PRIMARY KEY, channel_id INTEGER REFERENCES channels ON DELETE CASCADE NOT NULL, author_id INTEGER REFERENCES users NOT NULL, sent TIMESTAMP WITH TIME ZONE NOT NULL, last_edited TIMESTAMP WITH TIME ZONE NOT NULL, text VARCHAR(2000) NOT NULL, mentions INTEGER[][] NOT NULL DEFAULT '{{}}')");
 		tx.exec("CREATE TABLE IF NOT EXISTS message_attachments(message_id INTEGER REFERENCES messages ON DELETE CASCADE NOT NULL, type INTEGER NOT NULL, content VARCHAR(512) NOT NULL, file_user_id INTEGER REFERENCES users ON DELETE CASCADE)");
 
 		tx.exec("CREATE TABLE IF NOT EXISTS user_preferences(user_id INTEGER REFERENCES users ON DELETE CASCADE NOT NULL, key VARCHAR(64) NOT NULL, value VARCHAR(128) NOT NULL)");
