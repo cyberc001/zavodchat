@@ -22,7 +22,7 @@
 		<img class="sidebar_server_el" alt={server.name} src={Server.get_avatar_path(server)}/>
 	{/if}
 	{#if typeof(server.notifications) !== "undefined"}
-		<div class="notif_circle">{server.notifications}</div>
+		<div class="notif_circle">{server.notifications > 0 ? server.notifications : ""}</div>
 	{/if}
 </button>
 

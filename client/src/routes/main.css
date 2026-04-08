@@ -140,6 +140,7 @@ button {
 	color: var(--clr_text);
 	font-size: 18px;
 	font-weight: bold;
+	text-align: center;
 
 	background: var(--clr_donotdisturb);
 	border-radius: 50%;

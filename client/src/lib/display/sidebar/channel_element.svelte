@@ -31,8 +31,12 @@
 		{:else}
 			<img src={asset("icons/channel_text.svg")}  alt="text_channel" class="filter_icon_main sidebar_channel_el_icon"/>
 		{/if}
-		<div style={`color: var(--clr_text${typeof(channel.notifications) === "undefined" ? "_secondary" : ""})`}>
+		<div class="content"
+		style={`color: var(--clr_text${typeof(channel.notifications) === "undefined" ? "_secondary" : ""})`}>
 		{channel.name}
+		{#if typeof(channel.notifications) !== "undefined" && channel.notifications > 0}
+			<div class="notif_circle channel_notif_circle">{channel.notifications}</div>
+		{/if}
 		</div>
 	</button>
 	{#if channel.type === Channel.Type.Voice && typeof channel.vc_users === "object"}
@@ -85,4 +89,18 @@
 
 <style>
 @import "channel_element.css";
+
+.content {
+	width: 100%;
+	display: flex;
+}
+.channel_notif_circle {
+	position: relative;
+	right: unset;
+	bottom: unset;
+	margin-left: auto;
+	margin-right: 5px;
+
+	font-size: 18px;
+}
 </style>
