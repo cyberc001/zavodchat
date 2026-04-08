@@ -11,8 +11,7 @@ std::vector<std::vector<int>> mention::to_array(const std::vector<mention>& in)
 {
 	std::vector<std::vector<int>> out;
 	for(auto i = in.begin(); i != in.end(); ++i)
-		out.push_back(i->id > -1 ? std::vector<int>{i->type, i->begin_i, i->end_i, i->id} :
-					   std::vector<int>{i->type, i->begin_i, i->end_i});
+		out.push_back(std::vector<int>{i->type, i->begin_i, i->end_i, i->id});
 	return out;
 }
 std::string mention::join_ids(const std::vector<mention>& in, mention_types type)

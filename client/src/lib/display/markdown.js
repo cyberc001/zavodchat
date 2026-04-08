@@ -2,7 +2,7 @@ import {Marked} from 'marked';
 import {markedHighlight} from "marked-highlight";
 import hljs from 'highlight.js';
 
-const __md_mention = {
+/*const __md_mention = {
 	name: "mention",
 	level: "inline",
 
@@ -20,7 +20,7 @@ const __md_mention = {
 	renderer(token){
 		return `<span style="background: var(--clr_bg_selected)">${token.raw}</span>`;
 	}
-}
+}*/
 
 export default class Markdown {
 	static marked = new Marked(
@@ -28,7 +28,6 @@ export default class Markdown {
 			emptyLangClass: 'hljs',
 			langPrefix: 'hljs language-',
 			highlight(code, lang, info) {
-				console.log("HIGLIGHT");
 				const language = hljs.getLanguage(lang) ? lang : 'plaintext';
 				return hljs.highlight(code, {language}).value;
 			}
@@ -43,7 +42,7 @@ export default class Markdown {
 	static marked_overlay = new Marked({
 		breaks: true,
 
-		extensions: [__md_mention],
+		//extensions: [__md_mention],
 		renderer: {
 			strong(token){
 				const [m1, m2] = Markdown.__get_md_markers(token);
@@ -68,13 +67,20 @@ export default class Markdown {
 		}
 	});
 
-	static parse(text, overlay){
+	static parse(message, overlay){
 		Markdown.marked_overlay.links = [];
-		let html = overlay ? Markdown.marked_overlay.parseInline(text) : Markdown.marked.parse(text);
+		let html = overlay ? Markdown.marked_overlay.parseInline(message) :
+				     Markdown.marked.parse(message.text);
 		if(overlay){
 			if(html.endsWith("\n"))
 				html += "\n";
 			html = html.replaceAll("\n", "<br>");
+		} else {
+			// Add mentions from the message
+			for(const m of message.mentions){
+				const m_sstr = message.text.substring(m.begin_i, m.end_i + 1);
+				html = html.replace(m_sstr, `<span style="background: var(--clr_bg_selected)">${m_sstr}</span>`);
+			}
 		}
 		return overlay ? [html, Markdown.marked_overlay.links] : html;
 	}
@@ -88,6 +94,5 @@ Markdown.marked.use({
 		blockquote(token){
 			return `<blockquote>${this.parser.parse(token.tokens)}</blockquote>`;
 		}
-	},
-	extensions: [__md_mention]
+	}
 });

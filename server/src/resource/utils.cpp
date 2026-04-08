@@ -470,13 +470,13 @@ nlohmann::json resource_utils::message_json_from_row(const pqxx::row& msg_row, c
 		
 		if(mention_data_ln){
 			mention_types type = static_cast<mention_types>(mention_data[0]);
-			if(mention_data_ln >= 3 + mention::type_has_id(type)){
+			if(mention_data_ln == 4){
 				nlohmann::json m = {
 					{"type", type},
 					{"begin_i", mention_data[1]},
 					{"end_i", mention_data[2]}
 				};
-				if(mention_data_ln > 3)
+				if(mention_data[3] > -1)
 					m["id"] = mention_data[3];
 				r["mentions"].push_back(m);
 				mention_data_ln = 0;

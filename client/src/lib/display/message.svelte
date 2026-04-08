@@ -91,7 +91,7 @@
 		</div>
 		<div>
 			<div style={data.attachments.length > 0 ? "margin-bottom: 4px" : ""} class="message_text">
-				{@html Markdown.parse(data.text)}
+				{@html Markdown.parse(data)}
 			</div>
 
 			<div style={(img_attachments.length > 0 ? "margin-bottom: 4px; " : "") + "display: flex; flex-flow: column"}>
