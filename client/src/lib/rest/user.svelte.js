@@ -68,7 +68,6 @@ export default class User {
 	}
 
 	static get_range(start_id, count, asc, displayname, _catch){
-		console.log("GET_RANGE", displayname, User.user_range_cache.cache);
 		return User.user_range_cache.get_state(displayname,
 			start_id, count,
 			(tree, start_id, count, asc) => {

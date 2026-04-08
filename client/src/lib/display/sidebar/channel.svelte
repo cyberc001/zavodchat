@@ -36,9 +36,8 @@
 			channel = undefined;
 	});
 	$effect(() => {
-		if(channel?.loaded && typeof(channel.data.other_user_id) !== "undefined" &&
-			channel.data.notifications)
-			Notifications.remove_channel(channel.data.id);
+		if(server?.loaded && channel?.loaded && typeof(channel.data.notifications) !== "undefined")
+			Notifications.remove_channel(server.data.id, channel.data.id);
 	});
 </script>
 

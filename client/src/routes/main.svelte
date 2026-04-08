@@ -161,7 +161,6 @@
 	};
 
 	const showChannel = (ch) => {
-		console.log("show channel", ch.id, ch.vc_users, ch.type);
 		if(ch.type === Channel.Type.Voice){
 			let old_socket_vc = socket_vc;
 			socket_vc = new VCSocket(user_self.data.id, ch.id, (close) => {

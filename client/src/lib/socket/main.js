@@ -64,15 +64,15 @@ export default class MainSocket {
 
 			const add_notif = _this.self_user.loaded && _this.self_user.data.id !== data.author_id && _this.sel.channel !== data.channel_id;
 
-			if(add_notif)
-				Sound.play(asset("sounds/notification.ogg"));
-
-			if(add_notif && Notifications.notification_cache.has_state(0))
-				++Notifications.notification_cache.get_state(0).data.dm_notifications;
-
 			// TODO keep a separate data structure that allows O(log N) search
 			const ch = DM.channel_range_cache.find(0, (x) => x.id === data.channel_id);
 			if(ch){
+				if(add_notif)
+					Sound.play(asset("sounds/notification.ogg"));
+
+				if(add_notif && Notifications.notification_cache.has_state(0))
+					++Notifications.notification_cache.get_state(0).data.dm_notifications;
+
 				DM.channel_range_cache.remove(0, ch.last_message.id);
 				if(add_notif)
 					Util.inc_or_set(ch, "notifications");
@@ -85,8 +85,55 @@ export default class MainSocket {
 					Util.inc_or_set(Channel.channel_cache.get_state(data.channel_id).data, "notifications");
 				else if(!add_notif)
 					Notifications.remove_channel(data.channel_id);
-			} else if(typeof(data.server_id) === "undefined") // potentially new DM channel
+			} else if(typeof(data.server_id) === "undefined"){ 
+				// TODO add ping
+				// Potentially new DM channel
 				DM.channel_range_cache.reload(0);
+			} else if(add_notif) {
+				// Server channel message
+				Notifications.am_i_mentioned(data.mentions, data.server_id, (mentioned) => {
+					let set = false;
+
+					if(Server.server_cache.has_state(data.server_id)){
+						const srv_data = Server.server_cache.get_state(data.server_id).data;
+						if(mentioned){
+							Util.inc_or_set(srv_data, "notifications");
+							set = true;
+						} else
+							Util.set_if_absent(srv_data, "notifications", 0);
+					}
+					const server_list_data = Server.server_list_cache.get_state(0).data.find((x) => x.id === data.server_id);
+					if(server_list_data){
+						if(mentioned){
+							Util.inc_or_set(server_list_data, "notifications");
+							set = true;
+						} else
+							Util.set_if_absent(server_list_data, "notifications", 0);
+					}
+			
+					if(Channel.channel_cache.has_state(data.channel_id)){
+						const ch_data = Channel.channel_cache.get_state(data.channel_id).data;
+						if(mentioned){
+							Util.inc_or_set(ch_data, "notifications");
+							set = true;
+						} else
+							Util.set_if_absent(ch_data, "notifications", 0);
+					}
+					if(Channel.channel_list_cache.has_state(data.server_id)){
+						const channel_list_data = Channel.channel_list_cache.get_state(data.server_id).data.find((x) => x.id === data.channel_id);
+						if(channel_list_data){
+							if(mentioned){
+								Util.inc_or_set(channel_list_data, "notifications");
+								set = true;
+							} else
+								Util.set_if_absent(channel_list_data, "notifications", 0);
+						}
+					}
+
+					if(set)
+						Sound.play(asset("sounds/notification.ogg"));
+				});
+			}
 		},
 
 		user_changed: function(data) {

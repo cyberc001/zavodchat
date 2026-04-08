@@ -8,7 +8,7 @@
 </script>
 
 <button class={"item hoverable sidebar_server" + (selected ? " selected" : "")}
-	style="anchor-name: --{"server_" + server.id}"
+	style="position: relative; anchor-name: --{"server_" + server.id}"
 	onclick={() => show_server(server)}
 	bind:this={self}
 	oncontextmenu={(e) => {
@@ -20,6 +20,9 @@
 		<div style="padding:4px"><div class="sidebar_server_el">{server.name}</div></div>
 	{:else}
 		<img class="sidebar_server_el" alt={server.name} src={Server.get_avatar_path(server)}/>
+	{/if}
+	{#if typeof(server.notifications) !== "undefined"}
+		<div class="notif_circle">{server.notifications}</div>
 	{/if}
 </button>
 

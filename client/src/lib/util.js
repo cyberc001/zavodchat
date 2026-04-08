@@ -184,9 +184,14 @@ export default class Util {
 		if(!val)
 			val = 1;
 
-		if(!obj[key])
+		if(typeof(obj[key]) === "undefined")
 			obj[key] = val;
 		else
 			obj[key] += val;
+	}
+	static set_if_absent(obj, key, val)
+	{
+		if(typeof(obj[key]) === "undefined")
+			obj[key] = val;
 	}
 }

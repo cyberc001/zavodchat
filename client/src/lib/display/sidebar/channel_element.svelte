@@ -31,7 +31,9 @@
 		{:else}
 			<img src={asset("icons/channel_text.svg")}  alt="text_channel" class="filter_icon_main sidebar_channel_el_icon"/>
 		{/if}
+		<div style={`color: var(--clr_text${typeof(channel.notifications) === "undefined" ? "_secondary" : ""})`}>
 		{channel.name}
+		</div>
 	</button>
 	{#if channel.type === Channel.Type.Voice && typeof channel.vc_users === "object"}
 		{#each Object.values(channel.vc_users) as vc_state}
