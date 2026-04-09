@@ -31,7 +31,7 @@
 		if(!input_div)
 			return;
 
-		[input_div.innerHTML, link_candidates] = Markdown.parse(value, true);
+		[input_div.innerHTML, link_candidates] = Markdown.parse_overlay(value);
 		link_candidates_ts = new Date();
 
 		Select.set_selection_index(input_div, sel_i);

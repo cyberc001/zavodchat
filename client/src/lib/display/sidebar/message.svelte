@@ -17,19 +17,13 @@
 	import Role from '$lib/rest/role.js';
 	import File from '$lib/rest/file.js';
 
-	let {server_id, channel_id,
+	let {server, channel_id,
 		sel_message_id, sel_user_id,
 		socket_vc,
 		show_ctx_menu, ctx_vc_user, show_user, show_ban,
 		show_channel, end_call} = $props();
 
 	let self_user = User.get(-1);
-
-	let server_roles = $state();
-	$effect(() => {
-		if(server_id > -1)
-			server_roles = Role.get_list(server_id);
-	});
 
 	let sel = $state({
 		message_edit: -1,
@@ -38,9 +32,9 @@
 		highlight_message: -1
 	});
 
-	const _show_user = (user_id, message_id) => {
+	const _show_user = (user_id, anchor, anchor_side_x) => {
 		sel.highlight_message = -1;
-		show_user(user_id, message_id);
+		show_user(user_id, anchor, anchor_side_x);
 	};
 
 	let highlight_expire_tout;
@@ -187,7 +181,7 @@
 	<ContextMenuAction icon={asset("icons/kick.svg")} text="Kick"
 		hide_ctx_menu={hide_ctx_menu}
 		onclick={() => {
-			User.kick(server_id, sel.ctx_user_id, () => {}, () => {});
+			User.kick(server.data.id, sel.ctx_user_id, () => {}, () => {});
 		}}
 	/>
 {/snippet}
@@ -204,7 +198,7 @@
 	{#if channel_id > -1}
 	<div style="height: 100%; position: relative; display: flex; flex-direction: column">
 		<ChannelHead bind:this={channel_head}
-		channel={Channel.get(channel_id)} server_id={server_id}
+		channel={Channel.get(channel_id)} server_id={server.data.id}
 		onsearch={(params) => {
 			sel.highlight_message = -1;
 			message_search_params = params;
@@ -218,11 +212,11 @@
 
 		<div class="sidebar_message_content">
 			{#snippet render_message(i, item)}
-				<MessageDisplay data={item}
+				<MessageDisplay data={item} server={server}
 				show_ctx_menu={(anchor, e, for_message) => {
 					sel.ctx_user_id = item.author.data.id;
 					sel.ctx_message = i;
-					_show_user(-1, item.id);
+					_show_user(-1);
 					show_ctx_menu(anchor, e, for_message ?
 								(is_search ? [action_goto_message]
 								: [action_edit_message, action_delete_message])
@@ -231,8 +225,7 @@
 				selected={item.id === sel_message_id || item.id === sel.message_edit}
 				selected_user={item.id === sel_message_id && item.author_id === sel_user_id}
 				highlighted={item.id === sel.highlight_message}
-				onclick_user={() => _show_user(item.author_id, item.id)}
-				hide_profile={() => _show_user(-1, -1)}
+				show_user={_show_user}
 				/>
 			{/snippet}
 			<PaginatedList bind:this={message_list}
@@ -241,11 +234,7 @@
 			render_item={render_message}
 			load_items={(start_id, range, asc) => Message.get_search_range(channel_id, start_id, range, asc, message_search_params)}
 			augment_item={(msg) => {
-				msg.author = server_id > -1 ? User.get_server(server_id, msg.author_id) : User.get(msg.author_id);
-				//console.log("AUGMENTING", server_id, server_id > -1, $state.snapshot(msg));
-				//console.log("GET USER", $state.snapshot(User.get(msg.author_id)));
-				if(server_roles)
-					msg.author_roles = Role.get_user_roles(msg.author.data, server_roles.data);
+				msg.author = server ? User.get_server(server.data.id, msg.author_id) : User.get(msg.author_id);
 			}}
 			/>
 			<MessageInput

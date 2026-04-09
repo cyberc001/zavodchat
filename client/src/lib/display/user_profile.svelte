@@ -8,12 +8,18 @@
 	import ContextMenuAction from '$lib/control/context_menu_action.svelte';
 	import MediaDisplay from '$lib/display/media.svelte';
 
-	let {user, server_roles,
+	let {user, server,
 		anchor, anchor_side_x = "left",
 		hide_profile,
 		assign_role, disallow_role} = $props();
 
-	let user_roles = $derived(Role.get_user_roles(user, server_roles));
+	let server_roles = $state();
+	$effect(() => {
+		if(server?.loaded)
+			server_roles = Role.get_list(server.data.id);
+	});
+	let user_roles = $derived(server_roles?.loaded ? Role.get_user_roles(user, server_roles.data) : undefined);
+	let username_style = $derived(user_roles ? Role.get_username_style(user_roles) : "");
 
 	let self = $state();
 
@@ -32,7 +38,7 @@
 			return [];
 
 		let items = [[], []];
-		for(const rol of server_roles)
+		for(const rol of server_roles.data)
 			if(user_roles.findIndex((x) => x.id === rol.id) === -1){
 				items[0].push(item_add_role);
 				items[1].push(rol);
@@ -53,7 +59,7 @@
 <svelte:window {onmouseup}/>
 <div class="item user_profile_display"
 	style="position-anchor: {getComputedStyle(anchor).getPropertyValue("anchor-name")};
-						{anchor_side_x}: anchor(left, 10000px); top: anchor(top, -10000px)"
+		{anchor_side_x}: anchor(left, 10000px); top: anchor(top, -10000px)"
 	tabindex=0
 	role="dialog"
 	onmouseenter={() => pointer_on_profile = true}
@@ -65,13 +71,13 @@
 	{:else}
 		<div class="user_profile_name">
 			<div class="user_avatar_frame">
-				<div class="user_status" style={User.Status.get_style(user?.status)}></div>
+				<div class="user_status" style={username_style}></div>
 				<button class="transparent_button unhoverable" style="cursor: pointer"
 				onclick={() => shown_avatar = User.get_avatar_path(user)}>
 					<img class="user_avatar" src={User.get_avatar_path(user)} alt="avatar"/>
 				</button>
 			</div>
-			<b style={Role.get_username_style(user_roles)}>{user?.name}</b>
+			<b style={username_style}>{user.name}</b>
 		</div>
 		<div class="user_role_list">
 			{#each user_roles as rol, i}
@@ -86,7 +92,7 @@
 					{rol.name}
 				</button>
 			{/each}
-			{#if user_roles.length > 0}
+			{#if typeof(user_roles) !== "undefined"}
 				<button class="user_role transparent_button hoverable"
 					bind:this={add_role_button}
 					onclick={(e) => {

@@ -53,6 +53,10 @@ export default class Role {
 	static get_background_style(role){
 		return typeof role !== "undefined" ? `background: ${role.color}` : "";
 	}
+	static get_color_style(role){
+		return typeof role !== "undefined" ? `color: ${role.color}` : "";
+	}
+
 	static get_user_roles(user, server_roles){
 		if(!user || !user.roles)
 			return [];

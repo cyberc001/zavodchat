@@ -3,22 +3,29 @@
 	import User from '$lib/rest/user.svelte.js';
 	import Role from '$lib/rest/role.js';
 
-	let {user, user_roles,
+	let {user, server,
 		selected = false,
-		onclick = () => {}, show_ctx_menu = () => {},
+		show_user = () => {}, show_ctx_menu = () => {},
 		display_status = true,
 		style = "",
 		message_id = -1} = $props();
 
 	let self = $state();
 	let name = $derived("user_display_" + user?.id + (message_id > -1 ? "_" + message_id : ""));
+
+	let server_roles = $state();
+	$effect(() => {
+		if(server?.loaded)
+			server_roles = Role.get_list(server.data.id);
+	});
+	let username_style = $derived(server_roles?.loaded ? Role.get_username_style(Role.get_user_roles(user, server_roles.data)) : "");
 </script>
 
 <button class={"user_display hoverable " + (selected ? "selected " : "") + (message_id > -1 ? "" : " sidebar_user_display")}
 	style="anchor-name: --{name}; {style}"
 	id={name}
 	bind:this={self}
-	onclick={onclick}
+	onclick={() => show_user(user?.id, self)}
 	oncontextmenu={(e) => {
 		event.preventDefault();
 		show_ctx_menu(self, e);
@@ -29,11 +36,11 @@
 	{:else}
 		<div class="user_avatar_frame">
 			{#if display_status}
-				<div class="user_status" style={User.Status.get_style(user?.status)}></div>
+				<div class="user_status" style={User.Status.get_style(user.status)}></div>
 			{/if}
 			<img class="user_avatar" src={User.get_avatar_path(user)} alt="avatar"/>
 		</div>
-		<b class="user_name_text" style={Role.get_username_style(user_roles)}>{user?.name}</b>
+		<b class="user_name_text" style={username_style}>{user.name}</b>
 	{/if}
 </button>
 

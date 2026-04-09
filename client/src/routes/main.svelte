@@ -73,7 +73,6 @@
 	let servers = Server.get_list();
 
 	let server = $state();
-	let server_roles = $state();
 
 	// UI state
 	let sel = $state({
@@ -93,7 +92,7 @@
 	});
 
 	let ctx_menu_params = $state({
-		anchor: null,
+		anchor_name: undefined,
 		visible: false,
 		off: [0, 0],
 		items: []
@@ -115,7 +114,7 @@
 	};
 	const hideCtxMenu = () => {
 		ctx_menu_params.visible = false;
-		showUser(-1, -1);
+		showUser(-1);
 	};
 
 	const closeSettings = () => {
@@ -154,7 +153,6 @@
 		if(id > -1){
 			server_user_list?.reset();
 			server = Server.get(id);
-			server_roles = Role.get_list(id);
 		} else {
 			server = undefined;
 		}
@@ -179,7 +177,7 @@
 				});
 			}
 		} else {
-			showUser(-1, -1);
+			showUser(-1);
 			sel.channel = ch.id;
 		}
 	};
@@ -194,22 +192,16 @@
 		user: null, anchor: null, anchor_side_x: "left"
 	});
 
-	const showUser = (id, message_id) => {
+	const showUser = (id, anchor, anchor_side_x) => {
+		console.log("showUser", id, anchor, anchor_side_x);
 		sel.user.id = id;
-		sel.user.message_id = message_id;
 		if(id > -1){
-			profile_display_params.user = User.get_server(sel.server, sel.user.id);
-			profile_display_params.anchor = document.getElementById(message_id > -1
-						? "user_display_" + id + "_" + message_id
-						: "user_display_" + id);
-			if(!profile_display_params.anchor){
-				profile_display_params.user = null;
-				profile_display_params.anchor = null;
-			} else
-				profile_display_params.anchor_side_x = message_id > -1 ? "left" : "right";
+			profile_display_params.user = User.get_server(sel.server, id);
+			profile_display_params.anchor = anchor;
+			profile_display_params.anchor_side_x = anchor_side_x ? anchor_side_x : "left";
 		} else {
-			profile_display_params.user = null;
-			profile_display_params.anchor = null;
+			profile_display_params.user = undefined;
+			profile_display_params.anchor = undefined;
 		}
 	};
 
@@ -366,7 +358,7 @@
 	</div>
 
 	{#if sel.channel > -1}
-		<SidebarMessage server_id={sel.server} channel_id={sel.channel}
+		<SidebarMessage server={server} channel_id={sel.channel}
 			sel_message_id={sel.user.message_id} sel_user_id={sel.user.id}
 			socket_vc={socket_vc}
 			show_ctx_menu={showCtxMenu} ctx_vc_user={showVCCtxMenu} show_user={showUser}
@@ -384,9 +376,9 @@
 		<div class="panel sidebar_users">
 			{#snippet render_user(i, user)}
 				<UserDisplay
-				user={user} user_roles={user.role_list}
+				user={user} server={server}
 				selected={sel.user.message_id == -1 && user.id == sel.user.id}
-				onclick={() => showUser(user.id, -1)}
+				show_user={(id, anchor) => showUser(id, anchor, "right")}
 				show_ctx_menu={(anchor, e) => {
 					sel.ctx_user_id = user.id;
 					showCtxMenu(anchor, e, [action_kick_user, action_ban_user, action_block_user]);
@@ -396,7 +388,6 @@
 			<PaginatedList bind:this={server_user_list}
 			render_item={render_user}
 			load_items={(start_id, range, asc) => User.get_server_range(sel.server, start_id, range, asc)}
-			augment_item={(user) => {user.role_list = Role.get_user_roles(user, server_roles.data)}}
 			to_latest_text="Up"/>
 		</div>
 	{/if}
@@ -405,8 +396,8 @@
 {#if profile_display_params.user}
 	<UserProfileDisplay
 		anchor={profile_display_params.anchor} anchor_side_x={profile_display_params.anchor_side_x}
-		user={profile_display_params.user.data} server_roles={server_roles.data}
-		hide_profile={() => showUser(-1, -1)}
+		user={profile_display_params.user.data} server={server}
+		hide_profile={() => showUser(-1)}
 		assign_role={(role_id) => User.assign_role(sel.server, profile_display_params.user.data.id, role_id,
 									() => {})}
 		disallow_role={(role_id) => User.disallow_role(sel.server, profile_display_params.user.data.id, role_id,

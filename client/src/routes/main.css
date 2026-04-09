@@ -119,6 +119,17 @@ button {
 	overflow: hidden;
 }
 
+.mention {
+	padding: 0;
+	border-style: none;
+	color: inherit;
+	font-size: inherit;
+
+	cursor: pointer;
+	text-decoration: underline;
+	background: var(--clr_bg_selected);
+}
+
 .fullscreen_media {
 	position: absolute;
 	width: 100%;

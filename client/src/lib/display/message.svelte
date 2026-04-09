@@ -4,15 +4,19 @@
 
 	import Util from '$lib/util.js';
 	import Markdown from '$lib/display/markdown.js';
+
+	import Notifications from '$lib/rest/notifications.js';
 	import Message from '$lib/rest/message.js';
+	import Role from '$lib/rest/role.js';
 	import User from '$lib/rest/user.svelte.js';
 	import File from '$lib/rest/file.js';
+
 	import UserDisplay from '$lib/display/user.svelte';
 	import MediaDisplay from '$lib/display/media.svelte';
 
-	let {data,
+	let {data, server,
 		selected = false, selected_user = false, highlighted = false,
-		show_ctx_menu, onclick_user, hide_profile} = $props();
+		show_ctx_menu, show_user} = $props();
 	let is_edited = $derived(data.sent !== data.edited);
 
 	let status_msg = $derived.by(() => {
@@ -28,6 +32,20 @@
 	});
 
 	let self = $state();
+	let server_roles = $state();
+	$effect(() => {
+		if(server?.loaded)
+			server_roles = Role.get_list(server.data.id);
+	});
+
+	let html = $derived(Markdown.parse(data, server_roles?.data));
+	// Set onclick events for mentions after message was parsed and HTML-rendered
+	$effect(() => {
+		html;
+		for(const m of self.getElementsByClassName("user_mention")){
+			m.onclick = (e) => show_user(parseInt(e.target.id.substring("user_mention_".length)), e.target);
+		}
+	});
 
 	const padnum = (x, n) => x.toString().padStart(n, '0');
 	const formatTimeHHMM = (date) => `${padnum(date.getHours(), 2)}:${padnum(date.getMinutes(), 2)}`;
@@ -56,16 +74,28 @@
 		}
 	});
 
+	// Load mentioned users
+	$effect(() => {
+		for(const m of data.mentions)
+			switch(m.type){
+				case Notifications.MentionTypes.User:
+					if(typeof(m.user) === "undefined")
+						m.user = server ? User.get_server(server.data.id, m.id)
+								: User.get(m.id);
+					break;
+			}
+	});
+
 	let shown_attachment = $state();
 	let hovered_file_attachment = $state(-1);
 </script>
 
 <div id={"message_display_" + data.id} class="message_panel" tabindex=0 role="group">
-	<UserDisplay user={data.author?.data} user_roles={data.author_roles}
+	<UserDisplay user={data.author?.data} server={server}
 	message_id={data.id}
 	display_status={false}
 	selected={selected_user}
-	onclick={onclick_user} hide_profile={hide_profile} show_ctx_menu={show_ctx_menu}
+	show_user={show_user} show_ctx_menu={show_ctx_menu}
 	/>
 	{#if status_msg !== ""}
 		<div class="message_status_panel">
@@ -91,7 +121,7 @@
 		</div>
 		<div>
 			<div style={data.attachments.length > 0 ? "margin-bottom: 4px" : ""} class="message_text">
-				{@html Markdown.parse(data)}
+				{@html html}
 			</div>
 
 			<div style={(img_attachments.length > 0 ? "margin-bottom: 4px; " : "") + "display: flex; flex-flow: column"}>
