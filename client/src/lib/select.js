@@ -27,7 +27,7 @@ export default class Select {
 		for(const child of el.childNodes){
 			const [found, adv] = Select.__get_selection_index(child, range);
 			if(found)
-				return [true, i + adv];
+				return [true, i + (Select.is_correct_display_element(el) === false ? 0 : adv)];
 			i += adv;
 		}
 		return [false, Select.__get_total_text_ln(el)];
@@ -82,9 +82,21 @@ export default class Select {
 		}
 	}
 
+	static is_correct_display_element(el){
+		if(!el.dataset?.rawText)
+			return true;
+		let child_text = "";
+		for(const child of el.childNodes)
+			child_text += Select.get_inner_text(child);
+		return child_text.startsWith(el.dataset.expectedText) ? child_text : false;
+	}
 	static get_inner_text(el){
 		let text = "";
-		if(!el.childNodes.length)
+		if(el.dataset?.rawText){
+			const child_text = Select.is_correct_display_element(el)
+			if(child_text !== false)
+				text = el.dataset.rawText + child_text.substring(el.dataset.expectedText.length);
+		} else if(!el.childNodes.length)
 			text = typeof el.innerText !== "undefined" ? el.innerText : el.textContent;
 		else
 			for(const child of el.childNodes)

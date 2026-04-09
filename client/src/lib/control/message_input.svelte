@@ -20,8 +20,12 @@
 	let sel_i;
 	const div_oninput = (e) => {
 		sel_i = Select.get_selection_index(input_div);
+		console.log("REMEMBER sel_i", sel_i, value, value.length); 
 
 		value = Select.get_inner_text(e.target);
+		console.log("NEW VALUE\n", Select.get_inner_text(input_div), Select.get_inner_text(input_div).length);
+		console.log("COMPARE\n", Select.get_inner_text(input_div).length, Select.__get_total_text_ln(input_div));
+
 		if(value.endsWith("\n"))
 			value = value.substring(0, value.length - 1);
 	
@@ -34,6 +38,7 @@
 		[input_div.innerHTML, link_candidates] = Markdown.parse_overlay(value);
 		link_candidates_ts = new Date();
 
+		console.log("RECALL sel_i", sel_i);
 		Select.set_selection_index(input_div, sel_i);
 	});
 

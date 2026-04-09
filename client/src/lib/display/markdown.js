@@ -5,25 +5,34 @@ import hljs from 'highlight.js';
 import Notifications from '$lib/rest/notifications.js';
 import Role from '$lib/rest/role.js';
 
-/*const __md_mention = {
+const __md_mention = {
 	name: "mention",
 	level: "inline",
 
 	start(src){ return src.indexOf('@'); },
 	tokenizer(src, tokens){
-		const match = src.match(/^@u\d+/);
-		if(match)
+		//const match = src.match(/^@([uer])\d+/);
+		const match = src.match(/^@([e])/);
+		console.log("MATCH", match);
+		if(match){
+			let text = match[0];
+			switch(match[1]){
+				case "e":
+					text = "@everyone";
+					break;
+			}
 			return {
 				type: "mention",
 				raw: match[0],
-				text: match[0]
+				text
 			};
+		}
 		return false;
 	},
 	renderer(token){
-		return `<span style="background: var(--clr_bg_selected)">${token.raw}</span>`;
+		return `<span style="background: var(--clr_bg_selected)" data-raw-text="${token.raw}" data-expected-text="${token.text}">${token.text}</span>`;
 	}
-}*/
+}
 
 export default class Markdown {
 	static marked = new Marked(
@@ -45,7 +54,6 @@ export default class Markdown {
 	static marked_overlay = new Marked({
 		breaks: true,
 
-		//extensions: [__md_mention],
 		renderer: {
 			strong(token){
 				const [m1, m2] = Markdown.__get_md_markers(token);
@@ -67,7 +75,9 @@ export default class Markdown {
 		walkTokens(token){
 			if(token.type === "link")
 				this.links.push(token.text);
-		}
+		},
+
+		extensions: [__md_mention]
 	});
 
 	static parse(message, server_roles){
