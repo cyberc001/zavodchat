@@ -26,8 +26,11 @@ export default class Select {
 		let i = 0;
 		for(const child of el.childNodes){
 			const [found, adv] = Select.__get_selection_index(child, range);
-			if(found)
-				return [true, i + (Select.is_correct_display_element(el) === false ? 0 : adv)];
+			if(found){
+				// If double-faced-element is incorrect, set caret to it's start
+				const de_result = Select.is_correct_double_faced_element(el);
+				return [true, i + (de_result[0] ? adv : 0)];
+			}
 			i += adv;
 		}
 		return [false, Select.__get_total_text_ln(el)];
@@ -45,13 +48,19 @@ export default class Select {
 	static __set_selection_index(el, idx){
 		const ln = Select.__get_total_text_ln(el);
 
-		if(!el.childNodes.length){
-			if(idx < ln){
+		if(idx < ln){
+			const de_result = Select.is_correct_double_faced_element(el);
+			if(!el.childNodes.length || typeof(de_result[1]) !== "undefined"){
 				window.getSelection().removeAllRanges();
 				const range = document.createRange();
 				if(el.nodeType === Node.TEXT_NODE)
 					range.setStart(el, idx);
-				else
+				else if(typeof(de_result[1]) !== "undefined"){
+					// If caret is at the beginning (i.e. user typed a character before a double-faced element),
+					// collapse selection to beginning; otherwise (double-faced element just appeared), collapse to end
+					range.selectNode(el);
+					range.collapse(idx === 0);
+				} else
 					range.setStartBefore(el);
 				window.getSelection().addRange(range);
 				return true;
@@ -68,6 +77,7 @@ export default class Select {
 	}
 	static set_selection_index(el, idx){
 		if(!Select.__set_selection_index(el, idx)){
+			// Fallback: set focus on last child (so it stays in the div and user can still type)
 			window.getSelection().removeAllRanges();
 			const range = document.createRange();
 			const last_child = el.childNodes[el.childNodes.length - 1];
@@ -82,20 +92,34 @@ export default class Select {
 		}
 	}
 
-	static is_correct_display_element(el){
+
+	// Double-faced elements:
+	// Their content evaluates to data-raw-text in get_inner_text().
+	// If their innerText doesn't contain data-expected-text as a substring, they get erased completely.
+
+	// Checks if this is just a normal element, or a double-faced one.
+	// For double-faced elements, checks that its data-expected-text is equal to it's inner text.
+	static is_correct_double_faced_element(el){
 		if(!el.dataset?.rawText)
-			return true;
+			return [true];
 		let child_text = "";
 		for(const child of el.childNodes)
 			child_text += Select.get_inner_text(child);
-		return child_text.startsWith(el.dataset.expectedText) ? child_text : false;
+		const idx = child_text.indexOf(el.dataset.expectedText);
+		if(idx > -1)
+			return [true, child_text, idx];
+		return [false];
 	}
 	static get_inner_text(el){
 		let text = "";
 		if(el.dataset?.rawText){
-			const child_text = Select.is_correct_display_element(el)
-			if(child_text !== false)
-				text = el.dataset.rawText + child_text.substring(el.dataset.expectedText.length);
+			const de_result = Select.is_correct_double_faced_element(el);
+			// Replace the substring in innerText with data-raw-text, if the element is correct
+			// Otherwise, text === "" and it gets erased
+			if(de_result[1])
+				text = de_result[1].substring(0, de_result[2]) +
+					el.dataset.rawText +
+					de_result[1].substring(de_result[2] + el.dataset.expectedText.length);
 		} else if(!el.childNodes.length)
 			text = typeof el.innerText !== "undefined" ? el.innerText : el.textContent;
 		else
