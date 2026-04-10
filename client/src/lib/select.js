@@ -13,14 +13,14 @@ export default class Select {
 		return sel_ln;
 	}
 
-	static __get_selection_index(el, range){
+	static __get_selection_index(el, range, raw){
 		if(el === range.startContainer){
 			if(el.nodeType === Node.TEXT_NODE)
 				return [true, range.startOffset];
 
 			let idx = 0;
 			for(let i = 0; i < el.childNodes.length && i < range.startOffset; ++i)
-				idx += Select.__get_total_text_ln(el.childNodes[i]);
+				idx += raw ? Select.get_inner_text(el.childNodes[i]).length : Select.__get_total_text_ln(el.childNodes[i]);
 			return [true, idx];
 		}
 		let i = 0;
@@ -33,14 +33,14 @@ export default class Select {
 			}
 			i += adv;
 		}
-		return [false, Select.__get_total_text_ln(el)];
+		return [false, raw ? Select.get_inner_text(el).length : Select.__get_total_text_ln(el)];
 	}
-	static get_selection_index(el){
+	static get_selection_index(el, raw){
 		const range = window.getSelection().getRangeAt(0);
 		if(!range.intersectsNode(el))
 			return;
 
-		const [found, adv] = Select.__get_selection_index(el, range);
+		const [found, adv] = Select.__get_selection_index(el, range, raw);
 		if(found)
 			return adv;
 	}
@@ -110,6 +110,15 @@ export default class Select {
 			return [true, child_text, idx];
 		return [false];
 	}
+	static is_in_double_faced_element(el){
+		while(el.parentNode){
+			if(el.dataset?.rawText)
+				return true;
+			el = el.parentNode;
+		}
+		return false;
+	}
+
 	static get_inner_text(el){
 		let text = "";
 		if(el.dataset?.rawText){
@@ -131,5 +140,34 @@ export default class Select {
 				break;
 		}
 		return text;
+	}
+
+
+	// Utils
+	static get_coords(el){
+		const range = window.getSelection().getRangeAt(0);
+		if(!range.intersectsNode(el))
+			return;
+
+		// https://stackoverflow.com/questions/6846230/coordinates-of-selected-text-in-browser-page
+		const span = document.createElement("span");
+		span.appendChild(document.createTextNode("\u200b"));
+		range.insertNode(span);
+		
+		const el_rect = el.getBoundingClientRect();
+		const rect = span.getBoundingClientRect();
+		const coords = [rect.left - el_rect.left, rect.top - el_rect.top];
+
+		const _parent = span.parentNode;
+		_parent.removeChild(span);
+		_parent.normalize();
+
+		return coords;
+	}
+	static clone_range(range){
+		return {
+			startContainer: range.startContainer, startOffset: range.startOffset,
+			endContainer: range.endContainer, endOffset: range.endOffset
+		};
 	}
 };

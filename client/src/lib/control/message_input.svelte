@@ -5,6 +5,7 @@
 	import {onDestroy} from 'svelte';
 	import Markdown from '$lib/display/markdown.js';
 	import Select from '$lib/select.js';
+	import UserPicker from '$lib/control/user_picker.svelte';
 
 	import Util from '$lib/util.js';
 
@@ -24,9 +25,11 @@
 			server_roles = Role.get_list(server.data.id);
 	});
 
+	let self = $state();
+	let input_div = $state();
+
 	// toggled when div_oninput is called, so Markdown updates even when value stayed the same (i.e. a ServerUser loaded)
 	let value_changed = $state(false); 
-	let input_div = $state();
 	let sel_i;
 	const div_oninput = (e) => {
 		sel_i = Select.get_selection_index(input_div);
@@ -63,7 +66,7 @@
 		if(!status && e.code === "Enter" && e.ctrlKey
 			&& (value.length > 0 || attachments.length > 0))
 			onsend();
-	}
+	}	
 
 	let files = $state();
 	let file_input = $state();
@@ -85,6 +88,7 @@
 		}
 	});
 
+	// Periodically get link attachments through proxy
 	let link_candidates;
 	let link_candidates_ts = 0;
 	const link_intv = setInterval(() => {
@@ -128,10 +132,57 @@
 			links = [];
 		link_candidates = undefined;
 	}, 100);
-	onDestroy(() => clearInterval(link_intv));
+
+	// Display UserPicker if caret is after a '@'
+	let user_picker = $state();
+	let user_picker_container = $state();
+	let user_picker_params = $state({});
+	let prev_sel_i = $state();
+	let last_mention_sel_i;
+	const onselectionchange = () => {
+		// Firefox is very trigger-happy with this event, so track only actual changes
+		const range = window.getSelection().getRangeAt(0);
+		const sel_i = Select.get_selection_index(input_div, true);
+		console.log("cmp", sel_i, prev_sel_i);
+		if(sel_i === prev_sel_i)
+			return;
+		prev_sel_i = sel_i;
+
+		console.log("selection changed");
+
+		// Don't do anything if UserPicker got focused
+		if(user_picker_container && range.intersectsNode(user_picker_container))
+			return;
+
+		console.log("not intersecting UserPicker", Select.is_in_double_faced_element(range.startContainer), sel_i, value.length, value[sel_i - 1]);
+
+		// Raw check for sel_i is intended, since sel_i === 0 cannot be after a character
+		if(sel_i && sel_i <= value.length && value[sel_i - 1] === '@'
+			&& !Select.is_in_double_faced_element(range.startContainer)){
+			last_mention_sel_i = sel_i;
+			const coords = Select.get_coords(self);
+			user_picker_params = {
+				left: coords[0],
+				top: coords[1]
+			};
+		} else
+			user_picker_params = {};
+	};
+	document.addEventListener("selectionchange", onselectionchange);
+
+	$effect(() => {
+		prev_sel_i;
+		if(user_picker)
+			user_picker.focus();
+	});
+
+	onDestroy(() => {
+		clearInterval(link_intv);
+		document.removeEventListener(onselectionchange);
+	});
 </script>
 
-<div class="message_input">
+<div class="message_input" bind:this={self}>
 {#if server_roles?.loaded}
 	<input type="file" style="position: fixed; top: -100vh" bind:this={file_input} bind:files multiple/>
 
@@ -154,7 +205,8 @@
 			</button>
 			<div contenteditable="true" class="item message_input_div" bind:this={input_div}
 				oninput={div_oninput}
-				onkeyup={div_onkeyup}>
+				onkeyup={div_onkeyup}
+			>
 			</div>
 		</div>
 
@@ -197,6 +249,23 @@
 			{/each}
 		</div>
 	</div>
+
+	{#if typeof(user_picker_params.top) !== "undefined"}
+	<div style="position: absolute; left: {user_picker_params.left}px; top: {user_picker_params.top}px;"
+		bind:this={user_picker_container}>
+		<UserPicker bind:this={user_picker} list_on_top=true
+		server_id={server.data.id}
+		exit_input={() => {
+			// Remove the '@'
+			value = value.substring(0, last_mention_sel_i - 1) + value.substring(last_mention_sel_i);
+		}}
+		user_picked={(user_id) => {
+			// Insert id
+			value = value.substring(0, last_mention_sel_i) + `u${user_id}` + value.substring(last_mention_sel_i);
+		}}
+		/>
+	</div>
+	{/if}
 {:else}
 <img src={asset("icons/loading.svg")} alt="loading" class="filter_icon_main" style="width: 32px"/>
 {/if}
@@ -204,6 +273,7 @@
 
 <style>
 .message_input {
+	position: relative;
 	width: 100%;
 	text-align: center;
 	margin-bottom: 1%;
