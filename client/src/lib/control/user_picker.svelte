@@ -48,7 +48,7 @@
 
 {#snippet render_user(i, item)}
 	<UserDisplay user={item} display_status={false}
-		onclick={() => {
+		show_user={() => {
 			value = item.id;
 			user_name = user_list.getItem(i).name;
 			show_list = false;
