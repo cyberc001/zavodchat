@@ -11,31 +11,48 @@
 	import Message from '$lib/rest/message.js';
 	import Params from '$lib/rest/params.js';
 	import File from '$lib/rest/file.js';
+	import Role from '$lib/rest/role.js';
 
 	let {value = $bindable(), attachments = $bindable([]), links = $bindable([]),
+		server,
 		status, actions = [],
 		onsend } = $props();
 
+	let server_roles = $state();
+	$effect(() => {
+		if(server.loaded)
+			server_roles = Role.get_list(server.data.id);
+	});
+
+	// toggled when div_oninput is called, so Markdown updates even when value stayed the same (i.e. a ServerUser loaded)
+	let value_changed = $state(false); 
 	let input_div = $state();
 	let sel_i;
 	const div_oninput = (e) => {
 		sel_i = Select.get_selection_index(input_div);
 		console.log("REMEMBER sel_i", sel_i, value, value.length); 
 
-		value = Select.get_inner_text(e.target);
+		value = Select.get_inner_text(input_div);
 		console.log("NEW VALUE\n", Select.get_inner_text(input_div), Select.get_inner_text(input_div).length);
 		console.log("COMPARE\n", Select.get_inner_text(input_div).length, Select.__get_total_text_ln(input_div));
 
 		if(value.endsWith("\n"))
 			value = value.substring(0, value.length - 1);
-	
-		e.preventDefault();
+
+		value_changed = !value_changed;
+
+		if(e)
+			e.preventDefault();
 	};
+
+	// Value can be edited externally, so parsing Markdown is in $effect()
 	$effect(() => {
 		if(!input_div)
 			return;
 
-		[input_div.innerHTML, link_candidates] = Markdown.parse_overlay(value);
+		value_changed;
+
+		[input_div.innerHTML, link_candidates] = Markdown.parse_overlay(value, server.data.id, server_roles.data, div_oninput);
 		link_candidates_ts = new Date();
 
 		console.log("RECALL sel_i", sel_i);
@@ -115,6 +132,7 @@
 </script>
 
 <div class="message_input">
+{#if server_roles?.loaded}
 	<input type="file" style="position: fixed; top: -100vh" bind:this={file_input} bind:files multiple/>
 
 	<div class="message_input_center_panel">
@@ -179,6 +197,9 @@
 			{/each}
 		</div>
 	</div>
+{:else}
+<img src={asset("icons/loading.svg")} alt="loading" class="filter_icon_main" style="width: 32px"/>
+{/if}
 </div>
 
 <style>

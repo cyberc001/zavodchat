@@ -239,6 +239,7 @@
 			/>
 			<MessageInput
 				bind:value={message_text} bind:attachments={message_attachments} bind:links={message_links}
+				server={server}
 				onsend={sel.message_edit > -1 ? editMessage : sendMessage}
 				status={message_status}
 				actions={sel.message_edit > -1 ? [{text: "Stop editing", func: stopEditing}] : []}

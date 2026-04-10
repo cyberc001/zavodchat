@@ -2,6 +2,7 @@ import {Marked} from 'marked';
 import {markedHighlight} from "marked-highlight";
 import hljs from 'highlight.js';
 
+import User from '$lib/rest/user.svelte.js';
 import Notifications from '$lib/rest/notifications.js';
 import Role from '$lib/rest/role.js';
 
@@ -11,9 +12,8 @@ const __md_mention = {
 
 	start(src){ return src.indexOf('@'); },
 	tokenizer(src, tokens){
-		//const match = src.match(/^@([uer])\d+/);
-		const match = src.match(/^@([e])/);
-		console.log("MATCH", match);
+		// Match mention types without IDs
+		let match = src.match(/^@([e])/);
 		if(match){
 			let text = match[0];
 			switch(match[1]){
@@ -27,9 +27,38 @@ const __md_mention = {
 				text
 			};
 		}
+
+		// Match mention types with IDs
+		match = src.match(/^@([ur])(\d+)/);
+		if(match){
+			let text = match[0];
+			const id = parseInt(match[2]);
+			switch(match[1]){
+				case "u":
+					const user = User.get_server(Markdown.__server_id, id);
+					if(!user.loaded)
+						user.notify_on_load(Markdown.__reload);
+					else
+						text = `@${user.data.name}`;
+					break;
+				case "r":
+					const role = Markdown.__server_roles.find((x) => x.id === id);
+					if(role)
+						text = `@${role.name}`;
+					break;
+			}
+			return {
+				type: "mention",
+				raw: match[0],
+				text
+			};
+		}
+
 		return false;
 	},
 	renderer(token){
+		if(token.raw === token.text)
+			return token.raw;
 		return `<span style="background: var(--clr_bg_selected)" data-raw-text="${token.raw}" data-expected-text="${token.text}">${token.text}</span>`;
 	}
 }
@@ -121,8 +150,14 @@ export default class Markdown {
 		}
 		return html;
 	}
-	static parse_overlay(text){
+
+	static __server_roles;
+	static parse_overlay(text, server_id, server_roles, reload){
 		Markdown.marked_overlay.links = [];
+		Markdown.__server_id = server_id;
+		Markdown.__server_roles = server_roles;
+		Markdown.__reload = reload;
+
 		let html = Markdown.marked_overlay.parseInline(text);
 		if(html.endsWith("\n"))
 			html += "\n";
