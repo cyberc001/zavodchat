@@ -74,7 +74,8 @@ void notification_utils::inc_notification(int server_id, int channel_id, int use
 	for(auto i = mentions.begin(); i != mentions.end(); ++i)
 		switch(i->type){
 			case mention_types::USER:
-				inc_notification(server_id, channel_id, i->id, tx);
+				if(i->id != user_id)
+					inc_notification(server_id, channel_id, i->id, tx);
 				break;
 			case mention_types::ROLE:
 				if(!mentioned_roles.count(i->id)){
@@ -159,6 +160,7 @@ std::vector<mention> notification_utils::parse_mentions(const std::string& text,
 					i += (i == text.size() - 1); // next iteration won't happen, so for convenience i is getting modified to extend past string size
 					int id = std::strtoul(text.substr(id_start, i - id_start).c_str(), nullptr, 10);
 					parsed.emplace_back(type, id_start - 2, i - 1, id);
+					i -= (i != text.size() - 1); // don't skip the next character after mention
 				}
 				break;
 		}
