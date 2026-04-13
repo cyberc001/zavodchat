@@ -21,7 +21,7 @@
 
 	let server_roles = $state();
 	$effect(() => {
-		if(server.loaded)
+		if(server?.loaded)
 			server_roles = Role.get_list(server.data.id);
 	});
 
@@ -55,7 +55,7 @@
 
 		value_changed;
 
-		[input_div.innerHTML, link_candidates] = Markdown.parse_overlay(value, server.data.id, server_roles.data, div_oninput);
+		[input_div.innerHTML, link_candidates] = Markdown.parse_overlay(value, server?.data.id, server_roles?.data, div_oninput);
 		link_candidates_ts = new Date();
 
 		console.log("RECALL sel_i", sel_i);
@@ -140,6 +140,9 @@
 	let prev_sel_i = $state();
 	let last_mention_sel_i;
 	const onselectionchange = (e) => {
+		if(!server) // Don't suggest mentions for DMs
+			return;
+
 		// Firefox is very trigger-happy with this event, so track only actual changes
 		const range = window.getSelection().getRangeAt(0);
 		const sel_i = Select.get_selection_index(input_div, true);
@@ -177,12 +180,12 @@
 
 	onDestroy(() => {
 		clearInterval(link_intv);
-		document.removeEventListener(onselectionchange);
+		document.removeEventListener("selectionchange", onselectionchange);
 	});
 </script>
 
 <div class="message_input" bind:this={self}>
-{#if server_roles?.loaded}
+{#if typeof(server) === "undefined" || server_roles?.loaded}
 	<input type="file" style="position: fixed; top: -100vh" bind:this={file_input} bind:files multiple/>
 
 	<div class="message_input_center_panel">
@@ -253,8 +256,8 @@
 	<div style="position: absolute; left: {user_picker_params.left}px; top: {user_picker_params.top}px;"
 		bind:this={user_picker_container}>
 		<UserPicker bind:this={user_picker} list_on_top=true
-		server_id={server.data.id} prepended_roles={server_roles.data}
-		exit_input={() => {
+		server={server} prepended_roles={server_roles?.data}
+		exit_input={(erase) => {
 			// Remove the '@'
 			value = value.substring(0, last_mention_sel_i - 1) + value.substring(last_mention_sel_i);
 		}}
@@ -320,6 +323,7 @@
 	resize: none;
 
 	max-height: 5lh;
+	overflow-wrap: anywhere;
 	overflow-y: scroll;
 
 	text-align: left;

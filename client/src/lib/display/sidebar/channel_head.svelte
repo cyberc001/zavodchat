@@ -7,7 +7,7 @@
 	import Channel from '$lib/rest/channel.js';
 	import DM from '$lib/rest/dm.js';
 
-	const {channel, server_id,
+	const {channel, server,
 		onsearch, show_channel} = $props();
 
 	let other_user = $state();
@@ -18,7 +18,7 @@
 			other_user = undefined;
 	});
 
-	let is_loaded = $derived(channel?.loaded && (!other_user || other_user.loaded));
+	let is_loaded = $derived((!server || server.loaded) && channel?.loaded && (!other_user || other_user.loaded));
 	let name = $derived(other_user ? other_user.data.name : channel?.data.name);
 
 	let search_bar = $state();
@@ -50,9 +50,9 @@
 			<img src={asset("icons/call.svg")} alt="call friend" class="filter_icon_main" style="width: 32px"/>
 		</button>
 	{/if}
-	<SearchBar server_id={server_id} bind:this={search_bar}
+	<SearchBar server={server} bind:this={search_bar}
 		elements={[
-			{type: server_id > -1 ? "server_user" : "user", label: "Author", param: "author_id"},
+			{type: server ? "server_user" : "user", label: "Author", param: "author_id"},
 			{type: "date", label: "Date from", param: "date_from"},
 			{type: "date", label: "Date until", param: "date_until"}
 		]}

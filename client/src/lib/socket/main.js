@@ -62,7 +62,8 @@ export default class MainSocket {
 			console.log("message_created", data);
 			Message.message_range_cache.insert(data.channel_id, data);
 
-			const add_notif = _this.self_user.loaded && _this.self_user.data.id !== data.author_id && _this.sel.channel !== data.channel_id;
+			const by_me = _this.self_user.data.id === data.author_id;
+			const add_notif = _this.self_user.loaded && !by_me && _this.sel.channel !== data.channel_id;
 
 			// TODO keep a separate data structure that allows O(log N) search
 			const ch = DM.channel_range_cache.find(0, (x) => x.id === data.channel_id);
@@ -76,15 +77,15 @@ export default class MainSocket {
 				DM.channel_range_cache.remove(0, ch.last_message.id);
 				if(add_notif)
 					Util.inc_or_set(ch, "notifications");
-				else
-					Notifications.remove_channel(data.channel_id);
+				else if(!by_me)
+					Notifications.remove_channel(-1, data.channel_id);
 				ch.last_message = data;
 				DM.channel_range_cache.insert(0, ch);
 
 				if(add_notif && Channel.channel_cache.has_state(data.channel_id))
 					Util.inc_or_set(Channel.channel_cache.get_state(data.channel_id).data, "notifications");
-				else if(!add_notif)
-					Notifications.remove_channel(data.channel_id);
+				else if(!add_notif && !by_me)
+					Notifications.remove_channel(-1, data.channel_id);
 			} else if(typeof(data.server_id) === "undefined"){ 
 				// TODO add ping
 				// Potentially new DM channel

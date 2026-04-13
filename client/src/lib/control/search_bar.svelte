@@ -3,7 +3,7 @@
 	import DatePicker from '$lib/control/date_picker.svelte';
 	import UserPicker from '$lib/control/user_picker.svelte';
 
-	let {server_id, // can be undefined if "server_user" is not used
+	let {server, // can be undefined if "server_user" is not used
 		elements,
 		onsearch} = $props();
 
@@ -53,7 +53,7 @@
 					/>
 				{:else if e.type === "server_user"}
 					<UserPicker label_text={e.label} bind:value={params[e.param]}
-						server_id={server_id}
+						server={server}
 						--margin-bottom="6px"
 					/>
 				{:else if e.type === "user"}

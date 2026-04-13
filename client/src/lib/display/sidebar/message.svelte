@@ -198,7 +198,7 @@
 	{#if channel_id > -1}
 	<div style="height: 100%; position: relative; display: flex; flex-direction: column">
 		<ChannelHead bind:this={channel_head}
-		channel={Channel.get(channel_id)} server_id={server.data.id}
+		channel={Channel.get(channel_id)} server={server}
 		onsearch={(params) => {
 			sel.highlight_message = -1;
 			message_search_params = params;

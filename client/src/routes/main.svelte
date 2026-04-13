@@ -216,6 +216,29 @@
 
 <style>
 @import "main.css";
+
+.sidebar_users {
+	border-style: none none none solid;
+
+	width: 256px;
+	min-width: 256px;
+}
+.sidebar_user_display {
+	padding: 3px 6px 3px 6px;
+}
+
+.profile_panel {
+	border-style: solid;
+
+	box-sizing: border-box;
+	height: auto;
+
+	width: 100%;
+	padding: 8px;
+
+	font-size: 18px;
+	overflow-wrap: anywhere;
+}
 </style>
 
 

@@ -8,7 +8,7 @@
 	import UserDisplay from '$lib/display/user.svelte';
 	import PaginatedList from '$lib/display/paginated_list.svelte';
 
-	let {server_id, // if undefined, regular users are searched
+	let {server, // if undefined, regular users are searched
 		prepended_roles = [],
 		list_on_top = false, // display the list above input field
 		exit_input = () => {}, user_picked = () => {}, role_picked = () => {},
@@ -25,7 +25,8 @@
 		let style = "";
 		if(list_on_top)
 			style += "bottom: 100%;";
-		if(user_list && user_list.getItemCount() === 0 && (roles.length === 0 || !user_list.isLoaded()))
+		if(user_list && user_list.getItemCount() === 0 &&
+			(roles.length === 0 || !user_list.isLoaded()))
 			style += "display: none;";
 		return style;
 	});
@@ -46,7 +47,7 @@
 	onDestroy(() => clearInterval(list_user_name_intv));
 
 
-	const load_items = (index, range, asc) => server_id ? User.get_server_range(server_id, index, range, asc, list_user_name)
+	const load_items = (index, range, asc) => server ? User.get_server_range(server.data.id, index, range, asc, list_user_name)
 							    : User.get_range(index, range, asc, list_user_name);
 
 	export function reset(){
@@ -81,7 +82,8 @@
 	</button>
 {/snippet}
 {#snippet render_user(i, item)}
-	<UserDisplay user={item} display_status={false}
+	<UserDisplay user={item} server={server}
+		display_status={false}
 		show_user={() => {
 			value = item.id;
 			user_name = user_list.getItem(i).name;
@@ -91,7 +93,7 @@
 	/>
 {/snippet}
 
-<div style="position: relative;" bind:this={self}>
+<div style="position: relative; z-index: 10" bind:this={self}>
 	<input autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
 		class="settings_control"
 		style={"width:var(--width, 200px); margin-bottom: var(--margin-bottom, 12px)" +
@@ -100,8 +102,15 @@
 		bind:value={user_name} bind:this={input}
 		onfocus={() => {show_list = true;}}
 		onkeyup={(e) => {
-			if(e.key === "Backspace" && !prev_user_name.length)
+			if(e.key === "Backspace" && input.selectionStart === 0)
 				exit_input();
+
+			if(e.key === "Enter"){
+				if(roles.length > 0)
+					role_picked(roles[0].id);
+				else if(user_list.getItemCount() > 0)
+					user_picked(user_list.getItem(0).id);
+			}
 
 			if(user_name !== prev_user_name){
 				value = undefined;
