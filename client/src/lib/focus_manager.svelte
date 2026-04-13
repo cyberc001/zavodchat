@@ -1,9 +1,10 @@
 <script>
 	let {element,
-		onfocus = () => {}, onblur = () => {}
+		onfocus = () => {}, onblur = () => {},
+		blur_on_mousedown = false
 	} = $props();
 
-	let mouse_in_element = true;
+	let mouse_in_element;
 	// Changing element when its already not undefined will cause these event handlers to become bogus
 	$effect(() => {
 		if(element){
@@ -16,6 +17,11 @@
 			};
 		}
 	});
+
+	const mouseblur = (e) => {
+		if(mouse_in_element === false)
+			onblur();
+	};
 </script>
 
 <svelte:window
@@ -30,8 +36,17 @@ onblurcapture={(e) => {
 	if(!element.contains(e.relatedTarget))
 		onblur();
 }}
-onmouseup={(e) => {
-	if(!mouse_in_element)
-		onblur();
+onmousedown={blur_on_mousedown ? mouseblur : () => {}}
+onmouseup={blur_on_mousedown ? () => {} : mouseblur}
+onmousemove={(e) => {
+	if(typeof(mouse_in_element) === "undefined"){
+		const elems = document.elementsFromPoint(e.clientX, e.clientY);
+		for(const el of elems)
+			if(element.contains(el)){
+				mouse_in_element = true;
+				break;
+			}
+		mouse_in_element = mouse_in_element || false;
+	}
 }}
 />

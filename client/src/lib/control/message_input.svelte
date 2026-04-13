@@ -139,11 +139,10 @@
 	let user_picker_params = $state({});
 	let prev_sel_i = $state();
 	let last_mention_sel_i;
-	const onselectionchange = () => {
+	const onselectionchange = (e) => {
 		// Firefox is very trigger-happy with this event, so track only actual changes
 		const range = window.getSelection().getRangeAt(0);
 		const sel_i = Select.get_selection_index(input_div, true);
-		console.log("cmp", sel_i, prev_sel_i);
 		if(sel_i === prev_sel_i)
 			return;
 		prev_sel_i = sel_i;
@@ -254,7 +253,7 @@
 	<div style="position: absolute; left: {user_picker_params.left}px; top: {user_picker_params.top}px;"
 		bind:this={user_picker_container}>
 		<UserPicker bind:this={user_picker} list_on_top=true
-		server_id={server.data.id}
+		server_id={server.data.id} prepended_roles={server_roles.data}
 		exit_input={() => {
 			// Remove the '@'
 			value = value.substring(0, last_mention_sel_i - 1) + value.substring(last_mention_sel_i);
@@ -262,6 +261,10 @@
 		user_picked={(user_id) => {
 			// Insert id
 			value = value.substring(0, last_mention_sel_i) + `u${user_id}` + value.substring(last_mention_sel_i);
+		}}
+		role_picked={(role_id) => {
+			// Insert id
+			value = value.substring(0, last_mention_sel_i) + `r${role_id}` + value.substring(last_mention_sel_i);
 		}}
 		/>
 	</div>

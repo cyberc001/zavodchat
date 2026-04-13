@@ -5,6 +5,7 @@
 
 	let {range = 40, advance = 10, reversed = false,
 		render_item, load_items, augment_item = () => {},
+		render_prepend_item, prepend_items = [],
 		loading_text = "Loading...", to_latest_text = "To latest",
 		auto_height = false
 	} = $props();
@@ -85,6 +86,9 @@
 		}
 	});
 
+	export function isLoaded(){
+		return items ? items.loaded : false;
+	}
 	export function getItemCount(){
 		return items.data.length;
 	}
@@ -141,11 +145,6 @@
 	};
 
 	let list_div_scroll_height = $state(0);
-	$effect(() => {
-		if(items.data.length === 0 || !div_items[0] || !div_items[items.data.length - 1])
-			return;
-		list_div_scroll_height = list_div.scrollHeight;
-	});
 
 	let list_resize_obs;
 	let list_mut_obs;
@@ -153,6 +152,7 @@
 		// Observers might be active when this component is off-screen
 		if(!list_div)
 			return;
+		list_div_scroll_height = list_div.scrollHeight;
 
 		if(typeof(anchor.top) === "undefined")
 			list_div_scroll_top = list_div.scrollTop = reversed ? 2147483648 : 0;
@@ -161,7 +161,7 @@
 			console.log("ANCHOR", anchor, "ITEMS", $state.snapshot(items.data), "\n", anchor_el, "\n", list_div.scrollTop, anchor_el?.offsetTop);
 			if(anchor_el)
 				list_div.scrollTop += (anchor_el.offsetTop - list_div.scrollTop) - anchor.top;	
-		}	
+		}
 	};
 	$effect(() => {
 		if(!list_div)
@@ -174,6 +174,11 @@
 
 		list_mut_obs = new MutationObserver(list_mut_cb);
 		list_mut_obs.observe(list_div, {childList: true, subtree: true, attributes: true});
+	});
+
+	$effect(() => {
+		items;
+		list_div_scroll_height = list_div.scrollHeight;
 	});
 
 	const on_scroll = (e) => {
@@ -237,6 +242,9 @@
 		+ "max-height: var(--max-height, 100%); width: var(--width, auto)"}
 >
 	<div class="paginated_list" onwheel={on_scroll} bind:this={list_div}>
+		{#each prepend_items as item, i}
+			{@render render_prepend_item(i, item)}
+		{/each}
 		{#each items.data as item, i}
 			{#if item}
 				<div bind:this={div_items[i]}

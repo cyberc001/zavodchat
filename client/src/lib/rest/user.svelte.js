@@ -98,14 +98,15 @@ export default class User {
 				});
 		});
 	}
-	static get_server_range(server_id, start_id, count, asc, displayname, _catch){
+	static get_server_range(server_id, start_id, count, asc,
+					displayname, added_roles, _catch){
 		return User.user_server_range_cache.get_state(typeof displayname == "undefined" ? server_id : [server_id, displayname],
 			start_id, count,
 			(tree, start_id, count, asc) => {
 				const res_handler = (res) => {
-						for(let user of res.data)
-							user.user_ref = User.add_shared_server(user.id, server_id);
-						tree.set_state(start_id, count, res.data, asc);
+					for(let user of res.data)
+						user.user_ref = User.add_shared_server(user.id, server_id);
+					tree.set_state(start_id, count, res.data, asc);
 				};
 
 				if(typeof displayname !== "undefined")

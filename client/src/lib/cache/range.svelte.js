@@ -337,10 +337,10 @@ export class RangeCache extends IDCache {
 	key;
 	constructor(key, key_dummy){
 		super();
-		if(!key){
+		if(!key)
 			key = (x) => x.id;
+		if(!key_dummy)
 			key_dummy = (id) => {return {id}};
-		}
 		this.key = key;
 		this.key_dummy = key_dummy;
 	}

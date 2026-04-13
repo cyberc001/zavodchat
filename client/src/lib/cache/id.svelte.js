@@ -11,11 +11,11 @@ export class IDObserver {
 
 	load_cb;
 	set_loaded(){
-		this.loaded = true;
-		this.loading = false;
 		if(this.load_cb)
 			this.load_cb();
 		this.load_cb = undefined;
+		this.loaded = true;
+		this.loading = false;
 	}
 	notify_on_load(cb){
 		if(this.loaded)
