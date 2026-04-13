@@ -267,7 +267,9 @@
 		}}
 		role_picked={(role_id) => {
 			// Insert id
-			value = value.substring(0, last_mention_sel_i) + `r${role_id}` + value.substring(last_mention_sel_i);
+			value = value.substring(0, last_mention_sel_i) +
+						(role_id === -1 ? 'e' : `r${role_id}`) +
+						value.substring(last_mention_sel_i);
 		}}
 		/>
 	</div>

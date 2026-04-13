@@ -18,7 +18,12 @@
 	let input = $state();
 	let user_list = $state();
 
-	let roles = $derived(prepended_roles.filter((x) => x.name.indexOf(user_name) !== -1));
+	let roles = $derived.by(() => {
+		const r = prepended_roles.filter((x) => x.name.indexOf(user_name) !== -1);
+		if("everyone".indexOf(user_name) !== -1)
+			r.unshift({"name": "everyone", id: -1});
+		return r;
+	});
 
 	let show_list = $state(false);
 	let list_style = $derived.by(() => {
