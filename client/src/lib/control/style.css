@@ -1,6 +1,6 @@
 .settings_control {
-	font-size: 20px;
-	color: var(--clr_text);
+	font-size: var(--font-size, 20px);
+	color: var(--color, var(--clr_text));
 
 	box-sizing: border-box;
 	width: var(--width, auto);

@@ -11,6 +11,7 @@
 	let {server, // if undefined, regular users are searched
 		prepended_roles = [],
 		list_on_top = false, // display the list above input field
+		fixed_text_color = false, // dont change text color to secondary when user wasnt picked
 		exit_input = () => {}, user_picked = () => {}, role_picked = () => {},
 		value = $bindable()} = $props();
 
@@ -20,7 +21,7 @@
 
 	let roles = $derived.by(() => {
 		const r = prepended_roles.filter((x) => x.name.indexOf(user_name) !== -1);
-		if("everyone".indexOf(user_name) !== -1)
+		if(prepended_roles.length > 0 && "everyone".indexOf(user_name) !== -1)
 			r.unshift({"name": "everyone", id: -1});
 		return r;
 	});
@@ -102,7 +103,7 @@
 	<input autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
 		class="settings_control"
 		style={"width:var(--width, 200px); margin-bottom: var(--margin-bottom, 12px)" +
-			(typeof value === "undefined" ? "; color: var(--clr_text_secondary)" : "")
+			(typeof value === "undefined" && !fixed_text_color ? "; color: var(--clr_text_secondary)" : "")
 		}
 		bind:value={user_name} bind:this={input}
 		onfocus={() => {show_list = true;}}

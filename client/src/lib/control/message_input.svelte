@@ -271,6 +271,8 @@
 						(role_id === -1 ? 'e' : `r${role_id}`) +
 						value.substring(last_mention_sel_i);
 		}}
+		fixed_text_color={true}
+		--font-size="16px"
 		/>
 	</div>
 	{/if}
