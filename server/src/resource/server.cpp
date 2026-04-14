@@ -2,7 +2,7 @@
 #include "resource/utils.h"
 #include "resource/file_utils.h"
 #include "resource/role_utils.h"
-#include <nlohmann/json.hpp>
+#include "resource/json_utils.h"
 
 server_resource::server_resource(webserver& ws, db_connection_pool& pool, const config& cfg):
 	base_resource(ws, "/servers", pool, cfg)
@@ -29,7 +29,7 @@ std::shared_ptr<http_response> server_resource::render_GET(const http_request& r
 				 "ORDER BY servers.server_id",
 				 pqxx::params(user_id));
 	for(size_t i = 0; i < r.size(); ++i)
-		res += resource_utils::server_json_from_row(r[i]);
+		res += json_utils::server_from_row(r[i]);
 	return create_response::string(req, res.dump(), 200);
 }
 std::shared_ptr<http_response> server_resource::render_POST(const http_request& req)
@@ -98,7 +98,7 @@ std::shared_ptr<http_response> server_id_resource::render_GET(const http_request
 				 "LEFT JOIN notifications ON notifications.server_id = servers.server_id "
 				 "WHERE servers.server_id = $1",
 				 pqxx::params(server_id));
-	return create_response::string(req, resource_utils::server_json_from_row(r[0]).dump(), 200);
+	return create_response::string(req, json_utils::server_from_row(r[0]).dump(), 200);
 }
 std::shared_ptr<http_response> server_id_resource::render_PUT(const http_request& req)
 {
@@ -162,7 +162,7 @@ std::shared_ptr<http_response> server_id_resource::render_PUT(const http_request
 	if(updated){
 		socket_event ev;
 		pqxx::result r = tx.exec("SELECT server_id, name, avatar FROM servers WHERE server_id = $1", pqxx::params(server_id));
-		ev.data = resource_utils::server_json_from_row(r[0]);
+		ev.data = json_utils::server_from_row(r[0]);
 		ev.name = "server_edited";
 		sserv.send_to_server(server_id, tx, ev);
 	}

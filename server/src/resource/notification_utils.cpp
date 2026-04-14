@@ -1,7 +1,6 @@
 #include "resource/notification_utils.h"
 #include "resource/utils.h"
 #include <unordered_set>
-#include <sstream>
 
 mention::mention(mention_types type, int begin_i, int end_i, int id):
 	type{type}, begin_i{begin_i}, end_i{end_i}, id{id}
@@ -13,19 +12,6 @@ std::vector<std::vector<int>> mention::to_array(const std::vector<mention>& in)
 	for(auto i = in.begin(); i != in.end(); ++i)
 		out.push_back(std::vector<int>{i->type, i->begin_i, i->end_i, i->id});
 	return out;
-}
-std::string mention::join_ids(const std::vector<mention>& in, mention_types type)
-{
-	std::stringstream ss;
-	bool first = true;
-	for(auto i = in.begin(); i != in.end(); ++i)
-		if(i->type == type){
-			if(!first)
-				ss << ",";
-			first = false;
-			ss << i->id;
-		}
-	return ss.str();
 }
 
 bool mention::type_has_id(mention_types type)
@@ -128,6 +114,7 @@ mention_types char_to_mention_type(char c)
 std::vector<mention> notification_utils::parse_mentions(const std::string& text, int server_id, int channel_id, pqxx::work& tx)
 {
 	std::vector<mention> parsed, out;
+	std::vector<int> user_ids, role_ids;
 
 	if(!text.size())
 		return out;
@@ -160,6 +147,16 @@ std::vector<mention> notification_utils::parse_mentions(const std::string& text,
 					i += (i == text.size() - 1); // next iteration won't happen, so for convenience i is getting modified to extend past string size
 					int id = std::strtoul(text.substr(id_start, i - id_start).c_str(), nullptr, 10);
 					parsed.emplace_back(type, id_start - 2, i - 1, id);
+
+					switch(type){
+						case mention_types::USER:
+							user_ids.push_back(id);
+							break;
+						case mention_types::ROLE:
+							role_ids.push_back(id);
+							break;
+					}
+
 					i -= (i != text.size() - 1); // don't skip the next character after mention
 				}
 				break;
@@ -167,28 +164,8 @@ std::vector<mention> notification_utils::parse_mentions(const std::string& text,
 
 	out.reserve(parsed.size());
 
-	// Verify user IDs
-	std::unordered_set<int> valid_user_ids;
-	std::string user_ids = mention::join_ids(parsed, mention_types::USER);
-	if(user_ids.size()){
-		pqxx::result r = tx.exec("SELECT DISTINCT ON(user_id) user_id FROM user_x_server "
-					 "WHERE server_id = $1 AND user_id IN (" + user_ids + ")",
-					 pqxx::params(server_id));
-		for(size_t i = 0; i < r.size(); ++i)
-			valid_user_ids.insert(r[i]["user_id"].as<int>());
-	}
-
-	// Verify role IDs
-	std::unordered_set<int> valid_role_ids;
-	std::string role_ids = mention::join_ids(parsed, mention_types::ROLE);
-	if(role_ids.size()){
-		pqxx::result r = tx.exec("SELECT DISTINCT ON(role_id) role_id FROM roles "
-					 "WHERE server_id = $1 AND role_id IN (" + role_ids + ")",
-					 pqxx::params(server_id));
-		for(size_t i = 0; i < r.size(); ++i)
-			valid_role_ids.insert(r[i]["role_id"].as<int>());
-	}
-
+	std::unordered_set<int> valid_user_ids = resource_utils::get_valid_user_ids(user_ids, tx, server_id);
+	std::unordered_set<int> valid_role_ids = resource_utils::get_valid_role_ids(role_ids, tx, server_id);
 	// Compile all mentions
 	for(auto i = parsed.begin(); i != parsed.end(); ++i)
 		if(i->id < 0 ||

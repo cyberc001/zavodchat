@@ -1,5 +1,6 @@
 #include "resource/user.h"
 #include "resource/utils.h"
+#include "resource/json_utils.h"
 
 user_resource::user_resource(webserver& ws, db_connection_pool& pool, const config& cfg):
 	base_resource(ws, "/users", pool, cfg)
@@ -36,7 +37,7 @@ std::shared_ptr<http_response> user_resource::render_GET(const http_request& req
 	pqxx::result r = tx.exec("SELECT user_id, name, avatar, status FROM users WHERE user_id " + std::string(order == "DESC" ? "<=" : ">=") + " $1 " + where_displayname + " ORDER BY user_id " + order + " LIMIT $2 ", pr);
 	nlohmann::json res = nlohmann::json::array();
 	for(size_t i = 0; i < r.size(); ++i)
-		res += resource_utils::user_json_from_row(r[i]);
+		res += json_utils::user_from_row(r[i]);
 	return create_response::string(req, res.dump(), 200);
 }
 
@@ -68,7 +69,7 @@ std::shared_ptr<http_response> user_id_resource::render_GET(const http_request& 
 	if(!r.size())
 		return create_response::string(req, "User with this ID doesn't exist", 404);
 
-	return create_response::string(req, resource_utils::user_json_from_row(r[0]).dump(), 200);
+	return create_response::string(req, json_utils::user_from_row(r[0]).dump(), 200);
 }
 
 std::shared_ptr<http_response> user_id_resource::parse_id(const http_request& req, pqxx::work& tx, int& user_id)

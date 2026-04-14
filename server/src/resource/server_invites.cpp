@@ -1,6 +1,7 @@
 #include "resource/server_invites.h"
 #include "resource/utils.h"
 #include "resource/role_utils.h"
+#include "resource/json_utils.h"
 
 server_invites_resource::server_invites_resource(webserver& ws, db_connection_pool& pool, const config& cfg,
 				socket_main_server& sserv):
@@ -28,7 +29,7 @@ std::shared_ptr<http_response> server_invites_resource::render_GET(const http_re
 	if(!r.size())
 		return create_response::string(req, "Invite has expired", 403);
 
-	return create_response::string(req, resource_utils::server_json_from_row(r[0]).dump(), 200);
+	return create_response::string(req, json_utils::invite_from_row(r[0]).dump(), 200);
 }
 std::shared_ptr<http_response> server_invites_resource::render_POST(const http_request& req)
 {
@@ -62,8 +63,8 @@ std::shared_ptr<http_response> server_invites_resource::render_POST(const http_r
 
 	socket_event ev;
 	r = tx.exec("SELECT user_id, name, avatar, status FROM users WHERE user_id = $1", pqxx::params(user_id));
-	ev.data = resource_utils::user_json_from_row(r[0]);
-	resource_utils::json_set_ids(ev.data, server_id);
+	ev.data = json_utils::user_from_row(r[0]);
+	json_utils::set_ids(ev.data, server_id);
 	ev.name = "user_joined";
 	sserv.send_to_server(server_id, tx, ev);
 	
@@ -106,7 +107,7 @@ std::shared_ptr<http_response> server_id_invites_resource::render_GET(const http
 	pqxx::result r = tx.exec("SELECT invite_id, server_id, expiration_time FROM server_invites WHERE server_id = $1", pqxx::params(server_id));
 
 	for(size_t i = 0; i < r.size(); ++i)
-		res += resource_utils::invite_json_from_row(r[i]);
+		res += json_utils::invite_from_row(r[i]);
 
 	return create_response::string(req, res.dump(), 200);
 }
@@ -167,7 +168,7 @@ std::shared_ptr<http_response> server_invite_id_resource::render_GET(const http_
 	if(err) return err;
 	
 	pqxx::result r = tx.exec("SELECT invite_id, server_id, expiration_time FROM server_invites WHERE invite_id = $1", pqxx::params(invite_id));
-	return create_response::string(req, resource_utils::invite_json_from_row(r[0]).dump(), 200);
+	return create_response::string(req, json_utils::invite_from_row(r[0]).dump(), 200);
 }
 std::shared_ptr<http_response> server_invite_id_resource::render_PUT(const http_request& req)
 {

@@ -1,6 +1,7 @@
 #include "resource/channel.h"
 #include "resource/utils.h"
 #include "resource/role_utils.h"
+#include "resource/json_utils.h"
 
 server_channel_resource::server_channel_resource(webserver& ws, db_connection_pool& pool, const config& cfg,
 					socket_main_server& sserv, socket_vc_server& vcserv):
@@ -22,14 +23,14 @@ std::shared_ptr<http_response> server_channel_resource::render_GET(const http_re
 	if(err) return err;
 
 	nlohmann::json res = nlohmann::json::array();
-	pqxx::result r = tx.exec("SELECT channels.channel_id, name, type, notification_count FROM channels "
+	pqxx::result r = tx.exec("SELECT channels.channel_id, name, type, notification_count, wl_users, wl_roles FROM channels "
 				 "LEFT JOIN notifications ON notifications.channel_id = channels.channel_id "
 				 "AND notifications.user_id = $2 "
-				 "WHERE channels.server_id = $1"
+				 "WHERE channels.server_id = $1 AND ((array_length(wl_users, 1) IS NULL AND array_length(wl_roles, 1) IS NULL) OR array_position(wl_users, $2) IS NOT NULL OR EXISTS(SELECT role_id FROM user_x_server WHERE user_id = $2 AND array_position(wl_roles, role_id) IS NOT NULL))"
 				, pqxx::params(server_id, user_id));
 
 	for(size_t i = 0; i < r.size(); ++i){
-		nlohmann::json channel_json = resource_utils::channel_json_from_row(r[i]);
+		nlohmann::json channel_json = json_utils::channel_from_row(r[i], true);
 		if(channel_json["type"] == CHANNEL_VOICE)
 			channel_json["vc_users"] = vcserv.get_channel_users(channel_json["id"]);
 		res += channel_json;
@@ -41,38 +42,72 @@ std::shared_ptr<http_response> server_channel_resource::render_POST(const http_r
 {
 	base_resource::render_POST(req);
 
-	std::string name = std::string(req.get_arg("name"));
-	int type;
-	auto err = resource_utils::parse_index(req, "type", type);
-	if(err) return err;
-	if(type != CHANNEL_TEXT && type != CHANNEL_VOICE)
-		return create_response::string(req, "Unknown channel type", 400);
-
 	int user_id, server_id;
 	db_connection conn = pool.hold();
 	pqxx::work tx{*conn};
-	err = resource_utils::parse_server_id(req, tx, user_id, server_id);
+	auto err = resource_utils::parse_server_id(req, tx, user_id, server_id);
 	if(err) return err;
 
 	err = role_utils::check_permission1(req, tx, server_id, user_id, PERM1_MANAGE_CHANNELS);
 	if(err) return err;
 
-	pqxx::result r = tx.exec("SELECT channel_id, name, type FROM channels WHERE server_id = $1", pqxx::params(server_id));
+	// Parse JSON arguments
+	nlohmann::json body;
+	err = json_utils::from_content(req, body);
+	if(err)
+		return err;
+
+	JSON_GET_STRING(body, name);
+	JSON_GET_UNSIGNED(body, type);
+	if(type != CHANNEL_TEXT && type != CHANNEL_VOICE)
+		return create_response::string(req, "Unknown channel type", 400);
+
+	std::vector<int> wl_users, wl_roles;
+	if(body["wl_users"].is_array()){
+		err = json_utils::get_array(req, body, nlohmann::json::value_t::number_unsigned, "wl_users", wl_users);
+		if(err)
+			return err;
+		wl_users = resource_utils::get_valid_user_ids_vector(wl_users, tx, server_id);
+	}
+	if(body["wl_roles"].is_array()){
+		err = json_utils::get_array(req, body, nlohmann::json::value_t::number_unsigned, "wl_roles", wl_roles);
+		if(err)
+			return err;
+		wl_roles = resource_utils::get_valid_role_ids_vector(wl_roles, tx, server_id);
+	}
+
+	// Check channel count and insert
+	pqxx::result r = tx.exec("SELECT channel_id FROM channels WHERE server_id = $1", pqxx::params(server_id));
 	if(r.size() >= cfg.max_channels_per_server)
 		return create_response::string(req, "Server has more than " + std::to_string(cfg.max_channels_per_server) + " channels", 403);
 
 	int channel_id;
 	socket_event ev;
 	try{
-		r = tx.exec("INSERT INTO channels(server_id, name, type) VALUES($1, $2, $3) RETURNING channel_id, name, type", pqxx::params(server_id, name, type));
+		std::string wl_columns, wl_params;
+		pqxx::params pr(server_id, name, type);
+		if(wl_users.size()){
+			pr.append(wl_users);
+			wl_columns += ", wl_users";
+			wl_params += ", $" + std::to_string(pr.size());
+		}
+		if(wl_roles.size()){
+			pr.append(wl_roles);
+			wl_columns += ", wl_roles";
+			wl_params += ", $" + std::to_string(pr.size());
+		}
+
+		r = tx.exec("INSERT INTO channels(server_id, name, type" + wl_columns + ") VALUES($1, $2, $3" + wl_params +
+			    ") RETURNING channel_id, name, type, wl_users, wl_roles",
+			    pr);
 		channel_id = r[0]["channel_id"].as<int>();
-		ev.data = resource_utils::channel_json_from_row(r[0]);
+		ev.data = json_utils::channel_from_row(r[0]);
 	} catch(pqxx::data_exception& e){
 		return create_response::string(req, "Channel name is too long", 400);
 	}
 	tx.commit();
 
-	resource_utils::json_set_ids(ev.data, server_id);
+	json_utils::set_ids(ev.data, server_id);
 	ev.name = "channel_created";
 	sserv.send_to_server(server_id, tx, ev);
 
@@ -98,12 +133,12 @@ std::shared_ptr<http_response> channel_resource::render_GET(const http_request& 
 	auto err = resource_utils::parse_channel_id(req, tx, user_id, server_id, channel_id);
 	if(err) return err;
 
-	pqxx::result r = tx.exec("SELECT channels.channel_id, name, type, user1_id, user2_id, notification_count FROM channels "
+	pqxx::result r = tx.exec("SELECT channels.channel_id, name, type, user1_id, user2_id, notification_count, wl_users, wl_roles FROM channels "
 				 "LEFT JOIN notifications ON notifications.channel_id = channels.channel_id "
 				 "AND notifications.user_id = $2 "
 				 "WHERE channels.channel_id = $1"
 				 , pqxx::params(channel_id, user_id));
-	nlohmann::json channel_json = resource_utils::channel_json_from_row(r[0], user_id);
+	nlohmann::json channel_json = json_utils::channel_from_row(r[0], true, user_id);
 
 	if(channel_json["type"] == CHANNEL_VOICE)
 		channel_json["vc_users"] = vcserv.get_channel_users(channel_id);
@@ -126,10 +161,14 @@ std::shared_ptr<http_response> channel_resource::render_PUT(const http_request& 
 	err = role_utils::check_permission1(req, tx, server_id, user_id, PERM1_MANAGE_CHANNELS);
 	if(err) return err;
 
+	nlohmann::json body;
+	err = json_utils::from_content(req, body);
+	if(err)
+		return err;
+
 	bool updated = false;
-	auto args = req.get_args();
-	if(args.find(std::string_view("name")) != args.end()){
-		std::string name = std::string(req.get_arg("name"));
+	if(body["name"].type() == nlohmann::json::value_t::string){
+		std::string name = body["name"].get<std::string>();
 		try{
 			tx.exec("UPDATE channels SET name = $1 WHERE channel_id = $2", pqxx::params(name, channel_id));
 		} catch(pqxx::data_exception& e){
@@ -137,22 +176,36 @@ std::shared_ptr<http_response> channel_resource::render_PUT(const http_request& 
 		}
 		updated = true;
 	}
-	if(args.find(std::string_view("type")) != args.end()){
-		int type;
-		err = resource_utils::parse_index(req, "type", type);
-		if(err) return err;
+	if(body["type"].type() == nlohmann::json::value_t::number_unsigned){
+		int type = body["type"].get<int>();
 		if(type != CHANNEL_TEXT && type != CHANNEL_VOICE)
 			return create_response::string(req, "Unknown channel type", 400);
 		tx.exec("UPDATE channels SET type = $1 WHERE channel_id = $2", pqxx::params(type, channel_id));
+		updated = true;
+	}
+	if(body["wl_users"].is_array()){
+		std::vector<int> wl_users;
+		err = json_utils::get_array(req, body, nlohmann::json::value_t::number_unsigned, "wl_users", wl_users);
+		if(err)
+			return err;
+		tx.exec("UPDATE channels SET wl_users = $1 WHERE channel_id = $2", pqxx::params(resource_utils::get_valid_user_ids_vector(wl_users, tx, server_id), channel_id));
+		updated = true;
+	}
+	if(body["wl_roles"].is_array()){
+		std::vector<int> wl_roles;
+		err = json_utils::get_array(req, body, nlohmann::json::value_t::number_unsigned, "wl_roles", wl_roles);
+		if(err)
+			return err;
+		tx.exec("UPDATE channels SET wl_roles = $1 WHERE channel_id = $2", pqxx::params(resource_utils::get_valid_role_ids_vector(wl_roles, tx, server_id), channel_id));
 		updated = true;
 	}
 	tx.commit();
 
 	if(updated){
 		socket_event ev;
-		pqxx::result r = tx.exec("SELECT channel_id, name, type FROM channels WHERE channel_id = $1", pqxx::params(channel_id));
-		ev.data = resource_utils::channel_json_from_row(r[0]);
-		resource_utils::json_set_ids(ev.data, server_id);
+		pqxx::result r = tx.exec("SELECT * FROM channels WHERE channel_id = $1", pqxx::params(channel_id));
+		ev.data = json_utils::channel_from_row(r[0]);
+		json_utils::set_ids(ev.data, server_id);
 		ev.name = "channel_edited";
 		sserv.send_to_server(server_id, tx, ev);
 	}
@@ -180,7 +233,7 @@ std::shared_ptr<http_response> channel_resource::render_DELETE(const http_reques
 
 	socket_event ev;
 	ev.data["id"] = channel_id;
-	resource_utils::json_set_ids(ev.data, server_id);
+	json_utils::set_ids(ev.data, server_id);
 	ev.name = "channel_deleted";
 	sserv.send_to_server(server_id, tx, ev);
 

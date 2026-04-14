@@ -1,5 +1,6 @@
 #include "resource/blocked_user.h"
 #include "resource/utils.h"
+#include "resource/json_utils.h"
 
 blocked_users_resource::blocked_users_resource(webserver& ws, db_connection_pool& pool, const config& cfg):
 	base_resource(ws, "/blocked_users", pool, cfg)
@@ -21,7 +22,7 @@ std::shared_ptr<http_response> blocked_users_resource::render_GET(const http_req
 	nlohmann::json res = nlohmann::json::array();
 	pqxx::result r = tx.exec("SELECT user_id, name, avatar, status FROM (SELECT user2_id FROM blocked_users WHERE user1_id = $1) JOIN users ON user2_id = user_id", pqxx::params(user_id));
 	for(size_t i = 0; i < r.size(); ++i)
-		res += resource_utils::user_json_from_row(r[i]);
+		res += json_utils::user_from_row(r[i]);
 	return create_response::string(req, res.dump(), 200);
 }
 
@@ -75,7 +76,7 @@ std::shared_ptr<http_response> blocked_users_id_resource::render_POST(const http
 	}
 
 	r = tx.exec("SELECT user_id, name, avatar, status FROM users WHERE user_id = $1", pqxx::params(block_user_id));
-	return create_response::string(req, resource_utils::user_json_from_row(r[0]).dump(), 200);
+	return create_response::string(req, json_utils::user_from_row(r[0]).dump(), 200);
 }
 
 std::shared_ptr<http_response> blocked_users_id_resource::render_DELETE(const http_request& req)

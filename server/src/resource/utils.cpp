@@ -3,8 +3,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <sstream>
 #include <iosfwd>
-#include "resource/notification_utils.h"
 
 std::vector<std::string> create_response::origins;
 void create_response::set_origins(std::vector<std::string> _origins)
@@ -195,7 +195,10 @@ std::shared_ptr<http_response> resource_utils::parse_channel_id(const http_reque
 		return create_response::string(req, "Invalid channel ID", 400);
 	}
 
-	pqxx::result r = tx.exec("SELECT channel_id, server_id FROM channels WHERE server_id IN (SELECT server_id FROM user_x_server WHERE user_id = $1) AND channel_id = $2", pqxx::params(user_id, channel_id));
+	pqxx::result r = tx.exec("SELECT channel_id, server_id FROM channels "
+				 "WHERE server_id IN (SELECT server_id FROM user_x_server WHERE user_id = $1) "
+				 "AND channel_id = $2 AND ((array_length(wl_users, 1) IS NULL AND array_length(wl_roles, 1) IS NULL) OR array_position(wl_users, $1) IS NOT NULL OR EXISTS(SELECT role_id FROM user_x_server WHERE user_id = $1 AND array_position(wl_roles, role_id) IS NOT NULL))",
+				 pqxx::params(user_id, channel_id));
 	if(!r.size()){
 		// Try to find a DM channel
 		r = tx.exec("SELECT channel_id FROM channels WHERE (user1_id = $1 OR user2_id = $1) AND channel_id = $2", pqxx::params(user_id, channel_id));
@@ -361,6 +364,53 @@ std::shared_ptr<http_response> resource_utils::parse_invite_id(const http_reques
 	return std::shared_ptr<http_response>(nullptr);
 }
 
+
+std::string resource_utils::int_array_to_string(const std::vector<int>& in)
+{
+	std::stringstream ss;
+	bool first = true;
+	for(auto i = in.begin(); i != in.end(); ++i){
+		if(!first)
+			ss << ",";
+		first = false;
+		ss << *i;
+	}
+	return ss.str();
+}
+
+#define __GET_VALID_USER_IDS(container_t, insert_f){\
+	container_t<int> _out;\
+	if(in.size()){\
+		pqxx::result r = tx.exec("SELECT DISTINCT ON(user_id) user_id FROM user_x_server "\
+					 "WHERE server_id = $1 AND user_id IN (" + int_array_to_string(in) + ")",\
+					 pqxx::params(server_id));\
+		for(size_t i = 0; i < r.size(); ++i)\
+			_out.insert_f(r[i]["user_id"].as<int>());\
+	}\
+	return _out;\
+}
+std::unordered_set<int> resource_utils::get_valid_user_ids(const std::vector<int>& in, pqxx::work& tx, int server_id)
+	__GET_VALID_USER_IDS(std::unordered_set, insert)
+std::vector<int> resource_utils::get_valid_user_ids_vector(const std::vector<int>& in, pqxx::work& tx, int server_id)
+	__GET_VALID_USER_IDS(std::vector, push_back)
+
+#define __GET_VALID_ROLE_IDS(container_t, insert_f){\
+	container_t<int> _out;\
+	if(in.size()){\
+		pqxx::result r = tx.exec("SELECT DISTINCT ON(role_id) role_id FROM roles "\
+					 "WHERE server_id = $1 AND role_id IN (" + int_array_to_string(in) + ")",\
+					 pqxx::params(server_id));\
+		for(size_t i = 0; i < r.size(); ++i)\
+			_out.insert_f(r[i]["role_id"].as<int>());\
+	}\
+	return _out;\
+}
+std::unordered_set<int> resource_utils::get_valid_role_ids(const std::vector<int>& in, pqxx::work& tx, int server_id)
+	__GET_VALID_ROLE_IDS(std::unordered_set, insert)
+std::vector<int> resource_utils::get_valid_role_ids_vector(const std::vector<int>& in, pqxx::work& tx, int server_id)
+	__GET_VALID_ROLE_IDS(std::vector, push_back)
+
+
 /* Pagination */
 
 std::shared_ptr<http_response> resource_utils::pagination_query(const http_request& req, const config& cfg, std::string sort_column,
@@ -384,130 +434,17 @@ std::shared_ptr<http_response> resource_utils::pagination_query(const http_reque
 	return nullptr;
 }
 
-/* JSON */
+/* Other */
 
-std::shared_ptr<http_response> resource_utils::json_from_content(const http_request& req, nlohmann::json& data)
+std::vector<int> resource_utils::parse_psql_int_array(const pqxx::field& f)
 {
-	try {
-		data = nlohmann::json::parse(req.get_content());
-	} catch(nlohmann::json::parse_error& e){
-		return create_response::string(req, "Invalid JSON content", 400);
-	}
-	return nullptr;
-}
-
-void resource_utils::json_set_ids(nlohmann::json& data, int server_id, int channel_id)
-{
-	if(server_id != -1)
-		data["server_id"] = server_id;
-	if(channel_id != -1)
-		data["channel_id"] = channel_id;
-}
-
-nlohmann::json resource_utils::user_json_from_row(const pqxx::row& r)
-{
-	nlohmann::json res = {
-		{"id", r["user_id"].as<int>()},
-		{"name", r["name"].as<std::string>()},
-		{"status", r["status"].as<int>()}
-	};
-	if(!r["avatar"].is_null())
-		res += {"avatar", r["avatar"].as<std::string>()};
-	return res;
-}
-
-nlohmann::json resource_utils::server_json_from_row(const pqxx::row& r)
-{
-	nlohmann::json res = {{"id", r["server_id"].as<int>()},
-				{"name", r["name"].as<std::string>()}};
-	if(!r["avatar"].is_null())
-		res += {"avatar", r["avatar"].as<std::string>()};
-	if(!r["notification_count"].is_null())
-		res += {"notifications", r["notification_count"].as<int>()};
-	return res;
-}
-
-nlohmann::json resource_utils::channel_json_from_row(const pqxx::row& r, int user_id)
-{
-	nlohmann::json res = {
-		{"id", r["channel_id"].as<int>()},
-		{"type", r["type"].as<int>()}
-	};
-	if(!r["name"].is_null())
-		res += {"name", r["name"].as<std::string>()};
-	if(!r["notification_count"].is_null())
-		res += {"notifications", r["notification_count"].as<int>()};
-	if(user_id > -1 && !r["user1_id"].is_null()){
-		int user1_id = r["user1_id"].as<int>(), user2_id = r["user2_id"].as<int>();
-		res += {"other_user_id", user1_id == user_id ? user2_id : user1_id};
-	}
-	return res;
-}
-
-nlohmann::json resource_utils::message_json_from_row(const pqxx::row& msg_row, const std::vector<pqxx::row>& attachment_rows)
-{
-	nlohmann::json r = {
-		{"id", msg_row["message_id"].as<int>()},
-		{"author_id", msg_row["author_id"].as<int>()},
-		{"sent", msg_row["sent"].as<std::string>()},
-		{"edited", msg_row["last_edited"].as<std::string>()},
-		{"text", msg_row["text"].as<std::string>()},
-		{"attachments", nlohmann::json::array()},
-		{"mentions", nlohmann::json::array()}
-	};
-	for(auto i = attachment_rows.begin(); i != attachment_rows.end(); ++i)
-		r["attachments"].push_back({
-			{"type", (*i)["type"].as<unsigned>()},
-			{"content", (*i)["content"].as<std::string>()}
-		});
-
-	pqxx::array_parser parser = msg_row["mentions"].as_array();
+	std::vector<int> arr;
+	pqxx::array_parser parser = f.as_array();
 	auto obj = parser.get_next();
-	int mention_data[4]; size_t mention_data_ln = 0;
 	while(obj.first != pqxx::array_parser::juncture::done){
 		if(obj.first == pqxx::array_parser::juncture::string_value)
-			mention_data[mention_data_ln++] = std::strtol(obj.second.c_str(), nullptr, 10);
-		
-		if(mention_data_ln){
-			mention_types type = static_cast<mention_types>(mention_data[0]);
-			if(mention_data_ln == 4){
-				nlohmann::json m = {
-					{"type", type},
-					{"begin_i", mention_data[1]},
-					{"end_i", mention_data[2]}
-				};
-				if(mention_data[3] > -1)
-					m["id"] = mention_data[3];
-				r["mentions"].push_back(m);
-				mention_data_ln = 0;
-			}
-		}
-
+			arr.push_back(std::strtol(obj.second.c_str(), nullptr, 10));
 		obj = parser.get_next();
 	}
-	return r;
-}
-nlohmann::json resource_utils::message_json_from_row(const pqxx::row& msg_row, const pqxx::result& _attachment_rows)
-{
-	std::vector<pqxx::row> attachment_rows;
-	for(auto i = _attachment_rows.begin(); i != _attachment_rows.end(); ++i)
-		attachment_rows.push_back(*i);
-	return message_json_from_row(msg_row, attachment_rows);
-}
-
-nlohmann::json resource_utils::invite_json_from_row(const pqxx::row& r)
-{
-	return {
-		{"id", r["invite_id"].as<std::string>()},
-		{"server_id", r["server_id"].as<int>()},
-		{"expires", r["expiration_time"].is_null() ? "never" : r["expiration_time"].as<std::string>()}
-	};
-}
-nlohmann::json resource_utils::ban_json_from_row(const pqxx::row& r)
-{
-	return {
-		{"id", r["ban_id"].as<int>()},
-		{"user", resource_utils::user_json_from_row(r)},
-		{"expires", r["expiration_time"].is_null() ? "never" : r["expiration_time"].as<std::string>()}
-	};
+	return arr;
 }

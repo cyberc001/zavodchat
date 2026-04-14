@@ -49,7 +49,8 @@ void db_init(std::string conn_str)
 		tx.exec("CREATE TABLE IF NOT EXISTS roles(role_id SERIAL PRIMARY KEY, prev_role_id INTEGER NOT NULL DEFAULT -1, server_id INTEGER REFERENCES servers ON DELETE CASCADE NOT NULL, name VARCHAR(64) NOT NULL, color INTEGER NOT NULL, perms1 BIGINT NOT NULL DEFAULT 0)");
 		tx.exec("CREATE TABLE IF NOT EXISTS user_x_server(user_id INTEGER REFERENCES users ON DELETE CASCADE NOT NULL, server_id INTEGER REFERENCES servers ON DELETE CASCADE NOT NULL, role_id INTEGER REFERENCES roles ON DELETE CASCADE NOT NULL)"); // can be one-to-many in case a user has multiple roles
 
-		tx.exec("CREATE TABLE IF NOT EXISTS channels(channel_id SERIAL PRIMARY KEY, server_id INTEGER REFERENCES servers ON DELETE CASCADE, name VARCHAR(64), user1_id INTEGER REFERENCES users ON DELETE CASCADE, user2_id INTEGER REFERENCES users ON DELETE CASCADE, type INTEGER NOT NULL)"); // server_id is not null - server channel; otherwise user1_id and user2_id should be set - DM channel (or private call)
+		// server_id is not null - server channel; otherwise user1_id and user2_id should be set - DM channel (or private call)
+		tx.exec("CREATE TABLE IF NOT EXISTS channels(channel_id SERIAL PRIMARY KEY, server_id INTEGER REFERENCES servers ON DELETE CASCADE, name VARCHAR(64), user1_id INTEGER REFERENCES users ON DELETE CASCADE, user2_id INTEGER REFERENCES users ON DELETE CASCADE, type INTEGER NOT NULL, wl_users INTEGER[] NOT NULL DEFAULT '{}', wl_roles INTEGER[] NOT NULL DEFAULT '{}')"); 
 		tx.exec("CREATE TABLE IF NOT EXISTS notifications(server_id INTEGER REFERENCES servers ON DELETE CASCADE, channel_id INTEGER REFERENCES channels ON DELETE CASCADE NOT NULL, user_id INTEGER REFERENCES users ON DELETE CASCADE NOT NULL, notification_count INTEGER NOT NULL DEFAULT 1, PRIMARY KEY(channel_id, user_id))"); // server_id is only used to make queueing server notifications much easier
 
 		// 'mentions' is a 2d array with structure:
@@ -84,6 +85,33 @@ void db_init(std::string conn_str)
 		tx.exec("CREATE INDEX IF NOT EXISTS preference_users ON user_preferences (user_id)");
 
 
+		// Remove user from channel's user whitelist when they leave the server
+		tx.exec("CREATE OR REPLACE FUNCTION remove_user_from_channel_wl() RETURNS trigger AS\n"
+			"$BODY$ BEGIN\n"
+			"UPDATE channels SET wl_users = array_remove(wl_users, OLD.user_id)\n"
+			"WHERE server_id = OLD.server_id;\n"
+			"RETURN OLD;\n"
+			"END; $BODY$\n"
+			"LANGUAGE plpgsql VOLATILE");
+		tx.exec("CREATE OR REPLACE TRIGGER tremove_user_from_channel_wl\n"
+			"BEFORE DELETE ON user_x_server\n"
+			"FOR EACH ROW\n"
+			"EXECUTE FUNCTION remove_user_from_channel_wl();");
+
+		// Remove role from channel's role whitelist when it gets removed
+		tx.exec("CREATE OR REPLACE FUNCTION remove_role_from_channel_wl() RETURNS trigger AS\n"
+			"$BODY$ BEGIN\n"
+			"UPDATE channels SET wl_roles = array_remove(wl_roles, OLD.role_id)\n"
+			"WHERE server_id = OLD.server_id;\n"
+			"RETURN OLD;\n"
+			"END; $BODY$\n"
+			"LANGUAGE plpgsql VOLATILE");
+		tx.exec("CREATE OR REPLACE TRIGGER tremove_role_from_channel_wl\n"
+			"BEFORE DELETE ON roles\n"
+			"FOR EACH ROW\n"
+			"EXECUTE FUNCTION remove_role_from_channel_wl();");
+
+		// Update total filesystem space usage when updating invidiual users
 		tx.exec("CREATE OR REPLACE FUNCTION add_fs_total_busy() RETURNS trigger AS\n"
 			"$BODY$ BEGIN\n"
 			"UPDATE fs_total_busy SET total = total + (NEW.fs_busy - OLD.fs_busy);\n"

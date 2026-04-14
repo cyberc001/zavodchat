@@ -2,6 +2,7 @@
 #define RESOURCE_UTILS_H
 
 #include <vector>
+#include <unordered_set>
 
 #include <nlohmann/json.hpp>
 
@@ -85,26 +86,21 @@ public:
 	// Same as above, but also checks if server has the invite
 	static std::shared_ptr<http_response> parse_invite_id(const http_request&, pqxx::work&, std::string& invite_id);
 
+
+	static std::string int_array_to_string(const std::vector<int>&);
+
+	static std::unordered_set<int> get_valid_user_ids(const std::vector<int>&, pqxx::work&, int server_id);
+	static std::vector<int> get_valid_user_ids_vector(const std::vector<int>&, pqxx::work&, int server_id);
+	static std::unordered_set<int> get_valid_role_ids(const std::vector<int>&, pqxx::work&, int server_id);
+	static std::vector<int> get_valid_role_ids_vector(const std::vector<int>&, pqxx::work&, int server_id);
+
 	/* Pagination */
 	static std::shared_ptr<http_response> pagination_query(const http_request&, const config&, std::string sort_column,
 							pqxx::params& params, std::string& query);
 	static std::string pagination_query(const http_request&);
 
-	/* JSON */
-	static std::shared_ptr<http_response> json_from_content(const http_request&, nlohmann::json&);
-
-	static void json_set_ids(nlohmann::json& data, int server_id, int channel_id = -1);
-
-	static nlohmann::json user_json_from_row(const pqxx::row& r);
-	static nlohmann::json server_json_from_row(const pqxx::row& r);
-	// user_id > -1 -> could be a private channel (in that case, attempt to write to other_user_id field)
-	static nlohmann::json channel_json_from_row(const pqxx::row& r, int user_id = -1);
-
-	static nlohmann::json message_json_from_row(const pqxx::row& msg_row, const std::vector<pqxx::row>& attachment_rows);
-	static nlohmann::json message_json_from_row(const pqxx::row& msg_row, const pqxx::result& attachment_rows);
-
-	static nlohmann::json invite_json_from_row(const pqxx::row& r);
-	static nlohmann::json ban_json_from_row(const pqxx::row& r);
+	/* Other */
+	static std::vector<int> parse_psql_int_array(const pqxx::field& f);
 };
 
 #endif

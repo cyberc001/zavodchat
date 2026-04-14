@@ -1,5 +1,6 @@
 #include "preferences.h"
-#include <resource/utils.h>
+#include "resource/utils.h"
+#include "resource/json_utils.h"
 #include <unordered_set>
 
 preferences_resource::preferences_resource(webserver& ws, db_connection_pool& pool, const config& cfg):
@@ -41,7 +42,7 @@ std::shared_ptr<http_response> preferences_resource::render_PUT(const http_reque
 	if(err) return err;
 
 	nlohmann::json new_prefs;
-	err = resource_utils::json_from_content(req, new_prefs);
+	err = json_utils::from_content(req, new_prefs);
 	if(err) return err;
 
 	pqxx::result r;
@@ -76,7 +77,7 @@ std::shared_ptr<http_response> preferences_resource::render_POST(const http_requ
 	if(err) return err;
 
 	nlohmann::json new_prefs;
-	err = resource_utils::json_from_content(req, new_prefs);
+	err = json_utils::from_content(req, new_prefs);
 	if(err) return err;
 	if(new_prefs.size() > cfg.max_user_preference_keys)
 		return create_response::string(req, "Amount of pairs is bigger than " + std::to_string(cfg.max_user_preference_keys), 400);

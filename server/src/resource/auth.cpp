@@ -1,6 +1,7 @@
 #include "auth.h"
-#include <resource/utils.h>
-#include <resource/file_utils.h>
+#include "resource/utils.h"
+#include "resource/file_utils.h"
+#include "resource/json_utils.h"
 
 auth_resource::auth_resource(webserver& ws, db_connection_pool& pool, const config& cfg):
 	base_resource(ws, "/auth", pool, cfg)
@@ -14,16 +15,12 @@ std::shared_ptr<http_response> auth_resource::render_POST(const http_request& re
 	base_resource::render_POST(req);
 
 	nlohmann::json body;
-	auto err = resource_utils::json_from_content(req, body);
+	auto err = json_utils::from_content(req, body);
 	if(err)
 		return err;
 
-	if(body["username"].type() != nlohmann::json::value_t::string)
-		return create_response::string(req, "'username' should be string", 400);
-	if(body["password"].type() != nlohmann::json::value_t::string)
-		return create_response::string(req, "'password' should be string", 400);
-	std::string username = body["username"].get<std::string>(),
-		    password = body["password"].get<std::string>();
+	JSON_GET_STRING(body, username);
+	JSON_GET_STRING(body, password);
 
 	db_connection conn = pool.hold();
 	pqxx::work tx{*conn};
@@ -80,18 +77,12 @@ std::shared_ptr<http_response> register_resource::render_POST(const http_request
 	base_resource::render_POST(req);
 
 	nlohmann::json body;
-	std::shared_ptr<http_response> err = resource_utils::json_from_content(req, body);
+	std::shared_ptr<http_response> err = json_utils::from_content(req, body);
 	if(err) return err;
 
-	if(body["username"].type() != nlohmann::json::value_t::string)
-		return create_response::string(req, "'username' should be string", 400);
-	if(body["displayname"].type() != nlohmann::json::value_t::string)
-		return create_response::string(req, "'displayname' should be string", 400);
-	if(body["password"].type() != nlohmann::json::value_t::string)
-		return create_response::string(req, "'password' should be string", 400);
-	std::string username = body["username"].get<std::string>(),
-		    displayname = body["displayname"].get<std::string>(),
-		    password = body["password"].get<std::string>();
+	JSON_GET_STRING(body, username);
+	JSON_GET_STRING(body, displayname);
+	JSON_GET_STRING(body, password);
 
 	if(username.size() < cfg.min_username_length)
 		return create_response::string(req, "Username is shorter than " + std::to_string(cfg.min_username_length) + " characters", 400);
@@ -132,6 +123,7 @@ std::shared_ptr<http_response> register_resource::render_PUT(const http_request&
 	auto err = resource_utils::parse_session_token(req, tx, user_id);
 	if(err) return err;
 
+	// It should be a form, not JSON, for uploading avatars
 	auto args = req.get_args();
 	socket_event ev;
 	if(args.find(std::string_view("username")) != args.end()){

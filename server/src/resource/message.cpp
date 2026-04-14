@@ -2,6 +2,7 @@
 #include "resource/utils.h"
 #include "resource/role_utils.h"
 #include "resource/notification_utils.h"
+#include "resource/json_utils.h"
 
 #include <iostream>
 
@@ -35,7 +36,7 @@ std::shared_ptr<http_response> channel_messages_resource::render_GET(const http_
 	pqxx::result r = tx.exec("SELECT * FROM messages WHERE channel_id = $1 " + pg_query, pr);
 	for(size_t i = 0; i < r.size(); ++i){
 		pqxx::result r_att = tx.exec("SELECT type, content FROM message_attachments WHERE message_id = $1", pqxx::params(r[i]["message_id"].as<int>()));
-		res += resource_utils::message_json_from_row(r[i], r_att);
+		res += json_utils::message_from_row(r[i], r_att);
 	}
 
 	return create_response::string(req, res.dump(), 200);
@@ -56,7 +57,7 @@ std::shared_ptr<http_response> channel_messages_resource::render_POST(const http
 	}
 
 	nlohmann::json body;
-	err = resource_utils::json_from_content(req, body);
+	err = json_utils::from_content(req, body);
 	if(err)
 		return err;
 
@@ -117,8 +118,8 @@ std::shared_ptr<http_response> channel_messages_resource::render_POST(const http
 	tx.commit();
 
 	socket_event ev;
-	ev.data = resource_utils::message_json_from_row(msg_res[0], attachment_rows);
-	resource_utils::json_set_ids(ev.data, server_id, channel_id);
+	ev.data = json_utils::message_from_row(msg_res[0], attachment_rows);
+	json_utils::set_ids(ev.data, server_id, channel_id);
 	ev.name = "message_created";
 	sserv.send_to_channel(channel_id, tx, ev);
 
@@ -171,7 +172,7 @@ std::shared_ptr<http_response> channel_messages_search_resource::render_POST(con
 		return err;
 
 	nlohmann::json body;
-	err = resource_utils::json_from_content(req, body);
+	err = json_utils::from_content(req, body);
 	if(err)
 		return err;
 
@@ -215,7 +216,7 @@ std::shared_ptr<http_response> channel_messages_search_resource::render_POST(con
 	}
 	for(size_t i = 0; i < r.size(); ++i){
 		pqxx::result r_att = tx.exec("SELECT type, content FROM message_attachments WHERE message_id = $1", pqxx::params(r[i]["message_id"].as<int>()));
-		res += resource_utils::message_json_from_row(r[i], r_att);
+		res += json_utils::message_from_row(r[i], r_att);
 	}
 
 	return create_response::string(req, res.dump(), 200);
@@ -244,7 +245,7 @@ std::shared_ptr<http_response> message_resource::render_GET(const http_request& 
 
 	pqxx::result r = tx.exec("SELECT * FROM messages WHERE message_id = $1", pqxx::params(message_id));
 	pqxx::result r_att = tx.exec("SELECT type, content FROM message_attachments WHERE message_id = $1", pqxx::params(r[0]["message_id"].as<int>()));
-	nlohmann::json res = resource_utils::message_json_from_row(r[0], r_att);
+	nlohmann::json res = json_utils::message_from_row(r[0], r_att);
 	return create_response::string(req, res.dump(), 200);
 }
 std::shared_ptr<http_response> message_resource::render_PUT(const http_request& req)
@@ -262,7 +263,7 @@ std::shared_ptr<http_response> message_resource::render_PUT(const http_request& 
 		return create_response::string(req, "User is not the author of the mssage", 403);
 
 	nlohmann::json body;
-	err = resource_utils::json_from_content(req, body);
+	err = json_utils::from_content(req, body);
 	if(err)
 		return err;
 
@@ -324,8 +325,8 @@ std::shared_ptr<http_response> message_resource::render_PUT(const http_request& 
 
 		socket_event ev;
 		msg_res[0]["last_edited"] = r[0]["last_edited"];
-		ev.data = resource_utils::message_json_from_row(msg_res[0], attachment_rows);
-		resource_utils::json_set_ids(ev.data, server_id, channel_id);
+		ev.data = json_utils::message_from_row(msg_res[0], attachment_rows);
+		json_utils::set_ids(ev.data, server_id, channel_id);
 		ev.name = "message_edited";
 		sserv.send_to_channel(channel_id, tx, ev);
 	}
@@ -355,7 +356,7 @@ std::shared_ptr<http_response> message_resource::render_DELETE(const http_reques
 
 	socket_event ev;
 	ev.data["id"] = message_id;
-	resource_utils::json_set_ids(ev.data, server_id, channel_id);
+	json_utils::set_ids(ev.data, server_id, channel_id);
 	ev.name = "message_deleted";
 	sserv.send_to_channel(channel_id, tx, ev);
 

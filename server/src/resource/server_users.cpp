@@ -1,6 +1,7 @@
 #include "resource/server_users.h"
 #include "resource/utils.h"
 #include "resource/role_utils.h"
+#include "resource/json_utils.h"
 #include <unordered_map>
 
 server_users_resource::server_users_resource(webserver& ws, db_connection_pool& pool, const config& cfg):
@@ -37,7 +38,7 @@ std::shared_ptr<http_response> server_users_resource::render_GET(const http_requ
 	for(size_t i = 0; i < r.size(); ++i){
 		int user_id = r[i]["user_id"].as<int>();
 		if(r_users.find(user_id) == r_users.end()){
-			nlohmann::json user_json = resource_utils::user_json_from_row(r[i]);
+			nlohmann::json user_json = json_utils::user_from_row(r[i]);
 			user_json["roles"] = nlohmann::json::array();
 			res += user_json;
 			r_users[user_id] = res.size() - 1;
@@ -72,7 +73,7 @@ std::shared_ptr<http_response> server_user_id_resource::render_GET(const http_re
 	if(err) return err;
 
 	pqxx::result r = tx.exec("SELECT user_id, name, avatar, status, role_id FROM user_x_server NATURAL JOIN users WHERE user_id = $1 AND server_id = $2", pqxx::params(server_user_id, server_id));
-	nlohmann::json res = resource_utils::user_json_from_row(r[0]);
+	nlohmann::json res = json_utils::user_from_row(r[0]);
 	res["roles"] = nlohmann::json::array();
 	for(size_t i = 0; i < r.size(); ++i)
 		res["roles"].push_back(r[i]["role_id"].as<int>());
@@ -107,7 +108,7 @@ std::shared_ptr<http_response> server_user_id_resource::render_DELETE(const http
 	tx.commit();
 
 	socket_event ev;
-	resource_utils::json_set_ids(ev.data, server_id);
+	json_utils::set_ids(ev.data, server_id);
 	ev.data["id"] = server_user_id;
 	ev.name = "user_kicked";
 	sserv.send_to_server(server_id, tx, ev);
@@ -160,7 +161,7 @@ std::shared_ptr<http_response> server_user_role_id_resource::render_POST(const h
 	tx.commit();
 
 	socket_event ev;
-	resource_utils::json_set_ids(ev.data, server_id);
+	json_utils::set_ids(ev.data, server_id);
 	ev.data["user_id"] = server_user_id;
 	ev.data["role_id"] = server_role_id;
 	ev.name = "role_assigned";
@@ -202,7 +203,7 @@ std::shared_ptr<http_response> server_user_role_id_resource::render_DELETE(const
 	tx.commit();
 
 	socket_event ev;
-	resource_utils::json_set_ids(ev.data, server_id);
+	json_utils::set_ids(ev.data, server_id);
 	ev.data["user_id"] = server_user_id;
 	ev.data["role_id"] = server_role_id;
 	ev.name = "role_disallowed";

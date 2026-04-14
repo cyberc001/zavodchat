@@ -1,6 +1,7 @@
 #include "socket/vc_server.h"
 #include "resource/channel.h"
 #include "resource/utils.h"
+#include "resource/json_utils.h"
 
 #include <iostream>
 
@@ -587,7 +588,7 @@ socket_vc_server::socket_vc_server(const config& cfg, db_connection_pool& pool, 
 						pqxx::work tx{*db_conn};
 						socket_event ev;
 						ev.data = conn->get_vc_state();
-						resource_utils::json_set_ids(ev.data, conn->server_id, conn->channel_id);
+						json_utils::set_ids(ev.data, conn->server_id, conn->channel_id);
 						ev.name = "user_joined_vc";
 						this->sserv.send_to_channel(conn->channel_id, tx, ev);
 					} else if(state == rtc::PeerConnection::State::Failed){
@@ -621,7 +622,7 @@ socket_vc_server::socket_vc_server(const config& cfg, db_connection_pool& pool, 
 				pqxx::work tx{*db_conn};
 				socket_event ev;
 				ev.data["id"] = conn->user_id;
-				resource_utils::json_set_ids(ev.data, conn->server_id, conn->channel_id);
+				json_utils::set_ids(ev.data, conn->server_id, conn->channel_id);
 				ev.name = "user_left_vc";
 				this->sserv.send_to_channel(conn->channel_id, tx, ev);
 
@@ -676,7 +677,7 @@ socket_vc_server::socket_vc_server(const config& cfg, db_connection_pool& pool, 
 						pqxx::work tx{*db_conn};
 
 						changed_ev.data["id"] = conn->user_id;
-						resource_utils::json_set_ids(changed_ev.data, conn->server_id, conn->channel_id);
+						json_utils::set_ids(changed_ev.data, conn->server_id, conn->channel_id);
 						changed_ev.name = "user_changed_vc_state";
 						this->sserv.send_to_channel(conn->channel_id, tx, changed_ev);
 					}
@@ -717,7 +718,7 @@ socket_vc_server::socket_vc_server(const config& cfg, db_connection_pool& pool, 
 					socket_event ev;
 					ev.data["video"] = video_state::SCREEN;
 					ev.data["id"] = conn->user_id;
-					resource_utils::json_set_ids(ev.data, conn->server_id, conn->channel_id);
+					json_utils::set_ids(ev.data, conn->server_id, conn->channel_id);
 					ev.name = "user_changed_vc_state";
 					this->sserv.send_to_channel(conn->channel_id, tx, ev);
 				} else if(ev.name == "disable_video") {
@@ -732,7 +733,7 @@ socket_vc_server::socket_vc_server(const config& cfg, db_connection_pool& pool, 
 					socket_event ev;
 					ev.data["video"] = video_state::DISABLED;
 					ev.data["id"] = conn->user_id;
-					resource_utils::json_set_ids(ev.data, conn->server_id, conn->channel_id);
+					json_utils::set_ids(ev.data, conn->server_id, conn->channel_id);
 					ev.name = "user_changed_vc_state";
 					this->sserv.send_to_channel(conn->channel_id, tx, ev);
 				}

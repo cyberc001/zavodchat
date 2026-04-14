@@ -15,7 +15,6 @@ struct mention
 	mention(mention_types type, int begin_i, int end_i, int id = -1);
 
 	static std::vector<std::vector<int>> to_array(const std::vector<mention>&);
-	static std::string join_ids(const std::vector<mention>&, mention_types type);
 
 	static bool type_has_id(mention_types);
 

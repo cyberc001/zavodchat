@@ -1,6 +1,7 @@
 #include "resource/server_bans.h"
 #include "resource/utils.h"
 #include "resource/role_utils.h"
+#include "resource/json_utils.h"
 
 server_bans_resource::server_bans_resource(webserver& ws, db_connection_pool& pool, const config& cfg):
 	base_resource(ws, "/servers/{server_id}/bans", pool, cfg)
@@ -29,7 +30,7 @@ std::shared_ptr<http_response> server_bans_resource::render_GET(const http_reque
 	nlohmann::json res = nlohmann::json::array();
 	pqxx::result r = tx.exec("SELECT ban_id, expiration_time, user_id, name, avatar, status FROM server_bans NATURAL JOIN users WHERE server_id = $1" + pg_query, pr);
 	for(size_t i = 0; i < r.size(); ++i)
-		res += resource_utils::ban_json_from_row(r[i]);
+		res += json_utils::ban_from_row(r[i]);
 
 	return create_response::string(req, res.dump(), 200);
 }
@@ -98,8 +99,8 @@ std::shared_ptr<http_response> server_ban_id_resource::render_POST(const http_re
 	tx.commit();
 
 	socket_event ev;
-	ev.data = resource_utils::ban_json_from_row(r[0]);
-	resource_utils::json_set_ids(ev.data, server_id);
+	ev.data = json_utils::ban_from_row(r[0]);
+	json_utils::set_ids(ev.data, server_id);
 	ev.name = "user_banned";
 	sserv.send_to_server(server_id, tx, ev);
 	sserv.send_to_user(server_user_id, tx, ev);
@@ -139,7 +140,7 @@ std::shared_ptr<http_response> server_ban_id_resource::render_PUT(const http_req
 
 	if(changed){
 		socket_event ev;
-		resource_utils::json_set_ids(ev.data, server_id);
+		json_utils::set_ids(ev.data, server_id);
 		ev.data["id"] = ban_id;
 		ev.data["expires"] = args["expires"];
 		ev.name = "ban_changed";
@@ -170,7 +171,7 @@ std::shared_ptr<http_response> server_ban_id_resource::render_DELETE(const http_
 	tx.commit();
 
 	socket_event ev;
-	resource_utils::json_set_ids(ev.data, server_id);
+	json_utils::set_ids(ev.data, server_id);
 	ev.data["id"] = ban_id;
 	ev.name = "user_unbanned";
 	sserv.send_to_server(server_id, tx, ev);

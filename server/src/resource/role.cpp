@@ -1,7 +1,7 @@
 #include "resource/role.h"
-
 #include "resource/utils.h"
 #include "resource/role_utils.h"
+#include "resource/json_utils.h"
 
 #include <iostream>
 
@@ -54,7 +54,7 @@ std::shared_ptr<http_response> server_roles_resource::render_PUT(const http_requ
 	if(err) return err;
 
 	nlohmann::json list;
-	err = resource_utils::json_from_content(req, list);
+	err = json_utils::from_content(req, list);
 	if(err) return err;
 
 	// Validate array
@@ -188,7 +188,7 @@ std::shared_ptr<http_response> server_roles_resource::render_PUT(const http_requ
 	ev.data["roles"] = nlohmann::json::array();
 	for(size_t i = 0; i < r.size(); ++i)
 		ev.data["roles"] += role_utils::role_json_from_row(r[i]);
-	resource_utils::json_set_ids(ev.data, server_id);
+	json_utils::set_ids(ev.data, server_id);
 	ev.name = "roles_updated";
 	sserv.send_to_server(server_id, tx, ev);
 

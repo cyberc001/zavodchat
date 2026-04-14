@@ -1,5 +1,6 @@
 #include "resource/dm.h"
 #include "resource/utils.h"
+#include "resource/json_utils.h"
 #include "resource/channel.h"
 
 dm_resource::dm_resource(webserver& ws, db_connection_pool& pool, const config& cfg,
@@ -36,12 +37,12 @@ std::shared_ptr<http_response> dm_resource::render_GET(const http_request& req)
 				+ pg_query, pr);
 
 	for(size_t i = 0; i < r.size(); ++i){
-		nlohmann::json channel_json = resource_utils::channel_json_from_row(r[i]);
+		nlohmann::json channel_json = json_utils::channel_from_row(r[i], true);
 		int user1_id = r[i]["user1_id"].as<int>(), user2_id = r[i]["user2_id"].as<int>();
 		channel_json["user_id"] = user1_id == user_id ? user2_id : user1_id;
 		if(!r[i]["message_id"].is_null()){
 			pqxx::result attachment_rows;
-			channel_json["last_message"] = resource_utils::message_json_from_row(r[i], attachment_rows);
+			channel_json["last_message"] = json_utils::message_from_row(r[i], attachment_rows);
 		}
 		//if(channel_json["type"] == CHANNEL_VOICE)
 		//	channel_json["vc_users"] = vcserv.get_channel_users(channel_json["id"]);
