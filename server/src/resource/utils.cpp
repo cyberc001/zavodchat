@@ -1,4 +1,5 @@
 #include "resource/utils.h"
+#include "resource/role_utils.h"
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -195,9 +196,9 @@ std::shared_ptr<http_response> resource_utils::parse_channel_id(const http_reque
 		return create_response::string(req, "Invalid channel ID", 400);
 	}
 
-	pqxx::result r = tx.exec("SELECT channel_id, server_id FROM channels "
+	pqxx::result r = tx.exec("SELECT channel_id, server_id, wl_users, wl_roles FROM channels "
 				 "WHERE server_id IN (SELECT server_id FROM user_x_server WHERE user_id = $1) "
-				 "AND channel_id = $2 AND ((array_length(wl_users, 1) IS NULL AND array_length(wl_roles, 1) IS NULL) OR array_position(wl_users, $1) IS NOT NULL OR EXISTS(SELECT role_id FROM user_x_server WHERE user_id = $1 AND array_position(wl_roles, role_id) IS NOT NULL))",
+				 "AND channel_id = $2",
 				 pqxx::params(user_id, channel_id));
 	if(!r.size()){
 		// Try to find a DM channel
@@ -206,9 +207,27 @@ std::shared_ptr<http_response> resource_utils::parse_channel_id(const http_reque
 			return create_response::string(req, "Channel does not exist", 404);
 		else
 			server_id = -1;
-	} else
+	} else {
 		server_id = r[0]["server_id"].as<int>();
-	return std::shared_ptr<http_response>(nullptr);
+		auto no_ch_manage_perms = role_utils::check_permission1(req, tx, server_id, user_id, PERM1_MANAGE_CHANNELS);
+		if(no_ch_manage_perms){
+			// Check that user is whitelisted
+			std::vector<int> wl_users = parse_psql_int_array(r[0]["wl_users"]);
+			if(wl_users.size() > 0 && std::find(wl_users.begin(), wl_users.end(), user_id) != wl_users.end())
+				return nullptr;
+
+			std::vector<int> wl_roles = parse_psql_int_array(r[0]["wl_roles"]);
+			if(wl_users.size() == 0 && wl_roles.size() == 0)
+				return nullptr;
+			pqxx::result roles = tx.exec("SELECT role_id FROM user_x_server WHERE user_id = $1 AND server_id = $2",
+						     pqxx::params(user_id, server_id));
+			for(size_t i = 0; i < roles.size(); ++i)
+				if(std::find(wl_roles.begin(), wl_roles.end(), roles[i]["role_id"].as<int>()) != wl_roles.end())
+					return nullptr;
+			return create_response::string(req, "Channel does not exist", 404);
+		}
+	}
+	return nullptr;
 }
 std::shared_ptr<http_response> resource_utils::parse_channel_id(const http_request& req, pqxx::work& tx, int& user_id, int& server_id, int& channel_id)
 {

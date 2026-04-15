@@ -22,11 +22,16 @@ std::shared_ptr<http_response> server_channel_resource::render_GET(const http_re
 	auto err = resource_utils::parse_server_id(req, tx, user_id, server_id);
 	if(err) return err;
 
+	std::string wl_check;
+	auto no_ch_manage_perms = role_utils::check_permission1(req, tx, server_id, user_id, PERM1_MANAGE_CHANNELS);
+	if(no_ch_manage_perms)
+	       	wl_check = " AND ((array_length(wl_users, 1) IS NULL AND array_length(wl_roles, 1) IS NULL) OR array_position(wl_users, $2) IS NOT NULL OR EXISTS(SELECT role_id FROM user_x_server WHERE user_id = $2 AND array_position(wl_roles, role_id) IS NOT NULL))";
+
 	nlohmann::json res = nlohmann::json::array();
 	pqxx::result r = tx.exec("SELECT channels.channel_id, name, type, notification_count, wl_users, wl_roles FROM channels "
 				 "LEFT JOIN notifications ON notifications.channel_id = channels.channel_id "
 				 "AND notifications.user_id = $2 "
-				 "WHERE channels.server_id = $1 AND ((array_length(wl_users, 1) IS NULL AND array_length(wl_roles, 1) IS NULL) OR array_position(wl_users, $2) IS NOT NULL OR EXISTS(SELECT role_id FROM user_x_server WHERE user_id = $2 AND array_position(wl_roles, role_id) IS NOT NULL))"
+				 "WHERE channels.server_id = $1" + wl_check
 				, pqxx::params(server_id, user_id));
 
 	for(size_t i = 0; i < r.size(); ++i){
