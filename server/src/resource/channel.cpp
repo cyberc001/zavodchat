@@ -114,7 +114,8 @@ std::shared_ptr<http_response> server_channel_resource::render_POST(const http_r
 
 	json_utils::set_ids(ev.data, server_id);
 	ev.name = "channel_created";
-	sserv.send_to_server(server_id, tx, ev);
+	sserv.send_to_server(server_id, tx, ev,
+				wl_users, wl_roles);
 
 	return create_response::string(req, std::to_string(channel_id), 200);
 }
@@ -171,6 +172,9 @@ std::shared_ptr<http_response> channel_resource::render_PUT(const http_request& 
 	if(err)
 		return err;
 
+	std::unique_ptr<std::vector<int>> new_wl_users, new_wl_roles;
+	pqxx::result ch_row = tx.exec("SELECT * FROM channels WHERE channel_id = $1", pqxx::params(channel_id));
+
 	bool updated = false;
 	if(body["name"].type() == nlohmann::json::value_t::string){
 		std::string name = body["name"].get<std::string>();
@@ -189,30 +193,94 @@ std::shared_ptr<http_response> channel_resource::render_PUT(const http_request& 
 		updated = true;
 	}
 	if(body["wl_users"].is_array()){
-		std::vector<int> wl_users;
-		err = json_utils::get_array(req, body, nlohmann::json::value_t::number_unsigned, "wl_users", wl_users);
+		new_wl_users = std::make_unique<std::vector<int>>();
+		err = json_utils::get_array(req, body, nlohmann::json::value_t::number_unsigned, "wl_users", *new_wl_users);
 		if(err)
 			return err;
-		tx.exec("UPDATE channels SET wl_users = $1 WHERE channel_id = $2", pqxx::params(resource_utils::get_valid_user_ids_vector(wl_users, tx, server_id), channel_id));
+		*new_wl_users = resource_utils::get_valid_user_ids_vector(*new_wl_users, tx, server_id);
+		tx.exec("UPDATE channels SET wl_users = $1 WHERE channel_id = $2", pqxx::params(*new_wl_users, channel_id));
 		updated = true;
 	}
 	if(body["wl_roles"].is_array()){
-		std::vector<int> wl_roles;
-		err = json_utils::get_array(req, body, nlohmann::json::value_t::number_unsigned, "wl_roles", wl_roles);
+		new_wl_roles = std::make_unique<std::vector<int>>();
+		err = json_utils::get_array(req, body, nlohmann::json::value_t::number_unsigned, "wl_roles", *new_wl_roles);
 		if(err)
 			return err;
-		tx.exec("UPDATE channels SET wl_roles = $1 WHERE channel_id = $2", pqxx::params(resource_utils::get_valid_role_ids_vector(wl_roles, tx, server_id), channel_id));
+		*new_wl_roles = resource_utils::get_valid_role_ids_vector(*new_wl_roles, tx, server_id);
+		tx.exec("UPDATE channels SET wl_roles = $1 WHERE channel_id = $2", pqxx::params(*new_wl_roles, channel_id));
 		updated = true;
 	}
-	tx.commit();
 
 	if(updated){
+		std::vector<int> wl_users = resource_utils::parse_psql_int_array(ch_row[0]["wl_users"]),
+				 wl_roles = resource_utils::parse_psql_int_array(ch_row[0]["wl_roles"]);
+		ch_row = tx.exec("SELECT * FROM channels WHERE channel_id = $1", pqxx::params(channel_id));
 		socket_event ev;
-		pqxx::result r = tx.exec("SELECT * FROM channels WHERE channel_id = $1", pqxx::params(channel_id));
-		ev.data = json_utils::channel_from_row(r[0]);
+		ev.data = json_utils::channel_from_row(ch_row[0]);
 		json_utils::set_ids(ev.data, server_id);
-		ev.name = "channel_edited";
-		sserv.send_to_server(server_id, tx, ev);
+
+		if(new_wl_users || new_wl_roles){
+			pqxx::result pqxx_old_users;
+			{
+				std::string where_user, where_role;
+				if(wl_users.size())
+					where_user = "user_id IN (" + resource_utils::int_array_to_string(wl_users) + ") ";
+				if(wl_roles.size())
+					where_role = std::string(where_user.size() ? " OR " : "") + "role_id IN (" + resource_utils::int_array_to_string(wl_roles) + ") ";
+				pqxx_old_users = tx.exec("SELECT user_id FROM user_x_server WHERE server_id = $1 " +
+							 (where_user.size() || where_role.size() ? "AND (" + where_user + where_role + ")" : "") +
+							 " GROUP BY user_id",
+							 pqxx::params(server_id));
+			}
+			pqxx::result pqxx_new_users;
+			{
+				std::string where_user, where_role;
+				if(new_wl_users ? new_wl_users->size() : wl_users.size())
+					where_user = "user_id IN (" + resource_utils::int_array_to_string(new_wl_users ? *new_wl_users : wl_users) + ") ";
+				if(new_wl_roles ? new_wl_roles->size() : wl_roles.size())		
+					where_role = std::string(where_user.size() ? " OR " : "") + "role_id IN (" + resource_utils::int_array_to_string(new_wl_roles ? *new_wl_roles : wl_roles) + ") ";
+				pqxx_new_users = tx.exec("SELECT user_id FROM user_x_server WHERE server_id = $1 " +
+							 (where_user.size() || where_role.size() ? "AND (" + where_user + where_role + ")" : "") +
+							 " GROUP BY user_id",
+							 pqxx::params(server_id));
+			}
+
+			std::vector<int> old_users;
+			old_users.reserve(pqxx_old_users.size());
+			for(auto i = pqxx_old_users.begin(); i != pqxx_old_users.end(); ++i)
+				old_users.push_back((*i)["user_id"].as<int>());
+			std::vector<int> new_users;
+			new_users.reserve(pqxx_new_users.size());
+			for(auto i = pqxx_new_users.begin(); i != pqxx_new_users.end(); ++i)
+				new_users.push_back((*i)["user_id"].as<int>());
+
+			array_diff<int> diff(old_users, new_users);
+			if(diff.unchanged.size()){
+				ev.name = "channel_edited";
+				sserv.send_to_server(server_id, tx, ev,
+							diff.unchanged);
+			}
+			if(diff.added.size()){
+				ev.name = "channel_created";
+				sserv.send_to_server(server_id, tx, ev,
+							diff.added);
+			}
+			if(diff.removed.size()){
+				ev.name = "channel_deleted";
+				ev.data = {
+					{"id", channel_id},
+					{"server_id", server_id}
+				};
+				sserv.send_to_server(server_id, tx, ev,
+							diff.removed);
+			}
+		} else {
+			ev.name = "channel_edited";
+			sserv.send_to_server(server_id, tx, ev,
+						wl_users, wl_roles);
+		}
+
+		tx.commit();
 	}
 
 	return create_response::string(req, "Changed", 200);
@@ -233,14 +301,18 @@ std::shared_ptr<http_response> channel_resource::render_DELETE(const http_reques
 	err = role_utils::check_permission1(req, tx, server_id, user_id, PERM1_MANAGE_CHANNELS);
 	if(err) return err;
 
-	tx.exec("DELETE FROM channels WHERE channel_id = $1", pqxx::params(channel_id));
+	pqxx::result r = tx.exec("DELETE FROM channels WHERE channel_id = $1 RETURNING wl_users, wl_roles",
+				 pqxx::params(channel_id));
 	tx.commit();
 
+	std::vector<int> wl_users = resource_utils::parse_psql_int_array(r[0]["wl_users"]),
+			 wl_roles = resource_utils::parse_psql_int_array(r[0]["wl_roles"]);
 	socket_event ev;
 	ev.data["id"] = channel_id;
 	json_utils::set_ids(ev.data, server_id);
 	ev.name = "channel_deleted";
-	sserv.send_to_server(server_id, tx, ev);
+	sserv.send_to_server(server_id, tx, ev,
+				wl_users, wl_roles);
 
 	return create_response::string(req, "Deleted", 200);
 }

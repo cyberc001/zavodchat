@@ -30,6 +30,31 @@ enum order_type {
 	ORDER_ASC
 };
 
+template<typename T>
+struct array_diff
+{
+	array_diff(const std::vector<T>& in)
+	{
+		unchanged = in;
+	}
+	array_diff(const std::vector<T>& old, const std::vector<T>& _new)
+	{
+		// Using sets instead of std::find() on vectors yields O(NlogN) instead of O(N^2).
+		// TODO: maybe sort arrays before storing them in channels table?
+		std::unordered_set<T> s_old(old.begin(), old.end()), s_new(_new.begin(), _new.end());
+		for(auto i = s_old.begin(); i != s_old.end(); ++i)
+			if(!s_new.count(*i))
+				removed.push_back(*i);
+		for(auto i = s_new.begin(); i != s_new.end(); ++i)
+			if(!s_old.count(*i))
+				added.push_back(*i);
+			else
+				unchanged.push_back(*i);
+	}
+
+	std::vector<T> added, removed, unchanged;
+};
+
 class resource_utils
 {
 public:

@@ -14,11 +14,14 @@ public:
 	socket_main_server(std::string https_key, std::string https_cert, int port,
 				db_connection_pool& pool);
 
-	void send_to_server(int server_id, pqxx::work& tx, socket_event event);
+	// If wl_users or wl_roles have elements, only these users/roles will get the event
+	void send_to_server(int server_id, pqxx::work& tx, socket_event event,
+					std::vector<int> wl_users = {}, std::vector<int> wl_roles = {},
+					std::vector<int> bl_users = {}, std::vector<int> bl_roles = {});
 	void send_to_channel(int channel_id, pqxx::work& tx, socket_event event);
 
 	void send_to_user(int user_id, pqxx::work& tx, socket_event event);
-	// sends an event to everyone in the same servers as user and friends
+	// Sends an event to everyone in the same servers as user and friends
 	void send_to_user_observers(int user_id, pqxx::work& tx, socket_event event);
 
 private:

@@ -2,8 +2,6 @@
 #include <resource/user_status.h>
 #include <resource/utils.h>
 
-#include <iostream>
-
 socket_main_server::socket_main_server(std::string https_key, std::string https_cert, int port,
 				db_connection_pool& pool): socket_server(https_key, https_cert, port, pool)
 {
@@ -84,10 +82,28 @@ void socket_main_server::try_send_to_conn(int user_id, const std::string& data)
 	});
 }
 
-void socket_main_server::send_to_server(int server_id, pqxx::work& tx, socket_event event)
+void socket_main_server::send_to_server(int server_id, pqxx::work& tx, socket_event event,
+					std::vector<int> wl_users, std::vector<int> wl_roles,
+					std::vector<int> bl_users, std::vector<int> bl_roles)
 {
 	std::string dumped = event.dump();
-	pqxx::result r = tx.exec("SELECT user_id FROM user_x_server WHERE server_id = $1 GROUP BY user_id", pqxx::params(server_id));
+	std::string wl_check, having;
+	if(wl_users.size() > 0 || wl_roles.size() > 0){
+		wl_check = "AND (";
+		if(wl_users.size() > 0)
+			wl_check += "user_id IN (" + resource_utils::int_array_to_string(wl_users) + ")";
+		if(wl_roles.size() > 0)
+			wl_check += std::string(wl_users.size() > 0 ? " OR " : "") + "role_id IN (" + resource_utils::int_array_to_string(wl_roles) + ")";
+		wl_check += ")";
+	}
+	if(bl_users.size() > 0)
+		wl_check += " AND user_id NOT IN (" + resource_utils::int_array_to_string(bl_users) + ")";
+	if(bl_roles.size() > 0)
+		having = " HAVING bool_or(role_id IN (" + resource_utils::int_array_to_string(bl_roles) + "))";
+
+	pqxx::result r = tx.exec("SELECT user_id FROM user_x_server WHERE server_id = $1 " + wl_check +
+				 " GROUP BY user_id" + having,
+				 pqxx::params(server_id));
 
 	for(size_t i = 0; i < r.size(); ++i){
 		int user_id = r[i]["user_id"].as<int>();
