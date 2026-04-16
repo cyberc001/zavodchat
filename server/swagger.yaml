@@ -1114,7 +1114,7 @@ components:
           items:
               $ref: '#/components/schemas/VCState'
         wl_users:
-          description: id пользователей в белом списке. Если wl_users и wl_roles отсутствуют, то канал публичный.
+          description: id пользователей в белом списке. Если wl_users = wl_roles = [], то канал публичный.
           type: array
           items:
             type: integer
@@ -1122,7 +1122,7 @@ components:
           - 1
           - 2
         wl_roles:
-          description: id ролей в белом списке. Если wl_users и wl_roles отсутствуют, то канал публичный.
+          description: id ролей в белом списке. Если wl_users = wl_roles = [], то канал публичный.
           type: array
           items:
             type: integer

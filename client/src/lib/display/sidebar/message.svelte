@@ -233,9 +233,6 @@
 			loading_text="Loading messages..." to_latest_text="To latest messages"
 			render_item={render_message}
 			load_items={(start_id, range, asc) => Message.get_search_range(channel_id, start_id, range, asc, message_search_params)}
-			augment_item={(msg) => {
-				msg.author = server ? User.get_server(server.data.id, msg.author_id) : User.get(msg.author_id);
-			}}
 			/>
 			<MessageInput
 				bind:value={message_text} bind:attachments={message_attachments} bind:links={message_links}

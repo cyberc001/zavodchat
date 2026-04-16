@@ -49,12 +49,12 @@ export default class Channel {
 	}
 	static create(server_id, data, _then, _catch){
 		Rest.post(`Creating channel "${data.name}"`, "servers/" + server_id + "/channels",
-				Util.form_data_from_object(data, ["name", "type"]),
+				data,
 				(res) => _then(res.data), _catch);
 	}
 	static change(channel_id, data, _then, _catch){
 		Rest.put("Changing channel", "channels/" + channel_id,
-				Util.form_data_from_object(data, ["name", "type"]),
+				data,
 				(res) => _then(res.data), _catch);
 	}
 	static delete(channel_id, _then, _catch){

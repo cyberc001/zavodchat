@@ -19,6 +19,8 @@
 		show_ctx_menu, show_user} = $props();
 	let is_edited = $derived(data.sent !== data.edited);
 
+	let user = User.get_server(server.data.id, data.author_id);
+
 	let status_msg = $derived.by(() => {
 		switch(data.status){
 			case Message.Status.Sending:
@@ -91,7 +93,7 @@
 </script>
 
 <div id={"message_display_" + data.id} class="message_panel" tabindex=0 role="group">
-	<UserDisplay user={data.author?.data} server={server}
+	<UserDisplay user={user} server={server}
 	message_id={data.id}
 	display_status={false}
 	selected={selected_user}

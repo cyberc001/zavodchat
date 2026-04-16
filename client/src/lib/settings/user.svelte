@@ -136,7 +136,7 @@
 
 
 {#snippet render_blocked_user(i, item)}
-	<UserDisplay user={item} display_status={false}/>
+	<UserDisplay user={{data: item, loaded: true}} display_status={false}/>
 {/snippet}
 
 {#snippet other_users()}

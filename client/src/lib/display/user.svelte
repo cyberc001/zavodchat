@@ -11,36 +11,36 @@
 		message_id = -1} = $props();
 
 	let self = $state();
-	let name = $derived("user_display_" + user?.id + (message_id > -1 ? "_" + message_id : ""));
+	let name = $derived(user.loaded ? "user_display_" + user.data.id + (message_id > -1 ? "_" + message_id : "") : "");
 
 	let server_roles = $state();
 	$effect(() => {
 		if(server?.loaded)
 			server_roles = Role.get_list(server.data.id);
 	});
-	let username_style = $derived(server_roles?.loaded ? Role.get_username_style(Role.get_user_roles(user, server_roles.data)) : "");
+	let username_style = $derived(server_roles?.loaded ? Role.get_username_style(Role.get_user_roles(user.data, server_roles.data)) : "");
 </script>
 
 <button class={"user_display hoverable " + (selected ? "selected " : "") + (message_id > -1 ? "" : " sidebar_user_display")}
 	style="anchor-name: --{name}; {style}"
 	id={name}
 	bind:this={self}
-	onclick={() => show_user(user?.id, self)}
+	onclick={() => show_user(user?.data.id, self)}
 	oncontextmenu={(e) => {
 		event.preventDefault();
 		show_ctx_menu(self, e);
 	}}
 >
-	{#if !user}
+	{#if !user.loaded}
 		<img src={asset("icons/loading.svg")} alt="loading" class="filter_icon_main" style="width: 24px"/>
 	{:else}
 		<div class="user_avatar_frame">
 			{#if display_status}
-				<div class="user_status" style={User.Status.get_style(user.status)}></div>
+				<div class="user_status" style={User.Status.get_style(user.data.status)}></div>
 			{/if}
-			<img class="user_avatar" src={User.get_avatar_path(user)} alt="avatar"/>
+			<img class="user_avatar" src={User.get_avatar_path(user.data)} alt="avatar"/>
 		</div>
-		<b class="user_name_text" style={username_style}>{user.name}</b>
+		<b class="user_name_text" style={username_style}>{user.data.name}</b>
 	{/if}
 </button>
 

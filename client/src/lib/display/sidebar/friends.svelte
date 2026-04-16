@@ -52,7 +52,7 @@ buttons={[{text: "Remove", action: () => Friends.remove_friend(user_to_remove.da
 		</div>
 		{#each friends.data as friend}
 			<div class="friend_entry">
-				<UserDisplay user={friend.user.data}/>
+				<UserDisplay user={friend.user}/>
 
 				<div class="friend_actions">
 					{#if friend.user.loaded}
@@ -86,7 +86,7 @@ buttons={[{text: "Remove", action: () => Friends.remove_friend(user_to_remove.da
 	{#if args.requests.loaded}
 		{#each args.requests.data as req}
 			<div class="friend_entry">
-				<UserDisplay user={req.data} display_status={false}/>
+				<UserDisplay user={req} display_status={false}/>
 
 				<div class="friend_actions">
 				{#if req.loaded}

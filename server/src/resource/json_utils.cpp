@@ -46,7 +46,9 @@ nlohmann::json json_utils::channel_from_row(const pqxx::row& r, bool has_notific
 {
 	nlohmann::json res = {
 		{"id", r["channel_id"].as<int>()},
-		{"type", r["type"].as<int>()}
+		{"type", r["type"].as<int>()},
+		{"wl_users", nlohmann::json::array()},
+		{"wl_roles", nlohmann::json::array()}
 	};
 	if(!r["name"].is_null())
 		res += {"name", r["name"].as<std::string>()};
@@ -59,18 +61,14 @@ nlohmann::json json_utils::channel_from_row(const pqxx::row& r, bool has_notific
 
 	// Parse whitelists
 	std::vector<int> wl_users = resource_utils::parse_psql_int_array(r["wl_users"]);
-	if(wl_users.size()){
-		res["wl_users"] = nlohmann::json::array();
+	if(wl_users.size())
 		for(size_t i = 0; i < wl_users.size(); ++i)
 			res["wl_users"].push_back(wl_users[i]);
-	}
 
 	std::vector<int> wl_roles = resource_utils::parse_psql_int_array(r["wl_roles"]);
-	if(wl_roles.size()){
-		res["wl_roles"] = nlohmann::json::array();
+	if(wl_roles.size())
 		for(size_t i = 0; i < wl_roles.size(); ++i)
 			res["wl_roles"].push_back(wl_roles[i]);
-	}
 
 	return res;
 }

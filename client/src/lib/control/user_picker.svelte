@@ -88,7 +88,7 @@
 	</button>
 {/snippet}
 {#snippet render_user(i, item)}
-	<UserDisplay user={item} server={server}
+	<UserDisplay user={{data: item, loaded: true}} server={server}
 		display_status={false}
 		show_user={() => {
 			value = item.id;

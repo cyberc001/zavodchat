@@ -310,7 +310,7 @@ This cannot be reversed.
 {/snippet}
 
 {#snippet render_ban(i, item)}
-	<UserDisplay user={item.user} display_status={false}
+	<UserDisplay user={{data: item.user, loaded: true}} display_status={false}
 			style={state_bans.state.changed_bans[item.id]?.state === BanState.Removed ? "text-decoration: line-through" : ""}
 			selected={ban_select_id === item.id}
 			onclick={() => ban_select_id = item.id}

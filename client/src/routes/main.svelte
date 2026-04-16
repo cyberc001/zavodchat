@@ -397,7 +397,7 @@
 		<div class="panel sidebar_users">
 			{#snippet render_user(i, user)}
 				<UserDisplay
-				user={user} server={server}
+				user={{data: user, loaded: true}} server={server}
 				selected={sel.user.message_id == -1 && user.id == sel.user.id}
 				show_user={(id, anchor) => showUser(id, anchor, "right")}
 				show_ctx_menu={(anchor, e) => {

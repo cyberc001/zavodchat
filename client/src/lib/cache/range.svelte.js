@@ -195,7 +195,6 @@ class DataTree {
 		return true;
 	}
 	set_state(start_id, count, data, asc){
-		console.log("SET_STATE", start_id, count, "\n", data, "\n", asc);
 		for(let i = 0; i < data.length; ++i){
 			let f = this._tree.find(data[i]);
 			if(!f){
@@ -214,7 +213,6 @@ class DataTree {
 					f.prev_id = this.key(data[i + 1]);
 			}
 		}
-		console.log("SET_STATE tree\n", this._tree);
 		if(data.length > 0 && count > data.length){
 			if(asc){
 				if(this.key(data[data.length - 1]) > this.max_id)
