@@ -25,11 +25,13 @@ std::shared_ptr<http_response> server_invites_resource::render_GET(const http_re
 	auto err = resource_utils::parse_invite_id(req, tx, invite_id);
 	if(err) return err;
 
-	pqxx::result r = tx.exec("SELECT server_id, name, avatar FROM server_invites NATURAL JOIN servers WHERE invite_id = $1 AND expiration_time IS NULL OR expiration_time > now()", pqxx::params(invite_id));
+	pqxx::result r = tx.exec("SELECT server_id, name, avatar FROM server_invites "
+				 "NATURAL JOIN servers WHERE invite_id = $1 AND expiration_time IS NULL OR expiration_time > now()",
+				 pqxx::params(invite_id));
 	if(!r.size())
 		return create_response::string(req, "Invite has expired", 403);
 
-	return create_response::string(req, json_utils::invite_from_row(r[0]).dump(), 200);
+	return create_response::string(req, json_utils::server_from_row(r[0], false).dump(), 200);
 }
 std::shared_ptr<http_response> server_invites_resource::render_POST(const http_request& req)
 {

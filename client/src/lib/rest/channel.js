@@ -25,6 +25,10 @@ export default class Channel {
 					channel_list_data[f] = data[f];
 		}
 	}
+	static remove_server(server_id){
+		Channel.channel_cache.reset();
+		Channel.channel_list_cache.remove_state(server_id);
+	}
 
 
 	static get(channel_id, _catch){

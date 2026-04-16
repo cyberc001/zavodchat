@@ -39,7 +39,7 @@ public:
 	static void set_ids(nlohmann::json& data, int server_id, int channel_id = -1);
 
 	static nlohmann::json user_from_row(const pqxx::row& r);
-	static nlohmann::json server_from_row(const pqxx::row& r);
+	static nlohmann::json server_from_row(const pqxx::row& r, bool notifications = true);
 	// user_id > -1 -> could be a private channel (in that case, attempt to write to other_user_id field)
 	static nlohmann::json channel_from_row(const pqxx::row& r, bool has_notifications = false, int user_id = -1);
 

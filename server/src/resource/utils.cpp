@@ -433,7 +433,7 @@ std::vector<int> resource_utils::get_valid_role_ids_vector(const std::vector<int
 /* Pagination */
 
 std::shared_ptr<http_response> resource_utils::pagination_query(const http_request& req, const config& cfg, std::string sort_column,
-							pqxx::params& params, std::string& query)
+							pqxx::params& params, std::string& query, std::string* order_out)
 {
 	int start_id;
 	auto err = resource_utils::parse_index(req, "start_id", start_id, 0);
@@ -448,6 +448,9 @@ std::shared_ptr<http_response> resource_utils::pagination_query(const http_reque
 	params.append(start_id);
 	size_t pri_start = params.size();
 	params.append(count);
+
+	if(order_out)
+		*order_out = " ORDER BY " + sort_column + " " + order;
 
 	query = " AND " + sort_column + std::string(order == "DESC" ? " <=" : " >=") + " $" + std::to_string(pri_start) + " ORDER BY " + sort_column + " " + order + " LIMIT $" + std::to_string(pri_start + 1) + " ";
 	return nullptr;

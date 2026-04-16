@@ -34,8 +34,7 @@ export class IDCache {
 	// Keep references to state values so they dont get collected until interval passes
 	_cache_refs = {};
 	intv = setInterval(() => {
-		for(const key in this._cache_refs)
-			delete this._cache_refs[key];
+		this._cache_refs = {};
 	}, 60000);
 
 	// ID: [int1, int2, ..., intN]
@@ -62,6 +61,12 @@ export class IDCache {
 		}
 		return obj;
 	}
+
+	reset(){
+		this.cache = {};
+		this._cache_refs = {};
+	}
+
 	// Should be called from get_state(, load_func), therefore id is not parsed twice
 	set_state(id, data){
 		let obj = this.cache[id].deref();

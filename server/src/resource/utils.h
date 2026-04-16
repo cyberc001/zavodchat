@@ -121,7 +121,7 @@ public:
 
 	/* Pagination */
 	static std::shared_ptr<http_response> pagination_query(const http_request&, const config&, std::string sort_column,
-							pqxx::params& params, std::string& query);
+							pqxx::params& params, std::string& query, std::string* order = nullptr);
 	static std::string pagination_query(const http_request&);
 
 	/* Other */

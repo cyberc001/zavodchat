@@ -16,6 +16,17 @@ import Sound from '$lib/sound.js';
 
 import {RangeCache} from '$lib/cache/range.svelte.js';
 
+
+function purge_server(server_id) {
+	Ban.ban_range_cache.remove_state(server_id);
+	Channel.remove_server(server_id);
+	Message.message_range_cache.reset();
+	Role.role_list_cache.remove_state(server_id);
+	Server.remove_cache(server_id);
+	User.user_server_cache.reset();
+	User.user_server_range_cache.remove_state(server_id);
+}
+
 export default class MainSocket {
 	ws;
 
@@ -171,14 +182,17 @@ export default class MainSocket {
 
 		user_kicked: function(data) {
 			if(User.user_cache.has_state(-1) && User.user_cache.get_state(-1).data.id === data.id)
-				Server.remove_cache(data.server_id);
-			User.delete_cache_server(data.server_id, data.id);
+				purge_server(data.server_id);
+			else
+				User.delete_cache_server(data.server_id, data.id);
 		},
 		user_banned: function(data) {
 			if(User.user_cache.has_state(-1) && User.user_cache.get_state(-1).data.id === data.user.id)
-				Server.remove_cache(data.server_id);
-			User.delete_cache_server(data.server_id, data.user.id);
-			Ban.ban_range_cache.insert(data.server_id, data);
+				purge_server(data.server_id);
+			else {
+				User.delete_cache_server(data.server_id, data.user.id);
+				Ban.ban_range_cache.insert(data.server_id, data);
+			}
 		},
 		user_unbanned: function(data) {
 			Ban.ban_range_cache.remove(data.server_id, data.id);

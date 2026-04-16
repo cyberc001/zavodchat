@@ -22,7 +22,7 @@
 		{#if server === null}
 			Invalid invite
 		{:else if !server}
-			<img src={asset("icons/loading.svg")} alt="loading" class="filter_icon_main" style="width: 48px"/>
+			<img src={asset("/icons/loading.svg")} alt="loading" class="filter_icon_main" style="width: 48px"/>
 		{:else}
 			{#if server.avatar}
 				<img class="server_avatar" src={Server.get_avatar_path(server)} />

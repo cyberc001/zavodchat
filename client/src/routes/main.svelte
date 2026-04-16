@@ -129,15 +129,13 @@
 					(name, data) => {
 						socket_vc?.on_main_message(name, data);
 
-						if(name === "server_deleted"){
+						if(name === "server_deleted" ||
+							(name === "user_kicked" && data.id === user_self.data.id) ||
+							(name === "user_banned" && data.user.id === user_self.data.id)){
 							if(settings_params.server_id === data.id)
 								closeSettings();
-							if(data.id === sel.server)
-								showServer(-1);
-						} else if((name === "user_kicked" || name === "user_banned") && data.user.id === user_self.data.id){
-							if(settings_params.server_id === data.id)
-								closeSettings();
-							if(data.server_id === sel.server)
+							if((name === "server_deleted" && data.id === sel.server) ||
+							   (data.server_id === sel.server))
 								showServer(-1);
 						} else if((name === "channel_deleted" || (name === "channel_edited" && data.type === Channel.Type.Voice)
 								) && sel.channel === data.id){

@@ -31,13 +31,13 @@ nlohmann::json json_utils::user_from_row(const pqxx::row& r)
 	return res;
 }
 
-nlohmann::json json_utils::server_from_row(const pqxx::row& r)
+nlohmann::json json_utils::server_from_row(const pqxx::row& r, bool notifications)
 {
 	nlohmann::json res = {{"id", r["server_id"].as<int>()},
 				{"name", r["name"].as<std::string>()}};
 	if(!r["avatar"].is_null())
 		res += {"avatar", r["avatar"].as<std::string>()};
-	if(!r["notification_count"].is_null())
+	if(notifications && !r["notification_count"].is_null())
 		res += {"notifications", r["notification_count"].as<int>()};
 	return res;
 }
