@@ -37,6 +37,7 @@
 	"max_channels_per_server": 50,
 	"max_roles_per_server": 50,
 	"max_invites_per_server": 50,
+	"max_wl_users_per_channel": 50,
 
 	"file_storage_size": 10737418240,
 

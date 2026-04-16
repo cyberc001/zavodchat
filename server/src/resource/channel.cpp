@@ -234,6 +234,8 @@ std::shared_ptr<http_response> channel_resource::render_PUT(const http_request& 
 		err = json_utils::get_array(req, body, nlohmann::json::value_t::number_unsigned, "wl_users", *new_wl_users);
 		if(err)
 			return err;
+		if(new_wl_users->size() > cfg.max_wl_users_per_channel)
+			return create_response::string(req, "Too many whitelisted users per channel", 400);
 		*new_wl_users = resource_utils::get_valid_user_ids_vector(*new_wl_users, tx, server_id);
 		tx.exec("UPDATE channels SET wl_users = $1 WHERE channel_id = $2", pqxx::params(*new_wl_users, channel_id));
 		updated = true;

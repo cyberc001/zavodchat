@@ -118,6 +118,7 @@ config::config(std::ifstream& fd)
 	GET_UNSIGNED(max_channels_per_server)
 	GET_UNSIGNED(max_roles_per_server)
 	GET_UNSIGNED(max_invites_per_server)
+	GET_UNSIGNED(max_wl_users_per_channel)
 
 	GET_UNSIGNED(max_user_preference_keys)
 

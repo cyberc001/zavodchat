@@ -23,6 +23,7 @@ std::shared_ptr<http_response> params_resource::render_GET(const http_request& r
 		{"max_servers_owned_per_user", cfg.max_servers_owned_per_user},
 		{"max_channels_per_server", cfg.max_channels_per_server},
 		{"max_roles_per_server", cfg.max_roles_per_server},
+		{"max_wl_users_per_channel", cfg.max_wl_users_per_channel},
 		{"max_video_bitrate", cfg.max_video_bitrate}
 	};
 	return create_response::string(req, obj.dump(), 200);

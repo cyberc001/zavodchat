@@ -51,6 +51,7 @@ public:
 	unsigned max_channels_per_server = 50;
 	unsigned max_roles_per_server = 50;
 	unsigned max_invites_per_server = 50;
+	unsigned max_wl_users_per_channel = 50;
 
 	unsigned max_video_bitrate = 10240000;
 	unsigned inactive_channel_time = 30000;
