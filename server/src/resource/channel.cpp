@@ -151,6 +151,43 @@ std::shared_ptr<http_response> channel_resource::render_GET(const http_request& 
 
 	return create_response::string(req, channel_json.dump(), 200);
 }
+
+void get_old_wl_users(const std::vector<int>& wl_users, const std::vector<int>& wl_roles,
+			int server_id, pqxx::work& tx, std::vector<int>& out)
+{
+	std::string where_user, where_role;
+	if(wl_users.size())
+		where_user = "user_id IN (" + resource_utils::int_array_to_string(wl_users) + ") ";
+	if(wl_roles.size())
+		where_role = std::string(where_user.size() ? " OR " : "") + "role_id IN (" + resource_utils::int_array_to_string(wl_roles) + ") ";
+	pqxx::result r = tx.exec("SELECT user_id FROM user_x_server WHERE server_id = $1 " +
+				 (where_user.size() || where_role.size() ? "AND (" + where_user + where_role + ")" : "") +
+				 " GROUP BY user_id",
+				 pqxx::params(server_id));
+
+	out.reserve(r.size());
+	for(auto i = r.begin(); i != r.end(); ++i)
+		out.push_back((*i)["user_id"].as<int>());
+}
+void get_new_wl_users(const std::vector<int>& wl_users, const std::vector<int>& wl_roles,
+			const std::vector<int>* new_wl_users, const std::vector<int>* new_wl_roles, 
+			int server_id, pqxx::work& tx, std::vector<int>& out)
+{
+	std::string where_user, where_role;
+	if(new_wl_users ? new_wl_users->size() : wl_users.size())
+		where_user = "user_id IN (" + resource_utils::int_array_to_string(new_wl_users ? *new_wl_users : wl_users) + ") ";
+	if(new_wl_roles ? new_wl_roles->size() : wl_roles.size())		
+		where_role = std::string(where_user.size() ? " OR " : "") + "role_id IN (" + resource_utils::int_array_to_string(new_wl_roles ? *new_wl_roles : wl_roles) + ") ";
+	pqxx::result r = tx.exec("SELECT user_id FROM user_x_server WHERE server_id = $1 " +
+				 (where_user.size() || where_role.size() ? "AND (" + where_user + where_role + ")" : "") +
+				 " GROUP BY user_id",
+				 pqxx::params(server_id));
+
+	out.reserve(r.size());
+	for(auto i = r.begin(); i != r.end(); ++i)
+		out.push_back((*i)["user_id"].as<int>());
+}
+
 std::shared_ptr<http_response> channel_resource::render_PUT(const http_request& req)
 {
 	base_resource::render_PUT(req);
@@ -220,59 +257,66 @@ std::shared_ptr<http_response> channel_resource::render_PUT(const http_request& 
 		json_utils::set_ids(ev.data, server_id);
 
 		if(new_wl_users || new_wl_roles){
-			pqxx::result pqxx_old_users;
-			{
-				std::string where_user, where_role;
-				if(wl_users.size())
-					where_user = "user_id IN (" + resource_utils::int_array_to_string(wl_users) + ") ";
-				if(wl_roles.size())
-					where_role = std::string(where_user.size() ? " OR " : "") + "role_id IN (" + resource_utils::int_array_to_string(wl_roles) + ") ";
-				pqxx_old_users = tx.exec("SELECT user_id FROM user_x_server WHERE server_id = $1 " +
-							 (where_user.size() || where_role.size() ? "AND (" + where_user + where_role + ")" : "") +
-							 " GROUP BY user_id",
-							 pqxx::params(server_id));
-			}
-			pqxx::result pqxx_new_users;
-			{
-				std::string where_user, where_role;
-				if(new_wl_users ? new_wl_users->size() : wl_users.size())
-					where_user = "user_id IN (" + resource_utils::int_array_to_string(new_wl_users ? *new_wl_users : wl_users) + ") ";
-				if(new_wl_roles ? new_wl_roles->size() : wl_roles.size())		
-					where_role = std::string(where_user.size() ? " OR " : "") + "role_id IN (" + resource_utils::int_array_to_string(new_wl_roles ? *new_wl_roles : wl_roles) + ") ";
-				pqxx_new_users = tx.exec("SELECT user_id FROM user_x_server WHERE server_id = $1 " +
-							 (where_user.size() || where_role.size() ? "AND (" + where_user + where_role + ")" : "") +
-							 " GROUP BY user_id",
-							 pqxx::params(server_id));
-			}
-
-			std::vector<int> old_users;
-			old_users.reserve(pqxx_old_users.size());
-			for(auto i = pqxx_old_users.begin(); i != pqxx_old_users.end(); ++i)
-				old_users.push_back((*i)["user_id"].as<int>());
-			std::vector<int> new_users;
-			new_users.reserve(pqxx_new_users.size());
-			for(auto i = pqxx_new_users.begin(); i != pqxx_new_users.end(); ++i)
-				new_users.push_back((*i)["user_id"].as<int>());
-
-			array_diff<int> diff(old_users, new_users);
-			if(diff.unchanged.size()){
-				ev.name = "channel_edited";
-				sserv.send_to_server(server_id, tx, ev,
-							diff.unchanged);
-			}
-			if(diff.added.size()){
+			if( !(new_wl_users ? new_wl_users->size() : wl_users.size()) &&
+			    !(new_wl_roles ? new_wl_roles->size() : wl_roles.size()) ){
+				// whitelist -> no whitelist
+				std::vector<int> old_users;
+				get_old_wl_users(wl_users, wl_roles,
+							server_id, tx, old_users);
+				if(old_users.size()){
+					ev.name = "channel_edited";
+					sserv.send_to_server(server_id, tx, ev,
+								old_users);
+				}
 				ev.name = "channel_created";
 				sserv.send_to_server(server_id, tx, ev,
-							diff.added);
-			}
-			if(diff.removed.size()){
+							{}, {}, old_users);
+			} else if(!wl_users.size() && !wl_roles.size() &&
+					((new_wl_users && new_wl_users->size()) || (new_wl_roles && new_wl_roles->size()))){
+				// no whitelist -> whitelist
+				std::vector<int> new_users;
+				get_new_wl_users(wl_users, wl_roles, new_wl_users.get(), new_wl_roles.get(),
+							server_id, tx, new_users);
+				if(new_users.size()){
+					ev.name = "channel_edited";
+					sserv.send_to_server(server_id, tx, ev,
+								new_users);
+				}
 				ev.name = "channel_deleted";
 				ev.data = {
 					{"id", channel_id},
 					{"server_id", server_id}
 				};
 				sserv.send_to_server(server_id, tx, ev,
-							diff.removed);
+							{}, {}, new_users);
+			} else {
+				std::vector<int> old_users, new_users;
+				get_old_wl_users(wl_users, wl_roles,
+							server_id, tx, old_users);
+				get_new_wl_users(wl_users, wl_roles, new_wl_users.get(), new_wl_roles.get(),
+							server_id, tx, new_users);
+
+				// whitelist -> whitelist
+				array_diff<int> diff(old_users, new_users);
+				if(diff.unchanged.size()){
+					ev.name = "channel_edited";
+					sserv.send_to_server(server_id, tx, ev,
+								diff.unchanged);
+				}
+				if(diff.added.size()){
+					ev.name = "channel_created";
+					sserv.send_to_server(server_id, tx, ev,
+								diff.added);
+				}
+				if(diff.removed.size()){
+					ev.name = "channel_deleted";
+					ev.data = {
+						{"id", channel_id},
+						{"server_id", server_id}
+					};
+					sserv.send_to_server(server_id, tx, ev,
+								diff.removed);
+				}
 			}
 		} else {
 			ev.name = "channel_edited";
