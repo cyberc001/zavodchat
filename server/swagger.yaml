@@ -1113,6 +1113,22 @@ components:
           type: array
           items:
               $ref: '#/components/schemas/VCState'
+        wl_users:
+          description: id пользователей в белом списке. Если wl_users и wl_roles отсутствуют, то канал публичный.
+          type: array
+          items:
+            type: integer
+          example:
+          - 1
+          - 2
+        wl_roles:
+          description: id ролей в белом списке. Если wl_users и wl_roles отсутствуют, то канал публичный.
+          type: array
+          items:
+            type: integer
+          example:
+          - 6
+          - 7
     DMChannel:
       type: object
       properties:
