@@ -31,7 +31,7 @@ std::shared_ptr<http_response> server_channel_resource::render_GET(const http_re
 	pqxx::result r = tx.exec("SELECT channels.channel_id, name, type, notification_count, wl_users, wl_roles FROM channels "
 				 "LEFT JOIN notifications ON notifications.channel_id = channels.channel_id "
 				 "AND notifications.user_id = $2 "
-				 "WHERE channels.server_id = $1" + wl_check
+				 "WHERE channels.server_id = $1" + wl_check + " ORDER BY channels.channel_id"
 				, pqxx::params(server_id, user_id));
 
 	for(size_t i = 0; i < r.size(); ++i){
