@@ -102,7 +102,8 @@ std::shared_ptr<http_response> server_id_invites_resource::render_GET(const http
 	auto err = resource_utils::parse_server_id(req, tx, user_id, server_id);
 	if(err) return err;
 
-	err = role_utils::check_permission1(req, tx, server_id, user_id, PERM1_MANAGE_INVITES);
+	err = role_utils::check_permission(req, tx, server_id, user_id,
+						"perms1", PERM1_MANAGE_INVITES);
 	if(err) return err;
 	
 	nlohmann::json res = nlohmann::json::array();
@@ -123,7 +124,8 @@ std::shared_ptr<http_response> server_id_invites_resource::render_POST(const htt
 	auto err = resource_utils::parse_server_id(req, tx, user_id, server_id);
 	if(err) return err;
 
-	err = role_utils::check_permission1(req, tx, server_id, user_id, PERM1_MANAGE_INVITES);
+	err = role_utils::check_permission(req, tx, server_id, user_id,
+						"perms1", PERM1_MANAGE_INVITES);
 	if(err) return err;
 	
 	pqxx::result r = tx.exec("SELECT server_id FROM server_invites WHERE server_id = $1", pqxx::params(server_id));
@@ -162,7 +164,8 @@ std::shared_ptr<http_response> server_invite_id_resource::render_GET(const http_
 	auto err = resource_utils::parse_server_id(req, tx, user_id, server_id);
 	if(err) return err;
 
-	err = role_utils::check_permission1(req, tx, server_id, user_id, PERM1_MANAGE_INVITES);
+	err = role_utils::check_permission(req, tx, server_id, user_id,
+						"perms1", PERM1_MANAGE_INVITES);
 	if(err) return err;
 
 	std::string invite_id;
@@ -182,7 +185,8 @@ std::shared_ptr<http_response> server_invite_id_resource::render_PUT(const http_
 	auto err = resource_utils::parse_server_id(req, tx, user_id, server_id);
 	if(err) return err;
 
-	err = role_utils::check_permission1(req, tx, server_id, user_id, PERM1_MANAGE_INVITES);
+	err = role_utils::check_permission(req, tx, server_id, user_id,
+						"perms1", PERM1_MANAGE_INVITES);
 	if(err) return err;
 
 	std::string invite_id;
@@ -214,7 +218,8 @@ std::shared_ptr<http_response> server_invite_id_resource::render_DELETE(const ht
 	auto err = resource_utils::parse_server_id(req, tx, user_id, server_id);
 	if(err) return err;
 
-	err = role_utils::check_permission1(req, tx, server_id, user_id, PERM1_MANAGE_INVITES);
+	err = role_utils::check_permission(req, tx, server_id, user_id,
+						"perms1", PERM1_MANAGE_INVITES);
 	if(err) return err;
 
 	std::string invite_id;

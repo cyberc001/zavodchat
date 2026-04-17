@@ -42,7 +42,8 @@ nlohmann::json json_utils::server_from_row(const pqxx::row& r, bool notification
 	return res;
 }
 
-nlohmann::json json_utils::channel_from_row(const pqxx::row& r, bool has_notifications, int user_id)
+nlohmann::json json_utils::channel_from_row(const pqxx::row& r, const pqxx::result* role_rows,
+						bool has_notifications, int user_id)
 {
 	nlohmann::json res = {
 		{"id", r["channel_id"].as<int>()},
@@ -52,6 +53,14 @@ nlohmann::json json_utils::channel_from_row(const pqxx::row& r, bool has_notific
 	};
 	if(!r["name"].is_null())
 		res += {"name", r["name"].as<std::string>()};
+
+	if(role_rows && role_rows->size()){
+		res["roles"] = nlohmann::json::array();
+		for(size_t i = 0; i < role_rows->size(); ++i)
+			res["roles"] += {{"id", (*role_rows)[i]["role_id"].as<int>()},
+					{"perms1", (*role_rows)[i]["perms1"].as<int>()}};
+	}
+
 	if(has_notifications && !r["notification_count"].is_null())
 		res += {"notifications", r["notification_count"].as<int>()};
 	if(user_id > -1 && !r["user1_id"].is_null()){

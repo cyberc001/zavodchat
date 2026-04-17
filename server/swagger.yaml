@@ -584,6 +584,35 @@ paths:
                   $ref: '#/components/schemas/Message'
         '403':
           description: Неправильный start (< 0, >= количеству пользователей) / слишком большой count / канал не Текстовый
+
+  /channels/$channel_id/roles/$role_id:
+    post:
+      summary: Изменить разрешения для роли в канале
+      parameters:
+        - $ref: "#/parameters/zavodchat_token"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                perms1:
+                  type: integer
+                  description: Первый набор разрешений
+                  example: 2
+      responses:
+        '400':
+          description: Неправильный набор разрешений
+        '200':
+          description: Разрешения были изменены
+    delete:
+      summary: Сбросить разрешения для роли в канале
+      parameters:
+        - $ref: "#/parameters/zavodchat_token"
+      responses:
+        '200':
+          description: Разрешения были сброшены
+
   /channels/$channel_id/users/$user_id:
     delete:
       summary: Выгнать пользователя из голосового канала
@@ -1129,6 +1158,20 @@ components:
           example:
           - 6
           - 7
+        roles:
+          description: роли, разрешения для которых были переопределены в канале.
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+                description: ID роли
+                example: 2
+              perms1:
+                type: integer
+                description: набор разрешений 1
+                example: 2
     DMChannel:
       type: object
       properties:

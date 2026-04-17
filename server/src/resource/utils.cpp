@@ -209,7 +209,8 @@ std::shared_ptr<http_response> resource_utils::parse_channel_id(const http_reque
 			server_id = -1;
 	} else {
 		server_id = r[0]["server_id"].as<int>();
-		auto no_ch_manage_perms = role_utils::check_permission1(req, tx, server_id, user_id, PERM1_MANAGE_CHANNELS);
+		auto no_ch_manage_perms = role_utils::check_permission(req, tx, server_id, user_id,
+									"perms1", PERM1_MANAGE_CHANNELS);
 		if(no_ch_manage_perms){
 			// Check that user is whitelisted
 			std::vector<int> wl_users = parse_psql_int_array(r[0]["wl_users"]);

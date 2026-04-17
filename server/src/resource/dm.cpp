@@ -37,7 +37,7 @@ std::shared_ptr<http_response> dm_resource::render_GET(const http_request& req)
 				+ pg_query, pr);
 
 	for(size_t i = 0; i < r.size(); ++i){
-		nlohmann::json channel_json = json_utils::channel_from_row(r[i], true);
+		nlohmann::json channel_json = json_utils::channel_from_row(r[i], nullptr, true);
 		int user1_id = r[i]["user1_id"].as<int>(), user2_id = r[i]["user2_id"].as<int>();
 		channel_json["user_id"] = user1_id == user_id ? user2_id : user1_id;
 		if(!r[i]["message_id"].is_null()){

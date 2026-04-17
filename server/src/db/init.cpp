@@ -52,6 +52,7 @@ void db_init(std::string conn_str)
 		// server_id is not null - server channel; otherwise user1_id and user2_id should be set - DM channel (or private call)
 		tx.exec("CREATE TABLE IF NOT EXISTS channels(channel_id SERIAL PRIMARY KEY, server_id INTEGER REFERENCES servers ON DELETE CASCADE, name VARCHAR(64), user1_id INTEGER REFERENCES users ON DELETE CASCADE, user2_id INTEGER REFERENCES users ON DELETE CASCADE, type INTEGER NOT NULL, wl_users INTEGER[] NOT NULL DEFAULT '{}', wl_roles INTEGER[] NOT NULL DEFAULT '{}')"); 
 		tx.exec("CREATE TABLE IF NOT EXISTS notifications(server_id INTEGER REFERENCES servers ON DELETE CASCADE, channel_id INTEGER REFERENCES channels ON DELETE CASCADE NOT NULL, user_id INTEGER REFERENCES users ON DELETE CASCADE NOT NULL, notification_count INTEGER NOT NULL DEFAULT 1, PRIMARY KEY(channel_id, user_id))"); // server_id is only used to make queueing server notifications much easier
+		tx.exec("CREATE TABLE IF NOT EXISTS channel_x_role(channel_id INTEGER REFERENCES channels ON DELETE CASCADE NOT NULL, role_id INTEGER REFERENCES roles ON DELETE CASCADE NOT NULL, perms1 INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(channel_id, role_id))");
 
 		// 'mentions' is a 2d array with structure:
 		// {type, begin_i, end_i, id (can be -1)}

@@ -50,7 +50,8 @@ std::shared_ptr<http_response> server_roles_resource::render_PUT(const http_requ
 	auto err = resource_utils::parse_server_id(req, tx, user_id, server_id);
 	if(err) return err;
 
-	err = role_utils::check_permission1(req, tx, server_id, user_id, PERM1_MANAGE_ROLES);
+	err = role_utils::check_permission(req, tx, server_id, user_id,
+						"perms1", PERM1_MANAGE_ROLES);
 	if(err) return err;
 
 	nlohmann::json list;
@@ -114,9 +115,9 @@ std::shared_ptr<http_response> server_roles_resource::render_PUT(const http_requ
 
 				unsigned long long perms1 = list[i]["perms1"].get<unsigned long long>();
 				if(role_utils::find_default_role(tx, list[i]["id"]) == list[i]["id"])
-					err = role_utils::check_default_validity_perms1(req, perms1);
+					err = role_utils::check_permission_default_validity(req, PERM1_COUNT, perms1);
 				else
-					err = role_utils::check_validity_perms1(req, perms1);
+					err = role_utils::check_permission_validity(req, PERM1_COUNT, perms1);
 				if(err) return err;
 		
 				int color;
@@ -169,7 +170,7 @@ std::shared_ptr<http_response> server_roles_resource::render_PUT(const http_requ
 			std::string name = list[i]["name"].get<std::string>();
 			
 			unsigned long long perms1 = list[i]["perms1"].get<unsigned long long>();
-			err = role_utils::check_validity_perms1(req, perms1);
+			err = role_utils::check_permission_validity(req, PERM1_COUNT, perms1);
 			if(err) return err;
 		
 			int color;

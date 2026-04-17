@@ -78,6 +78,7 @@ int main()
 	server_channel_resource server_channels(ws, pool, cfg, sserv, vcserv);
 	channel_resource channel(ws, pool, cfg, sserv, vcserv);
 	channel_user_id_resource channel_user_id(ws, pool, cfg, vcserv);
+	channel_roles_resource channel_roles(ws, pool, cfg, sserv);
 
 	dm_resource dm(ws, pool, cfg, vcserv);
 	dm_id_resource dm_id(ws, pool, cfg);

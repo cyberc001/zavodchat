@@ -52,7 +52,9 @@ std::shared_ptr<http_response> channel_messages_resource::render_POST(const http
 	if(err) return err;
 
 	if(server_id > -1){
-		err = role_utils::check_permission1(req, tx, server_id, user_id, PERM1_CREATE_MESSAGES);
+		err = role_utils::check_permission(req, tx, server_id, user_id,
+							"perms1", PERM1_CREATE_MESSAGES,
+							channel_id);
 		if(err) return err;
 	}
 
@@ -347,7 +349,8 @@ std::shared_ptr<http_response> message_resource::render_DELETE(const http_reques
 	if(r[0]["author_id"].as<int>() != user_id){ // not an author, but still can have the permission
 		if(server_id == -1)
 			return create_response::string(req, "Cannot delete a direct message of someone else", 403);
-		err = role_utils::check_permission1(req, tx, server_id, user_id, PERM1_DELETE_MESSAGES);
+		err = role_utils::check_permission(req, tx, server_id, user_id,
+							"perms1", PERM1_DELETE_MESSAGES);
 		if(err) return err;
 	}
 

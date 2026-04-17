@@ -23,7 +23,8 @@ std::shared_ptr<http_response> server_channel_resource::render_GET(const http_re
 	if(err) return err;
 
 	std::string wl_check;
-	auto no_ch_manage_perms = role_utils::check_permission1(req, tx, server_id, user_id, PERM1_MANAGE_CHANNELS);
+	auto no_ch_manage_perms = role_utils::check_permission(req, tx, server_id, user_id,
+								"perms1", PERM1_MANAGE_CHANNELS);
 	if(no_ch_manage_perms)
 	       	wl_check = " AND ((array_length(wl_users, 1) IS NULL AND array_length(wl_roles, 1) IS NULL) OR array_position(wl_users, $2) IS NOT NULL OR EXISTS(SELECT role_id FROM user_x_server WHERE user_id = $2 AND array_position(wl_roles, role_id) IS NOT NULL))";
 
@@ -35,7 +36,10 @@ std::shared_ptr<http_response> server_channel_resource::render_GET(const http_re
 				, pqxx::params(server_id, user_id));
 
 	for(size_t i = 0; i < r.size(); ++i){
-		nlohmann::json channel_json = json_utils::channel_from_row(r[i], true);
+		pqxx::result role_rows = tx.exec("SELECT role_id, perms1 FROM channel_x_role "
+						 "WHERE channel_id = $1",
+						 pqxx::params(r[i]["channel_id"].as<int>()));
+		nlohmann::json channel_json = json_utils::channel_from_row(r[i], &role_rows, true);
 		if(channel_json["type"] == CHANNEL_VOICE)
 			channel_json["vc_users"] = vcserv.get_channel_users(channel_json["id"]);
 		res += channel_json;
@@ -53,7 +57,8 @@ std::shared_ptr<http_response> server_channel_resource::render_POST(const http_r
 	auto err = resource_utils::parse_server_id(req, tx, user_id, server_id);
 	if(err) return err;
 
-	err = role_utils::check_permission1(req, tx, server_id, user_id, PERM1_MANAGE_CHANNELS);
+	err = role_utils::check_permission(req, tx, server_id, user_id,
+						"perms1", PERM1_MANAGE_CHANNELS);
 	if(err) return err;
 
 	// Parse JSON arguments
@@ -144,7 +149,10 @@ std::shared_ptr<http_response> channel_resource::render_GET(const http_request& 
 				 "AND notifications.user_id = $2 "
 				 "WHERE channels.channel_id = $1"
 				 , pqxx::params(channel_id, user_id));
-	nlohmann::json channel_json = json_utils::channel_from_row(r[0], true, user_id);
+	pqxx::result role_rows = tx.exec("SELECT role_id, perms1 FROM channel_x_role "
+					 "WHERE channel_id = $1",
+					 pqxx::params(channel_id));
+	nlohmann::json channel_json = json_utils::channel_from_row(r[0], &role_rows, true, user_id);
 
 	if(channel_json["type"] == CHANNEL_VOICE)
 		channel_json["vc_users"] = vcserv.get_channel_users(channel_id);
@@ -201,7 +209,8 @@ std::shared_ptr<http_response> channel_resource::render_PUT(const http_request& 
 	if(server_id == -1)
 		return create_response::string(req, "Cannot change a DM channel", 403);
 
-	err = role_utils::check_permission1(req, tx, server_id, user_id, PERM1_MANAGE_CHANNELS);
+	err = role_utils::check_permission(req, tx, server_id, user_id,
+						"perms1", PERM1_MANAGE_CHANNELS);
 	if(err) return err;
 
 	nlohmann::json body;
@@ -254,8 +263,11 @@ std::shared_ptr<http_response> channel_resource::render_PUT(const http_request& 
 		std::vector<int> wl_users = resource_utils::parse_psql_int_array(ch_row[0]["wl_users"]),
 				 wl_roles = resource_utils::parse_psql_int_array(ch_row[0]["wl_roles"]);
 		ch_row = tx.exec("SELECT * FROM channels WHERE channel_id = $1", pqxx::params(channel_id));
+		pqxx::result role_rows = tx.exec("SELECT role_id, perms1 FROM channel_x_role "
+						 "WHERE channel_id = $1",
+						 pqxx::params(channel_id));
 		socket_event ev;
-		ev.data = json_utils::channel_from_row(ch_row[0]);
+		ev.data = json_utils::channel_from_row(ch_row[0], &role_rows);
 		json_utils::set_ids(ev.data, server_id);
 
 		if(new_wl_users || new_wl_roles){
@@ -344,7 +356,8 @@ std::shared_ptr<http_response> channel_resource::render_DELETE(const http_reques
 	if(server_id == -1)
 		return create_response::string(req, "Cannot delete a DM channel", 403);
 
-	err = role_utils::check_permission1(req, tx, server_id, user_id, PERM1_MANAGE_CHANNELS);
+	err = role_utils::check_permission(req, tx, server_id, user_id,
+						"perms1", PERM1_MANAGE_CHANNELS);
 	if(err) return err;
 
 	pqxx::result r = tx.exec("DELETE FROM channels WHERE channel_id = $1 RETURNING wl_users, wl_roles",
@@ -391,7 +404,8 @@ std::shared_ptr<http_response> channel_user_id_resource::render_DELETE(const htt
 		return create_response::string(req, "Not a voice channel", 400);
 
 	if(server_id > -1){
-		err = role_utils::check_permission1(req, tx, server_id, user_id, PERM1_MANAGE_VC);
+		err = role_utils::check_permission(req, tx, server_id, user_id,
+							"perms1", PERM1_MANAGE_VC);
 		if(err) return err;
 	} else {
 		// If user themselves are calling/in the call, forbid kicking the other participant
@@ -402,4 +416,106 @@ std::shared_ptr<http_response> channel_user_id_resource::render_DELETE(const htt
 	if(vcserv.kick_user(channel_id, other_user_id, server_id > -1 ? "Kicked by administrator" : "Call denied"))
 		return create_response::string(req, "Kicked", 200);
 	return create_response::string(req, "User is not in this voice channel", 404);
+}
+
+channel_roles_resource::channel_roles_resource(webserver& ws, db_connection_pool& pool, const config& cfg,
+						socket_main_server& sserv):
+	base_resource(ws, "/channels/{channel_id}/roles/{server_role_id}", pool, cfg),
+	sserv{sserv}
+{
+	set_allowing("POST", true);
+	set_allowing("DELETE", true);
+}
+
+std::shared_ptr<http_response> channel_roles_resource::render_POST(const http_request& req)
+{
+	base_resource::render_POST(req);
+
+	int user_id, channel_id, server_id;
+	db_connection conn = pool.hold();
+	pqxx::work tx{*conn};
+	auto err = resource_utils::parse_channel_id(req, tx, user_id, server_id, channel_id);
+	if(err) return err;
+
+	if(server_id == -1)
+		return create_response::string(req, "Cannot manage a DM channel", 403);
+
+	int server_role_id;
+	err = role_utils::parse_server_role_id(req, server_id, tx, server_role_id);
+	if(err) return err;
+
+	err = role_utils::check_permission(req, tx, server_id, user_id,
+						"perms1", PERM1_MANAGE_CHANNELS);
+	if(err) return err;
+
+
+	nlohmann::json body;
+	err = json_utils::from_content(req, body);
+	if(err)
+		return err;
+
+	JSON_GET_UNSIGNED(body, perms1)
+	err = role_utils::check_permission_validity(req, PERM1_COUNT, perms1);
+	if(err)
+		return err;
+
+	tx.exec("INSERT INTO channel_x_role(channel_id, role_id, perms1) "
+		"VALUES($1, $2, $3) "
+		"ON CONFLICT(channel_id, role_id) DO UPDATE "
+		"SET perms1 = $3",
+		pqxx::params(channel_id, server_role_id, perms1));
+
+	pqxx::result ch_row = tx.exec("SELECT * FROM channels WHERE channel_id = $1", pqxx::params(channel_id));
+	pqxx::result role_rows = tx.exec("SELECT role_id, perms1 FROM channel_x_role "
+					 "WHERE channel_id = $1",
+					 pqxx::params(channel_id));
+	tx.commit();
+
+	socket_event ev;
+	ev.data = json_utils::channel_from_row(ch_row[0], &role_rows);
+	json_utils::set_ids(ev.data, server_id);
+	ev.name = "channel_edited";
+	sserv.send_to_channel(channel_id, tx, ev);
+
+	return create_response::string(req, "Changed", 200);
+}
+std::shared_ptr<http_response> channel_roles_resource::render_DELETE(const http_request& req)
+{
+	base_resource::render_DELETE(req);
+
+	int user_id, channel_id, server_id;
+	db_connection conn = pool.hold();
+	pqxx::work tx{*conn};
+	auto err = resource_utils::parse_channel_id(req, tx, user_id, server_id, channel_id);
+	if(err) return err;
+
+	if(server_id == -1)
+		return create_response::string(req, "Cannot manage a DM channel", 403);
+
+	int server_role_id;
+	err = role_utils::parse_server_role_id(req, server_id, tx, server_role_id);
+	if(err) return err;
+
+	err = role_utils::check_permission(req, tx, server_id, user_id,
+						"perms1", PERM1_MANAGE_CHANNELS);
+	if(err) return err;
+
+	tx.exec("DELETE FROM channel_x_role "
+		"WHERE channel_id = $1 AND role_id = $2",
+		pqxx::params(channel_id, server_role_id));
+
+	pqxx::result ch_row = tx.exec("SELECT * FROM channels WHERE channel_id = $1", pqxx::params(channel_id));
+	pqxx::result role_rows = tx.exec("SELECT role_id, perms1 FROM channel_x_role "
+					 "WHERE channel_id = $1",
+					 pqxx::params(channel_id));
+	tx.commit();
+
+	socket_event ev;
+	ev.data = json_utils::channel_from_row(ch_row[0], &role_rows);
+	json_utils::set_ids(ev.data, server_id);
+	ev.name = "channel_edited";
+	sserv.send_to_channel(channel_id, tx, ev);
+
+	return create_response::string(req, "Changed", 200);
+
 }

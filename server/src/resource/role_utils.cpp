@@ -1,6 +1,9 @@
 #include "resource/role_utils.h"
 #include <unordered_map>
+#include <unordered_set>
 #include "resource/utils.h" 
+
+#include <iostream>
 
 std::shared_ptr<http_response> role_utils::parse_server_role_id(const http_request& req, int server_id, pqxx::work& tx, int& server_role_id)
 {
@@ -49,7 +52,7 @@ int role_utils::find_default_role(pqxx::work& tx, int server_id)
 std::vector<pqxx::row> role_utils::get_role_list(pqxx::work& tx, int server_id)
 {
 	int head = find_head_role(tx, server_id);
-	pqxx::result r = tx.exec("SELECT role_id, prev_role_id, name, color, perms1 FROM roles WHERE server_id = $1", pqxx::params(server_id));
+	pqxx::result r = tx.exec("SELECT * FROM roles WHERE server_id = $1", pqxx::params(server_id));
 	std::unordered_map<int, pqxx::row> rm;
 	for(size_t i = 0; i < r.size(); ++i)
 		rm[r[i]["role_id"].as<int>()] = r[i];
@@ -63,13 +66,13 @@ std::vector<pqxx::row> role_utils::get_user_role_list(pqxx::work& tx, int server
 {
 	// get all user roles
 	pqxx::result r = tx.exec("SELECT role_id FROM user_x_server WHERE user_id = $1 AND server_id = $2", pqxx::params(user_id, server_id));
-	std::set<int> user_role_ids;
+	std::unordered_set<int> user_role_ids;
 	for(size_t i = 0; i < r.size(); ++i)
 		user_role_ids.insert(r[i]["role_id"].as<int>());
 
 	// get all server roles
 	int head = find_head_role(tx, server_id);
-	r = tx.exec("SELECT role_id, prev_role_id, name, color, perms1 FROM roles WHERE server_id = $1", pqxx::params(server_id));
+	r = tx.exec("SELECT * FROM roles WHERE server_id = $1", pqxx::params(server_id));
 	std::unordered_map<int, pqxx::row> rm;
 	for(size_t i = 0; i < r.size(); ++i)
 		rm[r[i]["role_id"].as<int>()] = r[i];
@@ -113,13 +116,13 @@ std::shared_ptr<http_response> role_utils::check_role_lower_than_user(const http
 
 	// get all user roles
 	pqxx::result r = tx.exec("SELECT role_id FROM user_x_server WHERE user_id = $1 AND server_id = $2", pqxx::params(user_id, server_id));
-	std::set<int> user_role_ids;
+	std::unordered_set<int> user_role_ids;
 	for(size_t i = 0; i < r.size(); ++i)
 		user_role_ids.insert(r[i]["role_id"].as<int>());
 
 	// get all server roles
 	int head = find_head_role(tx, server_id);
-	r = tx.exec("SELECT role_id, prev_role_id, perms1 FROM roles WHERE server_id = $1", pqxx::params(server_id));
+	r = tx.exec("SELECT * FROM roles WHERE server_id = $1", pqxx::params(server_id));
 	std::unordered_map<int, pqxx::row> rm;
 	for(size_t i = 0; i < r.size(); ++i)
 		rm[r[i]["role_id"].as<int>()] = r[i];
@@ -152,17 +155,17 @@ std::shared_ptr<http_response> role_utils::check_user_lower_than_other(const htt
 
 	// get all user roles
 	pqxx::result r = tx.exec("SELECT role_id FROM user_x_server WHERE user_id = $1 AND server_id = $2", pqxx::params(user_id, server_id));
-	std::set<int> user_role_ids;
+	std::unordered_set<int> user_role_ids;
 	for(size_t i = 0; i < r.size(); ++i)
 		user_role_ids.insert(r[i]["role_id"].as<int>());
 	r = tx.exec("SELECT role_id FROM user_x_server WHERE user_id = $1 AND server_id = $2", pqxx::params(lower_user_id, server_id));
-	std::set<int> lower_user_role_ids;
+	std::unordered_set<int> lower_user_role_ids;
 	for(size_t i = 0; i < r.size(); ++i)
 		lower_user_role_ids.insert(r[i]["role_id"].as<int>());
 
 	// get all server roles
 	int head = find_head_role(tx, server_id);
-	r = tx.exec("SELECT role_id, prev_role_id, perms1 FROM roles WHERE server_id = $1", pqxx::params(server_id));
+	r = tx.exec("SELECT * FROM roles WHERE server_id = $1", pqxx::params(server_id));
 	std::unordered_map<int, pqxx::row> rm;
 	for(size_t i = 0; i < r.size(); ++i)
 		rm[r[i]["role_id"].as<int>()] = r[i];
@@ -187,60 +190,80 @@ std::shared_ptr<http_response> role_utils::check_user_lower_than_other(const htt
 	return create_response::string(req, "No roles found for user", 500);
 }
 
-std::shared_ptr<http_response> role_utils::check_permission1(const http_request& req, pqxx::work& tx, int server_id, int user_id, int perm)
+std::shared_ptr<http_response> role_utils::check_permission(const http_request& req, pqxx::work& tx,
+								int server_id, int user_id, std::string column, int perm, int channel_id)
 {
 	if(!resource_utils::check_server_owner(req, user_id, server_id, tx))
 		return nullptr;
 
 	// get all user roles
-	pqxx::result r = tx.exec("SELECT role_id FROM user_x_server WHERE user_id = $1 AND server_id = $2", pqxx::params(user_id, server_id));
-	std::set<int> user_role_ids;
+	pqxx::result r = tx.exec("SELECT role_id FROM user_x_server "
+				 "WHERE user_id = $1 AND server_id = $2",
+				 pqxx::params(user_id, server_id));
+
+	 std::unordered_set<int> user_role_ids;
 	for(size_t i = 0; i < r.size(); ++i)
 		user_role_ids.insert(r[i]["role_id"].as<int>());
 
-	// get all server roles
+	std::unordered_map<int, long long> channel_role_perms;
+	if(channel_id > -1){
+		r = tx.exec("SELECT * FROM channel_x_role "
+					 "WHERE channel_id = $1",
+					 pqxx::params(channel_id));
+		for(size_t i = 0; i < r.size(); ++i)
+			channel_role_perms[r[i]["role_id"].as<int>()] = r[i][column].as<long long>();
+	}
+
+	// get all server roles (to parse them in order)
 	int head = find_head_role(tx, server_id);
-	r = tx.exec("SELECT role_id, prev_role_id, perms1 FROM roles WHERE server_id = $1", pqxx::params(server_id));
+	r = tx.exec("SELECT role_id, prev_role_id, " + column + " FROM roles WHERE server_id = $1", pqxx::params(server_id));
 	std::unordered_map<int, pqxx::row> rm;
 	for(size_t i = 0; i < r.size(); ++i)
 		rm[r[i]["role_id"].as<int>()] = r[i];
 
 	// check for the first role that user has and the permission is not at default
 	for(int cur = head; cur != -1; cur = rm[cur]["prev_role_id"].as<int>()){
-		int perm_status = (rm[cur]["perms1"].as<long long>() >> (perm * 2)) & 0x3;
-		if(user_role_ids.count(rm[cur]["role_id"].as<int>()) && perm_status != 0x0)
-			if(perm_status == 0x2)
-				return create_response::string(req, "No permission", 403);
-			else
-				return nullptr;
+		int role_id = rm[cur]["role_id"].as<int>();
+		if(!user_role_ids.count(role_id))
+			continue;
+
+		long long perm_bits = channel_id > -1 && channel_role_perms.count(role_id) ?
+			channel_role_perms[role_id] :
+			rm[cur][column].as<long long>();
+		int perm_status = (perm_bits >> (perm * 2)) & 0x3;
+		if(perm_status == 0x2)
+			return create_response::string(req, "No permission", 403);
+		else if(perm_status == 0x1)
+			return nullptr;
 	}
 
 	return create_response::string(req, "User has only default permissions", 500);
 }
-std::shared_ptr<http_response> role_utils::check_validity_perms1(const http_request& req, long long perms1)
-{
-	for(int i = 0; i < PERM1_COUNT; ++i)
-		if((perms1 >> (i * 2) & 0x3) == 0x3)
-			return create_response::string(req, "Invalid perms1: bit pair set to 3", 400);
 
-	for(int i = PERM1_COUNT; i < sizeof(long long) * 4; ++i)
-		if((perms1 >> (i * 2) & 0x3) > 0)
-			return create_response::string(req, "Invalid perms1: bit pair set outside of range", 400);
+std::shared_ptr<http_response> role_utils::check_permission_validity(const http_request& req, int count, long long perms)
+{
+	for(int i = 0; i < count; ++i)
+		if((perms >> (i * 2) & 0x3) == 0x3)
+			return create_response::string(req, "Invalid perms: bit pair set to 3", 400);
+
+	for(int i = count; i < sizeof(long long) * 4; ++i)
+		if((perms >> (i * 2) & 0x3) > 0)
+			return create_response::string(req, "Invalid perms: bit pair set outside of range", 400);
 	return nullptr;
 }
-std::shared_ptr<http_response> role_utils::check_default_validity_perms1(const http_request& req, long long perms1)
+std::shared_ptr<http_response> role_utils::check_permission_default_validity(const http_request& req, int count, long long perms)
 {
-	for(int i = 0; i < PERM1_COUNT; ++i){
-		long long prm = perms1 >> (i * 2) & 0x3;
+	for(int i = 0; i < count; ++i){
+		long long prm = perms >> (i * 2) & 0x3;
 		if(prm == 0x0)
-			return create_response::string(req, "Invalid perms1: bit pair set to 0", 400);
+			return create_response::string(req, "Invalid perms: bit pair set to 0", 400);
 		if(prm == 0x3)
-			return create_response::string(req, "Invalid perms1: bit pair set to 3", 400);
+			return create_response::string(req, "Invalid perms: bit pair set to 3", 400);
 	}
 
-	for(int i = PERM1_COUNT; i < sizeof(long long) * 4; ++i)
-		if((perms1 >> (i * 2) & 0x3) > 0)
-			return create_response::string(req, "Invalid perms1: bit pair set outside of range", 400);
+	for(int i = count; i < sizeof(long long) * 4; ++i)
+		if((perms >> (i * 2) & 0x3) > 0)
+			return create_response::string(req, "Invalid perms: bit pair set outside of range", 400);
 	return nullptr;
 }
 

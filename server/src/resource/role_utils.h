@@ -21,7 +21,6 @@ using namespace httpserver;
 #define PERM1_COUNT				10
 #define PERM1_DEFAULT				0b10100110101010101001
 
-
 /* Don't forget to tx.commit(), utils do not commit automatically to avoid closing a transaction. */
 
 class role_utils
@@ -46,10 +45,13 @@ public:
 	// returns OK (nullptr) if the user is the owner of the server
 	static std::shared_ptr<http_response> check_user_lower_than_other(const http_request&, pqxx::work&, int server_id, int user_id, int lower_user_id, bool can_be_equal = false);
 
-	static std::shared_ptr<http_response> check_permission1(const http_request&, pqxx::work&, int server_id, int user_id, int perm);
-	static std::shared_ptr<http_response> check_validity_perms1(const http_request&, long long perms1);
+	static std::shared_ptr<http_response> check_permission(const http_request&, pqxx::work&,
+								int server_id, int user_id, std::string column, int perm,
+								int channel_id = -1);
+
+	static std::shared_ptr<http_response> check_permission_validity(const http_request&, int count, long long perms);
 	// also checks if all permissions are either allowed or forbidden (no default)
-	static std::shared_ptr<http_response> check_default_validity_perms1(const http_request&, long long perms1);
+	static std::shared_ptr<http_response> check_permission_default_validity(const http_request&, int count, long long perms);
 
 	// -1 = next_role_id does not exist
 	// -2 = name is too long

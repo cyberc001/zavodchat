@@ -110,7 +110,8 @@ std::shared_ptr<http_response> server_id_resource::render_PUT(const http_request
 	auto err = resource_utils::parse_server_id(req, tx, user_id, server_id);
 	if(err) return err;
 
-	err = role_utils::check_permission1(req, tx, server_id, user_id, PERM1_CHANGE_SERVER);
+	err = role_utils::check_permission(req, tx, server_id, user_id,
+						"perms1", PERM1_CHANGE_SERVER);
 	if(err) return err;
 
 	bool updated = false;

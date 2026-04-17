@@ -90,7 +90,8 @@ std::shared_ptr<http_response> server_user_id_resource::render_DELETE(const http
 	auto err = resource_utils::parse_server_id(req, tx, user_id, server_id);
 	if(err) return err;
 
-	err = role_utils::check_permission1(req, tx, server_id, user_id, PERM1_BAN_MEMBERS);
+	err = role_utils::check_permission(req, tx, server_id, user_id,
+						"perms1", PERM1_BAN_MEMBERS);
 	if(err) return err;
 
 	int server_user_id;
@@ -144,7 +145,8 @@ std::shared_ptr<http_response> server_user_role_id_resource::render_POST(const h
 	err = role_utils::parse_server_role_id(req, server_id, tx, server_role_id);
 	if(err) return err;
 
-	err = role_utils::check_permission1(req, tx, server_id, user_id, PERM1_MANAGE_ROLES);
+	err = role_utils::check_permission(req, tx, server_id, user_id,
+						"perms1", PERM1_MANAGE_ROLES);
 	if(err) return err;
 
 	err = role_utils::check_role_lower_than_user(req, tx, server_id, user_id, server_role_id);
@@ -187,7 +189,8 @@ std::shared_ptr<http_response> server_user_role_id_resource::render_DELETE(const
 	err = role_utils::parse_server_role_id(req, server_id, tx, server_role_id);
 	if(err) return err;
 
-	err = role_utils::check_permission1(req, tx, server_id, user_id, PERM1_MANAGE_ROLES);
+	err = role_utils::check_permission(req, tx, server_id, user_id,
+						"perms1", PERM1_MANAGE_ROLES);
 	if(err) return err;
 
 	err = role_utils::check_role_lower_than_user(req, tx, server_id, user_id, server_role_id);

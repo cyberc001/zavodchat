@@ -214,7 +214,7 @@
 			{#snippet render_message(i, item)}
 				<MessageDisplay data={item} server={server}
 				show_ctx_menu={(anchor, e, for_message) => {
-					sel.ctx_user_id = item.author.data.id;
+					sel.ctx_user_id = item.author_id;
 					sel.ctx_message = i;
 					_show_user(-1);
 					show_ctx_menu(anchor, e, for_message ?
