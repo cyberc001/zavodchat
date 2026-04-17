@@ -12,12 +12,12 @@
 
 	let self = $state();
 	let vc_user_divs = $state({});
+	let private_suffix = $derived(channel.wl_users.length > 0 || channel.wl_roles.length > 0 ? "_private" : "");
 </script>
 
 <div>
 	<button class={"item hoverable transparent_button sidebar_channel_el" + (selected ? " selected" : "")}
-		style={(last ? "border-style: solid none solid none" : "")
-			+ "; anchor-name: --channel_" + channel.id
+		style={"border-style: none none solid none; anchor-name: --channel_" + channel.id
 			+ "; padding: 4px 0px 4px 4px; border-color: var(--clr_border)"}
 		onclick={() => show_channel(channel)}
 		bind:this={self}
@@ -27,9 +27,9 @@
 		}}
 	>
 		{#if channel.type === Channel.Type.Voice}
-			<img src={asset("icons/channel_vc.svg")} alt="voice_channel" class="filter_icon_main sidebar_channel_el_icon"/>
+			<img src={asset(`icons/channel_vc${private_suffix}.svg`)} alt="voice_channel" class="filter_icon_main sidebar_channel_el_icon"/>
 		{:else}
-			<img src={asset("icons/channel_text.svg")}  alt="text_channel" class="filter_icon_main sidebar_channel_el_icon"/>
+			<img src={asset(`icons/channel_text${private_suffix}.svg`)}  alt="text_channel" class="filter_icon_main sidebar_channel_el_icon"/>
 		{/if}
 		<div class="content"
 		style={`color: var(--clr_text${typeof(channel.notifications) === "undefined" ? "_secondary" : ""})`}>
