@@ -256,7 +256,7 @@
 	<div style="position: absolute; left: {user_picker_params.left}px; top: {user_picker_params.top}px;"
 		bind:this={user_picker_container}>
 		<UserPicker bind:this={user_picker} list_on_top=true
-		server={server} prepended_roles={server_roles?.data}
+		server={server} prepended_roles={server_roles?.data ? server_roles.data.concat([{id: -1, name: "everyone"}]) : []}
 		exit_input={(erase) => {
 			// Remove the '@'
 			value = value.substring(0, last_mention_sel_i - 1) + value.substring(last_mention_sel_i);
@@ -273,6 +273,7 @@
 		}}
 		fixed_text_color={true}
 		--font-size="16px"
+		--width="min(200px, 30vw)"
 		/>
 	</div>
 	{/if}

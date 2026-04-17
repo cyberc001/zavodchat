@@ -3,9 +3,11 @@
 
 	import Group from '$lib/control/group.svelte';
 	import Textbox from '$lib/control/textbox.svelte';
+	import Button from '$lib/control/button.svelte';
 	import Select from '$lib/control/select.svelte';
 	import List from '$lib/control/list.svelte';
 	import UserDisplay from '$lib/display/user.svelte';
+	import UserPicker from '$lib/control/user_picker.svelte';
 
 	import SettingsTabState from '$lib/control/settings_tab_state.svelte.js';
 
@@ -50,8 +52,10 @@
 
 
 	// Access
-	let wl_selected_idx = $state(-1);
+	let wl_picker = $state();
 	let wl_users = $state({});
+	let wl_add_id = $state();
+	let wl_add_is_role = $state(false);
 
 	class AccessTabState extends SettingsTabState {
 		changes_override = $derived.by(() => {
@@ -77,10 +81,6 @@
 			if(channel.data.wl_roles)
 				state_access.set_default_state("wl_roles", channel.data.wl_roles);
 		}
-	});
-
-	$effect(() => {
-		console.log("STATE", $state.snapshot(state_access.state.wl_users));
 	});
 
 	export function tabs() {
@@ -126,10 +126,49 @@
 {/snippet}
 
 {#snippet access()}
-<Group name="Access">
+<Group name="Whitelist">
 	<List items={state_access.state.wl_roles.concat(state_access.state.wl_users)}
+		selectable={false}
 		render_item={render_wl}
-		bind:selected_idx={wl_selected_idx}
 	/>
+	<div style="display: flex; margin-top: 16px">
+		<UserPicker server={server}
+		prepended_roles={server_roles.data.filter((x) => state_access.state.wl_roles.findIndex((y) => y === x.id) === -1)}
+		bind:this={wl_picker} bind:value={wl_add_id} bind:value_is_role={wl_add_is_role}
+		user_picked={(id) => {
+			wl_users[id] = User.get_server(server_id, id);
+		}}
+		--width="min(400px, 50vw)"
+		--margin-bottom="0"
+		--margin-right="6px"
+		/>
+		<Button text="Add"
+		disabled={typeof(wl_add_id) === "undefined" || 
+			  (!wl_add_is_role && state_access.state.wl_users.findIndex((x) => x === wl_add_id) !== -1)}
+		onclick={() => {
+			if(typeof(wl_add_id) === "undefined")
+				return;
+
+			if(wl_add_is_role)
+				state_access.state.wl_roles.push(wl_add_id);
+			else
+				state_access.state.wl_users.push(wl_add_id);
+
+			wl_picker.reset();
+		}}
+		--margin-bottom="0"
+		/>
+
+		<div style="margin-left: auto">
+			<Button text="Clear whitelist"
+			disabled={state_access.state.wl_users.length === 0 && state_access.state.wl_roles.length === 0}
+			onclick={() => {
+				state_access.state.wl_users = [];
+				state_access.state.wl_roles = [];
+			}}
+			--margin-bottom="0"
+			/>
+		</div>
+	</div>
 </Group>
 {/snippet}

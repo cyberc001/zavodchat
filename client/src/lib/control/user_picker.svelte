@@ -13,18 +13,13 @@
 		list_on_top = false, // display the list above input field
 		fixed_text_color = false, // dont change text color to secondary when user wasnt picked
 		exit_input = () => {}, user_picked = () => {}, role_picked = () => {},
-		value = $bindable()} = $props();
+		value = $bindable(), value_is_role = $bindable(false)} = $props();
 
 	let self = $state();
 	let input = $state();
 	let user_list = $state();
 
-	let roles = $derived.by(() => {
-		const r = prepended_roles.filter((x) => x.name.indexOf(user_name) !== -1);
-		if(prepended_roles.length > 0 && "everyone".indexOf(user_name) !== -1)
-			r.unshift({"name": "everyone", id: -1});
-		return r;
-	});
+	let roles = $derived(prepended_roles.filter((x) => x.name.startsWith(value_name)));
 
 	let show_list = $state(false);
 	let list_style = $derived.by(() => {
@@ -32,35 +27,43 @@
 		if(list_on_top)
 			style += "bottom: 100%;";
 		if(user_list && user_list.getItemCount() === 0 &&
-			(roles.length === 0 || !user_list.isLoaded()))
+			(prepended_roles.length === 0 || !user_list.isLoaded()))
 			style += "display: none;";
 		return style;
 	});
 
-	let user_name = $state("");
-	let prev_user_name = $state("");
+	let value_name = $state("");
+	let prev_value_name = $state("");
 
-	let list_user_name_ts = 0;
-	let list_user_name = $state("");
-	const list_user_name_intv = setInterval(() => {
-		if(list_user_name === user_name || new Date() - list_user_name_ts < 500)
+	let list_value_name_ts = 0;
+	let list_value_name = $state("");
+	const list_value_name_intv = setInterval(() => {
+		if(list_value_name === value_name || new Date() - list_value_name_ts < 500)
 			return;
-		list_user_name = user_name;
-		list_user_name_ts = new Date();
+		list_value_name = value_name;
+		list_value_name_ts = new Date();
 		if(user_list)
 			user_list.reset();
 	}, 100);
-	onDestroy(() => clearInterval(list_user_name_intv));
+	onDestroy(() => clearInterval(list_value_name_intv));
 
+	const pick_value = (item, is_role) => {
+		value = item.id;
+		value_is_role = is_role;
+		value_name = item.name;
 
-	const load_items = (index, range, asc) => server ? User.get_server_range(server.data.id, index, range, asc, list_user_name)
-							    : User.get_range(index, range, asc, list_user_name);
+		show_list = false;
+		is_role ? role_picked(item.id) : user_picked(item.id);
+	};
+
+	const load_items = (index, range, asc) => server ? User.get_server_range(server.data.id, index, range, asc, list_value_name)
+							    : User.get_range(index, range, asc, list_value_name);
 
 	export function reset(){
 		value = undefined;
-		list_user_name_ts = 0;
-		list_user_name = "";
-		user_name = "";
+		list_value_name_ts = 0;
+		list_value_name = "";
+		value_name = "";
 		if(user_list)
 			user_list.reset();
 	}
@@ -82,7 +85,7 @@
 {#snippet render_role(i, item)}
 	<button class="role_panel item hoverable"
 	style={Role.get_color_style(item)}
-	onclick={() => role_picked(item.id)}
+	onclick={() => pick_value(item, true)}
 	>
 		{item.name}
 	</button>
@@ -90,37 +93,34 @@
 {#snippet render_user(i, item)}
 	<UserDisplay user={{data: item, loaded: true}} server={server}
 		display_status={false}
-		show_user={() => {
-			value = item.id;
-			user_name = user_list.getItem(i).name;
-			show_list = false;
-			user_picked(item.id);
-		}}
+		show_user={() => pick_value(item)}
 	/>
 {/snippet}
 
 <div style="position: relative; z-index: 10" bind:this={self}>
 	<input autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
 		class="settings_control"
-		style={"width:var(--width, 200px); margin-bottom: var(--margin-bottom, 12px)" +
+		style={"width:var(--width, 200px); margin-bottom: var(--margin-bottom, 12px); margin-right: var(--margin-right, 0)" +
 			(typeof value === "undefined" && !fixed_text_color ? "; color: var(--clr_text_secondary)" : "")
 		}
-		bind:value={user_name} bind:this={input}
+		bind:value={value_name} bind:this={input}
 		onfocus={() => {show_list = true;}}
 		onkeyup={(e) => {
+			show_list = true;
+
 			if(e.key === "Backspace" && input.selectionStart === 0)
 				exit_input();
 
 			if(e.key === "Enter"){
 				if(roles.length > 0)
-					role_picked(roles[0].id);
-				else if(user_list.getItemCount() > 0)
-					user_picked(user_list.getItem(0).id);
+					pick_value(roles[0], true);
+				else if(user_list?.getItemCount() > 0)
+					pick_value(user_list.getItem(0));
 			}
 
-			if(user_name !== prev_user_name){
+			if(value_name !== prev_value_name){
 				value = undefined;
-				prev_user_name = user_name;
+				prev_value_name = value_name;
 			}
 		}}
 	/>
@@ -134,7 +134,6 @@
 				bind:this={user_list}
 				to_latest_text="Up"
 				auto_height=true
-				--width="200px"
 				--max-height="400px"
 			/>
 		</div>
