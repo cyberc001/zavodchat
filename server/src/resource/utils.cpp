@@ -295,14 +295,29 @@ std::shared_ptr<http_response> resource_utils::parse_server_ban_id(const http_re
 std::vector<int> resource_utils::get_channel_users(int channel_id, pqxx::work& tx)
 {
 	std::vector<int> out;
-	pqxx::result r = tx.exec("SELECT server_id, user1_id, user2_id FROM channels WHERE channel_id = $1",
+	pqxx::result r = tx.exec("SELECT server_id, user1_id, user2_id, wl_users, wl_roles FROM channels WHERE channel_id = $1",
 				 pqxx::params(channel_id));
 	if(r[0]["server_id"].is_null()){
 		out.push_back(r[0]["user1_id"].as<int>());
 		out.push_back(r[0]["user2_id"].as<int>());
 	} else {
 		int server_id = r[0]["server_id"].as<int>();
-		r = tx.exec("SELECT user_id FROM user_x_server WHERE server_id = $1 GROUP BY user_id",
+		std::vector<int> wl_users = resource_utils::parse_psql_int_array(r[0]["wl_users"]),
+				 wl_roles = resource_utils::parse_psql_int_array(r[0]["wl_roles"]);
+
+		std::string wl_check, having;
+		if(wl_users.size() > 0 || wl_roles.size() > 0){
+			wl_check = "AND (";
+			if(wl_users.size() > 0)
+				wl_check += "user_id IN (" + resource_utils::int_array_to_string(wl_users) + ")";
+			if(wl_roles.size() > 0)
+				wl_check += std::string(wl_users.size() > 0 ? " OR " : "") + "role_id IN (" + resource_utils::int_array_to_string(wl_roles) + ")";
+			wl_check += ")";
+		}
+
+		r = tx.exec("SELECT user_id FROM user_x_server "
+			    "WHERE server_id = $1 " + wl_check + 
+			    " GROUP BY user_id" + having,
 			    pqxx::params(server_id));
 		for(size_t i = 0; i < r.size(); ++i)
 			out.push_back(r[i]["user_id"].as<int>());
