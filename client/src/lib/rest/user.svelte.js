@@ -98,6 +98,23 @@ export default class User {
 				});
 		});
 	}
+	// server can be undefined
+	static get_self_server(server, on_load, _catch){
+		let self_user = User.get(-1, _catch);
+		self_user.notify_on_load(() => {
+			if(typeof(server) === "undefined")
+				on_load(self_user);
+			else {
+				server.notify_on_load(() => {
+					let server_user = User.get_server(server.data.id, self_user.data.id, _catch);
+					server_user.notify_on_load(() => {
+						on_load(server_user);
+					});
+				});
+			}
+		});
+	}
+
 	static get_server_range(server_id, start_id, count, asc,
 					displayname, added_roles, _catch){
 		return User.user_server_range_cache.get_state(typeof displayname == "undefined" ? server_id : [server_id, displayname],

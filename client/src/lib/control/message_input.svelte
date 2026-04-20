@@ -13,16 +13,26 @@
 	import Params from '$lib/rest/params.js';
 	import File from '$lib/rest/file.js';
 	import Role from '$lib/rest/role.js';
+	import User from '$lib/rest/user.svelte.js';
 
 	let {value = $bindable(), attachments = $bindable([]), links = $bindable([]),
+		override_send_perms,
 		server,
 		status, actions = [],
-		onsend } = $props();
+		onsend
+	} = $props();
 
 	let server_roles = $state();
+	let user_self = $state();
 	$effect(() => {
 		if(server?.loaded)
 			server_roles = Role.get_list(server.data.id);
+	});
+	User.get_self_server(server, (user) => user_self = user);
+	let can_send_messages = $derived.by(() => {
+		if(typeof(override_send_perms) !== "undefined")
+			return override_send_perms;
+		return !(server && !Role.check_perms(user_self.data, server_roles.data, 1, 0));
 	});
 
 	let self = $state();
@@ -140,7 +150,8 @@
 	let prev_sel_i = $state();
 	let last_mention_sel_i;
 	const onselectionchange = (e) => {
-		if(!server) // Don't suggest mentions for DMs
+		if(!input_div ||
+			!server) // Don't suggest mentions for DMs
 			return;
 
 		// Firefox is very trigger-happy with this event, so track only actual changes
@@ -185,7 +196,7 @@
 </script>
 
 <div class="message_input" bind:this={self}>
-{#if typeof(server) === "undefined" || server_roles?.loaded}
+{#if (typeof(server) === "undefined" || server_roles?.loaded) && user_self?.loaded}
 	<input type="file" style="position: fixed; top: -100vh" bind:this={file_input} bind:files multiple/>
 
 	<div class="message_input_center_panel">
@@ -202,10 +213,11 @@
 		</div>
 
 		<div style="display: flex">
-			<button class="hoverable transparent_button" onclick={onattach}>
+			<button class="hoverable transparent_button" onclick={onattach} disabled={!can_send_messages}>
 				<img class="filter_icon_main" src={asset("icons/attachment.svg")}/>
 			</button>
-			<div contenteditable="true" class="item message_input_div" bind:this={input_div}
+			<div class="item {can_send_messages ? "" : "disabled_item"} message_input_div" bind:this={input_div}
+				contenteditable={can_send_messages.toString()}
 				oninput={div_oninput}
 				onkeyup={div_onkeyup}
 			>
@@ -216,11 +228,7 @@
 			{#each attachments as att, i}
 				<div class="item message_input_attachment">
 					<button class="attachment_remove_button hoverable item"
-					onclick={() => {
-						attachments.splice(i, 1);
-						// parse links again, in case there were hitting the attachment limit before
-						last_value_change = new Date();
-					}}
+					onclick={() => attachments.splice(i, 1)}
 					>
 						<img src={asset("icons/close.svg")} alt="remove attachment" class="filter_icon_main" style="width: 32px"/>
 					</button>

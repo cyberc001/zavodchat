@@ -9,11 +9,11 @@ export class IDObserver {
 		this.set_loaded();
 	}
 
-	load_cb;
+	load_cbs = [];
 	set_loaded(){
-		if(this.load_cb)
-			this.load_cb();
-		this.load_cb = undefined;
+		for(const cb of this.load_cbs)
+			cb();
+		this.load_cbs.length = 0;
 		this.loaded = true;
 		this.loading = false;
 	}
@@ -21,7 +21,7 @@ export class IDObserver {
 		if(this.loaded)
 			cb();
 		else
-			this.load_cb = cb;
+			this.load_cbs.push(cb);
 	}
 }
 
@@ -32,6 +32,7 @@ export class IDCache {
 	}
 
 	// Keep references to state values so they dont get collected until interval passes
+	// TODO if object is removed from _cache_refs and immediately GCed before set_state(), it's load observers will never fire. Does it happen in practice?
 	_cache_refs = {};
 	intv = setInterval(() => {
 		this._cache_refs = {};
@@ -50,6 +51,7 @@ export class IDCache {
 		if(typeof obj === "undefined" || typeof obj.deref() === "undefined"){
 			obj = this._default_state_constructor();
 			this.cache[id] = new WeakRef(obj);
+			this._cache_refs[id] = obj;
 			if(load_func)
 				load_func(this, id);
 			return obj;
@@ -75,7 +77,6 @@ export class IDCache {
 			this.cache[id] = new WeakRef(obj);	
 		}
 		obj.set_data(data);
-		this._cache_refs[id] = obj;
 	}
 	has_state(_id){
 		return typeof this.cache[this.state_refs_id(_id)]?.deref() !== "undefined";

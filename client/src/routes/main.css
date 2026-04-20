@@ -62,6 +62,10 @@ button {
 	border-color: var(--clr_border_item);
 	border-style: none;
 }
+.disabled_item {
+	background: var(--clr_bg_panel);
+}
+
 .hoverable:hover {
 	background: var(--clr_bg_hover);
 }
@@ -84,6 +88,9 @@ button {
 }
 .transparent_button:not(.selected):not(:hover) {
 	background: transparent;
+}
+.transparent_button:disabled > img {
+	filter: brightness(0) saturate(100%) invert(47%) sepia(6%) saturate(243%) hue-rotate(212deg) brightness(98%) contrast(88%);
 }
 
 

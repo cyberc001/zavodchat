@@ -23,7 +23,13 @@
 		show_ctx_menu, ctx_vc_user, show_user, show_ban,
 		show_channel, end_call} = $props();
 
-	let self_user = User.get(-1);
+	let server_roles = $state();
+	let user_self = $state();
+	$effect(() => {
+		if(server?.loaded)
+			server_roles = Role.get_list(server.data.id);
+	});
+	User.get_self_server(server, (user) => user_self = user);
 
 	let sel = $state({
 		message_edit: -1,
@@ -50,6 +56,7 @@
 
 	let channel_head = $state();
 	let message_list = $state();
+	let message_input = $state();
 
 	let message_search_params = $state({});
 	let is_search = $derived(Object.keys(message_search_params).length > 0);
@@ -82,7 +89,7 @@
 				--to_upload;
 			else
 				File.upload(att.content, (res) => {
-					att.content = `/files/upload/${self_user.data.id}/${res.data}`;
+					att.content = `/files/upload/${user_self.data.id}/${res.data}`;
 					if(--to_upload === 0)
 						_then(msg);
 				},  _catch);
@@ -217,10 +224,26 @@
 					sel.ctx_user_id = item.author_id;
 					sel.ctx_message = i;
 					_show_user(-1);
-					show_ctx_menu(anchor, e, for_message ?
-								(is_search ? [action_goto_message]
-								: [action_edit_message, action_delete_message])
-								: [action_kick_user, action_ban_user]);
+					
+					let actions = [];
+					if(for_message){
+						if(is_search)
+							actions.push(action_goto_message);
+						else {
+							if(item.author_id === user_self.data.id)
+								actions.push(action_edit_message);
+							if(item.author_id === user_self.data.id ||
+								(server && Role.check_perms(user_self.data, server_roles.data, 1, 1)))
+								actions.push(action_delete_message);
+						}
+					} else {
+						if(server && Role.check_perms(user_self.data, server_roles.data, 1, 3))
+							actions.push(action_kick_user);
+						if(server && Role.check_perms(user_self.data, server_roles.data, 1, 4))
+							actions.push(action_ban_user);
+					}
+
+					show_ctx_menu(anchor, e, actions);
 				}}
 				selected={item.id === sel_message_id || item.id === sel.message_edit}
 				selected_user={item.id === sel_message_id && item.author_id === sel_user_id}
@@ -237,6 +260,7 @@
 			<MessageInput
 				bind:value={message_text} bind:attachments={message_attachments} bind:links={message_links}
 				server={server}
+				override_send_perms={sel.message_edit > -1 ? true : undefined}
 				onsend={sel.message_edit > -1 ? editMessage : sendMessage}
 				status={message_status}
 				actions={sel.message_edit > -1 ? [{text: "Stop editing", func: stopEditing}] : []}

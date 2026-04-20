@@ -75,17 +75,30 @@ export default class Role {
 	}
 
 
+	static check_perms(user, server_roles, set_i, perm_i){
+		for(const role of server_roles){
+			if(user.roles.indexOf(role.id) === -1)
+				continue;
+			const p = role["perms" + set_i] >> (perm_i * 2) & 0x3;
+			if(p !== 0)
+				return p === 1;
+		}
+
+		console.error(`Default role has a non-default permission, set ${set_i}, index ${perm_i}:\n`,
+				server_roles);
+	}
+
 	// Interface between Toggle and pemission bits
-	static perm_toggle_get(obj, set_number, set_idx){
-		let x = (obj["perms" + set_number] >> (set_idx * 2)) & 0x3;
+	static perm_toggle_get(obj, set_i, perm_i){
+		let x = (obj["perms" + set_i] >> (perm_i * 2)) & 0x3;
 		if(++x > 2)
 			x = 0;
 		return x;
 	}
-	static perm_toggle_set(x, obj, set_number, set_idx){
+	static perm_toggle_set(x, obj, set_i, perm_i){
 		if(--x < 0)
 			x = 2;
-		obj["perms" + set_number] &= ~(0x3 << (set_idx * 2));
-		obj["perms" + set_number] |= x << (set_idx * 2); 
+		obj["perms" + set_i] &= ~(0x3 << (perm_i * 2));
+		obj["perms" + set_i] |= x << (perm_i * 2); 
 	}
 }
