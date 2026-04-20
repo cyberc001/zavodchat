@@ -426,9 +426,9 @@
 	/>
 {/if}
 
-<IncomingCall socket_vc={socket_vc} show_channel={showChannel}/>
+{/if}
 
-<NotifDisplay/>
+<IncomingCall socket_vc={socket_vc} show_channel={showChannel}/>
 
 {#if ctx_menu_params.visible}
 	<ContextMenu
@@ -437,7 +437,7 @@
 		items={ctx_menu_params.items}/>
 {/if}
 
-{/if}
+<NotifDisplay/>
 
 <Dialog bind:this={ban.dialog}
 	question="Ban user?"
