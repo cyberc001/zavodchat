@@ -19,7 +19,7 @@
 		show_ctx_menu, show_user} = $props();
 	let is_edited = $derived(data.sent !== data.edited);
 
-	let user = User.get_server(server.data.id, data.author_id);
+	let user = server ? User.get_server(server.data.id, data.author_id) : User.get(data.author_id);
 
 	let status_msg = $derived.by(() => {
 		switch(data.status){
