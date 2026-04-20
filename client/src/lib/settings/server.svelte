@@ -79,34 +79,12 @@
 	let state_roles = new RolesTabState({list: []});
 
 	let role_list_selected_idx = $state(-1);
+	let role_list_selected = $derived(state_roles.state.list[role_list_selected_idx]);
 
 	$effect(() => {
 		if(server_roles.loaded)
 			state_roles.set_default_state("list", server_roles.data);
 	});
-
-	function perm_to_toggle_value(x){
-		if(++x > 2)
-			x = 0;
-		return x;
-	}
-	function toggle_value_to_perm(x){
-		if(--x < 0)
-			x = 2;
-		return x;
-	}
-	function role_perm_get_fabric(set_number, set_idx){
-		return () => {
-			return perm_to_toggle_value((state_roles.state.list[role_list_selected_idx]["perms" + set_number] >> (set_idx * 2)) & 0x3);
-		};
-	}
-	function role_perm_set_fabric(set_number, set_idx){
-		return (x) => {
-			x = toggle_value_to_perm(x);
-			state_roles.state.list[role_list_selected_idx]["perms" + set_number] &= ~(0x3 << (set_idx * 2));
-			state_roles.state.list[role_list_selected_idx]["perms" + set_number] |= x << (set_idx * 2); 
-		};
-	}
 
 
 	// Bans
@@ -279,31 +257,40 @@ This cannot be reversed.
 	<ColorPicker label_text="Color" bind:value={state_roles.state.list[role_list_selected_idx].color}/>
 	Permissions
 	<Toggle label_text="Send messages" states="off_default_on"
-		bind:value={role_perm_get_fabric(1, 0), role_perm_set_fabric(1, 0)}
+		bind:value={() => Role.perm_toggle_get(role_list_selected, 1, 0),
+			    (x) => Role.perm_toggle_set(x, role_list_selected, 1, 0)}
 	/>
 	<Toggle label_text="Delete messages of other users" states="off_default_on"
-		bind:value={role_perm_get_fabric(1, 1), role_perm_set_fabric(1, 1)}
+		bind:value={() => Role.perm_toggle_get(role_list_selected, 1, 1),
+			    (x) => Role.perm_toggle_set(x, role_list_selected, 1, 1)}
 	/>
 	<Toggle label_text="Manage server" states="off_default_on"
-		bind:value={role_perm_get_fabric(1, 2), role_perm_set_fabric(1, 2)}
+		bind:value={() => Role.perm_toggle_get(role_list_selected, 1, 2),
+			    (x) => Role.perm_toggle_set(x, role_list_selected, 1, 2)}
 	/>
 	<Toggle label_text="Kick users" states="off_default_on"
-		bind:value={role_perm_get_fabric(1, 3), role_perm_set_fabric(1, 3)}
+		bind:value={() => Role.perm_toggle_get(role_list_selected, 1, 3),
+			    (x) => Role.perm_toggle_set(x, role_list_selected, 1, 3)}
 	/>
 	<Toggle label_text="Manage bans" states="off_default_on"
-		bind:value={role_perm_get_fabric(1, 4), role_perm_set_fabric(1, 4)}
+		bind:value={() => Role.perm_toggle_get(role_list_selected, 1, 4),
+			    (x) => Role.perm_toggle_set(x, role_list_selected, 1, 4)}
 	/>
 	<Toggle label_text="Manage channels" states="off_default_on"
-		bind:value={role_perm_get_fabric(1, 5), role_perm_set_fabric(1, 5)}
+		bind:value={() => Role.perm_toggle_get(role_list_selected, 1, 5),
+			    (x) => Role.perm_toggle_set(x, role_list_selected, 1, 5)}
 	/>
 	<Toggle label_text="Manage invites" states="off_default_on"
-		bind:value={role_perm_get_fabric(1, 6), role_perm_set_fabric(1, 6)}
+		bind:value={() => Role.perm_toggle_get(role_list_selected, 1, 6),
+			    (x) => Role.perm_toggle_set(x, role_list_selected, 1, 6)}
 	/>
 	<Toggle label_text="Speak in voice channels" states="off_default_on"
-		bind:value={role_perm_get_fabric(1, 7), role_perm_set_fabric(1, 7)}
+		bind:value={() => Role.perm_toggle_get(role_list_selected, 1, 7),
+			    (x) => Role.perm_toggle_set(x, role_list_selected, 1, 7)}
 	/>
 	<Toggle label_text="Manage roles" states="off_default_on"
-		bind:value={role_perm_get_fabric(1, 8), role_perm_set_fabric(1, 8)}
+		bind:value={() => Role.perm_toggle_get(role_list_selected, 1, 8),
+			    (x) => Role.perm_toggle_set(x, role_list_selected, 1, 8)}
 	/>
 {/if}
 </Group>

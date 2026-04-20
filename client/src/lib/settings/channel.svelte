@@ -6,6 +6,7 @@
 	import Button from '$lib/control/button.svelte';
 	import Select from '$lib/control/select.svelte';
 	import List from '$lib/control/list.svelte';
+	import Toggle from '$lib/control/toggle.svelte';
 	import UserDisplay from '$lib/display/user.svelte';
 	import UserPicker from '$lib/control/user_picker.svelte';
 
@@ -83,10 +84,39 @@
 		}
 	});
 
+
+	// Permissions
+	let perms_role_picker = $state();
+	let perms_role_add_id = $state();
+	let perms_role_selected_idx = $state(-1);
+	let perms_role_selected = $derived(state_permissions.state.roles[perms_role_selected_idx]);
+
+	class PermissionsTabState extends SettingsTabState {
+		changes_override = $derived.by(() => {
+			if(!server_roles.loaded)
+				return SettingsTabState.ChangesState.Loading;
+		});
+
+		apply_changes(){
+			this.execute_list_changes("roles",
+				(role, _then, _catch) => Channel.change_role_perms(channel_id, role.id, role, _then, _catch),
+				(role, _then, _catch) => Channel.change_role_perms(channel_id, role.id, role, _then, _catch),
+				(role, _then, _catch) => Channel.delete_role_perms(channel_id, role.id, _then, _catch)
+			);
+		}
+	};
+	let state_permissions = new PermissionsTabState({roles: []});
+	$effect(() => {
+		if(channel.loaded && channel.data.roles)
+			state_permissions.set_default_state("roles", channel.data.roles);
+	});
+
+
 	export function tabs() {
 		return [
 			{name: "General", render: general, state: state_general},
-			{name: "Access", render: access, state: state_access}
+			{name: "Access", render: access, state: state_access},
+			{name: "Permissions", render: permissions, state: state_permissions}
 		];
 	}
 </script>
@@ -170,5 +200,56 @@
 			/>
 		</div>
 	</div>
+</Group>
+{/snippet}
+
+
+{#snippet render_role(i, role)}
+<div style="display:flex">
+<div style="font-size: 18px; {Role.get_color_style(roles[role.id])}">
+	{roles[role.id].name}
+</div>
+
+<div style="margin-left: auto">
+	<button class="transparent_button hoverable"
+	onclick={() => state_permissions.state.roles.splice(i, 1)}>
+		<img src={asset("icons/close.svg")} alt="remove role permissions" class="filter_icon_main" style="width: 32px"/>
+	</button>
+</div>
+</div>
+{/snippet}
+
+{#snippet permissions()}
+<Group name="Role list">
+	<List items={state_permissions.state.roles}
+		render_item={render_role}
+		bind:selected_idx={perms_role_selected_idx} 
+	/>
+	<div style="display: flex; margin-top: 16px">
+		<UserPicker server={server} load_users={false}
+		prepended_roles={server_roles.data.filter((x) => state_permissions.state.roles.findIndex((y) => y.id === x.id) === -1)}
+		bind:this={perms_role_picker} bind:value={perms_role_add_id}
+		--width="min(400px, 50vw)"
+		--margin-bottom="0"
+		--margin-right="6px"
+		/>
+		<Button text="Add"
+		onclick={() => {
+			if(typeof(perms_role_add_id) === "undefined")
+				return;
+			state_permissions.state.roles.push({id: perms_role_add_id, perms1: 0});
+			perms_role_picker.reset();
+		}}
+		--margin-bottom="0"
+		/>
+	</div>
+</Group>
+<Group name="Role permissions">
+{#if perms_role_selected}
+	<Toggle label_text="Send messages" states="off_default_on"
+		bind:value={() => Role.perm_toggle_get(perms_role_selected, 1, 0),
+			    (x) => Role.perm_toggle_set(x, perms_role_selected, 1, 0)}
+	/>
+{/if}
 </Group>
 {/snippet}

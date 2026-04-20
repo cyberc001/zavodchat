@@ -87,6 +87,17 @@ export default class Channel {
 				_then, _catch);
 	}
 
+
+	static change_role_perms(channel_id, role_id, perms, _then, _catch){
+		Rest.post("Changing channel role permissions", "channels/" + channel_id + "/roles/" + role_id,
+				perms, _then, _catch);
+	}
+	static delete_role_perms(channel_id, role_id, _then, _catch){
+		Rest.delete("Removing channel role permissions", "channels/" + channel_id + "/roles/" + role_id,
+				_then, _catch);
+	}
+
+
 	static Type = {
 		Text: 0,
 		Voice: 1

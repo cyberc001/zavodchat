@@ -6,6 +6,7 @@
 	
 	import FocusManager from '$lib/focus_manager.svelte';
 	import UserDisplay from '$lib/display/user.svelte';
+	import List from '$lib/control/list.svelte';
 	import PaginatedList from '$lib/display/paginated_list.svelte';
 
 	let {server, // if undefined, regular users are searched
@@ -13,7 +14,9 @@
 		list_on_top = false, // display the list above input field
 		fixed_text_color = false, // dont change text color to secondary when user wasnt picked
 		exit_input = () => {}, user_picked = () => {}, role_picked = () => {},
-		value = $bindable(), value_is_role = $bindable(false)} = $props();
+		value = $bindable(), value_is_role = $bindable(false),
+		load_users = true
+	} = $props();
 
 	let self = $state();
 	let input = $state();
@@ -128,6 +131,7 @@
 	{#if show_list}
 		<div class="user_list_panel item"
 			style={list_style}>
+			{#if load_users}
 			<PaginatedList
 				render_item={render_user} load_items={load_items}
 				render_prepend_item={render_role} prepend_items={roles}
@@ -136,6 +140,12 @@
 				auto_height=true
 				--max-height="400px"
 			/>
+			{:else}
+			<List
+				items={roles}
+				render_item={render_role}
+			/>
+			{/if}
 		</div>
 	{/if}
 </div>
@@ -150,6 +160,7 @@
 	border-radius: 4px;
 }
 .role_panel {
+	width: 100%;
 	margin-bottom: 6px;
 
 	text-align: left;

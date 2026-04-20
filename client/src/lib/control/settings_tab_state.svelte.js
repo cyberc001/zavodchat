@@ -100,6 +100,11 @@ export default class SettingsTabState {
 			Removed: 2
 		};
 
+		if(!_then)
+			_then = () => {};
+		if(!_catch)
+			_catch = () => {};
+
 		let changes = [];
 		for(const o2 of this.state[key]){
 			const o1 = this.default_state[key].find((x) => x.id === o2.id);

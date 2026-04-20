@@ -73,4 +73,19 @@ export default class Role {
 	static get_username_style(role_list){
 		return (typeof role_list !== "undefined" && role_list.length > 0) ? `color: ${role_list[0].color}` : "";
 	}
+
+
+	// Interface between Toggle and pemission bits
+	static perm_toggle_get(obj, set_number, set_idx){
+		let x = (obj["perms" + set_number] >> (set_idx * 2)) & 0x3;
+		if(++x > 2)
+			x = 0;
+		return x;
+	}
+	static perm_toggle_set(x, obj, set_number, set_idx){
+		if(--x < 0)
+			x = 2;
+		obj["perms" + set_number] &= ~(0x3 << (set_idx * 2));
+		obj["perms" + set_number] |= x << (set_idx * 2); 
+	}
 }
