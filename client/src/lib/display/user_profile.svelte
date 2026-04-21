@@ -21,8 +21,9 @@
 			server_roles = Role.get_list(server.data.id);
 	});
 
-	let can_disallow_roles = $derived(user_self?.loaded && server_roles?.loaded &&
-						Role.check_perms(user_self.data, server.data, server_roles.data, 1, 8));
+	let can_change_roles = $derived(user_self?.loaded && server_roles?.loaded && user?.roles &&
+						Role.check_perms(user_self.data, server.data, server_roles.data, 1, 8) &&
+						(user_self.data.id === user.id || Role.check_lower_user(user_self.data, user, server.data, server_roles.data)));
 	let user_roles = $derived(server_roles?.loaded ? Role.get_user_roles(user, server_roles.data) : undefined);
 	let username_style = $derived(user_roles ? Role.get_username_style(user_roles) : "");
 
@@ -87,9 +88,9 @@
 		</div>
 		<div class="user_role_list">
 			{#each user_roles as rol, i}
-				<button class="user_role transparent_button hoverable {(can_disallow_roles && i < user_roles.length - 1 &&
+				<button class="user_role transparent_button hoverable {(can_change_roles && i < user_roles.length - 1 &&
 					Role.check_lower_role(user_self.data, user_roles[i].id, server.data, server_roles.data)) ? ' user_role_disallow' : ''}"
-				disabled={!(can_disallow_roles && i < user_roles.length - 1 &&
+				disabled={!(can_change_roles && i < user_roles.length - 1 &&
 					Role.check_lower_role(user_self.data, user_roles[i].id, server.data, server_roles.data))}
 				onclick={(e) => {
 					e.target.blur();
@@ -100,8 +101,7 @@
 					{rol.name}
 				</button>
 			{/each}
-			{#if typeof(user_roles) !== "undefined" &&
-				user_self && Role.check_perms(user_self.data, server.data, server_roles.data, 1, 8)}
+			{#if typeof(user_roles) !== "undefined" && can_change_roles}
 				<button class="user_role transparent_button hoverable"
 					bind:this={add_role_button}
 					onclick={(e) => {
