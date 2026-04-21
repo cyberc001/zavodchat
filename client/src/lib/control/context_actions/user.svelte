@@ -28,7 +28,7 @@
 				other_user_id = _other_user_id;
 
 				let actions = [action_block_user];
-				if(server && Role.check_lower_role(user.data, other_user.data, _server.data, server_roles.data)){
+				if(server && Role.check_lower_user(user.data, other_user.data, _server.data, server_roles.data)){
 					if(Role.check_perms(user.data, _server.data, server_roles.data, 1, 3))
 						actions.push(action_kick_user);
 					if(Role.check_perms(user.data, _server.data, server_roles.data, 1, 4))

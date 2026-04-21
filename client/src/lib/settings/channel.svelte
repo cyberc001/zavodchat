@@ -17,7 +17,8 @@
 	import User from '$lib/rest/user.svelte.js';
 	import Role from '$lib/rest/role.js';
 
-	let { server_id, channel_id } = $props();
+	let {server_id, channel_id,
+		tabs = $bindable()} = $props();
 
 	let server = Server.get(server_id);
 	let channel = Channel.get(channel_id);
@@ -112,13 +113,11 @@
 	});
 
 
-	export function tabs() {
-		return [
+	tabs = [
 			{name: "General", render: general, state: state_general},
 			{name: "Access", render: access, state: state_access},
 			{name: "Permissions", render: permissions, state: state_permissions}
-		];
-	}
+	];
 </script>
 
 {#snippet general()}

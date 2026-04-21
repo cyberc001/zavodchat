@@ -1,6 +1,7 @@
 import Rest from '$lib/rest.js';
 import Util from '$lib/util';
 import {ListCache} from '$lib/cache/list.svelte.js';
+import User from '$lib/rest/user.svelte.js';
 
 export default class Role {
 	static role_list_cache = new ListCache();
@@ -90,7 +91,37 @@ export default class Role {
 		console.error(`Default role has a non-default permission, set ${set_i}, index ${perm_i}:\n`,
 				server_roles);
 	}
-	static check_lower_role(user, other_user, server, server_roles){
+	static load_check_perms(server, set_i, perm_i,
+					_then){
+		User.get_self_server(server, (user_self) => {
+			let server_roles = Role.get_list(server.data.id);
+			server_roles.notify_on_load(() => {
+				if(typeof(set_i) === "number")
+					_then(Role.check_perms(user_self.data, server.data, server_roles.data, set_i, perm_i));
+				else { // array
+					for(let i = 0; i < set_i.length; ++i)
+						if(Role.check_perms(user_self.data, server.data, server_roles.data, set_i[i], perm_i[i])){
+							_then(true);
+							return;
+						}
+					_then(false);
+				}
+			});
+		});
+	}
+
+	static check_lower_role(user, other_role_id, server, server_roles){
+		if(server.owner_id === user.id)
+			return true;
+		for(const role of server_roles){
+			if(role.id === other_role_id)
+				return false;
+			else if(user.roles.indexOf(role.id) !== -1)
+				return true;
+		}
+		return false;
+	}
+	static check_lower_user(user, other_user, server, server_roles){
 		if(server.owner_id === other_user.id)
 			return false;
 		if(server.owner_id === user.id)

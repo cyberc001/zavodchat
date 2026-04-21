@@ -27,16 +27,16 @@
 	}
 
 	import SettingsUser from '$lib/settings/user.svelte';
-	let settings_user = $state();
+	let settings_user_tabs = $state();
 	import SettingsServer from '$lib/settings/server.svelte';
-	let settings_server = $state();
+	let settings_server_tabs = $state();
 	import SettingsChannel from '$lib/settings/channel.svelte';
-	let settings_channel = $state();
+	let settings_channel_tabs = $state();
 
 	import CreateServer from '$lib/settings/create_server.svelte';
-	let create_server = $state();
+	let create_server_tabs = $state();
 	import CreateChannel from '$lib/settings/create_channel.svelte';
-	let create_channel = $state();
+	let create_channel_tabs = $state();
 
 	import DurationPicker from '$lib/control/duration_picker.svelte';
 	import Slider from '$lib/control/slider.svelte';
@@ -250,7 +250,7 @@
 	<ContextMenuAction icon={asset("icons/settings.svg")} text="Settings"
 		hide_ctx_menu={hide_ctx_menu}
 		onclick={() => {
-				sel.settings_tabs = settings_server.tabs();
+			sel.settings_tabs = settings_server_tabs;
 		}}
 	/>
 {/snippet}
@@ -259,7 +259,7 @@
 	<ContextMenuAction icon={asset("icons/settings.svg")} text="Settings"
 		hide_ctx_menu={hide_ctx_menu}
 		onclick={() => {
-				sel.settings_tabs = settings_channel.tabs();
+			sel.settings_tabs = settings_channel_tabs;
 		}}
 	/>
 {/snippet}
@@ -267,8 +267,8 @@
 	<ContextMenuAction icon={asset("icons/delete.svg")} text="Delete"
 		hide_ctx_menu={hide_ctx_menu}
 		onclick={() => {
-				Channel.delete(settings_params.channel_id,
-						() => {}, () => {});
+			Channel.delete(settings_params.channel_id,
+					() => {}, () => {});
 		}}
 	/>
 {/snippet}
@@ -294,16 +294,16 @@
 {/snippet}
 
 
-<SettingsUser bind:this={settings_user}/>
+<SettingsUser bind:tabs={settings_user_tabs}/>
 {#if typeof settings_params.server_id !== "undefined"}
-	<SettingsServer bind:this={settings_server} server_id={settings_params.server_id}/>
+	<SettingsServer bind:tabs={settings_server_tabs} server_id={settings_params.server_id}/>
 {/if}
 {#if typeof settings_params.channel_id !== "undefined"}
-	<SettingsChannel bind:this={settings_channel} server_id={sel.server} channel_id={settings_params.channel_id}/>
+	<SettingsChannel bind:tabs={settings_channel_tabs} server_id={sel.server} channel_id={settings_params.channel_id}/>
 {/if}
 
-<CreateServer bind:this={create_server}/>
-<CreateChannel bind:this={create_channel} server_id={sel.server}/>
+<CreateServer bind:tabs={create_server_tabs}/>
+<CreateChannel bind:tabs={create_channel_tabs} server_id={sel.server}/>
 
 {#if sel.settings_tabs}
 	<div style="padding: 16px; box-sizing: border-box; height: 100%">
@@ -317,25 +317,14 @@
 					show_server={(server) => showServer(server.id)}
 					show_friends={() => showServer(-1)}
 					ctx_server={(self, e, server) => {
-						if(!user_self.loaded)
-							return;
-
+						setSettingsParams({server_id: server.id});
 						showCtxMenu(self, e);
 
-						let user_self_server = User.get_server(server.id, user_self.data.id);
-						user_self_server.notify_on_load(() => {
-							let server_roles = Role.get_list(server.id);
-							server_roles.notify_on_load(() => {
-								let actions = [];
-								if(Role.check_perms(user_self_server.data, server, server_roles.data, 1, 2)){
-									actions.push(action_settings_server);
-									setSettingsParams({server_id: server.id});
-								}
-								showCtxMenu(self, e, actions);
-							});
-						});
+						Role.load_check_perms(Server.get(server.id), [1, 1, 1, 1], [2, 4, 6, 8], (allowed) =>
+							showCtxMenu(self, e, allowed ? [action_settings_server] : [])
+						);
 					}}
-					create_server={() => sel.settings_tabs = create_server.tabs()}
+					create_server={() => sel.settings_tabs = create_server_tabs}
 				/>
 
 				<SidebarChannel server={server} selected_channel={sel.channel}
@@ -343,17 +332,24 @@
 					show_channel={showChannel}
 					ctx_channel={(self, e, channel) => {
 						setSettingsParams({channel_id: channel.id});
-						showCtxMenu(self, e, [action_settings_channel, action_delete_channel]);
+						showCtxMenu(self, e);
+						Role.load_check_perms(server, 1, 5, (allowed) =>
+							showCtxMenu(self, e, allowed ? [action_settings_channel, action_delete_channel] : [])
+						);
 					}}
 					ctx_vc_user={(self, e, channel_id, vc_state) => {
 						if(vc_state.id === user_self.data.id)
 							return;
 						sel.ctx_channel_id = channel_id;
 						sel.ctx_user_id = vc_state.id;
-						showCtxMenu(self, e, [user_volume, action_kick_channel_user]);
+						showCtxMenu(self, e);
+
+						Role.load_check_perms(server, 1, 9, (allowed) =>
+							showCtxMenu(self, e, allowed ? [user_volume, action_kick_channel_user] : [user_volume])
+						);
 					}}
 					create_channel={() => {
-						sel.settings_tabs = create_channel.tabs();
+						sel.settings_tabs = create_channel_tabs;
 					}}
 				/>
 		</div>
@@ -370,7 +366,7 @@
 					{user_self.data.name}
 					<button class="hoverable transparent_button"
 						style="margin-left:auto"
-						onclick={() => sel.settings_tabs = settings_user.tabs()}
+						onclick={() => sel.settings_tabs = settings_user_tabs}
 					>
 						<img src={asset("icons/settings.svg")} alt="profile settings" class="filter_icon_main" style="width: 32px"/>
 					</button>

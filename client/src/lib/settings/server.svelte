@@ -1,5 +1,6 @@
 <script>
 	import {page} from '$app/state';
+	import {untrack} from 'svelte';
 
 	import Util from '$lib/util.js';
 	import Notifs from '$lib/notifs.svelte.js';
@@ -20,12 +21,14 @@
 
 	import SettingsTabState from '$lib/control/settings_tab_state.svelte.js';
 
+	import User from '$lib/rest/user.svelte.js';
 	import Server from '$lib/rest/server.js';
 	import Role from '$lib/rest/role.js';
 	import Ban from '$lib/rest/ban.js';
 	import Invite from '$lib/rest/invite.js';
 
-	let {server_id} = $props();
+	let {server_id,
+		tabs = $bindable()} = $props();
 
 	let server = Server.get(server_id);
 	let server_roles = Role.get_list(server_id);
@@ -56,7 +59,7 @@
 		if(server.loaded){
 			state_general.set_all_states("avatar", Server.get_avatar_path(server.data));
 			state_general.set_all_states("name", server.data.name);
-		}	
+		}
 	});
 
 	// Roles
@@ -180,22 +183,37 @@
 	let state_invites = new InvitesTabState({list: []});
 
 	$effect(() => {
-		Invite.get_list_nocache(server_id,
-					(list) => {
-						state_invites.set_all_states("list", list);
-						state_invites_loaded = true;
-					}, () => {});
+		if(user_self?.loaded && Role.check_perms(user_self.data, server.data, server_roles.data, 1, 6))
+			Invite.get_list_nocache(server_id,
+						(list) => {
+							state_invites.set_all_states("list", list);
+							state_invites_loaded = true;
+						}, () => {});
 	});
 	let invite_list_selected_idx = $state(-1);
+
+
+	let user_self = $state();
+	User.get_self_server(server, (user) => user_self = user);
 	
-	export function tabs() {
-		return [
-			{name: "General", render: general, state: state_general},
-			{name: "Roles", render: roles, state: state_roles},
-			{name: "Bans", render: bans, state: state_bans},
-			{name: "Invites", render: invites, state: state_invites}
-		];
-	}
+	$effect(() => {
+		untrack(() => tabs = undefined);
+
+		if(server?.loaded && user_self?.loaded){
+			let new_tabs = [];
+
+			if(Role.check_perms(user_self.data, server.data, server_roles.data, 1, 2))
+				new_tabs.push({name: "General", render: general, state: state_general});
+			if(Role.check_perms(user_self.data, server.data, server_roles.data, 1, 8))
+				new_tabs.push({name: "Roles", render: roles, state: state_roles});
+			if(Role.check_perms(user_self.data, server.data, server_roles.data, 1, 4))
+				new_tabs.push({name: "Bans", render: bans, state: state_bans});
+			if(Role.check_perms(user_self.data, server.data, server_roles.data, 1, 6))
+				new_tabs.push({name: "Invites", render: invites, state: state_invites});
+
+			untrack(() => tabs = new_tabs);
+		}
+	});
 </script>
 
 {#snippet general(close_settings)}
@@ -216,9 +234,11 @@ This cannot be reversed.
 	<Textbox label_text="Server name" bind:value={state_general.state.name} --width="363px"/>
 	</div>
 </Group>
+{#if server.data.owner_id === user_self?.data.id}
 <Group name="Management">
 	<Button text="Delete server" onclick={() => delete_confirm.show()}/>
 </Group>
+{/if}
 {/snippet}
 
 
@@ -232,10 +252,22 @@ This cannot be reversed.
 {#snippet roles()}
 <Group name="Role priority">
 	<OrderedList bind:items={state_roles.state.list} bind:selected_idx={role_list_selected_idx}
-	check_drag={(dragged, dragged_idx) => { /* disallow to drag lowest (default) role */
-						return dragged_idx !== state_roles.state.list.length - 1;}}
-	check_insert={(dragged, dragged_idx, hovered, hovered_idx) => { /* disallow to insert below lowest (default) role */
-									return hovered_idx !== state_roles.state.list.length - 1;}}
+	check_drag={(dragged, dragged_idx) => {
+			if(!Role.check_lower_role(user_self.data, state_roles.state.list[dragged_idx].id, server.data, server_roles.data))
+				return false;
+			return dragged_idx !== state_roles.state.list.length - 1;
+		}
+	}
+	check_insert={(dragged, dragged_idx, hovered, hovered_idx) => {
+			if(hovered_idx === -1 && server.data.owner_id !== user_self.data.id)
+				return false;
+			if(hovered_idx === state_roles.state.list.length - 1)
+				return false;
+
+			return Role.check_lower_role(user_self.data, state_roles.state.list[hovered_idx + 1].id, server.data, server_roles.data);
+		}
+	}
+	
 	render_item={role_item}
 	/>
 	<Button text="Create role" onclick={() => {

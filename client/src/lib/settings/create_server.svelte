@@ -8,6 +8,8 @@
 	import Util from '$lib/util.js';
 	import Server from '$lib/rest/server.js';
 
+	let {tabs = $bindable()} = $props();
+
 	// General
 	class ServerTabState extends SettingsTabState {
 		type = "create";
@@ -39,11 +41,9 @@
 
 	let avatar_picker = $state();
 
-	export function tabs() {
-		return [
+	tabs = [
 			{name: "General", render: general, state: state_general}
-		];
-	}
+	];
 </script>
 
 {#snippet general()}

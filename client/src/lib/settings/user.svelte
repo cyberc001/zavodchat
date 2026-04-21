@@ -14,6 +14,9 @@
 	import Preferences from '$lib/rest/preferences.svelte.js';
 	import BlockedUsers from '$lib/rest/blocked_users.js';
 
+
+	let {tabs = $bindable()} = $props();
+
 	let self_user = User.get(-1);
 	let preferences = Preferences.data;
 	let blocked_users = BlockedUsers.get();
@@ -99,13 +102,11 @@
 	let blocked_users_list_selected_idx = $state(-1);
 
 
-	export function tabs() {
-		return [
-			{name: "Profile & Account", render: profile, state: state_profile},
-			{name: "Audio", render: audio, state: state_audio},
-			{name: "Other users", render: other_users, state: state_other_users}
-		];
-	}
+	tabs = [
+		{name: "Profile & Account", render: profile, state: state_profile},
+		{name: "Audio", render: audio, state: state_audio},
+		{name: "Other users", render: other_users, state: state_other_users}
+	];
 </script>
 
 {#snippet profile()}

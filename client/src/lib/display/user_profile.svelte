@@ -13,11 +13,16 @@
 		hide_profile,
 		assign_role, disallow_role} = $props();
 
+	let user_self = $state();
+	User.get_self_server(server, (user) => user_self = user);
 	let server_roles = $state();
 	$effect(() => {
 		if(server?.loaded)
 			server_roles = Role.get_list(server.data.id);
 	});
+
+	let can_disallow_roles = $derived(user_self?.loaded && server_roles?.loaded &&
+						Role.check_perms(user_self.data, server.data, server_roles.data, 1, 8));
 	let user_roles = $derived(server_roles?.loaded ? Role.get_user_roles(user, server_roles.data) : undefined);
 	let username_style = $derived(user_roles ? Role.get_username_style(user_roles) : "");
 
@@ -34,12 +39,13 @@
 	let add_role_ctx_off = $state([0, 0]);
 	let show_add_role_menu = $state(false);
 	let add_role_items = $derived.by(() => {
-		if(!user)
+		if(!user || !user_self)
 			return [];
 
 		let items = [[], []];
 		for(const rol of server_roles.data)
-			if(user_roles.findIndex((x) => x.id === rol.id) === -1){
+			if(user_roles.findIndex((x) => x.id === rol.id) === -1 &&
+				Role.check_lower_role(user_self.data, rol.id, server.data, server_roles.data)){
 				items[0].push(item_add_role);
 				items[1].push(rol);
 			}
@@ -81,8 +87,10 @@
 		</div>
 		<div class="user_role_list">
 			{#each user_roles as rol, i}
-				<button class={"user_role transparent_button hoverable" + (i === user_roles.length - 1 ? "" : " user_role_disallow")}
-				disabled={i === user_roles.length - 1}
+				<button class="user_role transparent_button hoverable {(can_disallow_roles && i < user_roles.length - 1 &&
+					Role.check_lower_role(user_self.data, user_roles[i].id, server.data, server_roles.data)) ? ' user_role_disallow' : ''}"
+				disabled={!(can_disallow_roles && i < user_roles.length - 1 &&
+					Role.check_lower_role(user_self.data, user_roles[i].id, server.data, server_roles.data))}
 				onclick={(e) => {
 					e.target.blur();
 					disallow_role(rol.id);
@@ -92,7 +100,8 @@
 					{rol.name}
 				</button>
 			{/each}
-			{#if typeof(user_roles) !== "undefined"}
+			{#if typeof(user_roles) !== "undefined" &&
+				user_self && Role.check_perms(user_self.data, server.data, server_roles.data, 1, 8)}
 				<button class="user_role transparent_button hoverable"
 					bind:this={add_role_button}
 					onclick={(e) => {

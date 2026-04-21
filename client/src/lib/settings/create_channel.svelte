@@ -8,7 +8,8 @@
 	import Util from '$lib/util.js';
 	import Channel from '$lib/rest/channel.js';
 
-	let { server_id } = $props();
+	let {server_id,
+		tabs = $bindable()} = $props();
 
 	// General
 	class ChannelTabState extends SettingsTabState {
@@ -25,11 +26,9 @@
 	};
 	let state_general = new ChannelTabState({name: "", type: Channel.Type.Text});
 
-	export function tabs() {
-		return [
+	tabs = [
 			{name: "General", render: general, state: state_general}
-		];
-	}
+	];
 </script>
 
 {#snippet general()}
