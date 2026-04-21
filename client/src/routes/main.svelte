@@ -46,6 +46,8 @@
 	import SidebarChannel from '$lib/display/sidebar/channel.svelte';
 	import SidebarMessage from '$lib/display/sidebar/message.svelte';
 	import SidebarFriends from '$lib/display/sidebar/friends.svelte';
+	import UserActions from '$lib/control/context_actions/user.svelte';
+	let user_actions = $state();
 
 	import UserDisplay from '$lib/display/user.svelte';
 	import UserProfileDisplay from '$lib/display/user_profile.svelte';
@@ -73,6 +75,11 @@
 	let servers = Server.get_list();
 
 	let server = $state();
+	let server_roles = $state();
+	$effect(() => {
+		if(server?.loaded)
+			server_roles = Role.get_list(server.data.id);
+	});
 
 	// UI state
 	let sel = $state({
@@ -267,27 +274,7 @@
 	/>
 {/snippet}
 
-{#snippet action_kick_user(hide_ctx_menu)}
-	<ContextMenuAction icon={asset("icons/kick.svg")} text="Kick"
-		hide_ctx_menu={hide_ctx_menu}
-		onclick={() => {
-				User.kick(sel.server, sel.ctx_user_id, () => {}, () => {});
-		}}
-	/>
-{/snippet}
-{#snippet action_ban_user(hide_ctx_menu)}
-	<ContextMenuAction icon={asset("icons/ban.svg")} text="Ban"
-		hide_ctx_menu={hide_ctx_menu}
-		onclick={() => showBan(sel.ctx_user_id)}
-	/>
-{/snippet}
-{#snippet action_block_user(hide_ctx_menu)}
-	<ContextMenuAction icon={asset("icons/block.svg")} text="Block"
-		hide_ctx_menu={hide_ctx_menu}
-		onclick={() => BlockedUsers.block_user(sel.ctx_user_id,
-							() => {}, () => {})}
-	/>
-{/snippet}
+<UserActions show_ban={showBan} bind:this={user_actions}/>
 
 {#snippet user_volume()}
 	{#if socket_vc?.is_connected && socket_vc.audio[sel.ctx_user_id]}
@@ -402,7 +389,8 @@
 				show_user={(id, anchor) => showUser(id, anchor, "right")}
 				show_ctx_menu={(anchor, e) => {
 					sel.ctx_user_id = user.id;
-					showCtxMenu(anchor, e, [action_kick_user, action_ban_user, action_block_user]);
+					user_actions.get(user_self.data.id, user.id, server, server_roles,
+								(actions) => showCtxMenu(anchor, e, actions));
 				}}
 				/>
 			{/snippet}

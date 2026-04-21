@@ -75,7 +75,10 @@ export default class Role {
 	}
 
 
-	static check_perms(user, server_roles, set_i, perm_i){
+	static check_perms(user, server, server_roles,
+				set_i, perm_i){
+		if(server.owner_id === user.id)
+			return true;
 		for(const role of server_roles){
 			if(user.roles.indexOf(role.id) === -1)
 				continue;
@@ -86,6 +89,19 @@ export default class Role {
 
 		console.error(`Default role has a non-default permission, set ${set_i}, index ${perm_i}:\n`,
 				server_roles);
+	}
+	static check_lower_role(user, other_user, server, server_roles){
+		if(server.owner_id === other_user.id)
+			return false;
+		if(server.owner_id === user.id)
+			return true;
+		for(const role of server_roles){
+			if(other_user.roles.indexOf(role.id) !== -1)
+				return false;
+			else if(user.roles.indexOf(role.id) !== -1)
+				return true;
+		}
+		return false;
 	}
 
 	// Interface between Toggle and pemission bits

@@ -10,6 +10,8 @@
 
 	import ChannelHead from '$lib/display/sidebar/channel_head.svelte';
 	import PrivateCall from '$lib/control/private_call.svelte';
+	import UserActions from '$lib/control/context_actions/user.svelte';
+	let user_actions = $state();
 
 	import Message from '$lib/rest/message.js';
 	import Channel from '$lib/rest/channel.js';
@@ -184,22 +186,7 @@
 	/>
 {/snippet}
 
-{#snippet action_kick_user(hide_ctx_menu)}
-	<ContextMenuAction icon={asset("icons/kick.svg")} text="Kick"
-		hide_ctx_menu={hide_ctx_menu}
-		onclick={() => {
-			User.kick(server.data.id, sel.ctx_user_id, () => {}, () => {});
-		}}
-	/>
-{/snippet}
-{#snippet action_ban_user(hide_ctx_menu)}
-	<ContextMenuAction icon={asset("icons/ban.svg")} text="Ban"
-		hide_ctx_menu={hide_ctx_menu}
-		onclick={() => show_ban(sel.ctx_user_id)}
-	/>
-{/snippet}
-
-
+<UserActions show_ban={show_ban} bind:this={user_actions}/>
 
 <div class="panel sidebar_message">
 	{#if channel_id > -1}
@@ -225,25 +212,21 @@
 					sel.ctx_message = i;
 					_show_user(-1);
 					
-					let actions = [];
 					if(for_message){
+						let actions = [];
 						if(is_search)
 							actions.push(action_goto_message);
 						else {
 							if(item.author_id === user_self.data.id)
 								actions.push(action_edit_message);
 							if(item.author_id === user_self.data.id ||
-								(server && Role.check_perms(user_self.data, server_roles.data, 1, 1)))
+								(server && Role.check_perms(user_self.data, server.data, server_roles.data, 1, 1)))
 								actions.push(action_delete_message);
 						}
-					} else {
-						if(server && Role.check_perms(user_self.data, server_roles.data, 1, 3))
-							actions.push(action_kick_user);
-						if(server && Role.check_perms(user_self.data, server_roles.data, 1, 4))
-							actions.push(action_ban_user);
-					}
-
-					show_ctx_menu(anchor, e, actions);
+						show_ctx_menu(anchor, e, actions);
+					} else
+						user_actions.get(user_self.data.id, item.author_id, server, server_roles,
+									(actions) => show_ctx_menu(anchor, e, actions));
 				}}
 				selected={item.id === sel_message_id || item.id === sel.message_edit}
 				selected_user={item.id === sel_message_id && item.author_id === sel_user_id}

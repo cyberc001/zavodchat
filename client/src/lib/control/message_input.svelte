@@ -32,7 +32,7 @@
 	let can_send_messages = $derived.by(() => {
 		if(typeof(override_send_perms) !== "undefined")
 			return override_send_perms;
-		return !(server && !Role.check_perms(user_self.data, server_roles.data, 1, 0));
+		return !(server?.loaded && !Role.check_perms(user_self.data, server.data, server_roles.data, 1, 0));
 	});
 
 	let self = $state();

@@ -23,7 +23,7 @@ std::shared_ptr<http_response> server_resource::render_GET(const http_request& r
 	if(err) return err;
 
 	nlohmann::json res = nlohmann::json::array();
-	pqxx::result r = tx.exec("SELECT DISTINCT ON(servers.server_id) servers.server_id, name, avatar, notification_count FROM user_x_server NATURAL JOIN servers "
+	pqxx::result r = tx.exec("SELECT DISTINCT ON(servers.server_id) servers.server_id, name, avatar, owner_id, notification_count FROM user_x_server NATURAL JOIN servers "
 				 "LEFT JOIN notifications ON notifications.server_id = servers.server_id AND notifications.user_id = $1 "
 				 "WHERE user_x_server.user_id = $1 "
 				 "ORDER BY servers.server_id",
@@ -94,7 +94,7 @@ std::shared_ptr<http_response> server_id_resource::render_GET(const http_request
 	auto err = resource_utils::parse_server_id(req, tx, user_id, server_id);
 	if(err) return err;
 
-	pqxx::result r = tx.exec("SELECT DISTINCT servers.server_id, name, avatar, notification_count FROM servers "
+	pqxx::result r = tx.exec("SELECT DISTINCT servers.server_id, name, avatar, owner_id, notification_count FROM servers "
 				 "LEFT JOIN notifications ON notifications.server_id = servers.server_id "
 				 "WHERE servers.server_id = $1",
 				 pqxx::params(server_id));
@@ -162,7 +162,7 @@ std::shared_ptr<http_response> server_id_resource::render_PUT(const http_request
 
 	if(updated){
 		socket_event ev;
-		pqxx::result r = tx.exec("SELECT server_id, name, avatar FROM servers WHERE server_id = $1", pqxx::params(server_id));
+		pqxx::result r = tx.exec("SELECT server_id, name, avatar, owner_id FROM servers WHERE server_id = $1", pqxx::params(server_id));
 		ev.data = json_utils::server_from_row(r[0]);
 		ev.name = "server_edited";
 		sserv.send_to_server(server_id, tx, ev);
