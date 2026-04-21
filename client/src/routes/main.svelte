@@ -101,8 +101,7 @@
 	let ctx_menu_params = $state({
 		anchor_name: undefined,
 		visible: false,
-		off: [0, 0],
-		items: []
+		off: [0, 0]
 	});
 	const showCtxMenu = (anchor, e, items) => {
 		ctx_menu_params.anchor = anchor;
@@ -318,8 +317,23 @@
 					show_server={(server) => showServer(server.id)}
 					show_friends={() => showServer(-1)}
 					ctx_server={(self, e, server) => {
-						setSettingsParams({server_id: server.id});
-						showCtxMenu(self, e, [action_settings_server]);
+						if(!user_self.loaded)
+							return;
+
+						showCtxMenu(self, e);
+
+						let user_self_server = User.get_server(server.id, user_self.data.id);
+						user_self_server.notify_on_load(() => {
+							let server_roles = Role.get_list(server.id);
+							server_roles.notify_on_load(() => {
+								let actions = [];
+								if(Role.check_perms(user_self_server.data, server, server_roles.data, 1, 2)){
+									actions.push(action_settings_server);
+									setSettingsParams({server_id: server.id});
+								}
+								showCtxMenu(self, e, actions);
+							});
+						});
 					}}
 					create_server={() => sel.settings_tabs = create_server.tabs()}
 				/>
@@ -389,6 +403,7 @@
 				show_user={(id, anchor) => showUser(id, anchor, "right")}
 				show_ctx_menu={(anchor, e) => {
 					sel.ctx_user_id = user.id;
+					showCtxMenu(anchor, e);
 					user_actions.get(user_self.data.id, user.id, server, server_roles,
 								(actions) => showCtxMenu(anchor, e, actions));
 				}}

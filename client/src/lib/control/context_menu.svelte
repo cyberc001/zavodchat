@@ -1,4 +1,5 @@
 <script>
+	import {asset} from '$app/paths';
 	import FocusManager from '$lib/focus_manager.svelte';
 
 	const { anchor, off = [0, 0],
@@ -21,11 +22,15 @@
 	role="list"
 	bind:this={self}
 >
+{#if typeof(items) === "undefined"}
+	<img src={asset("icons/loading.svg")} alt="loading" class="filter_icon_main" style="width: 20px; margin-right: 8px"/>
+{:else}
 	{#each items as item, i}
 		<div class="item context_menu_item hoverable">
 			{@render item(hide_ctx_menu, i)}
 		</div>
 	{/each}
+{/if}
 </div>
 
 <style>

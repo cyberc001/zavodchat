@@ -163,7 +163,7 @@ std::shared_ptr<http_response> server_id_resource::render_PUT(const http_request
 	if(updated){
 		socket_event ev;
 		pqxx::result r = tx.exec("SELECT server_id, name, avatar, owner_id FROM servers WHERE server_id = $1", pqxx::params(server_id));
-		ev.data = json_utils::server_from_row(r[0]);
+		ev.data = json_utils::server_from_row(r[0], false);
 		ev.name = "server_edited";
 		sserv.send_to_server(server_id, tx, ev);
 	}

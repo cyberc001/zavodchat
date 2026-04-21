@@ -224,9 +224,11 @@
 								actions.push(action_delete_message);
 						}
 						show_ctx_menu(anchor, e, actions);
-					} else
+					} else {
+						show_ctx_menu(anchor, e);
 						user_actions.get(user_self.data.id, item.author_id, server, server_roles,
 									(actions) => show_ctx_menu(anchor, e, actions));
+					}
 				}}
 				selected={item.id === sel_message_id || item.id === sel.message_edit}
 				selected_user={item.id === sel_message_id && item.author_id === sel_user_id}
