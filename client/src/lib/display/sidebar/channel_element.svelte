@@ -2,17 +2,32 @@
 	import {asset} from '$app/paths';
 	import Util from '$lib/util.js';
 	import Channel from '$lib/rest/channel.js';
-	import User from '$lib/rest/user.svelte.js';	
+	import User from '$lib/rest/user.svelte.js';
+	import Role from '$lib/rest/role.js';
 
 	import VCSocket from '$lib/socket/vc.svelte.js';
 
 	const {selected, last,
-		channel, socket_vc,
+		channel, server, socket_vc,
 		show_channel, ctx_channel, ctx_vc_user} = $props();
 
 	let self = $state();
 	let vc_user_divs = $state({});
+
+	let user_self = $state();
+	User.get_self_server(server, (user) => user_self = user);
+	let server_roles = $state();
+	$effect(() => {
+		if(server?.loaded)
+			server_roles = Role.get_list(server.data.id);
+	});
+
+	let can_join_vc = $derived(user_self?.loaded && server_roles?.loaded &&
+					Role.check_perms(user_self.data, server.data, server_roles.data, 1, 7));
 	let private_suffix = $derived(channel.wl_users.length > 0 || channel.wl_roles.length > 0 ? "_private" : "");
+	let is_text_secondary = $derived(channel.type === Channel.Type.Text ?
+						typeof(channel.notifications) === "undefined" :
+						!can_join_vc);
 </script>
 
 <div>
@@ -20,6 +35,7 @@
 		style={"border-style: none none solid none; anchor-name: --channel_" + channel.id
 			+ "; padding: 4px 0px 4px 4px; border-color: var(--clr_border)"}
 		onclick={() => show_channel(channel)}
+		disabled={!can_join_vc}
 		bind:this={self}
 		oncontextmenu={(e) => {
 			event.preventDefault();
@@ -32,7 +48,7 @@
 			<img src={asset(`icons/channel_text${private_suffix}.svg`)}  alt="text_channel" class="filter_icon_main sidebar_channel_el_icon"/>
 		{/if}
 		<div class="content"
-		style={`color: var(--clr_text${typeof(channel.notifications) === "undefined" ? "_secondary" : ""})`}>
+		style={`color: var(--clr_text${is_text_secondary ? "_secondary" : ""})`}>
 		{channel.name}
 		{#if typeof(channel.notifications) !== "undefined" && channel.notifications > 0}
 			<div class="notif_circle channel_notif_circle">{channel.notifications}</div>

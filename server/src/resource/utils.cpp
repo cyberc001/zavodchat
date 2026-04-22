@@ -209,24 +209,8 @@ std::shared_ptr<http_response> resource_utils::parse_channel_id(const http_reque
 			server_id = -1;
 	} else {
 		server_id = r[0]["server_id"].as<int>();
-		auto no_ch_manage_perms = role_utils::check_permission(req, tx, server_id, user_id,
-									"perms1", PERM1_MANAGE_CHANNELS);
-		if(no_ch_manage_perms){
-			// Check that user is whitelisted
-			std::vector<int> wl_users = parse_psql_int_array(r[0]["wl_users"]);
-			if(wl_users.size() > 0 && std::find(wl_users.begin(), wl_users.end(), user_id) != wl_users.end())
-				return nullptr;
-
-			std::vector<int> wl_roles = parse_psql_int_array(r[0]["wl_roles"]);
-			if(wl_users.size() == 0 && wl_roles.size() == 0)
-				return nullptr;
-			pqxx::result roles = tx.exec("SELECT role_id FROM user_x_server WHERE user_id = $1 AND server_id = $2",
-						     pqxx::params(user_id, server_id));
-			for(size_t i = 0; i < roles.size(); ++i)
-				if(std::find(wl_roles.begin(), wl_roles.end(), roles[i]["role_id"].as<int>()) != wl_roles.end())
-					return nullptr;
+		if(!check_channel_member(user_id, channel_id, server_id, tx))
 			return create_response::string(req, "Channel does not exist", 404);
-		}
 	}
 	return nullptr;
 }
@@ -353,13 +337,18 @@ std::shared_ptr<http_response> resource_utils::check_user_unblocked(const http_r
 	return nullptr;
 }
 
-std::shared_ptr<http_response> resource_utils::check_server_owner(const http_request& req, int user_id, int server_id, pqxx::work& tx)
+bool resource_utils::check_server_owner(int user_id, int server_id, pqxx::work& tx)
 {
 	pqxx::result r = tx.exec("SELECT owner_id FROM servers WHERE server_id = $1", pqxx::params(server_id));
-	if(r[0]["owner_id"].as<int>() != user_id)
-		return create_response::string(req, "User is not the owner of the server", 403);
-	return nullptr;
+	return r[0]["owner_id"].as<int>() == user_id;
 }
+std::shared_ptr<http_response> resource_utils::check_server_owner(const http_request& req, int user_id, int server_id, pqxx::work& tx)
+{
+	if(check_server_owner(user_id, server_id, tx))
+		return nullptr;
+	return create_response::string(req, "User is not the owner of the server", 403);
+}
+
 bool resource_utils::check_server_member(int user_id, int server_id, pqxx::work& tx)
 {
 	pqxx::result r = tx.exec("SELECT user_id FROM user_x_server WHERE user_id = $1 AND server_id = $2", pqxx::params(user_id, server_id));
@@ -370,6 +359,29 @@ std::shared_ptr<http_response> resource_utils::check_server_member(const http_re
 	if(!check_server_member(user_id, server_id, tx))
 		return create_response::string(req, "User with ID " + std::to_string(user_id) + " is not a member of the server", 403);
 	return nullptr;
+}
+bool resource_utils::check_channel_member(int user_id, int channel_id, int server_id, pqxx::work& tx)
+{
+	if(!role_utils::check_permission(tx, server_id, user_id,
+						"perms1", PERM1_MANAGE_CHANNELS)){
+		pqxx::result ch = tx.exec("SELECT wl_users, wl_roles FROM channels WHERE channel_id = $1",
+					     pqxx::params(channel_id));
+		std::vector<int> wl_users = parse_psql_int_array(ch[0]["wl_users"]);
+		if(wl_users.size() > 0 && std::find(wl_users.begin(), wl_users.end(), user_id) != wl_users.end())
+			return true;
+
+		std::vector<int> wl_roles = parse_psql_int_array(ch[0]["wl_roles"]);
+		if(wl_users.size() == 0 && wl_roles.size() == 0)
+			return true;
+		pqxx::result roles = tx.exec("SELECT role_id FROM user_x_server WHERE user_id = $1 AND server_id = $2",
+					     pqxx::params(user_id, server_id));
+		for(size_t i = 0; i < roles.size(); ++i)
+			if(std::find(wl_roles.begin(), wl_roles.end(), roles[i]["role_id"].as<int>()) != wl_roles.end())
+				return true;
+
+		return false;
+	}
+	return true;
 }
 
 std::shared_ptr<http_response> resource_utils::parse_invite_id(const http_request& req, pqxx::work& tx, std::string& invite_id)

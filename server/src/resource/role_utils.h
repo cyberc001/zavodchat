@@ -14,7 +14,7 @@ using namespace httpserver;
 #define PERM1_BAN_MEMBERS			4
 #define PERM1_MANAGE_CHANNELS			5
 #define PERM1_MANAGE_INVITES			6
-#define PERM1_SPEAK_IN_VC			7
+#define PERM1_JOIN_VC				7
 #define PERM1_MANAGE_ROLES			8
 #define PERM1_MANAGE_VC				9
 
@@ -45,6 +45,9 @@ public:
 	// returns OK (nullptr) if the user is the owner of the server
 	static std::shared_ptr<http_response> check_user_lower_than_other(const http_request&, pqxx::work&, int server_id, int user_id, int lower_user_id, bool can_be_equal = false);
 
+	static bool check_permission(pqxx::work&,
+					int server_id, int user_id, std::string column, int perm,
+					int channel_id = -1);
 	static std::shared_ptr<http_response> check_permission(const http_request&, pqxx::work&,
 								int server_id, int user_id, std::string column, int perm,
 								int channel_id = -1);

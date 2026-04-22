@@ -2,6 +2,7 @@
 #include "resource/channel.h"
 #include "resource/utils.h"
 #include "resource/json_utils.h"
+#include "resource/role_utils.h"
 
 #include <iostream>
 
@@ -516,7 +517,7 @@ socket_vc_server::socket_vc_server(const config& cfg, db_connection_pool& pool, 
 					if(r[0]["server_id"].is_null()){
 						int user1_id = r[0]["user1_id"].as<int>(), user2_id = r[0]["user2_id"].as<int>();
 						if(user1_id != conn->user_id && user2_id != conn->user_id){
-							conn->close(ix::WebSocketCloseConstants::kNormalClosureCode, "User has no access to the channel or it does not exist");
+							conn->close(ix::WebSocketCloseConstants::kNormalClosureCode, "Channel does not exist");
 							return;
 						}
 						if(user1_id == user2_id){
@@ -533,8 +534,13 @@ socket_vc_server::socket_vc_server(const config& cfg, db_connection_pool& pool, 
 						}
 					} else {
 						conn->server_id = r[0]["server_id"].as<int>();
-						if(!resource_utils::check_server_member(conn->user_id, conn->server_id, tx)){
-							conn->close(ix::WebSocketCloseConstants::kNormalClosureCode, "User has no access to the channel or it does not exist");
+						if(!resource_utils::check_server_member(conn->user_id, conn->server_id, tx) ||
+						   !resource_utils::check_channel_member(conn->user_id, conn->channel_id, conn->server_id, tx)){
+							conn->close(ix::WebSocketCloseConstants::kNormalClosureCode, "Channel does not exist");
+							return;
+						}
+						if(!role_utils::check_permission(tx, conn->server_id, conn->user_id, "perms1", PERM1_JOIN_VC, conn->channel_id)){
+							conn->close(ix::WebSocketCloseConstants::kNormalClosureCode, "No permission");
 							return;
 						}
 					}

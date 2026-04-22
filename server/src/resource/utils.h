@@ -102,10 +102,13 @@ public:
 	static std::shared_ptr<http_response> check_user_unblocked(const http_request&, int user_from_id, int user_to_id, pqxx::work&);
 
 	// Checks if server's owner_id == user_id.
+	static bool check_server_owner(int user_id, int server_id, pqxx::work&);
 	static std::shared_ptr<http_response> check_server_owner(const http_request&, int user_id, int server_id, pqxx::work&);
+
 	// Separate check for user being a member of a server. Used when user is not the one that puts a request.
 	static bool check_server_member(int user_id, int server_id, pqxx::work&);
 	static std::shared_ptr<http_response> check_server_member(const http_request&, int user_id, int server_id, pqxx::work&);
+	static bool check_channel_member(int user_id, int channel_id, int server_id, pqxx::work&);
 
 	static std::shared_ptr<http_response> parse_invite_id(const http_request&, int server_id, pqxx::work&, std::string& invite_id);
 	// Same as above, but also checks if server has the invite

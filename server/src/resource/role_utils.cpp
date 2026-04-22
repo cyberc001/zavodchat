@@ -190,11 +190,11 @@ std::shared_ptr<http_response> role_utils::check_user_lower_than_other(const htt
 	return create_response::string(req, "No roles found for user", 500);
 }
 
-std::shared_ptr<http_response> role_utils::check_permission(const http_request& req, pqxx::work& tx,
-								int server_id, int user_id, std::string column, int perm, int channel_id)
+bool role_utils::check_permission(pqxx::work& tx,
+					int server_id, int user_id, std::string column, int perm, int channel_id)
 {
-	if(!resource_utils::check_server_owner(req, user_id, server_id, tx))
-		return nullptr;
+	if(resource_utils::check_server_owner(user_id, server_id, tx))
+		return true;
 
 	// get all user roles
 	pqxx::result r = tx.exec("SELECT role_id FROM user_x_server "
@@ -232,12 +232,19 @@ std::shared_ptr<http_response> role_utils::check_permission(const http_request& 
 			rm[cur][column].as<long long>();
 		int perm_status = (perm_bits >> (perm * 2)) & 0x3;
 		if(perm_status == 0x2)
-			return create_response::string(req, "No permission", 403);
+			return false;
 		else if(perm_status == 0x1)
-			return nullptr;
+			return true;
 	}
 
-	return create_response::string(req, "User has only default permissions", 500);
+	return false;
+}
+std::shared_ptr<http_response> role_utils::check_permission(const http_request& req, pqxx::work& tx,
+								int server_id, int user_id, std::string column, int perm, int channel_id)
+{
+	if(check_permission(tx, server_id, user_id, column, perm, channel_id))
+		return nullptr;
+	return create_response::string(req, "No permission", 403);
 }
 
 std::shared_ptr<http_response> role_utils::check_permission_validity(const http_request& req, int count, long long perms)

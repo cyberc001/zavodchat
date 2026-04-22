@@ -52,7 +52,7 @@
 				</div>
 			{:else}
 				{#each channels.data as ch, i}
-					<SidebarChannelElement channel={ch} socket_vc={socket_vc}
+					<SidebarChannelElement channel={ch} server={server} socket_vc={socket_vc}
 						selected={selected_channel === ch.id} last={i == channels.data.length - 1}
 						show_channel={(ch) => show_channel(ch)}
 						ctx_channel={ctx_channel} ctx_vc_user={ctx_vc_user}
