@@ -35,7 +35,7 @@
 		style={"border-style: none none solid none; anchor-name: --channel_" + channel.id
 			+ "; padding: 4px 0px 4px 4px; border-color: var(--clr_border)"}
 		onclick={() => show_channel(channel)}
-		disabled={!can_join_vc}
+		disabled={channel.type === Channel.Type.Voice && !can_join_vc}
 		bind:this={self}
 		oncontextmenu={(e) => {
 			event.preventDefault();

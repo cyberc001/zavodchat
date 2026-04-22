@@ -44,7 +44,7 @@
 	};
 
 	let states_last_i = $derived(Array.isArray(states) ? states.length - 1 : -1);
-	let letter = $derived(Array.isArray(states) ? states[value].letter : '');
+	let letter = $derived(typeof(states[value]) === "object" ? states[value].letter : '?');
 </script>
 
 <div class="settings_toggle_frame">

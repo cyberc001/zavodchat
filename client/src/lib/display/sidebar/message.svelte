@@ -25,6 +25,8 @@
 		show_ctx_menu, ctx_vc_user, show_user, show_ban,
 		show_channel, end_call} = $props();
 
+	let channel = Channel.get(channel_id);
+
 	let server_roles = $state();
 	let user_self = $state();
 	$effect(() => {
@@ -192,7 +194,7 @@
 	{#if channel_id > -1}
 	<div style="height: 100%; position: relative; display: flex; flex-direction: column">
 		<ChannelHead bind:this={channel_head}
-		channel={Channel.get(channel_id)} server={server}
+		channel={channel} server={server}
 		onsearch={(params) => {
 			sel.highlight_message = -1;
 			message_search_params = params;
@@ -244,7 +246,7 @@
 			/>
 			<MessageInput
 				bind:value={message_text} bind:attachments={message_attachments} bind:links={message_links}
-				server={server}
+				server={server} channel={channel}
 				override_send_perms={sel.message_edit > -1 ? true : undefined}
 				onsend={sel.message_edit > -1 ? editMessage : sendMessage}
 				status={message_status}

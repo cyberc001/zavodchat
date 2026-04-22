@@ -17,7 +17,7 @@
 
 	let {value = $bindable(), attachments = $bindable([]), links = $bindable([]),
 		override_send_perms,
-		server,
+		server, channel,
 		status, actions = [],
 		onsend
 	} = $props();
@@ -32,7 +32,7 @@
 	let can_send_messages = $derived.by(() => {
 		if(typeof(override_send_perms) !== "undefined")
 			return override_send_perms;
-		return !(server?.loaded && !Role.check_perms(user_self.data, server.data, server_roles.data, 1, 0));
+		return !(server?.loaded && channel?.loaded && !Role.check_perms(user_self.data, server.data, server_roles.data, 1, 0, channel.data));
 	});
 
 	let self = $state();
@@ -196,7 +196,7 @@
 </script>
 
 <div class="message_input" bind:this={self}>
-{#if (typeof(server) === "undefined" || server_roles?.loaded) && user_self?.loaded}
+{#if (typeof(server) === "undefined" || server_roles?.loaded) && user_self?.loaded && channel?.loaded}
 	<input type="file" style="position: fixed; top: -100vh" bind:this={file_input} bind:files multiple/>
 
 	<div class="message_input_center_panel">

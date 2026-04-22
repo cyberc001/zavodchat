@@ -266,10 +266,14 @@ bool role_utils::check_permission(pqxx::work& tx,
 		if(!user_role_ids.count(role_id))
 			continue;
 
-		long long perm_bits = channel_id > -1 && channel_role_perms.count(role_id) ?
-			channel_role_perms[role_id] :
-			rm[cur][perm.column].as<long long>();
-		int p = GET_PERM_BIT(perm_bits, bit);
+		long long channel_perm_bits = channel_id > -1 && channel_role_perms.count(role_id) ? channel_role_perms[role_id] : 0;
+		long long perm_bits = rm[cur][perm.column].as<long long>();
+		int p = GET_PERM_BIT(perm_bits, bit), chp = GET_PERM_BIT(channel_perm_bits, bit);
+		if(chp == 0x2)
+			return false;
+		else if(chp == 0x1)
+			return true;
+
 		if(p == 0x2)
 			return false;
 		else if(p == 0x1)
