@@ -539,7 +539,8 @@ socket_vc_server::socket_vc_server(const config& cfg, db_connection_pool& pool, 
 							conn->close(ix::WebSocketCloseConstants::kNormalClosureCode, "Channel does not exist");
 							return;
 						}
-						if(!role_utils::check_permission(tx, conn->server_id, conn->user_id, "perms1", PERM1_JOIN_VC, conn->channel_id)){
+						if(!role_utils::check_permission(tx, conn->server_id, conn->user_id,
+											role_utils::perms1, PERM1_JOIN_VC, conn->channel_id)){
 							conn->close(ix::WebSocketCloseConstants::kNormalClosureCode, "No permission");
 							return;
 						}

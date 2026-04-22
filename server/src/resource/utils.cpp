@@ -363,7 +363,7 @@ std::shared_ptr<http_response> resource_utils::check_server_member(const http_re
 bool resource_utils::check_channel_member(int user_id, int channel_id, int server_id, pqxx::work& tx)
 {
 	if(!role_utils::check_permission(tx, server_id, user_id,
-						"perms1", PERM1_MANAGE_CHANNELS)){
+						role_utils::perms1, PERM1_MANAGE_CHANNELS)){
 		pqxx::result ch = tx.exec("SELECT wl_users, wl_roles FROM channels WHERE channel_id = $1",
 					     pqxx::params(channel_id));
 		std::vector<int> wl_users = parse_psql_int_array(ch[0]["wl_users"]);

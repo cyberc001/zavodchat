@@ -21,7 +21,7 @@ std::shared_ptr<http_response> server_bans_resource::render_GET(const http_reque
 	if(err) return err;
 
 	err = role_utils::check_permission(req, tx, server_id, user_id,
-						"perms1", PERM1_BAN_MEMBERS);
+						role_utils::perms1, PERM1_BAN_MEMBERS);
 	if(err) return err;
 
 	std::string pg_query;
@@ -69,7 +69,7 @@ std::shared_ptr<http_response> server_ban_id_resource::render_POST(const http_re
 	if(err) return err;
 
 	err = role_utils::check_permission(req, tx, server_id, user_id,
-						"perms1", PERM1_BAN_MEMBERS);
+						role_utils::perms1, PERM1_BAN_MEMBERS);
 	if(err) return err;
 
 	int server_user_id;
@@ -120,7 +120,7 @@ std::shared_ptr<http_response> server_ban_id_resource::render_PUT(const http_req
 	if(err) return err;
 
 	err = role_utils::check_permission(req, tx, server_id, user_id,
-						"perms1", PERM1_BAN_MEMBERS);
+						role_utils::perms1, PERM1_BAN_MEMBERS);
 	if(err) return err;
 
 	int ban_id;
@@ -164,7 +164,7 @@ std::shared_ptr<http_response> server_ban_id_resource::render_DELETE(const http_
 	if(err) return err;
 
 	err = role_utils::check_permission(req, tx, server_id, user_id,
-						"perms1", PERM1_BAN_MEMBERS);
+						role_utils::perms1, PERM1_BAN_MEMBERS);
 	if(err) return err;
 
 	int ban_id;

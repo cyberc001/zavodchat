@@ -195,7 +195,8 @@
 
 	let user_self = $state();
 	User.get_self_server(server, (user) => user_self = user);
-	
+	let perm1_bits = $derived(Role.get_perm_bits(user_self.data, server.data, server_roles.data, 1));
+
 	$effect(() => {
 		untrack(() => tabs = undefined);
 
@@ -252,21 +253,22 @@ This cannot be reversed.
 {#snippet roles()}
 <Group name="Role priority">
 	<OrderedList bind:items={state_roles.state.list} bind:selected_idx={role_list_selected_idx}
+	check_select={(selected, selected_idx) => {
+		return Role.check_lower_role(user_self.data, state_roles.state.list[selected_idx].id, server.data, server_roles.data);
+	}}
 	check_drag={(dragged, dragged_idx) => {
-			if(!Role.check_lower_role(user_self.data, state_roles.state.list[dragged_idx].id, server.data, server_roles.data))
-				return false;
-			return dragged_idx !== state_roles.state.list.length - 1;
-		}
-	}
+		if(!Role.check_lower_role(user_self.data, state_roles.state.list[dragged_idx].id, server.data, server_roles.data))
+			return false;
+		return dragged_idx !== state_roles.state.list.length - 1;
+	}}
 	check_insert={(dragged, dragged_idx, hovered, hovered_idx) => {
-			if(hovered_idx === -1 && server.data.owner_id !== user_self.data.id)
-				return false;
-			if(hovered_idx === state_roles.state.list.length - 1)
-				return false;
+		if(hovered_idx === -1 && server.data.owner_id !== user_self.data.id)
+			return false;
+		if(hovered_idx === state_roles.state.list.length - 1)
+			return false;
 
-			return Role.check_lower_role(user_self.data, state_roles.state.list[hovered_idx + 1].id, server.data, server_roles.data);
-		}
-	}
+		return Role.check_lower_role(user_self.data, state_roles.state.list[hovered_idx + 1].id, server.data, server_roles.data);
+	}}
 	
 	render_item={role_item}
 	/>
@@ -288,39 +290,39 @@ This cannot be reversed.
 	<Textbox label_text="Name" bind:value={state_roles.state.list[role_list_selected_idx].name} --width="363px"/>
 	<ColorPicker label_text="Color" bind:value={state_roles.state.list[role_list_selected_idx].color}/>
 	Permissions
-	<Toggle label_text="Send messages" states="off_default_on"
+	<Toggle label_text="Send messages" states={"off_default" + ( ((perm1_bits >> 0) & 0x3) === 0x1 ? "_on" : "" )}
 		bind:value={() => Role.perm_toggle_get(role_list_selected, 1, 0),
 			    (x) => Role.perm_toggle_set(x, role_list_selected, 1, 0)}
 	/>
-	<Toggle label_text="Delete messages of other users" states="off_default_on"
+	<Toggle label_text="Delete messages of other users" states={"off_default" + ( ((perm1_bits >> 2) & 0x3) === 0x1 ? "_on" : "" )}
 		bind:value={() => Role.perm_toggle_get(role_list_selected, 1, 1),
 			    (x) => Role.perm_toggle_set(x, role_list_selected, 1, 1)}
 	/>
-	<Toggle label_text="Manage server" states="off_default_on"
+	<Toggle label_text="Manage server" states={"off_default" + ( ((perm1_bits >> 4) & 0x3) === 0x1 ? "_on" : "" )}
 		bind:value={() => Role.perm_toggle_get(role_list_selected, 1, 2),
 			    (x) => Role.perm_toggle_set(x, role_list_selected, 1, 2)}
 	/>
-	<Toggle label_text="Kick users" states="off_default_on"
+	<Toggle label_text="Kick users" states={"off_default" + ( ((perm1_bits >> 6) & 0x3) === 0x1 ? "_on" : "" )}
 		bind:value={() => Role.perm_toggle_get(role_list_selected, 1, 3),
 			    (x) => Role.perm_toggle_set(x, role_list_selected, 1, 3)}
 	/>
-	<Toggle label_text="Manage bans" states="off_default_on"
+	<Toggle label_text="Manage bans" states={"off_default" + ( ((perm1_bits >> 8) & 0x3) === 0x1 ? "_on" : "" )}
 		bind:value={() => Role.perm_toggle_get(role_list_selected, 1, 4),
 			    (x) => Role.perm_toggle_set(x, role_list_selected, 1, 4)}
 	/>
-	<Toggle label_text="Manage channels" states="off_default_on"
+	<Toggle label_text="Manage channels" states={"off_default" + ( ((perm1_bits >> 10) & 0x3) === 0x1 ? "_on" : "" )}
 		bind:value={() => Role.perm_toggle_get(role_list_selected, 1, 5),
 			    (x) => Role.perm_toggle_set(x, role_list_selected, 1, 5)}
 	/>
-	<Toggle label_text="Manage invites" states="off_default_on"
+	<Toggle label_text="Manage invites" states={"off_default" + ( ((perm1_bits >> 12) & 0x3) === 0x1 ? "_on" : "" )}
 		bind:value={() => Role.perm_toggle_get(role_list_selected, 1, 6),
 			    (x) => Role.perm_toggle_set(x, role_list_selected, 1, 6)}
 	/>
-	<Toggle label_text="Speak in voice channels" states="off_default_on"
+	<Toggle label_text="Speak in voice channels" states={"off_default" + ( ((perm1_bits >> 14) & 0x3) === 0x1 ? "_on" : "" )}
 		bind:value={() => Role.perm_toggle_get(role_list_selected, 1, 7),
 			    (x) => Role.perm_toggle_set(x, role_list_selected, 1, 7)}
 	/>
-	<Toggle label_text="Manage roles" states="off_default_on"
+	<Toggle label_text="Manage roles" states={"off_default" + ( ((perm1_bits >> 16) & 0x3) === 0x1 ? "_on" : "" )}
 		bind:value={() => Role.perm_toggle_get(role_list_selected, 1, 8),
 			    (x) => Role.perm_toggle_set(x, role_list_selected, 1, 8)}
 	/>

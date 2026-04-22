@@ -1,16 +1,23 @@
 <script>
+	import {untrack} from 'svelte';
+
 	let {label_text, states = "off_on",
 		value = $bindable(0)} = $props();
 
-	switch(states){
-		case "off_on":
-			states = [{letter: "O"}, {"letter": "I"}];
-			break;
-		case "off_default_on":
-			states = [{letter: "O"}, {letter: "D"}, {"letter": "I"}];
-			break;
-	}
-
+	$effect(() => {
+		switch(states){
+			case "off_on":
+				untrack(() => states = [{letter: "O"}, {"letter": "I"}]);
+				break;
+			case "off_default_on":
+				untrack(() => states = [{letter: "O"}, {letter: "D"}, {"letter": "I"}]);
+				break;
+			case "off_default":
+				untrack(() => states = [{letter: "O"}, {letter: "D"}]);
+				break;
+		}
+	});
+	
 	const onPanelClick = (e) => {
 		if(e.pointerType === ""){
 			onLetterClick(e);
@@ -22,7 +29,7 @@
 	let letter_move_forward = true;
 	const onLetterClick = (e) => {
 		if(letter_move_forward){
-			if(value === states.length - 1){
+			if(value === states_last_i){
 				--value;
 				letter_move_forward = false;
 			} else
@@ -35,17 +42,20 @@
 				--value;
 		}
 	};
+
+	let states_last_i = $derived(Array.isArray(states) ? states.length - 1 : -1);
+	let letter = $derived(Array.isArray(states) ? states[value].letter : '');
 </script>
 
 <div class="settings_toggle_frame">
 	<div style="position: relative">
 		<button class="settings_control settings_letter_box"
-			style={`left: ${value / (states.length - 1) * 100}%; transform: translate(${value === 0 ? 0
-												   : value === states.length - 1 ? -100
+			style={`left: ${value / states_last_i * 100}%; transform: translate(${value === 0 ? 0
+												   : value === states_last_i ? -100
 												   : -50}%, -50%)`}
 			onclick={onLetterClick}
 		>
-			{states[value].letter}
+			{letter}
 		</button>
 		<button class="settings_control settings_toggle_button"
 		onclick={onPanelClick}

@@ -51,7 +51,7 @@ std::shared_ptr<http_response> server_roles_resource::render_PUT(const http_requ
 	if(err) return err;
 
 	err = role_utils::check_permission(req, tx, server_id, user_id,
-						"perms1", PERM1_MANAGE_ROLES);
+						role_utils::perms1, PERM1_MANAGE_ROLES);
 	if(err) return err;
 
 	nlohmann::json list;
@@ -113,11 +113,15 @@ std::shared_ptr<http_response> server_roles_resource::render_PUT(const http_requ
 				int id = list[i]["id"].get<int>();
 				std::string name = list[i]["name"].get<std::string>();
 
-				unsigned long long perms1 = list[i]["perms1"].get<unsigned long long>();
-				if(role_utils::find_default_role(tx, list[i]["id"]) == list[i]["id"])
-					err = role_utils::check_permission_default_validity(req, PERM1_COUNT, perms1);
-				else
-					err = role_utils::check_permission_validity(req, PERM1_COUNT, perms1);
+				long long perms1 = list[i]["perms1"].get<long long>();
+				pqxx::result prev_role = tx.exec("SELECT * FROM roles WHERE role_id = $1",
+								 pqxx::params(id));
+				long long prev_perms1 = prev_role[0]["perms1"].as<long long>();
+				err = role_utils::check_permission_validity(req, tx,
+										role_utils::perms1,
+										prev_perms1, perms1,
+										server_id, user_id,
+										role_utils::find_default_role(tx, server_id) == id);
 				if(err) return err;
 		
 				int color;
@@ -170,7 +174,10 @@ std::shared_ptr<http_response> server_roles_resource::render_PUT(const http_requ
 			std::string name = list[i]["name"].get<std::string>();
 			
 			unsigned long long perms1 = list[i]["perms1"].get<unsigned long long>();
-			err = role_utils::check_permission_validity(req, PERM1_COUNT, perms1);
+			err = role_utils::check_permission_validity(req, tx,
+									role_utils::perms1,
+									0, perms1,
+									server_id, user_id);
 			if(err) return err;
 		
 			int color;

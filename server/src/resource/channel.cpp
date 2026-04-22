@@ -24,7 +24,7 @@ std::shared_ptr<http_response> server_channel_resource::render_GET(const http_re
 
 	std::string wl_check;
 	auto no_ch_manage_perms = role_utils::check_permission(req, tx, server_id, user_id,
-								"perms1", PERM1_MANAGE_CHANNELS);
+								role_utils::perms1, PERM1_MANAGE_CHANNELS);
 	if(no_ch_manage_perms)
 	       	wl_check = " AND ((array_length(wl_users, 1) IS NULL AND array_length(wl_roles, 1) IS NULL) OR array_position(wl_users, $2) IS NOT NULL OR EXISTS(SELECT role_id FROM user_x_server WHERE user_id = $2 AND array_position(wl_roles, role_id) IS NOT NULL))";
 
@@ -58,7 +58,7 @@ std::shared_ptr<http_response> server_channel_resource::render_POST(const http_r
 	if(err) return err;
 
 	err = role_utils::check_permission(req, tx, server_id, user_id,
-						"perms1", PERM1_MANAGE_CHANNELS);
+						role_utils::perms1, PERM1_MANAGE_CHANNELS);
 	if(err) return err;
 
 	// Parse JSON arguments
@@ -210,7 +210,7 @@ std::shared_ptr<http_response> channel_resource::render_PUT(const http_request& 
 		return create_response::string(req, "Cannot change a DM channel", 403);
 
 	err = role_utils::check_permission(req, tx, server_id, user_id,
-						"perms1", PERM1_MANAGE_CHANNELS);
+						role_utils::perms1, PERM1_MANAGE_CHANNELS);
 	if(err) return err;
 
 	nlohmann::json body;
@@ -357,7 +357,7 @@ std::shared_ptr<http_response> channel_resource::render_DELETE(const http_reques
 		return create_response::string(req, "Cannot delete a DM channel", 403);
 
 	err = role_utils::check_permission(req, tx, server_id, user_id,
-						"perms1", PERM1_MANAGE_CHANNELS);
+						role_utils::perms1, PERM1_MANAGE_CHANNELS);
 	if(err) return err;
 
 	pqxx::result r = tx.exec("DELETE FROM channels WHERE channel_id = $1 RETURNING wl_users, wl_roles",
@@ -405,7 +405,7 @@ std::shared_ptr<http_response> channel_user_id_resource::render_DELETE(const htt
 
 	if(server_id > -1){
 		err = role_utils::check_permission(req, tx, server_id, user_id,
-							"perms1", PERM1_MANAGE_VC);
+							role_utils::perms1, PERM1_MANAGE_VC);
 		if(err) return err;
 	} else {
 		// If user themselves are calling/in the call, forbid kicking the other participant
@@ -445,7 +445,7 @@ std::shared_ptr<http_response> channel_roles_resource::render_POST(const http_re
 	if(err) return err;
 
 	err = role_utils::check_permission(req, tx, server_id, user_id,
-						"perms1", PERM1_MANAGE_CHANNELS);
+						role_utils::perms1, PERM1_MANAGE_CHANNELS);
 	if(err) return err;
 
 
@@ -454,8 +454,16 @@ std::shared_ptr<http_response> channel_roles_resource::render_POST(const http_re
 	if(err)
 		return err;
 
+	pqxx::result role_rows = tx.exec("SELECT perms1 FROM channel_x_role "
+					 "WHERE channel_id = $1 AND role_id = $2",
+					 pqxx::params(channel_id, server_role_id));
+	long long prev_perms1 = role_rows.size() ? role_rows[0]["perms1"].as<long long>() : 0;
+
 	JSON_GET_UNSIGNED(body, perms1)
-	err = role_utils::check_permission_validity(req, PERM1_COUNT, perms1);
+	err = role_utils::check_permission_validity(req, tx,
+							role_utils::perms1,
+							prev_perms1, perms1,
+							server_id, user_id);
 	if(err)
 		return err;
 
@@ -466,7 +474,7 @@ std::shared_ptr<http_response> channel_roles_resource::render_POST(const http_re
 		pqxx::params(channel_id, server_role_id, perms1));
 
 	pqxx::result ch_row = tx.exec("SELECT * FROM channels WHERE channel_id = $1", pqxx::params(channel_id));
-	pqxx::result role_rows = tx.exec("SELECT role_id, perms1 FROM channel_x_role "
+	role_rows = tx.exec("SELECT role_id, perms1 FROM channel_x_role "
 					 "WHERE channel_id = $1",
 					 pqxx::params(channel_id));
 	tx.commit();
@@ -497,7 +505,7 @@ std::shared_ptr<http_response> channel_roles_resource::render_DELETE(const http_
 	if(err) return err;
 
 	err = role_utils::check_permission(req, tx, server_id, user_id,
-						"perms1", PERM1_MANAGE_CHANNELS);
+						role_utils::perms1, PERM1_MANAGE_CHANNELS);
 	if(err) return err;
 
 	tx.exec("DELETE FROM channel_x_role "

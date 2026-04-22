@@ -1,6 +1,7 @@
 <script>
 
 	let {items = $bindable([]), selected_idx = $bindable(-1),
+		check_select = (selected, selected_idx) => true,
 		check_drag = (dragged, dragged_idx) => true,
 		check_insert = (dragged, dragged_idx, hovered, hovered_idx) => true,
 		render_item
@@ -12,7 +13,8 @@
 	let hovered_idx = $state(-2);
 	
 	const onClick = (i) => {
-		selected_idx = i;
+		if(check_select(items[i], i))
+			selected_idx = i;
 	};
 	
 	const getBeforeIdx = (y) => {

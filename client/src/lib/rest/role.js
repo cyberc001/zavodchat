@@ -76,6 +76,26 @@ export default class Role {
 	}
 
 
+	static get_perm_bits(user, server, server_roles,
+				set_i){
+		if(server.owner_id === user.id)
+			return 0x55555555555555;
+
+		let bits = 0;
+		for(const role of server_roles){
+			if(user.roles.indexOf(role.id) === -1)
+				continue;
+			const p = role["perms" + set_i];
+
+			let mask = 0;
+			for(let i = 0; i < 15; ++i)
+				if((bits >> (i * 2) & 0x3) === 0)
+					mask |= 0x3 << (i * 2);
+			bits |= p & mask;
+		}
+		return bits;
+	}
+
 	static check_perms(user, server, server_roles,
 				set_i, perm_i){
 		if(server.owner_id === user.id)
