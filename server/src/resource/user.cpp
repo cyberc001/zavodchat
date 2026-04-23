@@ -25,7 +25,12 @@ std::shared_ptr<http_response> user_resource::render_GET(const http_request& req
 	err = resource_utils::parse_order(req, order);
 	if(err) return err;
 
+	int user_id;
+	auto invalid_user_id = resource_utils::parse_session_token(req, tx, user_id);
+
 	pqxx::params pr(start_id, count);
+	if(!invalid_user_id)
+		pr.append(user_id);
 
 	std::string where_displayname = "";
 	auto args = req.get_args();
@@ -34,7 +39,10 @@ std::shared_ptr<http_response> user_resource::render_GET(const http_request& req
 		where_displayname = "AND name LIKE '%' || $" + std::to_string(pr.size()) + " || '%'";
 	}
 
-	pqxx::result r = tx.exec("SELECT user_id, name, avatar, status FROM users WHERE user_id " + std::string(order == "DESC" ? "<=" : ">=") + " $1 " + where_displayname + " ORDER BY user_id " + order + " LIMIT $2 ", pr);
+	pqxx::result r = tx.exec("SELECT user_id, name, avatar, status FROM users WHERE " +
+				 std::string(invalid_user_id ? "" : resource_utils::no_blocked_users_query(3) + " AND ") +
+				 "user_id " + std::string(order == "DESC" ? "<=" : ">=") + " $1 " + where_displayname + " ORDER BY user_id " + order + " LIMIT $2 ",
+				 pr);
 	nlohmann::json res = nlohmann::json::array();
 	for(size_t i = 0; i < r.size(); ++i)
 		res += json_utils::user_from_row(r[i]);
@@ -65,7 +73,8 @@ std::shared_ptr<http_response> user_id_resource::render_GET(const http_request& 
 		user_id = auth_user_id;
 	}
 
-	pqxx::result r = tx.exec("SELECT user_id, name, avatar, status FROM users WHERE user_id = $1", pqxx::params(user_id));
+	pqxx::result r = tx.exec("SELECT user_id, name, avatar, status FROM users WHERE user_id = $1",
+				 pqxx::params(user_id));
 	if(!r.size())
 		return create_response::string(req, "User with this ID doesn't exist", 404);
 

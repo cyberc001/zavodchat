@@ -41,7 +41,7 @@ std::shared_ptr<http_response> server_channel_resource::render_GET(const http_re
 						 pqxx::params(r[i]["channel_id"].as<int>()));
 		nlohmann::json channel_json = json_utils::channel_from_row(r[i], &role_rows, true);
 		if(channel_json["type"] == CHANNEL_VOICE)
-			channel_json["vc_users"] = vcserv.get_channel_users(channel_json["id"]);
+			channel_json["vc_users"] = vcserv.get_channel_users(channel_json["id"], tx, user_id);
 		res += channel_json;
 	}
 
@@ -119,7 +119,7 @@ std::shared_ptr<http_response> server_channel_resource::render_POST(const http_r
 
 	json_utils::set_ids(ev.data, server_id);
 	ev.name = "channel_created";
-	sserv.send_to_server(server_id, tx, ev,
+	sserv.send_to_server(server_id, tx, ev, -1,
 				wl_users, wl_roles);
 
 	return create_response::string(req, std::to_string(channel_id), 200);
@@ -155,7 +155,7 @@ std::shared_ptr<http_response> channel_resource::render_GET(const http_request& 
 	nlohmann::json channel_json = json_utils::channel_from_row(r[0], &role_rows, true, user_id);
 
 	if(channel_json["type"] == CHANNEL_VOICE)
-		channel_json["vc_users"] = vcserv.get_channel_users(channel_id);
+		channel_json["vc_users"] = vcserv.get_channel_users(channel_id, tx, user_id);
 
 	return create_response::string(req, channel_json.dump(), 200);
 }
@@ -279,7 +279,7 @@ std::shared_ptr<http_response> channel_resource::render_PUT(const http_request& 
 							server_id, tx, old_users);
 				if(old_users.size()){
 					ev.name = "channel_edited";
-					sserv.send_to_server(server_id, tx, ev,
+					sserv.send_to_server(server_id, tx, ev, -1,
 								old_users);
 				}
 				ev.name = "channel_created";
@@ -293,7 +293,7 @@ std::shared_ptr<http_response> channel_resource::render_PUT(const http_request& 
 							server_id, tx, new_users);
 				if(new_users.size()){
 					ev.name = "channel_edited";
-					sserv.send_to_server(server_id, tx, ev,
+					sserv.send_to_server(server_id, tx, ev, -1,
 								new_users);
 				}
 				ev.name = "channel_deleted";
@@ -301,7 +301,7 @@ std::shared_ptr<http_response> channel_resource::render_PUT(const http_request& 
 					{"id", channel_id},
 					{"server_id", server_id}
 				};
-				sserv.send_to_server(server_id, tx, ev,
+				sserv.send_to_server(server_id, tx, ev, -1,
 							{}, {}, new_users);
 			} else {
 				std::vector<int> old_users, new_users;
@@ -314,12 +314,12 @@ std::shared_ptr<http_response> channel_resource::render_PUT(const http_request& 
 				array_diff<int> diff(old_users, new_users);
 				if(diff.unchanged.size()){
 					ev.name = "channel_edited";
-					sserv.send_to_server(server_id, tx, ev,
+					sserv.send_to_server(server_id, tx, ev, -1,
 								diff.unchanged);
 				}
 				if(diff.added.size()){
 					ev.name = "channel_created";
-					sserv.send_to_server(server_id, tx, ev,
+					sserv.send_to_server(server_id, tx, ev, -1,
 								diff.added);
 				}
 				if(diff.removed.size()){
@@ -328,13 +328,13 @@ std::shared_ptr<http_response> channel_resource::render_PUT(const http_request& 
 						{"id", channel_id},
 						{"server_id", server_id}
 					};
-					sserv.send_to_server(server_id, tx, ev,
+					sserv.send_to_server(server_id, tx, ev, -1,
 								diff.removed);
 				}
 			}
 		} else {
 			ev.name = "channel_edited";
-			sserv.send_to_server(server_id, tx, ev,
+			sserv.send_to_server(server_id, tx, ev, -1,
 						wl_users, wl_roles);
 		}
 
@@ -370,7 +370,7 @@ std::shared_ptr<http_response> channel_resource::render_DELETE(const http_reques
 	ev.data["id"] = channel_id;
 	json_utils::set_ids(ev.data, server_id);
 	ev.name = "channel_deleted";
-	sserv.send_to_server(server_id, tx, ev,
+	sserv.send_to_server(server_id, tx, ev, -1,
 				wl_users, wl_roles);
 
 	return create_response::string(req, "Deleted", 200);

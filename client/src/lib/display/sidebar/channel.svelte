@@ -21,8 +21,8 @@
 
 	let vc_video_elem = $state();
 	$effect(() => {
-		if(socket_vc?.watched_video && vc_video_elem){
-			vc_video_elem.srcObject = new MediaStream([socket_vc.watched_video]);
+		if(socket_vc?.get_watched_video() && vc_video_elem){
+			vc_video_elem.srcObject = new MediaStream([socket_vc.get_watched_video()]);
 			vc_video_elem.play();
 		}
 	});
@@ -81,7 +81,7 @@
 	{/if}
 </div>
 
-{#if socket_vc && socket_vc.watched_video}
+{#if socket_vc?.get_watched_video()}
 	<MediaDisplay close_media={() => socket_vc.unwatch_video()}>
 		<video class="fullscreen_media" bind:this={vc_video_elem}/>
 	</MediaDisplay>

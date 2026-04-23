@@ -2,7 +2,7 @@
 	import {asset} from '$app/paths';
 	import {onDestroy} from 'svelte';
 
-	import VCSocket from '$lib/socket/vc.svelte.js';
+	import {VideoState} from '$lib/socket/vc_utils.svelte.js';
 
 	import Sound from '$lib/sound.js';
 
@@ -15,15 +15,15 @@
 
 	let other_user = $state();
 	$effect(() => {
-		if(socket_vc.channel.loaded && typeof(socket_vc.channel.data.other_user_id) !== "undefined")
-			other_user = User.get(socket_vc.channel.data.other_user_id);
+		if(socket_vc.get_channel()?.loaded && typeof(socket_vc.get_channel().data.other_user_id) !== "undefined")
+			other_user = User.get(socket_vc.get_channel().data.other_user_id);
 		else
 			other_user = undefined;
 	});
 
 	$effect(() => {
 		// If self user is in the call, but the other user isnt, it's an outgoing call and ringtone should play
-		if(self_user.loaded && other_user?.loaded && socket_vc &&
+		if(self_user.loaded && other_user?.loaded &&
 			socket_vc.has_user(self_user.data.id) && !socket_vc.has_user(other_user.data.id))
 			Sound.play_ringtone(asset("sounds/out_call.ogg"));
 		else
@@ -33,7 +33,7 @@
 		Sound.stop_ringtone();
 	});
 
-	let name = $derived(other_user ? other_user.data.name : socket_vc.channel.data.name);
+	let name = $derived(other_user ? other_user.data.name : socket_vc.get_channel()?.data?.name);
 </script>
 
 <div class="panel vc_panel" style="border-bottom: none">
@@ -43,12 +43,12 @@
 		<div style="margin-left: auto; display: flex">
 			<button class="hoverable transparent_button"
 				onclick={() => {
-					socket_vc.set_video_state(socket_vc.video_state === VCSocket.VideoState.Disabled ?
-									VCSocket.VideoState.Screen : VCSocket.VideoState.Disabled);
+					socket_vc.set_video_state(socket_vc.get_video_state() === VideoState.Disabled ?
+									VideoState.Screen : VideoState.Disabled);
 				}}
 			>
-				<img src={asset("icons/screen_share" + (socket_vc.video_state === VCSocket.VideoState.Screen ? "_stop" : "") + ".svg")}
-					alt={socket_vc.video_state === VCSocket.VideoState.Screen ? "stop sharing screen" : "share screen"} class="filter_icon_main" style="width: 24px">
+				<img src={asset("icons/screen_share" + (socket_vc.get_video_state() === VideoState.Screen ? "_stop" : "") + ".svg")}
+					alt={socket_vc.get_video_state() === VideoState.Screen ? "stop sharing screen" : "share screen"} class="filter_icon_main" style="width: 24px">
 			</button>
 
 			<button class="hoverable transparent_button"
@@ -56,16 +56,16 @@
 					socket_vc.toggle_mute();
 				}}
 			>
-				<img src={asset("/icons/" + (socket_vc.mute == VCSocket.AudioState.None ? "not_" : "") + "muted.svg")}
-					alt={(socket_vc.mute == VCSocket.AudioState.None ? "" : "un") + "mute"} class="filter_icon_main" style="width: 24px">
+				<img src={asset("/icons/" + (socket_vc.is_mute() ? "" : "not_") + "muted.svg")}
+					alt={(socket_vc.is_mute() ? "un" : "") + "mute"} class="filter_icon_main" style="width: 24px">
 			</button>
 			<button class="hoverable transparent_button"
 				onclick={() => {
 					socket_vc.toggle_deaf();
 				}}
 			>
-				<img src={asset("icons/" + (socket_vc.deaf == VCSocket.AudioState.None ? "not_" : "") + "deaf.svg")}
-					alt={(socket_vc.deaf == VCSocket.AudioState.None ? "" : "un") + "deafen"} class="filter_icon_main" style="width: 24px">
+				<img src={asset("icons/" + (socket_vc.is_deaf() ? "" : "not_") + "deaf.svg")}
+					alt={(socket_vc.is_deaf() ? "un" : "") + "deafen"} class="filter_icon_main" style="width: 24px">
 			</button>
 			<button class="hoverable transparent_button"
 				onclick={end_call}
@@ -74,8 +74,8 @@
 			</button>
 		</div>
 	</div>
-	<div style="color: {socket_vc.state.color}">
-		{socket_vc.state.text}
+	<div style="color: {socket_vc.get_state().color}">
+		{socket_vc.get_state().text}
 	</div>
 </div>
 

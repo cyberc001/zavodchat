@@ -99,13 +99,12 @@ export default class Role {
 	static check_perms(user, server, server_roles,
 				set_i, perm_i,
 				channel){
-		console.log("checking perms", channel);
 		if(server.owner_id === user.id)
 			return true;
 		for(const role of server_roles){
 			if(user.roles.indexOf(role.id) === -1)
 				continue;
-			const channel_role_i = channel ? channel.roles.findIndex((x) => x.id === role.id) : -1;
+			const channel_role_i = channel?.roles ? channel.roles.findIndex((x) => x.id === role.id) : -1;
 			const chp = (channel_role_i > -1 ? channel.roles[channel_role_i].perms1 : 0) >> (perm_i * 2) & 0x3;
 			const p = role["perms" + set_i] >> (perm_i * 2) & 0x3;
 			if(chp !== 0)

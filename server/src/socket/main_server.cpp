@@ -82,7 +82,7 @@ void socket_main_server::try_send_to_conn(int user_id, const std::string& data)
 	});
 }
 
-void socket_main_server::send_to_server(int server_id, pqxx::work& tx, socket_event event,
+void socket_main_server::send_to_server(int server_id, pqxx::work& tx, socket_event event, int user_id,
 					std::vector<int> wl_users, std::vector<int> wl_roles,
 					std::vector<int> bl_users, std::vector<int> bl_roles)
 {
@@ -101,20 +101,24 @@ void socket_main_server::send_to_server(int server_id, pqxx::work& tx, socket_ev
 	if(bl_roles.size() > 0)
 		having = " HAVING bool_or(role_id IN (" + resource_utils::int_array_to_string(bl_roles) + "))";
 
-	pqxx::result r = tx.exec("SELECT user_id FROM user_x_server WHERE server_id = $1 " + wl_check +
+	pqxx::params pr(server_id);
+	if(user_id > -1)
+		pr.append(user_id);
+	pqxx::result r = tx.exec("SELECT user_id FROM user_x_server WHERE server_id = $1 " +
+				 std::string(user_id > -1 ? "AND NOT EXISTS(SELECT user2_id FROM blocked_users WHERE user1_id = user_id AND user2_id = $2) " : "") + wl_check +
 				 " GROUP BY user_id" + having,
-				 pqxx::params(server_id));
+				 pr);
 
 	for(size_t i = 0; i < r.size(); ++i){
 		int user_id = r[i]["user_id"].as<int>();
 		try_send_to_conn(user_id, dumped);
 	}
 }
-void socket_main_server::send_to_channel(int channel_id, pqxx::work& tx, socket_event event)
+void socket_main_server::send_to_channel(int channel_id, pqxx::work& tx, socket_event event, int user_id)
 {
 	std::string dumped = event.dump();
-	std::vector<int> user_id = resource_utils::get_channel_users(channel_id, tx);
-	for(auto i = user_id.begin(); i != user_id.end(); ++i)
+	std::vector<int> user_ids = resource_utils::get_channel_users(channel_id, tx, user_id);
+	for(auto i = user_ids.begin(); i != user_ids.end(); ++i)
 		try_send_to_conn(*i, dumped);
 }
 void socket_main_server::send_to_user(int user_id, pqxx::work& tx, socket_event event)
@@ -125,8 +129,12 @@ void socket_main_server::send_to_user(int user_id, pqxx::work& tx, socket_event 
 void socket_main_server::send_to_user_observers(int user_id, pqxx::work& tx, socket_event event)
 {
 	std::string dumped = event.dump();
-	pqxx::result r1 = tx.exec("SELECT DISTINCT ON(user_id) user_id FROM user_x_server WHERE server_id IN (SELECT server_id FROM user_x_server WHERE user_id = $1)", pqxx::params(user_id)),
-		     r2 = tx.exec("SELECT user1_id, user2_id FROM friends WHERE user1_id = $1 OR user2_id = $1", pqxx::params(user_id));
+	pqxx::result r1 = tx.exec("SELECT DISTINCT ON(user_id) user_id FROM user_x_server "
+				  "WHERE server_id IN (SELECT server_id FROM user_x_server WHERE user_id = $1) "
+				  "AND NOT EXISTS(SELECT user2_id FROM blocked_users WHERE user1_id = user_id AND user2_id = $1)",
+				  pqxx::params(user_id)),
+		     r2 = tx.exec("SELECT user1_id, user2_id FROM friends WHERE user1_id = $1 OR user2_id = $1",
+				  pqxx::params(user_id));
 
 	for(size_t i = 0; i < r1.size(); ++i){
 		int user_id = r1[i]["user_id"].as<int>();

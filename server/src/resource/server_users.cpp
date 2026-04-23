@@ -21,7 +21,7 @@ std::shared_ptr<http_response> server_users_resource::render_GET(const http_requ
 	if(err) return err;
 
 	std::string pg_query, pg_order;
-	pqxx::params pr(server_id);
+	pqxx::params pr(server_id, user_id);
 	err = resource_utils::pagination_query(req, cfg, "user_id", pr, pg_query, &pg_order);
 	if(err) return err;
 
@@ -32,7 +32,10 @@ std::shared_ptr<http_response> server_users_resource::render_GET(const http_requ
 		where_displayname = "AND name LIKE '%' || $" + std::to_string(pr.size()) + " || '%'";
 	}
 
-	pqxx::result r = tx.exec("SELECT user_id, name, avatar, status, role_id FROM user_x_server NATURAL JOIN users WHERE user_id IN (SELECT DISTINCT ON(user_id) user_id FROM user_x_server WHERE server_id = $1" + pg_query + ") AND server_id = $1 " + where_displayname + " " + pg_order, pr); // select first distinct 'count' users, then get all user_id-role_id entries for those selected users
+	pqxx::result r = tx.exec("SELECT user_id, name, avatar, status, role_id FROM user_x_server "
+				 "NATURAL JOIN users WHERE " + resource_utils::no_blocked_users_query(2) + " " +
+				 "AND user_id IN (SELECT DISTINCT ON(user_id) user_id FROM user_x_server WHERE server_id = $1" + pg_query + ") AND server_id = $1 " + where_displayname + " " + pg_order,
+				 pr); // select first distinct 'count' users, then get all user_id-role_id entries for those selected users
 	std::unordered_map<int, size_t> r_users; // for O(1) access to users already inserted in res to append role_ids to them
 	nlohmann::json res = nlohmann::json::array();
 	for(size_t i = 0; i < r.size(); ++i){
@@ -72,7 +75,9 @@ std::shared_ptr<http_response> server_user_id_resource::render_GET(const http_re
 	err = resource_utils::parse_server_user_id(req, server_id, tx, server_user_id);
 	if(err) return err;
 
-	pqxx::result r = tx.exec("SELECT user_id, name, avatar, status, role_id FROM user_x_server NATURAL JOIN users WHERE user_id = $1 AND server_id = $2", pqxx::params(server_user_id, server_id));
+	pqxx::result r = tx.exec("SELECT user_id, name, avatar, status, role_id FROM user_x_server "
+				 "NATURAL JOIN users WHERE user_id = $1 AND server_id = $2",
+				 pqxx::params(server_user_id, server_id));
 	nlohmann::json res = json_utils::user_from_row(r[0]);
 	res["roles"] = nlohmann::json::array();
 	for(size_t i = 0; i < r.size(); ++i)
@@ -105,14 +110,15 @@ std::shared_ptr<http_response> server_user_id_resource::render_DELETE(const http
 		if(err) return err;
 	}
 
-	tx.exec("DELETE FROM user_x_server WHERE user_id = $1 AND server_id = $2", pqxx::params(server_user_id, server_id));
+	tx.exec("DELETE FROM user_x_server WHERE user_id = $1 AND server_id = $2",
+		pqxx::params(server_user_id, server_id));
 	tx.commit();
 
 	socket_event ev;
 	json_utils::set_ids(ev.data, server_id);
 	ev.data["id"] = server_user_id;
 	ev.name = "user_kicked";
-	sserv.send_to_server(server_id, tx, ev);
+	sserv.send_to_server(server_id, tx, ev, server_user_id);
 	sserv.send_to_user(server_user_id, tx, ev);
 
 	return create_response::string(req, "Kicked", 200);
@@ -167,7 +173,7 @@ std::shared_ptr<http_response> server_user_role_id_resource::render_POST(const h
 	ev.data["user_id"] = server_user_id;
 	ev.data["role_id"] = server_role_id;
 	ev.name = "role_assigned";
-	sserv.send_to_server(server_id, tx, ev);
+	sserv.send_to_server(server_id, tx, ev, server_user_id);
 
 	return create_response::string(req, "Assigned", 200);
 }
@@ -202,7 +208,8 @@ std::shared_ptr<http_response> server_user_role_id_resource::render_DELETE(const
 	err = role_utils::check_role_not_default(req, tx, server_id, server_role_id);
 	if(err) return err;
 
-	tx.exec("DELETE FROM user_x_server WHERE user_id = $1 AND server_id = $2 AND role_id = $3", pqxx::params(server_user_id, server_id, server_role_id));
+	tx.exec("DELETE FROM user_x_server WHERE user_id = $1 AND server_id = $2 AND role_id = $3",
+		pqxx::params(server_user_id, server_id, server_role_id));
 	tx.commit();
 
 	socket_event ev;
@@ -210,7 +217,7 @@ std::shared_ptr<http_response> server_user_role_id_resource::render_DELETE(const
 	ev.data["user_id"] = server_user_id;
 	ev.data["role_id"] = server_role_id;
 	ev.name = "role_disallowed";
-	sserv.send_to_server(server_id, tx, ev);
+	sserv.send_to_server(server_id, tx, ev, server_user_id);
 
 	return create_response::string(req, "Removed", 200);
 }

@@ -27,15 +27,18 @@ std::shared_ptr<http_response> channel_messages_resource::render_GET(const http_
 	if(err) return err;
 
 	std::string pg_query;
-	pqxx::params pr(channel_id);
+	pqxx::params pr(channel_id, user_id);
 	err = resource_utils::pagination_query(req, cfg, "message_id", pr, pg_query);
 	if(err)
 		return err;
 
 	nlohmann::json res = nlohmann::json::array();
-	pqxx::result r = tx.exec("SELECT * FROM messages WHERE channel_id = $1 " + pg_query, pr);
+	pqxx::result r = tx.exec("SELECT * FROM messages WHERE channel_id = $1 AND " +
+				 resource_utils::no_blocked_users_query(2, "author_id") + " " +
+				 pg_query, pr);
 	for(size_t i = 0; i < r.size(); ++i){
-		pqxx::result r_att = tx.exec("SELECT type, content FROM message_attachments WHERE message_id = $1", pqxx::params(r[i]["message_id"].as<int>()));
+		pqxx::result r_att = tx.exec("SELECT type, content FROM message_attachments WHERE message_id = $1",
+					     pqxx::params(r[i]["message_id"].as<int>()));
 		res += json_utils::message_from_row(r[i], r_att);
 	}
 
@@ -123,7 +126,7 @@ std::shared_ptr<http_response> channel_messages_resource::render_POST(const http
 	ev.data = json_utils::message_from_row(msg_res[0], attachment_rows);
 	json_utils::set_ids(ev.data, server_id, channel_id);
 	ev.name = "message_created";
-	sserv.send_to_channel(channel_id, tx, ev);
+	sserv.send_to_channel(channel_id, tx, ev, user_id);
 
 	return create_response::string(req, std::to_string(message_id), 200);
 }
@@ -168,7 +171,7 @@ std::shared_ptr<http_response> channel_messages_search_resource::render_POST(con
 	if(err) return err;
 
 	std::string pg_query;
-	pqxx::params pr(channel_id);
+	pqxx::params pr(channel_id, user_id);
 	err = resource_utils::pagination_query(req, cfg, "message_id", pr, pg_query);
 	if(err)
 		return err;
@@ -212,7 +215,10 @@ std::shared_ptr<http_response> channel_messages_search_resource::render_POST(con
 	nlohmann::json res = nlohmann::json::array();
 	pqxx::result r;
 	try{
-		r = tx.exec("SELECT * FROM messages WHERE channel_id = $1 " + q_where + " " + pg_query, pr);
+		r = tx.exec("SELECT * FROM messages WHERE channel_id = $1 AND " +
+			    resource_utils::no_blocked_users_query(2, "author_id") +
+			    q_where + " " + pg_query,
+			    pr);
 	} catch(pqxx::data_exception& e){
 		return create_response::string(req, "Invalid date/time format in search query", 400);
 	}
@@ -330,7 +336,7 @@ std::shared_ptr<http_response> message_resource::render_PUT(const http_request& 
 		ev.data = json_utils::message_from_row(msg_res[0], attachment_rows);
 		json_utils::set_ids(ev.data, server_id, channel_id);
 		ev.name = "message_edited";
-		sserv.send_to_channel(channel_id, tx, ev);
+		sserv.send_to_channel(channel_id, tx, ev, user_id);
 	}
 
 	return create_response::string(req, "Changed", 200);
@@ -361,7 +367,7 @@ std::shared_ptr<http_response> message_resource::render_DELETE(const http_reques
 	ev.data["id"] = message_id;
 	json_utils::set_ids(ev.data, server_id, channel_id);
 	ev.name = "message_deleted";
-	sserv.send_to_channel(channel_id, tx, ev);
+	sserv.send_to_channel(channel_id, tx, ev, user_id);
 
 	return create_response::string(req, "Deleted", 200);
 }

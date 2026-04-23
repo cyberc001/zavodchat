@@ -276,7 +276,7 @@ std::shared_ptr<http_response> resource_utils::parse_server_ban_id(const http_re
 }
 
 
-std::vector<int> resource_utils::get_channel_users(int channel_id, pqxx::work& tx)
+std::vector<int> resource_utils::get_channel_users(int channel_id, pqxx::work& tx, int user_id)
 {
 	std::vector<int> out;
 	pqxx::result r = tx.exec("SELECT server_id, user1_id, user2_id, wl_users, wl_roles FROM channels WHERE channel_id = $1",
@@ -299,10 +299,14 @@ std::vector<int> resource_utils::get_channel_users(int channel_id, pqxx::work& t
 			wl_check += ")";
 		}
 
+		pqxx::params pr(server_id);
+		if(user_id > -1)
+			pr.append(user_id);
 		r = tx.exec("SELECT user_id FROM user_x_server "
 			    "WHERE server_id = $1 " + wl_check + 
+			    (user_id > -1 ? " AND NOT EXISTS(SELECT user2_id FROM blocked_users WHERE user1_id = user_id AND user2_id = $2)" : "") +
 			    " GROUP BY user_id" + having,
-			    pqxx::params(server_id));
+			    pr);
 		for(size_t i = 0; i < r.size(); ++i)
 			out.push_back(r[i]["user_id"].as<int>());
 	}
@@ -458,7 +462,7 @@ std::vector<int> resource_utils::get_valid_role_ids_vector(const std::vector<int
 	__GET_VALID_ROLE_IDS(std::vector, push_back)
 
 
-/* Pagination */
+/* Queries */
 
 std::shared_ptr<http_response> resource_utils::pagination_query(const http_request& req, const config& cfg, std::string sort_column,
 							pqxx::params& params, std::string& query, std::string* order_out)
@@ -483,6 +487,13 @@ std::shared_ptr<http_response> resource_utils::pagination_query(const http_reque
 	query = " AND " + sort_column + std::string(order == "DESC" ? " <=" : " >=") + " $" + std::to_string(pri_start) + " ORDER BY " + sort_column + " " + order + " LIMIT $" + std::to_string(pri_start + 1) + " ";
 	return nullptr;
 }
+
+std::string resource_utils::no_blocked_users_query(int user_id_param_i, std::string user_id_column)
+{
+	return "NOT EXISTS(SELECT user2_id FROM blocked_users WHERE user1_id = $" +
+	       std::to_string(user_id_param_i) + " AND user2_id = " + user_id_column + ")";
+}
+
 
 /* Other */
 

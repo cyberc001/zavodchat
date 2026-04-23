@@ -15,7 +15,7 @@
 	import DM from '$lib/rest/dm.js';
 
 	import MainSocket from '$lib/socket/main.js';
-	import VCSocket from '$lib/socket/vc.svelte.js';
+	import VCSocket from '$lib/socket/vc.svelte';
 
 	import TabbedSettings from '$lib/control/tabbed_settings.svelte';
 	let settings_params = $state({});
@@ -129,7 +129,6 @@
 	}
 
 	// Sockets
-	let socket_vc = $state();
 	let socket_main = new MainSocket(sel,
 					setError, setError,
 					(name, data) => {
@@ -162,13 +161,10 @@
 		}
 	};
 
+	let socket_vc = $state();
 	const showChannel = (ch) => {
 		if(ch.type === Channel.Type.Voice){
-			let old_socket_vc = socket_vc;
-			socket_vc = new VCSocket(user_self.data.id, ch.id, (close) => {
-				if(close.reason === "User is already connected to this channel")
-					socket_vc = old_socket_vc;
-			});
+			socket_vc.call(ch.id);
 
 			if(typeof(ch.other_user_id) !== "undefined"){
 				let dm = DM.open(ch.other_user_id);
@@ -186,11 +182,7 @@
 		}
 	};
 
-	const endCall = () => {
-		if(socket_vc)
-			socket_vc.end_call();
-		socket_vc = undefined;
-	};
+	const endCall = () => socket_vc.end_call();
 
 	let profile_display_params = $state({
 		user: null, anchor: null, anchor_side_x: "left"
@@ -276,7 +268,7 @@
 <UserActions show_ban={showBan} bind:this={user_actions}/>
 
 {#snippet user_volume()}
-	{#if socket_vc?.is_connected && socket_vc.audio[sel.ctx_user_id]}
+	{#if socket_vc.is_connected() && socket_vc.audio[sel.ctx_user_id]}
 	<div style="padding: 4px">
 		<Slider text="User volume" bind:value={() => Math.floor(socket_vc.audio[sel.ctx_user_id].volume * 100),
 						(x) => socket_vc.audio[sel.ctx_user_id].set_volume(x / 100)}
@@ -292,6 +284,10 @@
 		}}
 	/>
 {/snippet}
+
+
+
+<VCSocket bind:this={socket_vc}/>
 
 
 <SettingsUser bind:tabs={settings_user_tabs}/>
@@ -354,7 +350,7 @@
 				/>
 		</div>
 
-		{#if socket_vc}
+		{#if socket_vc?.is_in_call()}
 			<VCPanel socket_vc={socket_vc} end_call={endCall}/>
 		{/if}
 		<div class="panel profile_panel">

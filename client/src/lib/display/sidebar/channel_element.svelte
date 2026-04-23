@@ -5,7 +5,7 @@
 	import User from '$lib/rest/user.svelte.js';
 	import Role from '$lib/rest/role.js';
 
-	import VCSocket from '$lib/socket/vc.svelte.js';
+	import {VideoState} from '$lib/socket/vc_utils.svelte.js';
 
 	const {selected, last,
 		channel, server, socket_vc,
@@ -69,19 +69,19 @@
 				<img src={User.get_avatar_path(vc_state.user.data)}
 					alt="avatar"
 					style={"width: 32px; height: 32px; margin-right: 8px; border-style: solid; border-size: 2px; border-color: #00FF00"
-						+ (socket_vc && socket_vc.audio[vc_state.user.data.id] ?
-							Util.padded_hex(Math.min(socket_vc.audio[vc_state.user.data.id].amplitude / 10, 1) * 255)
+						+ (socket_vc && socket_vc.get_audio(vc_state.user.data.id) ?
+							Util.padded_hex(Math.min(socket_vc.get_audio(vc_state.user.data.id).amplitude / 10, 1) * 255)
 							: "00")
 					}
 				/>
 				{vc_state.user.data.name}
 				<div style="margin-left: auto; margin-right: 4px; display: flex; align-items: center">
-					{#if vc_state.video > VCSocket.VideoState.Disabled}
+					{#if vc_state.video > VideoState.Disabled}
 						<div style="background: red; border-radius: 4px; font-size: 18px; padding: 0 3px 0 3px; margin-right: 3px; display: inline-block">
 							STREAM
 						</div>
 					{/if}
-					{#if socket_vc && socket_vc.video[vc_state.user.data.id]}
+					{#if socket_vc && socket_vc.get_video(vc_state.user.data.id)}
 					<button class="hoverable transparent_button"
 							onclick={() => {
 								socket_vc.watch_video(vc_state.user.data.id);

@@ -597,7 +597,8 @@ socket_vc_server::socket_vc_server(const config& cfg, db_connection_pool& pool, 
 						ev.data = conn->get_vc_state();
 						json_utils::set_ids(ev.data, conn->server_id, conn->channel_id);
 						ev.name = "user_joined_vc";
-						this->sserv.send_to_channel(conn->channel_id, tx, ev);
+						this->sserv.send_to_channel(conn->channel_id, tx, ev,
+										conn->user_id);
 					} else if(state == rtc::PeerConnection::State::Failed){
 						conn->close(ix::WebSocketCloseConstants::kNormalClosureCode, "ICE failed");
 						conn->rtc_conn->close();
@@ -631,7 +632,8 @@ socket_vc_server::socket_vc_server(const config& cfg, db_connection_pool& pool, 
 				ev.data["id"] = conn->user_id;
 				json_utils::set_ids(ev.data, conn->server_id, conn->channel_id);
 				ev.name = "user_left_vc";
-				this->sserv.send_to_channel(conn->channel_id, tx, ev);
+				this->sserv.send_to_channel(conn->channel_id, tx, ev,
+								conn->user_id);
 
 				// TODO change to code?
 				if(msg->closeInfo.reason != "User is connecting to a different channel")
@@ -686,7 +688,8 @@ socket_vc_server::socket_vc_server(const config& cfg, db_connection_pool& pool, 
 						changed_ev.data["id"] = conn->user_id;
 						json_utils::set_ids(changed_ev.data, conn->server_id, conn->channel_id);
 						changed_ev.name = "user_changed_vc_state";
-						this->sserv.send_to_channel(conn->channel_id, tx, changed_ev);
+						this->sserv.send_to_channel(conn->channel_id, tx, changed_ev,
+										conn->user_id);
 					}
 				} else if(ev.name == "enable_video"){
 					std::cerr << "ENABLING VIDEO" << std::endl;
@@ -727,7 +730,8 @@ socket_vc_server::socket_vc_server(const config& cfg, db_connection_pool& pool, 
 					ev.data["id"] = conn->user_id;
 					json_utils::set_ids(ev.data, conn->server_id, conn->channel_id);
 					ev.name = "user_changed_vc_state";
-					this->sserv.send_to_channel(conn->channel_id, tx, ev);
+					this->sserv.send_to_channel(conn->channel_id, tx, ev,
+									conn->user_id);
 				} else if(ev.name == "disable_video") {
 					if(!conn->get_recv_video_track())
 						return;
@@ -742,7 +746,8 @@ socket_vc_server::socket_vc_server(const config& cfg, db_connection_pool& pool, 
 					ev.data["id"] = conn->user_id;
 					json_utils::set_ids(ev.data, conn->server_id, conn->channel_id);
 					ev.name = "user_changed_vc_state";
-					this->sserv.send_to_channel(conn->channel_id, tx, ev);
+					this->sserv.send_to_channel(conn->channel_id, tx, ev,
+									conn->user_id);
 				}
 			}
 		});
@@ -793,16 +798,31 @@ bool socket_vc_server::has_user(int channel_id, int user_id)
 
 nlohmann::json socket_vc_server::get_channel_users(int channel_id)
 {
-	std::cerr << "getting channel users for " << channel_id << std::endl;
 	nlohmann::json out = nlohmann::json::array();
 	channels.if_contains(channel_id, [&out](std::pair<int, std::shared_ptr<socket_vc_channel>> p){
 		auto _users = p.second->get_users();
 		for(auto i = _users.begin(); i != _users.end(); ++i)
 			out += (*i)->get_vc_state();
 	});
-	std::cerr << "got channel users for " << channel_id << std::endl;
 	return out;
 }
+nlohmann::json socket_vc_server::get_channel_users(int channel_id, pqxx::work& tx, int user_id)
+{
+	std::unordered_set<int> blocked_users;
+	pqxx::result r = tx.exec("SELECT user2_id FROM blocked_users WHERE user1_id = $1", pqxx::params(user_id));
+	for(size_t i = 0; i < r.size(); ++i)
+		blocked_users.insert(r[i]["user2_id"].as<int>());
+
+	nlohmann::json out = nlohmann::json::array();
+	channels.if_contains(channel_id, [&out, &blocked_users](std::pair<int, std::shared_ptr<socket_vc_channel>> p){
+		auto _users = p.second->get_users();
+		for(auto i = _users.begin(); i != _users.end(); ++i)
+			if(!blocked_users.count((*i)->user_id))
+				out += (*i)->get_vc_state();
+	});
+	return out;
+}
+
 
 
 codec socket_vc_server::check_codec(std::string str)

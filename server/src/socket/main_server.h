@@ -15,10 +15,12 @@ public:
 				db_connection_pool& pool);
 
 	// If wl_users or wl_roles have elements, only these users/roles will get the event
-	void send_to_server(int server_id, pqxx::work& tx, socket_event event,
+	void send_to_server(int server_id, pqxx::work& tx, socket_event event, int user_id = -1,
 					std::vector<int> wl_users = {}, std::vector<int> wl_roles = {},
 					std::vector<int> bl_users = {}, std::vector<int> bl_roles = {});
-	void send_to_channel(int channel_id, pqxx::work& tx, socket_event event);
+	// If user_id != -1, don't send the message to users that blocked user_id
+	void send_to_channel(int channel_id, pqxx::work& tx, socket_event event,
+				int user_id = -1);
 
 	void send_to_user(int user_id, pqxx::work& tx, socket_event event);
 	// Sends an event to everyone in the same servers as user and friends

@@ -19,7 +19,7 @@
 		if(friends.loaded && self_user.loaded){
 			let new_incoming_call = undefined;
 			for(const friend of friends.data){
-				if((socket_vc?.channel.data.other_user_id === friend.user.data.id && socket_vc.is_connected) || !friend.vc_users?.length)
+				if((socket_vc?.get_channel()?.data.other_user_id === friend.user.data.id && socket_vc?.is_connected()) || !friend.vc_users?.length)
 					continue;
 
 				const joined = new Date(friend.vc_users[0].joined);

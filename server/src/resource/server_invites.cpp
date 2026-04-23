@@ -68,7 +68,7 @@ std::shared_ptr<http_response> server_invites_resource::render_POST(const http_r
 	ev.data = json_utils::user_from_row(r[0]);
 	json_utils::set_ids(ev.data, server_id);
 	ev.name = "user_joined";
-	sserv.send_to_server(server_id, tx, ev);
+	sserv.send_to_server(server_id, tx, ev, user_id);
 	
 	return create_response::string(req, "Joined", 200);
 }

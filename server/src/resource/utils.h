@@ -91,8 +91,8 @@ public:
 	static std::shared_ptr<http_response> parse_server_user_id(const http_request&, int server_id, pqxx::work&, int& server_user_id);
 	static std::shared_ptr<http_response> parse_server_ban_id(const http_request&, int server_id, pqxx::work&, int& server_ban_id);
 
-	// Get users that have access to this channel.
-	static std::vector<int> get_channel_users(int channel_id, pqxx::work&);
+	// Get users that have access to this channel. If user_id != -1, don't add blocked users
+	static std::vector<int> get_channel_users(int channel_id, pqxx::work&, int user_id = -1);
 	// Get users that have this role.
 	static std::vector<int> get_role_users(int role_id, pqxx::work&);
 
@@ -122,10 +122,11 @@ public:
 	static std::unordered_set<int> get_valid_role_ids(const std::vector<int>&, pqxx::work&, int server_id);
 	static std::vector<int> get_valid_role_ids_vector(const std::vector<int>&, pqxx::work&, int server_id);
 
-	/* Pagination */
+	/* Queries */
 	static std::shared_ptr<http_response> pagination_query(const http_request&, const config&, std::string sort_column,
 							pqxx::params& params, std::string& query, std::string* order = nullptr);
 	static std::string pagination_query(const http_request&);
+	static std::string no_blocked_users_query(int user_id_param_i, std::string user_id_column = "user_id");
 
 	/* Other */
 	static std::vector<int> parse_psql_int_array(const pqxx::field& f);

@@ -139,7 +139,10 @@ public:
 	void send_to_channel(int channel_id, pqxx::work& tx, socket_event event); // only sends event to users currently connected to voice channel
 
 	bool has_user(int channel_id, int user_id);	
-	nlohmann::json get_channel_users(int channel_id); // get users connected to voice channel
+	// get users connected to voice channel
+	nlohmann::json get_channel_users(int channel_id); 
+	// same, but also ignore users blocked by user_id
+	nlohmann::json get_channel_users(int channel_id, pqxx::work& tx, int user_id); 
 
 	const config& cfg;
 private:

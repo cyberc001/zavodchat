@@ -6,7 +6,9 @@ class RangeObserver extends IDObserver {
 	data = $state([]);
 	start_id = 0; count = 0;
 	asc; asc_items;
+
 	order_sign = $derived(this.asc ? 1 : -1);
+	inv_items = $derived(typeof this.asc_items !== "undefined" && this.asc_items !== this.asc);
 
 	is_full = $derived(this.data.length >= this.count);
 	
@@ -61,12 +63,11 @@ class RangeObserver extends IDObserver {
 			return;
 		}
 
-		const inv_items = typeof this.asc_items !== "undefined" && this.asc_items !== this.asc;
-		let i = inv_items ? this.count - 1 : 0;
+		let i = this.inv_items ? this.count - 1 : 0;
 		let missing_id = false;
 		while(iter.data() && i < this.count && i >= 0){
 			const dat = iter.data();
-			this.data[inv_items ? i-- : i++] = dat;
+			this.data[this.inv_items ? i-- : i++] = dat;
 			if(this.asc){
 				iter.next();
 				if(iter.data() && tree.key(iter.data()) !== dat.next_id)
@@ -77,7 +78,7 @@ class RangeObserver extends IDObserver {
 					break;
 			}
 		}
-		if(inv_items && i >= 0)
+		if(this.inv_items && i >= 0)
 			this.data.splice(0, i + 1);
 
 		this.set_loaded();
@@ -85,12 +86,13 @@ class RangeObserver extends IDObserver {
 	}
 
 	find(id){
-		return Util.bin_search(this.data, (x) => (this.tree.key(x) - id) * this.order_sign);
+		return Util.bin_search(this.data, (x) => this.tree.key(x) - id, this.asc_items ? false : true);
 	}
 	remove(id){
 		const i = this.find(id);
 		if(i !== -1)
 			this.data.splice(i, 1);
+		console.log("i", i);
 		// Try to load more
 		if(!this.loading){
 			this.loaded = false;
@@ -270,6 +272,22 @@ class DataTree {
 
 		this._tree.remove(this.key_dummy(id));
 	}
+	remove_that(filter){
+		let todelete = [];
+
+		let iter = this._tree.iterator();
+		iter.next();
+		while(iter.data()){
+			let data = iter.data();
+			if(filter(data))
+				todelete.push(data);
+			iter.next();
+		}
+
+		for(const data of todelete)
+			this.remove(this.key(data), true);
+	}
+
 	update(data){
 		let d = this._tree.find(data);
 		if(d){
@@ -369,6 +387,11 @@ export class RangeCache extends IDCache {
 		if(tree)
 			tree.remove(data_id, true);
 	}
+	remove_that(_id, filter){
+		const tree = this.get_tree(_id);
+		if(tree)
+			tree.remove_that(filter);
+	}
 	update(_id, data){
 		const tree = this.get_tree(_id);
 		if(tree)
@@ -403,7 +426,6 @@ export class RangeCache extends IDCache {
 
 		let nobs = new RangeObserver(tree, start_id, count, load_func, !!asc, asc_items);
 		nobs.loaded = tree.has_enough(nobs);
-		//console.log("GET_STATE", _id, nobs.loaded, nobs, $state.snapshot(nobs.data));
 		tree.observers.push(new WeakRef(nobs));
 
 		if(!nobs.loaded){

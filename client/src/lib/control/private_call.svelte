@@ -2,7 +2,8 @@
 	import {asset} from '$app/paths';
 	
 	import Util from '$lib/util.js';
-	import VCSocket from '$lib/socket/vc.svelte.js';
+	import VCSocket from '$lib/socket/vc.svelte';
+	import {VideoState} from '$lib/socket/vc_utils.svelte.js';
 
 	import Button from '$lib/control/button.svelte';
 
@@ -16,21 +17,23 @@
 	let self_user = User.get(-1);
 
 	let vc_users = $derived.by(() => {
-		if(!socket_vc || !socket_vc.channel.data.vc_users)
+		console.log("CHECK", socket_vc?.get_channel());
+		if(!socket_vc?.get_channel()?.data.vc_users)
 			return [];
-		let users = Object.values(socket_vc.channel.data.vc_users);
-		if(typeof(socket_vc.channel.data.other_user_id) !== "undefined" && users.length < 2){
+		let users = Object.values(socket_vc.get_channel().data.vc_users);
+		if(typeof(socket_vc.get_channel().data.other_user_id) !== "undefined" && users.length < 2){
 			// Trying to call the other user; add a dummy voice state
 			users.push({
-				user: User.get(socket_vc.channel.data.other_user_id)
+				user: User.get(socket_vc.get_channel().data.other_user_id)
 			});
 		}
+		console.log("USERS", users, "\n", $state.snapshot(socket_vc.get_channel().data));
 		return users;
 	});
 </script>
 
-{#if self_user.loaded && typeof(socket_vc?.channel?.data?.other_user_id) !== "undefined" &&
-	typeof(socket_vc?.channel?.data?.vc_users[self_user.data.id]) !== "undefined"}
+{#if self_user.loaded && typeof(socket_vc?.get_channel()?.data?.other_user_id) !== "undefined" &&
+	typeof(socket_vc?.get_channel()?.data?.vc_users[self_user.data.id]) !== "undefined"}
 <div class="item private_call_container" bind:this={self}>
 	<div class="private_call_users">
 		{#each vc_users as vc_state}
@@ -40,14 +43,14 @@
 					// Don't allow dummy users
 					if(typeof(vc_state.id) === "undefined")
 						return;
-					ctx_vc_user(self, e, socket_vc.channel.data.id, vc_state);
+					ctx_vc_user(self, e, socket_vc.get_channel().data.id, vc_state);
 				}}
 			>
 			{#if vc_state?.user?.loaded}
 				<img class="user_avatar" src={User.get_avatar_path(vc_state.user.data)}
 					style={"border-color: #00FF00"
-						+ (socket_vc && socket_vc.audio[vc_state.user.data.id] ?
-							Util.padded_hex(Math.min(socket_vc.audio[vc_state.user.data.id].amplitude / 10, 1) * 255)
+						+ (socket_vc?.get_audio(vc_state.user.data.id) ?
+							Util.padded_hex(Math.min(socket_vc.get_audio(vc_state.user.data.id).amplitude / 10, 1) * 255)
 							: "00")
 						+ (typeof(vc_state.id) === "undefined" ? ";filter: brightness(40%)" : "")
 					}
@@ -55,12 +58,12 @@
 				<b style="text-align: center">{vc_state.user.data.name}</b>
 
 				<div class="vc_state">
-					{#if vc_state.video > VCSocket.VideoState.Disabled}
+					{#if vc_state.video > VideoState.Disabled}
 						<div style="background: red; height: 24px; border-radius: 4px; font-size: 18px; padding: 0 3px 0 3px; margin-right: 3px; display: inline-block">
 							STREAM
 						</div>
 					{/if}
-					{#if socket_vc && socket_vc.video[vc_state.user.data.id]}
+					{#if socket_vc?.get_video(vc_state.user.data.id)}
 					<button class="hoverable transparent_button"
 							onclick={() => {
 								socket_vc.watch_video(vc_state.user.data.id);
@@ -85,20 +88,20 @@
 	</div>
 
 	<div class="actions">
-		<Button icon={asset("icons/screen_share" + (socket_vc.video_state === VCSocket.VideoState.Screen ? "_stop" : "") + ".svg")}
+		<Button icon={asset("icons/screen_share" + (socket_vc.get_video_state() === VideoState.Screen ? "_stop" : "") + ".svg")}
 			--padding-bottom="0px"
 			onclick={() => {
-				socket_vc.set_video_state(socket_vc.video_state === VCSocket.VideoState.Disabled ?
-								VCSocket.VideoState.Screen : VCSocket.VideoState.Disabled);
+				socket_vc.set_video_state(socket_vc.get_video_state() === VideoState.Disabled ?
+								VideoState.Screen : VideoState.Disabled);
 			}}
 		/>
-		<Button icon={asset("/icons/" + (socket_vc.mute == VCSocket.AudioState.None ? "not_" : "") + "muted.svg")}
+		<Button icon={asset("/icons/" + (socket_vc.is_mute() ? "" : "not_") + "muted.svg")}
 			--padding-bottom="0px"
 			onclick={() => {
 				socket_vc.toggle_mute();
 			}}
 		/>
-		<Button icon={asset("icons/" + (socket_vc.deaf == VCSocket.AudioState.None ? "not_" : "") + "deaf.svg")}
+		<Button icon={asset("icons/" + (socket_vc.is_deaf() ? "" : "not_") + "deaf.svg")}
 			--padding-bottom="0px"
 			onclick={() => {
 				socket_vc.toggle_deaf();
