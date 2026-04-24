@@ -160,15 +160,18 @@ export default class Role {
 		return false;
 	}
 
-	// Interface between Toggle and pemission bits
-	static perm_toggle_get(obj, set_i, perm_i){
+	static perm_toggle_get(obj, set_i, perm_i, is_default){
 		let x = (obj["perms" + set_i] >> (perm_i * 2)) & 0x3;
+		if(is_default)
+			return 2 - x;
 		if(++x > 2)
 			x = 0;
 		return x;
 	}
-	static perm_toggle_set(x, obj, set_i, perm_i){
-		if(--x < 0)
+	static perm_toggle_set(x, obj, set_i, perm_i, is_default){
+		if(is_default)
+			x = 2 - x;
+		else if(--x < 0)
 			x = 2;
 		obj["perms" + set_i] &= ~(0x3 << (perm_i * 2));
 		obj["perms" + set_i] |= x << (perm_i * 2); 

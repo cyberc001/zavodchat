@@ -1,8 +1,10 @@
 <script>
 	import {untrack} from 'svelte';
 
-	let {label_text, states = "off_on",
-		value = $bindable(0)} = $props();
+	let {label_text,
+		states = "off_on", forbid_states = {},
+		value = $bindable(0)
+	} = $props();
 
 	$effect(() => {
 		switch(states){
@@ -11,9 +13,6 @@
 				break;
 			case "off_default_on":
 				untrack(() => states = [{letter: "O"}, {letter: "D"}, {"letter": "I"}]);
-				break;
-			case "off_default":
-				untrack(() => states = [{letter: "O"}, {letter: "D"}]);
 				break;
 		}
 	});
@@ -25,6 +24,9 @@
 		}
 		const a = e.offsetX / e.target.getBoundingClientRect().width;
 		value = Math.round((states.length - 1) * a);
+
+		while(forbid_states[value])
+			onLetterClick();
 	};
 	let letter_move_forward = true;
 	const onLetterClick = (e) => {
@@ -41,6 +43,9 @@
 			} else
 				--value;
 		}
+
+		while(forbid_states[value])
+			onLetterClick();
 	};
 
 	let states_last_i = $derived(Array.isArray(states) ? states.length - 1 : -1);

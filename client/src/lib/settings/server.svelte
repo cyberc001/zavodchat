@@ -83,11 +83,29 @@
 
 	let role_list_selected_idx = $state(-1);
 	let role_list_selected = $derived(state_roles.state.list[role_list_selected_idx]);
+	let role_list_selected_default = $derived(state_roles.default_state.list[role_list_selected_idx]);
 
 	$effect(() => {
 		if(server_roles.loaded)
 			state_roles.set_default_state("list", server_roles.data);
 	});
+
+	let user_self = $state();
+	User.get_self_server(server, (user) => user_self = user);
+	let perm1_bits = $derived(Role.get_perm_bits(user_self.data, server.data, server_roles.data, 1));
+
+	let role_is_default = $derived.by(() => {
+		if(!role_list_selected || !server_roles.loaded)
+			return true;
+		return role_list_selected.id === server_roles.data[server_roles.data.length - 1].id;
+	});
+	let role_states = $derived(role_is_default ? "off_on" : "off_default_on");
+	const forbid_states = (self_bits, set_i, perm_i) => {
+		if(((self_bits >> (perm_i * 2)) & 0x3) === 0x1 || // User has this permission
+			(role_list_selected_default && ((role_list_selected_default["perms" + set_i] >> (perm_i * 2)) & 0x3) === 0x1)) // Role already has this permission
+			return {};
+		return {[2]: true};
+	};
 
 
 	// Bans
@@ -192,11 +210,6 @@
 	});
 	let invite_list_selected_idx = $state(-1);
 
-
-	let user_self = $state();
-	User.get_self_server(server, (user) => user_self = user);
-	let perm1_bits = $derived(Role.get_perm_bits(user_self.data, server.data, server_roles.data, 1));
-
 	$effect(() => {
 		untrack(() => tabs = undefined);
 
@@ -290,41 +303,41 @@ This cannot be reversed.
 	<Textbox label_text="Name" bind:value={state_roles.state.list[role_list_selected_idx].name} --width="363px"/>
 	<ColorPicker label_text="Color" bind:value={state_roles.state.list[role_list_selected_idx].color}/>
 	Permissions
-	<Toggle label_text="Send messages" states={"off_default" + ( ((perm1_bits >> 0) & 0x3) === 0x1 ? "_on" : "" )}
-		bind:value={() => Role.perm_toggle_get(role_list_selected, 1, 0),
-			    (x) => Role.perm_toggle_set(x, role_list_selected, 1, 0)}
+	<Toggle label_text="Send messages" states={role_states} forbid_states={forbid_states(perm1_bits, 1, 0)}
+		bind:value={() => Role.perm_toggle_get(role_list_selected, 1, 0, role_is_default),
+			    (x) => Role.perm_toggle_set(x, role_list_selected, 1, 0, role_is_default)}
 	/>
-	<Toggle label_text="Delete messages of other users" states={"off_default" + ( ((perm1_bits >> 2) & 0x3) === 0x1 ? "_on" : "" )}
-		bind:value={() => Role.perm_toggle_get(role_list_selected, 1, 1),
-			    (x) => Role.perm_toggle_set(x, role_list_selected, 1, 1)}
+	<Toggle label_text="Delete messages of other users" states={role_states} forbid_states={forbid_states(perm1_bits, 1, 1)}
+		bind:value={() => Role.perm_toggle_get(role_list_selected, 1, 1, role_is_default),
+			    (x) => Role.perm_toggle_set(x, role_list_selected, 1, 1, role_is_default)}
 	/>
-	<Toggle label_text="Manage server" states={"off_default" + ( ((perm1_bits >> 4) & 0x3) === 0x1 ? "_on" : "" )}
-		bind:value={() => Role.perm_toggle_get(role_list_selected, 1, 2),
-			    (x) => Role.perm_toggle_set(x, role_list_selected, 1, 2)}
+	<Toggle label_text="Manage server" states={role_states} forbid_states={forbid_states(perm1_bits, 1, 2)}
+		bind:value={() => Role.perm_toggle_get(role_list_selected, 1, 2, role_is_default),
+			    (x) => Role.perm_toggle_set(x, role_list_selected, 1, 2, role_is_default)}
 	/>
-	<Toggle label_text="Kick users" states={"off_default" + ( ((perm1_bits >> 6) & 0x3) === 0x1 ? "_on" : "" )}
-		bind:value={() => Role.perm_toggle_get(role_list_selected, 1, 3),
-			    (x) => Role.perm_toggle_set(x, role_list_selected, 1, 3)}
+	<Toggle label_text="Kick users" states={role_states} forbid_states={forbid_states(perm1_bits, 1, 3)}
+		bind:value={() => Role.perm_toggle_get(role_list_selected, 1, 3, role_is_default),
+			    (x) => Role.perm_toggle_set(x, role_list_selected, 1, 3, role_is_default)}
 	/>
-	<Toggle label_text="Manage bans" states={"off_default" + ( ((perm1_bits >> 8) & 0x3) === 0x1 ? "_on" : "" )}
-		bind:value={() => Role.perm_toggle_get(role_list_selected, 1, 4),
-			    (x) => Role.perm_toggle_set(x, role_list_selected, 1, 4)}
+	<Toggle label_text="Manage bans" states={role_states} forbid_states={forbid_states(perm1_bits, 1, 4)}
+		bind:value={() => Role.perm_toggle_get(role_list_selected, 1, 4, role_is_default),
+			    (x) => Role.perm_toggle_set(x, role_list_selected, 1, 4, role_is_default)}
 	/>
-	<Toggle label_text="Manage channels" states={"off_default" + ( ((perm1_bits >> 10) & 0x3) === 0x1 ? "_on" : "" )}
-		bind:value={() => Role.perm_toggle_get(role_list_selected, 1, 5),
-			    (x) => Role.perm_toggle_set(x, role_list_selected, 1, 5)}
+	<Toggle label_text="Manage channels" states={role_states} forbid_states={forbid_states(perm1_bits, 1, 5)}
+		bind:value={() => Role.perm_toggle_get(role_list_selected, 1, 5, role_is_default),
+			    (x) => Role.perm_toggle_set(x, role_list_selected, 1, 5, role_is_default)}
 	/>
-	<Toggle label_text="Manage invites" states={"off_default" + ( ((perm1_bits >> 12) & 0x3) === 0x1 ? "_on" : "" )}
-		bind:value={() => Role.perm_toggle_get(role_list_selected, 1, 6),
-			    (x) => Role.perm_toggle_set(x, role_list_selected, 1, 6)}
+	<Toggle label_text="Manage invites" states={role_states} forbid_states={forbid_states(perm1_bits, 1, 6)}
+		bind:value={() => Role.perm_toggle_get(role_list_selected, 1, 6, role_is_default),
+			    (x) => Role.perm_toggle_set(x, role_list_selected, 1, 6, role_is_default)}
 	/>
-	<Toggle label_text="Speak in voice channels" states={"off_default" + ( ((perm1_bits >> 14) & 0x3) === 0x1 ? "_on" : "" )}
-		bind:value={() => Role.perm_toggle_get(role_list_selected, 1, 7),
-			    (x) => Role.perm_toggle_set(x, role_list_selected, 1, 7)}
+	<Toggle label_text="Speak in voice channels" states={role_states} forbid_states={forbid_states(perm1_bits, 1, 7)}
+		bind:value={() => Role.perm_toggle_get(role_list_selected, 1, 7, role_is_default),
+			    (x) => Role.perm_toggle_set(x, role_list_selected, 1, 7, role_is_default)}
 	/>
-	<Toggle label_text="Manage roles" states={"off_default" + ( ((perm1_bits >> 16) & 0x3) === 0x1 ? "_on" : "" )}
-		bind:value={() => Role.perm_toggle_get(role_list_selected, 1, 8),
-			    (x) => Role.perm_toggle_set(x, role_list_selected, 1, 8)}
+	<Toggle label_text="Manage roles" states={role_states} forbid_states={forbid_states(perm1_bits, 1, 8)}
+		bind:value={() => Role.perm_toggle_get(role_list_selected, 1, 8, role_is_default),
+			    (x) => Role.perm_toggle_set(x, role_list_selected, 1, 8, role_is_default)}
 	/>
 {/if}
 </Group>
