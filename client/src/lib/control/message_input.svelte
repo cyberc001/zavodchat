@@ -47,7 +47,6 @@
 
 		value = Select.get_inner_text(input_div);
 		console.log("NEW VALUE\n", Select.get_inner_text(input_div), Select.get_inner_text(input_div).length);
-		console.log("COMPARE\n", Select.get_inner_text(input_div).length, Select.__get_total_text_ln(input_div));
 
 		if(value.endsWith("\n"))
 			value = value.substring(0, value.length - 1);

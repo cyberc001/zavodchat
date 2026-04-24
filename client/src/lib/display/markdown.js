@@ -6,6 +6,15 @@ import User from '$lib/rest/user.svelte.js';
 import Notifications from '$lib/rest/notifications.js';
 import Role from '$lib/rest/role.js';
 
+
+// Load emojis
+let emojis = {};
+for(const path in import.meta.glob('/static/emoji/*.svg')){
+	const name = path.replace('/static/emoji/', '').replace('.svg', '');
+	emojis[name] = path.replace('/static', '');
+}
+
+
 const __md_mention = {
 	name: "mention",
 	level: "inline",
@@ -63,6 +72,28 @@ const __md_mention = {
 	}
 }
 
+const __md_emoji = {
+	name: "emoji",
+	level: "inline",
+
+	start(src){ return src.indexOf(':'); },
+	tokenizer(src, tokens){
+		let match = src.match(/^:([^:\s]*):/);
+		if(match && emojis[match[1]])
+			return {
+				type: "emoji",
+				raw: match[0],
+				text: match[1]
+			};
+
+		return false;
+	},
+	renderer(token){
+		return `<img src='${emojis[token.text]}' class="emoji" data-raw-text="${token.raw}"/>`;
+	}
+}
+
+
 export default class Markdown {
 	static marked = new Marked(
 		markedHighlight({
@@ -106,7 +137,7 @@ export default class Markdown {
 				this.links.push(token.text);
 		},
 
-		extensions: [__md_mention]
+		extensions: [__md_mention, __md_emoji]
 	});
 
 	static parse(message, server_roles){
@@ -174,5 +205,7 @@ Markdown.marked.use({
 		blockquote(token){
 			return `<blockquote>${this.parser.parse(token.tokens)}</blockquote>`;
 		}
-	}
+	},
+
+	extensions: [__md_emoji]
 });

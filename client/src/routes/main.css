@@ -218,3 +218,8 @@ table, td, th {
 td, th {
 	padding: 2px 4px 2px 4px;
 }
+
+.emoji {
+	width: 18px;
+	height: 18px;
+}
