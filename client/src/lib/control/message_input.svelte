@@ -1,6 +1,7 @@
 <script>
 	import axios from 'axios';
 
+	import {untrack} from 'svelte';
 	import {asset} from '$app/paths';
 	import {onDestroy} from 'svelte';
 	import Markdown from '$lib/display/markdown.js';
@@ -47,7 +48,6 @@
 		console.log("REMEMBER sel_i", sel_i, value, value.length); 
 
 		value = Select.get_inner_text(input_div);
-		console.log("NEW VALUE\n", Select.get_inner_text(input_div), Select.get_inner_text(input_div).length);
 
 		if(value.endsWith("\n"))
 			value = value.substring(0, value.length - 1);
@@ -63,9 +63,11 @@
 		if(!input_div)
 			return;
 
+		console.log("VALUE CHANGED\n", Select.get_inner_text(input_div), Select.get_inner_text(input_div).length);
 		value_changed;
 
-		[input_div.innerHTML, link_candidates] = Markdown.parse_overlay(value, server?.data.id, server_roles?.data, div_oninput);
+		[input_div.innerHTML, link_candidates] = Markdown.parse_overlay(value, div_oninput, server?.data.id, server_roles?.data,
+										typeof(untrack(() => ac_params.top)) === "undefined" ? undefined : [untrack(() => ac_text_start_i), prev_sel_i]);
 		link_candidates_ts = new Date();
 
 		console.log("RECALL sel_i", sel_i);
@@ -143,12 +145,24 @@
 		link_candidates = undefined;
 	}, 100);
 
-	// Display Autocomplete if caret is after a '@'
-	let ping_ac = $state();
-	let ping_ac_container = $state();
-	let ping_ac_params = $state({});
+	// Display Autocomplete if caret is after a '@' or ':'
+	let ac = $state();
+	let ac_container = $state();
+	let ac_params = $state({});
 	let prev_sel_i = $state();
-	let last_mention_sel_i;
+	let ac_text_start_i = $state();
+
+	const get_sel_autocomplete_start = (sel_i) => {
+		if(!sel_i || sel_i > value.length)
+			return -1;
+		for(let i = sel_i - 1; i >= 0; --i)
+			if(Util.is_ws(value[i]))
+				return -1;
+			else if(value[i] === '@')
+				return i;
+		return -1;
+	};
+
 	const onselectionchange = (e) => {
 		if(!input_div ||
 			!server) // Don't suggest mentions for DMs
@@ -164,29 +178,28 @@
 		console.log("selection changed");
 
 		// Don't do anything if Autocomplete got focused
-		if(ping_ac_container && range.intersectsNode(ping_ac_container))
+		if(ac_container && range.intersectsNode(ac_container))
 			return;
 
-		console.log("not intersecting Autocomplete", Select.is_in_double_faced_element(range.startContainer), sel_i, value.length, value[sel_i - 1]);
-
 		// Raw check for sel_i is intended, since sel_i === 0 cannot be after a character
-		if(sel_i && sel_i <= value.length && value[sel_i - 1] === '@'
-			&& !Select.is_in_double_faced_element(range.startContainer)){
-			last_mention_sel_i = sel_i;
+		const new_ac_text_start_i = get_sel_autocomplete_start(sel_i);
+		if(new_ac_text_start_i > -1 && !Select.is_in_double_faced_element(range.startContainer)){
 			const coords = Select.get_coords(self);
-			ping_ac_params = {
+			ac_params = {
 				left: coords[0],
 				top: coords[1]
 			};
+			console.log("display autocomplete", new_ac_text_start_i, coords);
 		} else
-			ping_ac_params = {};
+			ac_params = {};
+		untrack(() => {ac_text_start_i = new_ac_text_start_i;});
 	};
 	document.addEventListener("selectionchange", onselectionchange);
 
 	$effect(() => {
 		prev_sel_i;
-		if(ping_ac)
-			ping_ac.focus();
+		if(ac)
+			ac.focus();
 	});
 
 	onDestroy(() => {
@@ -274,21 +287,26 @@
 		</div>
 	</div>
 
-	{#if typeof(ping_ac_params.top) !== "undefined"}
-	<div style="position: absolute; left: {ping_ac_params.left}px; top: {ping_ac_params.top}px;"
-		bind:this={ping_ac_container}>
+	{#if typeof(ac_params.top) !== "undefined"}
+	<div style="position: absolute; left: {ac_params.left}px; top: {ac_params.top}px;"
+		bind:this={ac_container}>
 
-		<Autocomplete bind:this={ping_ac} list_on_top=true
+		<Autocomplete bind:this={ac} list_on_top=true
+		override_value_name={value.substring(ac_text_start_i + 1, sel_i)}
 		render_data={render_user_or_role}
 		get_data={(index, range, asc, list_value_name) => User.get_server_range(server.data.id, index, range, asc, list_value_name)}
 		prepended_data={server_roles?.data ? server_roles.data.concat([{id: -1, name: "everyone", perms1: 0}]) : []}
 		on_picked={(item) => {
+			// FIXME selection is remembered incorrectly if only a whitespace is at the end of replace_with
+
+			let replace_with;
 			if(typeof(item.perms1) !== "undefined"){ // role was picked
-				value = value.substring(0, last_mention_sel_i) +
-						(item.id === -1 ? 'e' : `r${item.id}`) +
-						value.substring(last_mention_sel_i);
+				replace_with = item.id === -1 ? 'e ' : `r${item.id} `;
 			} else // user was picked
-				value = value.substring(0, last_mention_sel_i) + `u${item.id}` + value.substring(last_mention_sel_i);
+				replace_with = `u${item.id} `;
+
+			value = value.substring(0, ac_text_start_i + 1) + replace_with + value.substring(prev_sel_i);
+			sel_i = ac_text_start_i + replace_with.length + 1;
 		}}
 		fixed_text_color={true}
 		--font-size="16px"

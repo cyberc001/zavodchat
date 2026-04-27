@@ -23,7 +23,7 @@ const __md_mention = {
 	tokenizer(src, tokens){
 		// Match mention types without IDs
 		let match = src.match(/^@([e])/);
-		if(match){
+		if(match && Markdown.check_exclude_range(match.index)){
 			let text = match[0];
 			switch(match[1]){
 				case "e":
@@ -39,7 +39,7 @@ const __md_mention = {
 
 		// Match mention types with IDs
 		match = src.match(/^@([ur])(\d+)/);
-		if(match){
+		if(match && Markdown.check_exclude_range(match.index)){
 			let text = match[0];
 			const id = parseInt(match[2]);
 			switch(match[1]){
@@ -79,7 +79,8 @@ const __md_emoji = {
 	start(src){ return src.indexOf(':'); },
 	tokenizer(src, tokens){
 		let match = src.match(/^:([^:\s]*):/);
-		if(match && emojis[match[1]])
+		if(match && Markdown.check_exclude_range(match.index) &&
+			emojis[match[1]])
 			return {
 				type: "emoji",
 				raw: match[0],
@@ -182,12 +183,20 @@ export default class Markdown {
 		return html;
 	}
 
-	static __server_roles;
-	static parse_overlay(text, server_id, server_roles, reload){
+	static check_exclude_range(i)
+	{
+		if(!Markdown.__exclude_range)
+			return true;
+		return i < Markdown.__exclude_range[0] || i > Markdown.__exclude_range[1];
+	}
+	static parse_overlay(text, reload,
+				server_id, server_roles,
+				exclude_range){
 		Markdown.marked_overlay.links = [];
 		Markdown.__server_id = server_id;
 		Markdown.__server_roles = server_roles;
 		Markdown.__reload = reload;
+		Markdown.__exclude_range = exclude_range; // inclusive, denies ping and emoji matches
 
 		let html = Markdown.marked_overlay.parseInline(text);
 		if(html.endsWith("\n"))

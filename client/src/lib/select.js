@@ -72,12 +72,9 @@ export default class Select {
 			window.getSelection().removeAllRanges();
 			const range = document.createRange();
 			const last_child = el.childNodes[el.childNodes.length - 1];
-			if(!last_child){
-				range.setStart(el, 0);
-			} else {
-				range.selectNode(last_child);
-				range.collapse(false);
-			}
+			console.log("__set_selection_index() fallback", idx, "\n", last_child);
+			range.selectNodeContents(el);
+			range.collapse(false);
 			window.getSelection().addRange(range);
 			el.focus();
 		}

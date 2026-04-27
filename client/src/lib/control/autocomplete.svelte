@@ -14,6 +14,8 @@
 
 		list_on_top = false, // display the list above input field
 		fixed_text_color = false, // dont change text color to secondary when user wasnt picked
+
+		override_value_name, // if it's not undefined, input is hidden
 		value = $bindable()
 	} = $props();
 
@@ -34,7 +36,8 @@
 		return style;
 	});
 
-	let value_name = $state("");
+	let _value_name = $state("");
+	let value_name = $derived(typeof(override_value_name) === "undefined" ? _value_name : override_value_name);
 	let prev_value_name = $state("");
 
 	let list_value_name_ts = 0;
@@ -51,7 +54,7 @@
 
 	const pick_value = (item) => {
 		value = item;
-		value_name = get_data_name(item);
+		_value_name = get_data_name(item);
 		show_list = false;
 
 		on_picked(item);
@@ -61,12 +64,13 @@
 		value = undefined;
 		list_value_name_ts = 0;
 		list_value_name = "";
-		value_name = "";
+		_value_name = "";
 		if(paginated_list)
 			paginated_list.reset();
 	}
 	export function focus(){
-		input.focus();
+		if(input)
+			input.focus();
 		show_list = true;
 	}
 </script>
@@ -89,12 +93,13 @@ onclick={() => pick_value(item)}
 {/snippet}
 
 <div style="position: relative; z-index: 10" bind:this={self}>
+	{#if typeof(override_value_name) === "undefined"}
 	<input autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
 		class="settings_control"
 		style={"width:var(--width, 200px); margin-bottom: var(--margin-bottom, 12px); margin-right: var(--margin-right, 0)" +
 			(typeof value === "undefined" && !fixed_text_color ? "; color: var(--clr_text_secondary)" : "")
 		}
-		bind:value={value_name} bind:this={input}
+		bind:value={_value_name} bind:this={input}
 		onfocus={() => {show_list = true;}}
 		onkeyup={(e) => {
 			show_list = true;
@@ -104,19 +109,21 @@ onclick={() => pick_value(item)}
 					pick_value(list_data[0]);
 				else if(paginated_list && paginated_list.getItemCount() > 0)
 					pick_value(paginated_list.getItem(0));
-			} else if(value_name !== prev_value_name){
+			} else if(_value_name !== prev_value_name){
 				value = undefined;
 				prev_value_name = value_name;
 			}
 		}}
 	/>
+	{/if}
 
 	{#if show_list}
 		<div class="paginated_list_panel item"
 			style={list_style}>
 			{#if get_data}
 			<PaginatedList
-				render_item={render_list_entry} load_items={(index, range, asc) => get_data(index, range, asc, list_value_name)}
+				render_item={render_list_entry}
+				load_items={(index, range, asc) => get_data(index, range, asc, value_name)}
 				prepend_items={list_data}
 				bind:this={paginated_list}
 				to_latest_text="Up"
