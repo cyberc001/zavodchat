@@ -4,9 +4,10 @@
 	import Tabs from '$lib/control/tabs.svelte';
 	import UserDisplay from '$lib/display/user.svelte';
 	import Button from '$lib/control/button.svelte';
-	import UserPicker from '$lib/control/user_picker.svelte';
+	import Autocomplete from '$lib/control/autocomplete.svelte';
 	import Dialog from '$lib/control/dialog.svelte';
 
+	import User from '$lib/rest/user.svelte.js';
 	import BlockedUsers from '$lib/rest/blocked_users.js';
 	import Friends from '$lib/rest/friends.js';
 	import DM from '$lib/rest/dm.js';
@@ -18,7 +19,7 @@
 	let in_requests = Friends.get_requests(true);
 	let out_requests = Friends.get_requests(false);
 
-	let user_picker = $state();
+	let user_ac = $state();
 	let user_to_add = $state();
 
 	let friend_remove_confirm = $state();
@@ -35,6 +36,12 @@
 	};
 </script>
 
+{#snippet render_user(i, item)}
+	<UserDisplay user={{data: item, loaded: true}}
+	display_status={false}
+	/>
+{/snippet}
+
 {#snippet tab_friends()}
 <Dialog bind:this={friend_remove_confirm}
 question={`Remove ${user_to_remove?.data?.name} from friends?`}
@@ -44,11 +51,13 @@ buttons={[{text: "Remove", action: () => Friends.remove_friend(user_to_remove.da
 </Dialog>
 	{#if friends.loaded}
 		<div style="display: flex; width: 100%">
-			<UserPicker bind:value={user_to_add} bind:this={user_picker}
+			<Autocomplete bind:value={user_to_add} bind:this={user_ac}
+			render_data={render_user}
+			get_data={(index, range, asc, list_value_name) => User.get_range(index, range, asc, list_value_name)}
 			--width="min(40vw, 350px)"/>
 			<Button text="Add friend" --margin-left="10px"
 			disabled={typeof user_to_add === "undefined"}
-			onclick={() => Friends.accept_or_create_request(user_to_add, user_picker.reset)}/>
+			onclick={() => Friends.accept_or_create_request(user_to_add.id, user_ac.reset)}/>
 		</div>
 		{#each friends.data as friend}
 			<div class="friend_entry">

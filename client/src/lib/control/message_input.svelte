@@ -5,7 +5,8 @@
 	import {onDestroy} from 'svelte';
 	import Markdown from '$lib/display/markdown.js';
 	import Select from '$lib/select.js';
-	import UserPicker from '$lib/control/user_picker.svelte';
+	import UserDisplay from '$lib/display/user.svelte';
+	import Autocomplete from '$lib/control/autocomplete.svelte';
 
 	import Util from '$lib/util.js';
 
@@ -142,10 +143,10 @@
 		link_candidates = undefined;
 	}, 100);
 
-	// Display UserPicker if caret is after a '@'
-	let user_picker = $state();
-	let user_picker_container = $state();
-	let user_picker_params = $state({});
+	// Display Autocomplete if caret is after a '@'
+	let ping_ac = $state();
+	let ping_ac_container = $state();
+	let ping_ac_params = $state({});
 	let prev_sel_i = $state();
 	let last_mention_sel_i;
 	const onselectionchange = (e) => {
@@ -162,30 +163,30 @@
 
 		console.log("selection changed");
 
-		// Don't do anything if UserPicker got focused
-		if(user_picker_container && range.intersectsNode(user_picker_container))
+		// Don't do anything if Autocomplete got focused
+		if(ping_ac_container && range.intersectsNode(ping_ac_container))
 			return;
 
-		console.log("not intersecting UserPicker", Select.is_in_double_faced_element(range.startContainer), sel_i, value.length, value[sel_i - 1]);
+		console.log("not intersecting Autocomplete", Select.is_in_double_faced_element(range.startContainer), sel_i, value.length, value[sel_i - 1]);
 
 		// Raw check for sel_i is intended, since sel_i === 0 cannot be after a character
 		if(sel_i && sel_i <= value.length && value[sel_i - 1] === '@'
 			&& !Select.is_in_double_faced_element(range.startContainer)){
 			last_mention_sel_i = sel_i;
 			const coords = Select.get_coords(self);
-			user_picker_params = {
+			ping_ac_params = {
 				left: coords[0],
 				top: coords[1]
 			};
 		} else
-			user_picker_params = {};
+			ping_ac_params = {};
 	};
 	document.addEventListener("selectionchange", onselectionchange);
 
 	$effect(() => {
 		prev_sel_i;
-		if(user_picker)
-			user_picker.focus();
+		if(ping_ac)
+			ping_ac.focus();
 	});
 
 	onDestroy(() => {
@@ -193,6 +194,20 @@
 		document.removeEventListener("selectionchange", onselectionchange);
 	});
 </script>
+
+
+{#snippet render_user_or_role(i, item)}
+{#if typeof(item.perms1) !== "undefined"}
+	<div style={"font-size: 18px; text-align: left; padding-left: 4px; " + Role.get_color_style(item)}>
+		{item.name}
+	</div>
+{:else}
+	<UserDisplay user={{data: item, loaded: true}} server={server}
+	display_status={false}
+	/>
+{/if}
+{/snippet}
+
 
 <div class="message_input" bind:this={self}>
 {#if (typeof(server) === "undefined" || server_roles?.loaded) && user_self?.loaded && channel?.loaded}
@@ -259,24 +274,21 @@
 		</div>
 	</div>
 
-	{#if typeof(user_picker_params.top) !== "undefined"}
-	<div style="position: absolute; left: {user_picker_params.left}px; top: {user_picker_params.top}px;"
-		bind:this={user_picker_container}>
-		<UserPicker bind:this={user_picker} list_on_top=true
-		server={server} prepended_roles={server_roles?.data ? server_roles.data.concat([{id: -1, name: "everyone"}]) : []}
-		exit_input={(erase) => {
-			// Remove the '@'
-			value = value.substring(0, last_mention_sel_i - 1) + value.substring(last_mention_sel_i);
-		}}
-		user_picked={(user_id) => {
-			// Insert id
-			value = value.substring(0, last_mention_sel_i) + `u${user_id}` + value.substring(last_mention_sel_i);
-		}}
-		role_picked={(role_id) => {
-			// Insert id
-			value = value.substring(0, last_mention_sel_i) +
-						(role_id === -1 ? 'e' : `r${role_id}`) +
+	{#if typeof(ping_ac_params.top) !== "undefined"}
+	<div style="position: absolute; left: {ping_ac_params.left}px; top: {ping_ac_params.top}px;"
+		bind:this={ping_ac_container}>
+
+		<Autocomplete bind:this={ping_ac} list_on_top=true
+		render_data={render_user_or_role}
+		get_data={(index, range, asc, list_value_name) => User.get_server_range(server.data.id, index, range, asc, list_value_name)}
+		prepended_data={server_roles?.data ? server_roles.data.concat([{id: -1, name: "everyone", perms1: 0}]) : []}
+		on_picked={(item) => {
+			if(typeof(item.perms1) !== "undefined"){ // role was picked
+				value = value.substring(0, last_mention_sel_i) +
+						(item.id === -1 ? 'e' : `r${item.id}`) +
 						value.substring(last_mention_sel_i);
+			} else // user was picked
+				value = value.substring(0, last_mention_sel_i) + `u${item.id}` + value.substring(last_mention_sel_i);
 		}}
 		fixed_text_color={true}
 		--font-size="16px"

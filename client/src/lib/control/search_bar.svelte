@@ -1,7 +1,11 @@
 <script>
 	import FocusManager from '$lib/focus_manager.svelte';
-	import DatePicker from '$lib/control/date_picker.svelte';
-	import UserPicker from '$lib/control/user_picker.svelte';
+	import DatePicker from '$lib/control/date_picker.svelte'
+
+	import UserDisplay from '$lib/display/user.svelte';;
+	import Autocomplete from '$lib/control/autocomplete.svelte';
+
+	import User from '$lib/rest/user.svelte.js';
 
 	let {server, // can be undefined if "server_user" is not used
 		elements,
@@ -25,6 +29,13 @@
 		params = {};
 	}}
 />
+
+
+{#snippet render_user(i, item)}
+<UserDisplay user={{data: item, loaded: true}} server={server}
+display_status={false}
+/>
+{/snippet}
 
 <div style="position: relative" bind:this={self}>
 	<input autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
@@ -51,14 +62,15 @@
 					<DatePicker label_text={e.label} bind:value={params[e.param]}
 						--margin-bottom="6px"
 					/>
-				{:else if e.type === "server_user"}
-					<UserPicker label_text={e.label} bind:value={params[e.param]}
-						server={server}
-						--margin-bottom="6px"
-					/>
-				{:else if e.type === "user"}
-					<UserPicker label_text={e.label} bind:value={params[e.param]}
-						--margin-bottom="6px"
+				{:else if e.type === "server_user" || e.type === "user"}
+					<Autocomplete render_data={render_user}
+					get_data={(index, range, asc, list_value_name) => e.type === "server_user" ? 
+												User.get_server_range(server.data.id, index, range, asc, list_value_name) :
+												User.get_range(index, range, asc, list_value_name)}
+					bind:value={
+						() => params[e.param],
+						(x) => {if(x) params[e.param] = x.id; else delete params[e.param];}
+					}
 					/>
 				{/if}
 			{/each}

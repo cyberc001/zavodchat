@@ -1,36 +1,35 @@
 <script>
 	import {onDestroy} from 'svelte';
 
-	import User from '$lib/rest/user.svelte.js';
-	import Role from '$lib/rest/role.js';
-	
 	import FocusManager from '$lib/focus_manager.svelte';
 	import UserDisplay from '$lib/display/user.svelte';
 	import List from '$lib/control/list.svelte';
 	import PaginatedList from '$lib/display/paginated_list.svelte';
 
-	let {server, // if undefined, regular users are searched
-		prepended_roles = [],
+	let {
+		render_data, get_data, prepended_data = [],
+		get_data_name = (x) => x.name,
+
+		on_picked = () => {}, 
+
 		list_on_top = false, // display the list above input field
 		fixed_text_color = false, // dont change text color to secondary when user wasnt picked
-		exit_input = () => {}, user_picked = () => {}, role_picked = () => {},
-		value = $bindable(), value_is_role = $bindable(false),
-		load_users = true
+		value = $bindable()
 	} = $props();
 
 	let self = $state();
 	let input = $state();
-	let user_list = $state();
+	let paginated_list = $state();
 
-	let roles = $derived(prepended_roles.filter((x) => x.name.startsWith(value_name)));
+	let list_data = $derived(prepended_data.filter((x) => get_data_name(x).startsWith(value_name)));
 
 	let show_list = $state(false);
 	let list_style = $derived.by(() => {
 		let style = "";
 		if(list_on_top)
 			style += "bottom: 100%;";
-		if(user_list && user_list.getItemCount() === 0 &&
-			(prepended_roles.length === 0 || !user_list.isLoaded()))
+		if(paginated_list && paginated_list.getItemCount() === 0 &&
+			(prepended_data.length === 0 || !paginated_list.isLoaded()))
 			style += "display: none;";
 		return style;
 	});
@@ -45,30 +44,26 @@
 			return;
 		list_value_name = value_name;
 		list_value_name_ts = new Date();
-		if(user_list)
-			user_list.reset();
+		if(paginated_list)
+			paginated_list.reset();
 	}, 100);
 	onDestroy(() => clearInterval(list_value_name_intv));
 
-	const pick_value = (item, is_role) => {
-		value = item.id;
-		value_is_role = is_role;
-		value_name = item.name;
-
+	const pick_value = (item) => {
+		value = item;
+		value_name = get_data_name(item);
 		show_list = false;
-		is_role ? role_picked(item.id) : user_picked(item.id);
-	};
 
-	const load_items = (index, range, asc) => server ? User.get_server_range(server.data.id, index, range, asc, list_value_name)
-							    : User.get_range(index, range, asc, list_value_name);
+		on_picked(item);
+	};
 
 	export function reset(){
 		value = undefined;
 		list_value_name_ts = 0;
 		list_value_name = "";
 		value_name = "";
-		if(user_list)
-			user_list.reset();
+		if(paginated_list)
+			paginated_list.reset();
 	}
 	export function focus(){
 		input.focus();
@@ -77,7 +72,7 @@
 </script>
 
 
-<!--selectionchange event fires in-between mousedown and mouseup. To make UserPicker not unfocus after it got focused by MessageInput, mousedown event is used-->
+<!--selectionchange event fires in-between mousedown and mouseup. To make Autocomplete not unfocus after it got focused by MessageInput, mousedown event is used-->
 <FocusManager element={self}
 	blur_on_mousedown=true 
 	onblur={() => {
@@ -85,19 +80,12 @@
 	}}
 />
 
-{#snippet render_role(i, item)}
-	<button class="role_panel item hoverable"
-	style={Role.get_color_style(item)}
-	onclick={() => pick_value(item, true)}
-	>
-		{item.name}
-	</button>
-{/snippet}
-{#snippet render_user(i, item)}
-	<UserDisplay user={{data: item, loaded: true}} server={server}
-		display_status={false}
-		show_user={() => pick_value(item)}
-	/>
+{#snippet render_list_entry(i, item)}
+<button class="transparent_button hoverable" style="width: 100%"
+onclick={() => pick_value(item)}
+>
+	{@render render_data(i, item)}
+</button>
 {/snippet}
 
 <div style="position: relative; z-index: 10" bind:this={self}>
@@ -111,17 +99,12 @@
 		onkeyup={(e) => {
 			show_list = true;
 
-			if(e.key === "Backspace" && input.selectionStart === 0)
-				exit_input();
-
 			if(e.key === "Enter"){
-				if(roles.length > 0)
-					pick_value(roles[0], true);
-				else if(user_list?.getItemCount() > 0)
-					pick_value(user_list.getItem(0));
-			}
-
-			if(value_name !== prev_value_name){
+				if(list_data.length > 0)
+					pick_value(list_data[0]);
+				else if(paginated_list && paginated_list.getItemCount() > 0)
+					pick_value(paginated_list.getItem(0));
+			} else if(value_name !== prev_value_name){
 				value = undefined;
 				prev_value_name = value_name;
 			}
@@ -129,21 +112,21 @@
 	/>
 
 	{#if show_list}
-		<div class="user_list_panel item"
+		<div class="paginated_list_panel item"
 			style={list_style}>
-			{#if load_users}
+			{#if get_data}
 			<PaginatedList
-				render_item={render_user} load_items={load_items}
-				render_prepend_item={render_role} prepend_items={roles}
-				bind:this={user_list}
+				render_item={render_list_entry} load_items={(index, range, asc) => get_data(index, range, asc, list_value_name)}
+				prepend_items={list_data}
+				bind:this={paginated_list}
 				to_latest_text="Up"
 				auto_height=true
 				--max-height="400px"
 			/>
 			{:else}
 			<List
-				items={roles}
-				render_item={render_role}
+				items={list_data}
+				render_item={render_list_entry}
 			/>
 			{/if}
 		</div>
@@ -153,7 +136,7 @@
 <style>
 @import "style.css";
 
-.user_list_panel {
+.paginated_list_panel {
 	z-index: 1000;
 	position: absolute;
 	border-style: solid;

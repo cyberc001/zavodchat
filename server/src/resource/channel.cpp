@@ -168,8 +168,8 @@ void get_old_wl_users(const std::vector<int>& wl_users, const std::vector<int>& 
 		where_user = "user_id IN (" + resource_utils::int_array_to_string(wl_users) + ") ";
 	if(wl_roles.size())
 		where_role = std::string(where_user.size() ? " OR " : "") + "role_id IN (" + resource_utils::int_array_to_string(wl_roles) + ") ";
-	pqxx::result r = tx.exec("SELECT user_id FROM user_x_server WHERE server_id = $1 " +
-				 (where_user.size() || where_role.size() ? "AND (" + where_user + where_role + ")" : "") +
+	pqxx::result r = tx.exec("SELECT user_id FROM user_x_server NATURAL JOIN servers WHERE server_id = $1 " +
+				 (where_user.size() || where_role.size() ? "AND (owner_id = user_id OR (" + where_user + where_role + "))" : "") +
 				 " GROUP BY user_id",
 				 pqxx::params(server_id));
 
@@ -186,8 +186,8 @@ void get_new_wl_users(const std::vector<int>& wl_users, const std::vector<int>& 
 		where_user = "user_id IN (" + resource_utils::int_array_to_string(new_wl_users ? *new_wl_users : wl_users) + ") ";
 	if(new_wl_roles ? new_wl_roles->size() : wl_roles.size())		
 		where_role = std::string(where_user.size() ? " OR " : "") + "role_id IN (" + resource_utils::int_array_to_string(new_wl_roles ? *new_wl_roles : wl_roles) + ") ";
-	pqxx::result r = tx.exec("SELECT user_id FROM user_x_server WHERE server_id = $1 " +
-				 (where_user.size() || where_role.size() ? "AND (" + where_user + where_role + ")" : "") +
+	pqxx::result r = tx.exec("SELECT user_id FROM user_x_server NATURAL JOIN servers WHERE server_id = $1 " +
+				 (where_user.size() || where_role.size() ? "AND (owner_id = user_id OR (" + where_user + where_role + "))" : "") +
 				 " GROUP BY user_id",
 				 pqxx::params(server_id));
 
@@ -270,7 +270,20 @@ std::shared_ptr<http_response> channel_resource::render_PUT(const http_request& 
 		ev.data = json_utils::channel_from_row(ch_row[0], &role_rows);
 		json_utils::set_ids(ev.data, server_id);
 
-		if(new_wl_users || new_wl_roles){
+		if(new_wl_users || new_wl_roles){ // whitelist changed
+			// Get server roles that have PERM1_MANAGE_CHANNELS
+			std::vector<int> ch_manage_roles;
+			std::vector<pqxx::row> server_roles = role_utils::get_role_list(tx, server_id);
+			int cur_ch_manage_bits = 0;
+			for(auto i = server_roles.rbegin(); i != server_roles.rend(); ++i){
+				int ch_manage_bits = GET_PERM_BIT((*i)["perms1"].as<long long>(), PERM1_MANAGE_CHANNELS);
+				if(ch_manage_bits != 0)
+					cur_ch_manage_bits = ch_manage_bits;
+
+				if(cur_ch_manage_bits == 1)
+					ch_manage_roles.push_back((*i)["role_id"].as<int>());
+			}
+
 			if( !(new_wl_users ? new_wl_users->size() : wl_users.size()) &&
 			    !(new_wl_roles ? new_wl_roles->size() : wl_roles.size()) ){
 				// whitelist -> no whitelist
@@ -280,11 +293,12 @@ std::shared_ptr<http_response> channel_resource::render_PUT(const http_request& 
 				if(old_users.size()){
 					ev.name = "channel_edited";
 					sserv.send_to_server(server_id, tx, ev, -1,
-								old_users);
+								old_users, ch_manage_roles);
 				}
 				ev.name = "channel_created";
-				sserv.send_to_server(server_id, tx, ev,
-							{}, {}, old_users);
+				sserv.send_to_server(server_id, tx, ev, -1,
+							{}, {},
+							old_users, ch_manage_roles);
 			} else if(!wl_users.size() && !wl_roles.size() &&
 					((new_wl_users && new_wl_users->size()) || (new_wl_roles && new_wl_roles->size()))){
 				// no whitelist -> whitelist
@@ -294,7 +308,7 @@ std::shared_ptr<http_response> channel_resource::render_PUT(const http_request& 
 				if(new_users.size()){
 					ev.name = "channel_edited";
 					sserv.send_to_server(server_id, tx, ev, -1,
-								new_users);
+								new_users, ch_manage_roles);
 				}
 				ev.name = "channel_deleted";
 				ev.data = {
@@ -302,25 +316,26 @@ std::shared_ptr<http_response> channel_resource::render_PUT(const http_request& 
 					{"server_id", server_id}
 				};
 				sserv.send_to_server(server_id, tx, ev, -1,
-							{}, {}, new_users);
+							{}, {}, new_users, ch_manage_roles);
 			} else {
+				// whitelist -> whitelist
 				std::vector<int> old_users, new_users;
 				get_old_wl_users(wl_users, wl_roles,
 							server_id, tx, old_users);
 				get_new_wl_users(wl_users, wl_roles, new_wl_users.get(), new_wl_roles.get(),
 							server_id, tx, new_users);
 
-				// whitelist -> whitelist
 				array_diff<int> diff(old_users, new_users);
 				if(diff.unchanged.size()){
 					ev.name = "channel_edited";
 					sserv.send_to_server(server_id, tx, ev, -1,
-								diff.unchanged);
+								diff.unchanged, ch_manage_roles);
 				}
 				if(diff.added.size()){
 					ev.name = "channel_created";
 					sserv.send_to_server(server_id, tx, ev, -1,
-								diff.added);
+								diff.added, {},
+								{}, ch_manage_roles);
 				}
 				if(diff.removed.size()){
 					ev.name = "channel_deleted";
@@ -329,7 +344,8 @@ std::shared_ptr<http_response> channel_resource::render_PUT(const http_request& 
 						{"server_id", server_id}
 					};
 					sserv.send_to_server(server_id, tx, ev, -1,
-								diff.removed);
+								diff.removed, {},
+								{}, ch_manage_roles);
 				}
 			}
 		} else {

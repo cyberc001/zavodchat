@@ -8,7 +8,7 @@
 	import List from '$lib/control/list.svelte';
 	import Toggle from '$lib/control/toggle.svelte';
 	import UserDisplay from '$lib/display/user.svelte';
-	import UserPicker from '$lib/control/user_picker.svelte';
+	import Autocomplete from '$lib/control/autocomplete.svelte';
 
 	import SettingsTabState from '$lib/control/settings_tab_state.svelte.js';
 
@@ -56,8 +56,7 @@
 	// Access
 	let wl_picker = $state();
 	let wl_users = $state({});
-	let wl_add_id = $state();
-	let wl_add_is_role = $state(false);
+	let wl_to_add = $state();
 
 	class AccessTabState extends SettingsTabState {
 		changes_override = $derived.by(() => {
@@ -88,7 +87,7 @@
 
 	// Permissions
 	let perms_role_picker = $state();
-	let perms_role_add_id = $state();
+	let perms_role_to_add = $state();
 	let perms_role_selected_idx = $state(-1);
 	let perms_role_selected = $derived(state_permissions.state.roles[perms_role_selected_idx]);
 
@@ -154,6 +153,19 @@
 </div>
 {/snippet}
 
+
+{#snippet render_user_or_role(i, item)}
+{#if typeof(item.perms1) !== "undefined"}
+	<div style={"font-size: 18px; text-align: left; padding-left: 4px; " + Role.get_color_style(item)}>
+		{item.name}
+	</div>
+{:else}
+	<UserDisplay user={{data: item, loaded: true}} server={server}
+	display_status={false}
+	/>
+{/if}
+{/snippet}
+
 {#snippet access()}
 <Group name="Whitelist">
 	<List items={state_access.state.wl_roles.concat(state_access.state.wl_users)}
@@ -161,27 +173,29 @@
 		render_item={render_wl}
 	/>
 	<div style="display: flex; margin-top: 16px">
-		<UserPicker server={server}
-		prepended_roles={server_roles.data.filter((x) => state_access.state.wl_roles.findIndex((y) => y === x.id) === -1)}
-		bind:this={wl_picker} bind:value={wl_add_id} bind:value_is_role={wl_add_is_role}
-		user_picked={(id) => {
-			wl_users[id] = User.get_server(server_id, id);
-		}}
+		<Autocomplete render_data={render_user_or_role}
+		get_data={(index, range, asc, list_value_name) => User.get_server_range(server.data.id, index, range, asc, list_value_name)}
+		prepended_data={server_roles.data.filter((x) => state_access.state.wl_roles.findIndex((y) => y === x.id) === -1)}
+		bind:this={wl_picker} bind:value={wl_to_add} 
 		--width="min(400px, 50vw)"
 		--margin-bottom="0"
 		--margin-right="6px"
 		/>
 		<Button text="Add"
-		disabled={typeof(wl_add_id) === "undefined" || 
-			  (!wl_add_is_role && state_access.state.wl_users.findIndex((x) => x === wl_add_id) !== -1)}
+		disabled={typeof(wl_to_add) === "undefined" || 
+			  (typeof(wl_to_add.perms1) === "undefined" &&
+				state_access.state.wl_users.findIndex((x) => x === wl_to_add.id) !== -1)}
 		onclick={() => {
-			if(typeof(wl_add_id) === "undefined")
+			if(typeof(wl_to_add) === "undefined")
 				return;
 
-			if(wl_add_is_role)
-				state_access.state.wl_roles.push(wl_add_id);
-			else
-				state_access.state.wl_users.push(wl_add_id);
+			if(typeof(wl_to_add.perms1) !== "undefined")
+				state_access.state.wl_roles.push(wl_to_add.id);
+			else {
+				state_access.state.wl_users.push(wl_to_add.id);
+				if(!wl_users[wl_to_add.id])
+					wl_users[wl_to_add.id] = User.get_server(server_id, wl_to_add.id);
+			}
 
 			wl_picker.reset();
 		}}
@@ -225,18 +239,18 @@
 		bind:selected_idx={perms_role_selected_idx} 
 	/>
 	<div style="display: flex; margin-top: 16px">
-		<UserPicker server={server} load_users={false}
-		prepended_roles={server_roles.data.filter((x) => state_permissions.state.roles.findIndex((y) => y.id === x.id) === -1)}
-		bind:this={perms_role_picker} bind:value={perms_role_add_id}
+		<Autocomplete render_data={render_user_or_role}
+		prepended_data={server_roles.data.filter((x) => state_permissions.state.roles.findIndex((y) => y.id === x.id) === -1)}
+		bind:this={perms_role_picker} bind:value={perms_role_to_add}
 		--width="min(400px, 50vw)"
 		--margin-bottom="0"
 		--margin-right="6px"
 		/>
 		<Button text="Add"
 		onclick={() => {
-			if(typeof(perms_role_add_id) === "undefined")
+			if(typeof(perms_role_to_add) === "undefined")
 				return;
-			state_permissions.state.roles.push({id: perms_role_add_id, perms1: 0});
+			state_permissions.state.roles.push({id: perms_role_to_add.id, perms1: 0});
 			perms_role_picker.reset();
 		}}
 		--margin-bottom="0"

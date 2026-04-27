@@ -99,7 +99,7 @@ void socket_main_server::send_to_server(int server_id, pqxx::work& tx, socket_ev
 	if(bl_users.size() > 0)
 		wl_check += " AND user_id NOT IN (" + resource_utils::int_array_to_string(bl_users) + ")";
 	if(bl_roles.size() > 0)
-		having = " HAVING bool_or(role_id IN (" + resource_utils::int_array_to_string(bl_roles) + "))";
+		having = " HAVING NOT bool_or(role_id IN (" + resource_utils::int_array_to_string(bl_roles) + "))";
 
 	pqxx::params pr(server_id);
 	if(user_id > -1)

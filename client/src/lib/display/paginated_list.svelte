@@ -4,8 +4,7 @@
 	import {RangeCache} from '$lib/cache/range.svelte.js';
 
 	let {range = 40, advance = 10, reversed = false,
-		render_item, load_items, augment_item = () => {},
-		render_prepend_item, prepend_items = [],
+		render_item, prepend_items = [], load_items,
 		loading_text = "Loading...", to_latest_text = "To latest",
 		auto_height = false
 	} = $props();
@@ -98,15 +97,6 @@
 	export function findItem(filter){
 		return items.data.find(filter);
 	}
-
-	// A method for loading additional information into items. Its useful, because:
-	// 1. You cannot use cached REST methods in snippets that PaginatedList uses to render items, since it makes PaginatedList mutate static state (i.e. cache) that Main owns
-	// 2. Same goes for embedding data directly in REST cached requests using other REST cached requests
-	$effect(() => {
-		for(let item of items.data)
-			if(item)
-				augment_item(item);
-	});
 
 	let reverse_sign = $derived(reversed ? -1 : 1);
 	let can_scroll_before = $derived.by(() => {
@@ -243,12 +233,11 @@
 >
 	<div class="paginated_list" onwheel={on_scroll} bind:this={list_div}>
 		{#each prepend_items as item, i}
-			{@render render_prepend_item(i, item)}
+			{@render render_item(i, item)}
 		{/each}
 		{#each items.data as item, i}
 			{#if item}
-				<div bind:this={div_items[i]}
-				>
+				<div bind:this={div_items[i]}>
 					{@render render_item(i, item)}
 				</div>
 			{/if}
