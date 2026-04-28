@@ -8,6 +8,7 @@
 	import Select from '$lib/select.js';
 	import UserDisplay from '$lib/display/user.svelte';
 	import Autocomplete from '$lib/control/autocomplete.svelte';
+	import EmojiPicker from '$lib/control/emoji_picker.svelte';
 
 	import Util from '$lib/util.js';
 	import Emoji from '$lib/emoji.js';
@@ -38,7 +39,7 @@
 		return !(server?.loaded && channel?.loaded && !Role.check_perms(user_self.data, server.data, server_roles.data, 1, 0, channel.data));
 	});
 
-	let self = $state();
+	let input_panel = $state();
 	let input_div = $state();
 
 	// toggled when div_oninput is called, so Markdown updates even when value stayed the same (i.e. a ServerUser loaded)
@@ -65,7 +66,7 @@
 			return;
 
 		console.log("VALUE CHANGED\n", `'${Select.get_inner_text(input_div)}'\n`, `'${value}'\n`,
-				typeof(untrack(() => ac_params.top)) === "undefined" ? undefined : [untrack(() => ac_text_start_i), sel_i]);
+				$state.snapshot(untrack(() => ac_params)));
 		value_changed;
 		update_ac();
 
@@ -198,7 +199,7 @@
 	const update_ac = () => {
 		const new_ac_text_start_i = get_sel_autocomplete_start(sel_i);
 		if(new_ac_text_start_i > -1){
-			const coords = Select.get_coords(self);
+			const coords = Select.get_coords(input_panel);
 			ac_params = {
 				left: coords[0],
 				top: coords[1],
@@ -222,13 +223,17 @@
 		console.log("selection changed");
 		update_ac();
 	};
-	document.addEventListener("selectionchange", onselectionchange);
 
 	$effect(() => {
-		prev_sel_i;
+		sel_i;
 		if(ac)
 			ac.focus();
 	});
+
+	document.addEventListener("selectionchange", onselectionchange);
+
+	// Display emoji picker
+	let show_emoji_picker = $state(false);
 
 	onDestroy(() => {
 		clearInterval(link_intv);
@@ -257,7 +262,7 @@
 {/snippet}
 
 
-<div class="message_input" bind:this={self}>
+<div class="message_input">
 {#if (typeof(server) === "undefined" || server_roles?.loaded) && user_self?.loaded && channel?.loaded}
 	<input type="file" style="position: fixed; top: -100vh" bind:this={file_input} bind:files multiple/>
 
@@ -274,7 +279,7 @@
 			{/each}
 		</div>
 
-		<div style="display: flex">
+		<div style="display: flex; align-items: center; position: relative" bind:this={input_panel}>
 			<button class="hoverable transparent_button" onclick={onattach} disabled={!can_send_messages}>
 				<img class="filter_icon_main" src={asset("icons/attachment.svg")}/>
 			</button>
@@ -284,6 +289,45 @@
 				onkeyup={div_onkeyup}
 			>
 			</div>
+			<button class="hoverable transparent_button" disabled={!can_send_messages}
+				onclick={() => {show_emoji_picker = !show_emoji_picker;}}>
+				<img style="height: 24px" src={asset("icons/emoji.svg")}/>
+			</button>
+
+			{#if typeof(ac_params.top) !== "undefined"}
+			<div style="position: absolute; left: {ac_params.left}px; top: {ac_params.top}px;"
+				bind:this={ac_container}>
+		
+				<Autocomplete bind:this={ac} list_on_top=true
+				override_value_name={value.substring(ac_text_start_i + 1, sel_i)}
+				render_data={ac_params.type === "mention" ? render_user_or_role : render_emoji}
+				get_data={ac_params.type === "mention" ? 
+						(index, range, asc, value_name) => User.get_server_range(server.data.id, index, range, asc, value_name) :
+						undefined
+				}
+				prepended_data={ac_params.type === "mention" ?
+							(server_roles?.data ? server_roles.data.concat([{id: -1, name: "everyone", perms1: 0}]) : []) :
+							(value_name) => Emoji.search(value_name)
+				}
+				on_picked={paste_autocomplete}
+				fixed_text_color={true}
+				--font-size="16px"
+				--width="min(200px, 30vw)"
+				/>
+			</div>
+			{/if}
+
+		{#if show_emoji_picker}
+		<div style="position: absolute; right: 0; top: 0; transform: translate(0, -100%)">
+			<EmojiPicker hide_picker={() => {show_emoji_picker = false;}}
+			on_picked={(emoji) => {
+				const paste = `:${emoji.name}:`;
+				value = value.substring(value, sel_i) + paste + value.substring(sel_i);
+				sel_i += paste.length;
+			}}
+			/>
+		</div>
+		{/if}
 		</div>
 
 		<div style="display: flex; padding-top: 4px; flex-wrap: wrap">
@@ -321,29 +365,6 @@
 			{/each}
 		</div>
 	</div>
-
-	{#if typeof(ac_params.top) !== "undefined"}
-	<div style="position: absolute; left: {ac_params.left}px; top: {ac_params.top}px;"
-		bind:this={ac_container}>
-
-		<Autocomplete bind:this={ac} list_on_top=true
-		override_value_name={value.substring(ac_text_start_i + 1, sel_i)}
-		render_data={ac_params.type === "mention" ? render_user_or_role : render_emoji}
-		get_data={ac_params.type === "mention" ? 
-				(index, range, asc, value_name) => User.get_server_range(server.data.id, index, range, asc, value_name) :
-				undefined
-		}
-		prepended_data={ac_params.type === "mention" ?
-					(server_roles?.data ? server_roles.data.concat([{id: -1, name: "everyone", perms1: 0}]) : []) :
-					(value_name) => Emoji.search(value_name)
-		}
-		on_picked={paste_autocomplete}
-		fixed_text_color={true}
-		--font-size="16px"
-		--width="min(200px, 30vw)"
-		/>
-	</div>
-	{/if}
 {:else}
 <img src={asset("icons/loading.svg")} alt="loading" class="filter_icon_main" style="width: 32px"/>
 {/if}
