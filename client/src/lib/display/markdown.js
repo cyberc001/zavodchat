@@ -2,17 +2,11 @@ import {Marked} from 'marked';
 import {markedHighlight} from "marked-highlight";
 import hljs from 'highlight.js';
 
+import Emoji from '$lib/emoji.js';
+
 import User from '$lib/rest/user.svelte.js';
 import Notifications from '$lib/rest/notifications.js';
 import Role from '$lib/rest/role.js';
-
-
-// Load emojis
-let emojis = {};
-for(const path in import.meta.glob('/static/emoji/*.svg')){
-	const name = path.replace('/static/emoji/', '').replace('.svg', '');
-	emojis[name] = path.replace('/static', '');
-}
 
 
 const __md_mention = {
@@ -23,7 +17,7 @@ const __md_mention = {
 	tokenizer(src, tokens){
 		// Match mention types without IDs
 		let match = src.match(/^@([e])/);
-		if(match && Markdown.check_exclude_range(match.index)){
+		if(match && Markdown.check_exclude_range(tokens, match.index)){
 			let text = match[0];
 			switch(match[1]){
 				case "e":
@@ -39,7 +33,7 @@ const __md_mention = {
 
 		// Match mention types with IDs
 		match = src.match(/^@([ur])(\d+)/);
-		if(match && Markdown.check_exclude_range(match.index)){
+		if(match && Markdown.check_exclude_range(tokens, match.index)){
 			let text = match[0];
 			const id = parseInt(match[2]);
 			switch(match[1]){
@@ -79,18 +73,21 @@ const __md_emoji = {
 	start(src){ return src.indexOf(':'); },
 	tokenizer(src, tokens){
 		let match = src.match(/^:([^:\s]*):/);
-		if(match && Markdown.check_exclude_range(match.index) &&
-			emojis[match[1]])
+		if(match && Markdown.check_exclude_range(tokens, match.index) &&
+			Emoji.get(match[1]))
 			return {
 				type: "emoji",
 				raw: match[0],
-				text: match[1]
+				text: match[1],
+
+				start_i: match.index + Markdown.get_src_idx(tokens),
+				end_i: match.index + Markdown.get_src_idx(tokens) + match[0].length - 1
 			};
 
 		return false;
 	},
 	renderer(token){
-		return `<img src='${emojis[token.text]}' class="emoji" data-raw-text="${token.raw}"/>`;
+		return `<img src='${Emoji.get(token.text).img_path}' class="emoji" data-raw-text="${token.raw}"/>`;
 	}
 }
 
@@ -136,6 +133,8 @@ export default class Markdown {
 		walkTokens(token){
 			if(token.type === "link")
 				this.links.push(token.text);
+			else if(token.type === "emoji")
+				this.emojis.push(token);
 		},
 
 		extensions: [__md_mention, __md_emoji]
@@ -183,26 +182,37 @@ export default class Markdown {
 		return html;
 	}
 
-	static check_exclude_range(i)
+	static get_src_idx(tokens)
+	{
+		let idx = 0;
+		for(const tok of tokens)
+			idx += tok.raw.length;	
+		return idx;
+	}
+	static check_exclude_range(tokens, i)
 	{
 		if(!Markdown.__exclude_range)
 			return true;
+		i += Markdown.get_src_idx(tokens);
 		return i < Markdown.__exclude_range[0] || i > Markdown.__exclude_range[1];
 	}
 	static parse_overlay(text, reload,
 				server_id, server_roles,
 				exclude_range){
-		Markdown.marked_overlay.links = [];
 		Markdown.__server_id = server_id;
 		Markdown.__server_roles = server_roles;
 		Markdown.__reload = reload;
 		Markdown.__exclude_range = exclude_range; // inclusive, denies ping and emoji matches
 
+		Markdown.marked_overlay.links = [];
+		Markdown.marked_overlay.emojis = [];
+
 		let html = Markdown.marked_overlay.parseInline(text);
 		if(html.endsWith("\n"))
 			html += "\n";
 		html = html.replaceAll("\n", "<br>");
-		return [html, Markdown.marked_overlay.links];
+
+		return [html, Markdown.marked_overlay.links, Markdown.marked_overlay.emojis];
 	}
 };
 

@@ -10,6 +10,7 @@
 	import Autocomplete from '$lib/control/autocomplete.svelte';
 
 	import Util from '$lib/util.js';
+	import Emoji from '$lib/emoji.js';
 
 	import Message from '$lib/rest/message.js';
 	import Params from '$lib/rest/params.js';
@@ -66,8 +67,9 @@
 		console.log("VALUE CHANGED\n", `'${Select.get_inner_text(input_div)}'\n`, `'${value}'\n`,
 				typeof(untrack(() => ac_params.top)) === "undefined" ? undefined : [untrack(() => ac_text_start_i), sel_i]);
 		value_changed;
+		update_ac();
 
-		[input_div.innerHTML, link_candidates] = Markdown.parse_overlay(value, div_oninput, server?.data.id, server_roles?.data,
+		[input_div.innerHTML, link_candidates, cur_emojis] = Markdown.parse_overlay(value, div_oninput, server?.data.id, server_roles?.data,
 										typeof(untrack(() => ac_params.top)) === "undefined" ? undefined : [untrack(() => ac_text_start_i), prev_sel_i]);
 		console.log("NEW innerHTML\n", input_div.innerHTML);
 		link_candidates_ts = new Date();
@@ -158,62 +160,67 @@
 	let ac = $state();
 	let ac_container = $state();
 	let ac_params = $state({});
-	let prev_sel_i = $state();
+	let prev_sel_i;
 	let ac_text_start_i = $state();
 
+	let cur_emojis = [];
 	const get_sel_autocomplete_start = (sel_i) => {
 		if(!sel_i || sel_i > value.length)
 			return -1;
 		for(let i = sel_i - 1; i >= 0; --i)
 			if(Util.is_ws(value[i]))
 				return -1;
-			else if(value[i] === '@')
+			else if(value[i] === '@' && server)
 				return i;
+			else if(value[i] === ':')
+				return cur_emojis.findIndex((e) => i >= e.start_i && i <= e.end_i) === -1 ? i : -1;
 		return -1;
 	};
 
 	const paste_autocomplete = (item) => {
-		// Use non-breaking space (&nbs, 0xA0 in Unicode) so the whitespace doesn't vanish when parsed into HTML
 		let replace_with;
-		if(typeof(item.perms1) !== "undefined"){ // role was picked
-			replace_with = item.id === -1 ? 'e\u00a0' : `r${item.id}\u00a0`;
-		} else // user was picked
-			replace_with = `u${item.id}\u00a0`;
+		if(ac_params.type === "mention"){
+			// Use non-breaking space (&nbs, 0xA0 in Unicode) so the whitespace doesn't vanish when parsed into HTML
+			if(typeof(item.perms1) !== "undefined"){ // role was picked
+				replace_with = item.id === -1 ? 'e\u00a0' : `r${item.id}\u00a0`;
+			} else // user was picked
+				replace_with = `u${item.id}\u00a0`;
+		} else {
+			replace_with = `${item.name}:`;
+		}
 
+		console.log(`VALUE '${value}' PASTING IN RANGE ${ac_text_start_i + 1}-${prev_sel_i} WITH '${replace_with}'`);
 		value = value.substring(0, ac_text_start_i + 1) + replace_with + value.substring(prev_sel_i);
 		sel_i = ac_text_start_i + replace_with.length + 1;
 		ac_params = {};
 	};
 
+	const update_ac = () => {
+		const new_ac_text_start_i = get_sel_autocomplete_start(sel_i);
+		if(new_ac_text_start_i > -1){
+			const coords = Select.get_coords(self);
+			ac_params = {
+				left: coords[0],
+				top: coords[1],
+				type: value[new_ac_text_start_i] === '@' ? "mention" : "emoji"
+			};
+		} else
+			ac_params = {};
+		untrack(() => {ac_text_start_i = new_ac_text_start_i;});
+	};
 	const onselectionchange = (e) => {
-		if(!input_div ||
-			!server) // Don't suggest mentions for DMs
+		if(!input_div)
 			return;
 
 		// Firefox is very trigger-happy with this event, so track only actual changes
 		const range = window.getSelection().getRangeAt(0);
-		const sel_i = Select.get_selection_index(input_div, true);
+		sel_i = Select.get_selection_index(input_div, true);
 		if(sel_i === prev_sel_i)
 			return;
 		prev_sel_i = sel_i;
 
 		console.log("selection changed");
-
-		// Don't do anything if Autocomplete got focused
-		if(ac_container && range.intersectsNode(ac_container))
-			return;
-
-		// Raw check for sel_i is intended, since sel_i === 0 cannot be after a character
-		const new_ac_text_start_i = get_sel_autocomplete_start(sel_i);
-		if(new_ac_text_start_i > -1 && !Select.is_in_double_faced_element(range.startContainer)){
-			const coords = Select.get_coords(self);
-			ac_params = {
-				left: coords[0],
-				top: coords[1]
-			};
-		} else
-			ac_params = {};
-		untrack(() => {ac_text_start_i = new_ac_text_start_i;});
+		update_ac();
 	};
 	document.addEventListener("selectionchange", onselectionchange);
 
@@ -240,6 +247,13 @@
 	display_status={false}
 	/>
 {/if}
+{/snippet}
+
+{#snippet render_emoji(i, emoji)}
+<div style="display: flex; align-items: center; padding: 0 2px 0 2px">
+	<img src={emoji.img_path} style="height: 16px; margin-right: 4px"/>
+	:{emoji.name}:
+</div>
 {/snippet}
 
 
@@ -314,9 +328,15 @@
 
 		<Autocomplete bind:this={ac} list_on_top=true
 		override_value_name={value.substring(ac_text_start_i + 1, sel_i)}
-		render_data={render_user_or_role}
-		get_data={(index, range, asc, list_value_name) => User.get_server_range(server.data.id, index, range, asc, list_value_name)}
-		prepended_data={server_roles?.data ? server_roles.data.concat([{id: -1, name: "everyone", perms1: 0}]) : []}
+		render_data={ac_params.type === "mention" ? render_user_or_role : render_emoji}
+		get_data={ac_params.type === "mention" ? 
+				(index, range, asc, value_name) => User.get_server_range(server.data.id, index, range, asc, value_name) :
+				undefined
+		}
+		prepended_data={ac_params.type === "mention" ?
+					(server_roles?.data ? server_roles.data.concat([{id: -1, name: "everyone", perms1: 0}]) : []) :
+					(value_name) => Emoji.search(value_name)
+		}
 		on_picked={paste_autocomplete}
 		fixed_text_color={true}
 		--font-size="16px"

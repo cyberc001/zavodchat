@@ -7,7 +7,7 @@
 	import PaginatedList from '$lib/display/paginated_list.svelte';
 
 	let {
-		render_data, get_data, prepended_data = [],
+		render_data, get_data, prepended_data,
 		get_data_name = (x) => x.name,
 
 		on_picked = () => {}, 
@@ -23,7 +23,16 @@
 	let input = $state();
 	let paginated_list = $state();
 
-	let list_data = $derived(prepended_data.filter((x) => get_data_name(x).startsWith(value_name)));
+	let list_data = $derived.by(() => {
+		let res = [];
+		if(typeof(prepended_data) === "function")
+			res = prepended_data(value_name);
+		else if(typeof(prepended_data) !== "undefined")
+			res = prepended_data.filter((x) => get_data_name(x).startsWith(value_name));
+
+		// Limit output to 50 items
+		return res.slice(0, 50);
+	});
 
 	let show_list = $state(false);
 	let list_style = $derived.by(() => {
@@ -88,7 +97,7 @@
 <FocusManager element={self}
 	blur_on_mousedown=true 
 	onblur={() => {
-		show_list = false;
+		//show_list = false;
 	}}
 />
 
