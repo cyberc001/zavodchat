@@ -63,11 +63,13 @@
 		if(!input_div)
 			return;
 
-		console.log("VALUE CHANGED\n", Select.get_inner_text(input_div), Select.get_inner_text(input_div).length);
+		console.log("VALUE CHANGED\n", `'${Select.get_inner_text(input_div)}'\n`, `'${value}'\n`,
+				typeof(untrack(() => ac_params.top)) === "undefined" ? undefined : [untrack(() => ac_text_start_i), sel_i]);
 		value_changed;
 
 		[input_div.innerHTML, link_candidates] = Markdown.parse_overlay(value, div_oninput, server?.data.id, server_roles?.data,
 										typeof(untrack(() => ac_params.top)) === "undefined" ? undefined : [untrack(() => ac_text_start_i), prev_sel_i]);
+		console.log("NEW innerHTML\n", input_div.innerHTML);
 		link_candidates_ts = new Date();
 
 		console.log("RECALL sel_i", sel_i);
@@ -75,9 +77,16 @@
 	});
 
 	const div_onkeyup = (e) => {
-		if(!status && e.code === "Enter" && e.ctrlKey
-			&& (value.length > 0 || attachments.length > 0))
-			onsend();
+		if(e.code === "Enter"){
+			if(e.ctrlKey){
+				if(!status && (value.length > 0 || attachments.length > 0))
+					onsend();
+			} else if(!e.shiftKey){
+				const res = ac.get_first_result();
+				if(typeof(res) !== "undefined")
+					paste_autocomplete(res);
+			}
+		}
 	}	
 
 	let files = $state();
@@ -163,6 +172,19 @@
 		return -1;
 	};
 
+	const paste_autocomplete = (item) => {
+		// Use non-breaking space (&nbs, 0xA0 in Unicode) so the whitespace doesn't vanish when parsed into HTML
+		let replace_with;
+		if(typeof(item.perms1) !== "undefined"){ // role was picked
+			replace_with = item.id === -1 ? 'e\u00a0' : `r${item.id}\u00a0`;
+		} else // user was picked
+			replace_with = `u${item.id}\u00a0`;
+
+		value = value.substring(0, ac_text_start_i + 1) + replace_with + value.substring(prev_sel_i);
+		sel_i = ac_text_start_i + replace_with.length + 1;
+		ac_params = {};
+	};
+
 	const onselectionchange = (e) => {
 		if(!input_div ||
 			!server) // Don't suggest mentions for DMs
@@ -189,7 +211,6 @@
 				left: coords[0],
 				top: coords[1]
 			};
-			console.log("display autocomplete", new_ac_text_start_i, coords);
 		} else
 			ac_params = {};
 		untrack(() => {ac_text_start_i = new_ac_text_start_i;});
@@ -296,18 +317,7 @@
 		render_data={render_user_or_role}
 		get_data={(index, range, asc, list_value_name) => User.get_server_range(server.data.id, index, range, asc, list_value_name)}
 		prepended_data={server_roles?.data ? server_roles.data.concat([{id: -1, name: "everyone", perms1: 0}]) : []}
-		on_picked={(item) => {
-			// FIXME selection is remembered incorrectly if only a whitespace is at the end of replace_with
-
-			let replace_with;
-			if(typeof(item.perms1) !== "undefined"){ // role was picked
-				replace_with = item.id === -1 ? 'e ' : `r${item.id} `;
-			} else // user was picked
-				replace_with = `u${item.id} `;
-
-			value = value.substring(0, ac_text_start_i + 1) + replace_with + value.substring(prev_sel_i);
-			sel_i = ac_text_start_i + replace_with.length + 1;
-		}}
+		on_picked={paste_autocomplete}
 		fixed_text_color={true}
 		--font-size="16px"
 		--width="min(200px, 30vw)"

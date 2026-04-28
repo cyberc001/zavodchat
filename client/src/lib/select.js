@@ -34,12 +34,10 @@ export default class Select {
 	static __set_selection_index(el, idx){
 		const ln = Select.get_inner_text(el).length;
 
-		console.log("__set_selection_index", el, idx, ln);
 		const de_result = Select.get_element_type(el);
 		const is_double_faced = de_result[0] === Select.ElementTypes.DoubleFaced ||
 					de_result[0] === Select.ElementTypes.DoubleFacedSolid;
 		if(idx < ln){
-			console.log("type", de_result[0]);
 			if(!el.childNodes.length || is_double_faced){
 				window.getSelection().removeAllRanges();
 				const range = document.createRange();
@@ -72,7 +70,6 @@ export default class Select {
 			window.getSelection().removeAllRanges();
 			const range = document.createRange();
 			const last_child = el.childNodes[el.childNodes.length - 1];
-			console.log("__set_selection_index() fallback", idx, "\n", last_child);
 			range.selectNodeContents(el);
 			range.collapse(false);
 			window.getSelection().addRange(range);

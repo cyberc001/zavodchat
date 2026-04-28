@@ -30,8 +30,10 @@
 		let style = "";
 		if(list_on_top)
 			style += "bottom: 100%;";
-		if(paginated_list && paginated_list.getItemCount() === 0 &&
-			(prepended_data.length === 0 || !paginated_list.isLoaded()))
+		// If paginated items are loading, or both lists are empty, hide the panel
+		if(paginated_list?.isLoaded() === false
+			|| ((!paginated_list || paginated_list.getItemCount() === 0) &&
+			list_data.length === 0))
 			style += "display: none;";
 		return style;
 	});
@@ -73,6 +75,12 @@
 			input.focus();
 		show_list = true;
 	}
+	export function get_first_result(){
+		if(list_data.length > 0)
+			return list_data[0];
+		else if(paginated_list && paginated_list.getItemCount() > 0)
+			return paginated_list.getItem(0);
+	}
 </script>
 
 
@@ -105,10 +113,9 @@ onclick={() => pick_value(item)}
 			show_list = true;
 
 			if(e.key === "Enter"){
-				if(list_data.length > 0)
-					pick_value(list_data[0]);
-				else if(paginated_list && paginated_list.getItemCount() > 0)
-					pick_value(paginated_list.getItem(0));
+				const res = get_first_result();
+				if(typeof(res) !== "undefined")
+					pick_value(res);
 			} else if(_value_name !== prev_value_name){
 				value = undefined;
 				prev_value_name = value_name;
