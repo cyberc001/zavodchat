@@ -85,9 +85,11 @@
 				if(!status && (value.length > 0 || attachments.length > 0))
 					onsend();
 			} else if(!e.shiftKey){
-				const res = ac.get_first_result();
-				if(typeof(res) !== "undefined")
-					paste_autocomplete(res);
+				if(ac){
+					const res = ac.get_first_result();
+					if(typeof(res) !== "undefined")
+						paste_autocomplete(res);
+				}
 			}
 		}
 	}	
@@ -161,7 +163,7 @@
 	let ac = $state();
 	let ac_container = $state();
 	let ac_params = $state({});
-	let prev_sel_i;
+	let prev_sel_i, last_valid_sel_i = 0;
 	let ac_text_start_i = $state();
 
 	let cur_emojis = [];
@@ -218,6 +220,8 @@
 		sel_i = Select.get_selection_index(input_div, true);
 		if(sel_i === prev_sel_i)
 			return;
+		if(typeof(sel_i) !== "undefined")
+			last_valid_sel_i = sel_i;
 		prev_sel_i = sel_i;
 
 		console.log("selection changed");
@@ -307,7 +311,7 @@
 				}
 				prepended_data={ac_params.type === "mention" ?
 							(server_roles?.data ? server_roles.data.concat([{id: -1, name: "everyone", perms1: 0}]) : []) :
-							(value_name) => Emoji.search(value_name)
+							(value_name) => value_name.length > 0 ? Emoji.search(value_name).slice(0, 20) : []
 				}
 				on_picked={paste_autocomplete}
 				fixed_text_color={true}
@@ -322,8 +326,8 @@
 			<EmojiPicker hide_picker={() => {show_emoji_picker = false;}}
 			on_picked={(emoji) => {
 				const paste = `:${emoji.name}:`;
-				value = value.substring(value, sel_i) + paste + value.substring(sel_i);
-				sel_i += paste.length;
+				value = value.substring(value, last_valid_sel_i) + paste + value.substring(last_valid_sel_i);
+				sel_i = last_valid_sel_i + paste.length;
 			}}
 			/>
 		</div>

@@ -2,6 +2,11 @@
 	let {label_text = "", error = "",
 		is_password = false, value = $bindable(""),
 		render_after} = $props();
+
+	let input = $state();
+	export function focus(){
+		input.focus();
+	}
 </script>
 
 <div class="settings_textbox_frame">
@@ -9,7 +14,7 @@
 	<div style="display: flex">
 		<input autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" type={is_password ? "password" : "input"}
 			class="settings_control" style="width:var(--width, 512px)"
-			bind:value={value}
+			bind:value={value} bind:this={input}
 		/>
 		{#if render_after}
 			{@render render_after()}

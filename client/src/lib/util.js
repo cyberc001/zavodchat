@@ -71,7 +71,6 @@ export default class Util {
 		while(r - l > 1){
 			const m = Math.floor((l + r) / 2);
 			const c = cmp_func(arr[m]);
-			console.log("l", l, "r", r, "c", c, arr[m]);
 			if(c === 0)
 				return m;
 			else if(c * (reverse ? -1 : 1) > 0)

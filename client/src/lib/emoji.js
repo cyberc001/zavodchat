@@ -9,6 +9,7 @@ function __cmp_emojis(a, b){
 export default class Emoji {
 	static __emoji_dict = {};
 	static __emoji_array = [];
+	static __emoji_groups = {};
 
 	name; img_path;
 	constructor(name, img_path)
@@ -48,10 +49,22 @@ export default class Emoji {
 };
 
 // Load emojis
-for(const path in import.meta.glob('/static/emoji/*.svg')){
-	const emoji = new Emoji(path.replace('/static/emoji/', '').replace('.svg', ''),
+for(const path in import.meta.glob('/static/emoji/*/*.svg')){
+	const dirc1 = path.lastIndexOf('/');
+	const dirc2 = path.lastIndexOf('/', dirc1 - 1);
+
+	const emoji = new Emoji(path.substring(dirc1 + 1).replace('.svg', ''),
 				path.replace('/static', ''));
 	Emoji.__emoji_dict[emoji.name] = emoji;
 	Emoji.__emoji_array.push(emoji);
+
+	const group = path.substring(dirc2 + 1, dirc1);
+	if(typeof(Emoji.__emoji_groups[group]) === "undefined")
+		Emoji.__emoji_groups[group] = [];
+	Emoji.__emoji_groups[group].push(emoji);
 }
+
+// Order emojis
 Emoji.__emoji_array.sort(__cmp_emojis);
+for(const group of Object.values(Emoji.__emoji_groups))
+	group.sort(__cmp_emojis);
