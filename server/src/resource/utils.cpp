@@ -249,6 +249,32 @@ std::shared_ptr<http_response> resource_utils::parse_message_id(const http_reque
 	return parse_message_id(req, user_id, tx, server_id, channel_id, message_id);
 }
 
+std::shared_ptr<http_response> resource_utils::parse_emoji_id(const http_request& req,
+								int user_id, int server_id,
+								pqxx::work& tx, int& emoji_id)
+{
+	try{
+		emoji_id = std::stoi(std::string(req.get_arg("emoji_id")));
+	} catch(std::invalid_argument& e){
+		return create_response::string(req, "Invalid emoji ID", 400);
+	}
+
+	pqxx::result r = tx.exec("SELECT emoji_id FROM emojis "
+				 "WHERE server_id = $1 AND emoji_id = $2",
+				 pqxx::params(server_id, emoji_id));
+	if(!r.size())
+		return create_response::string(req, "Emoji does not exist", 404);
+	return nullptr;
+}
+std::shared_ptr<http_response> resource_utils::parse_emoji_id(const http_request& req, pqxx::work& tx,
+								int& user_id, int& server_id, int& emoji_id)
+{
+	auto err = parse_server_id(req, tx, user_id, server_id);
+	if(err) return err;
+	return parse_emoji_id(req, user_id, server_id, tx, emoji_id);
+}
+
+
 std::shared_ptr<http_response> resource_utils::parse_server_user_id(const http_request& req, int server_id, pqxx::work& tx, int& server_user_id)
 {
 	try{

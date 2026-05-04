@@ -1,7 +1,6 @@
 #ifndef RESOURCE_FILE_H
 #define RESOURCE_FILE_H
 
-#include "db/conn_pool.h"
 #include <resource/base.h>
 
 // generic http resource that allows read-only file access

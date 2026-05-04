@@ -513,7 +513,7 @@ wscat -nc 'wss://localhost:445?channel=2'
 }
 ```
 
-# Роли на сервере
+## Роли на сервере
 
 ### roles_updated
 
@@ -523,8 +523,8 @@ wscat -nc 'wss://localhost:445?channel=2'
 ```js
 {
 	"data":
-	{"
-		roles": [
+	{
+		"roles": [
 			{"color":"#ff0000","id":2,"name":"admin","perms1":65536},
 			{"color":"#000000","id":8,"name":"scum","perms1":0},
 			{"color":"#ffff00","id":4,"name":"pleb","perms1":158377},
@@ -534,6 +534,61 @@ wscat -nc 'wss://localhost:445?channel=2'
 		"server_id": 1
 	},
 	"name": "roles_updated"
+}
+```
+
+## Эмодзи на сервере
+
+### emoji_created
+
+Эмодзи был создан.
+
+Пример:
+```js
+{
+	"data":
+	{
+		"id": 8,
+		"image": "RpHTuFl4uHNEHIBrBz6bnGsvwdBi5OkI.png",
+		"name": "sensei",
+		"server_id": 2
+	},
+	"name": "emoji_created"
+}
+```
+
+### emoji_changed
+
+Эмодзи был изменён.
+
+Пример:
+```js
+{
+	"data":
+	{
+		"id": 8,
+		"image": "Y6bD3CwTrL3xtDxebFMiFKTFnBNfo2qD.png",
+		"name": "sensei2",
+		"server_id": 2
+	},
+	"name": "emoji_changed"
+}
+```
+
+
+### emoji_deleted
+
+Эмодзи был удалён.
+
+Пример:
+```js
+{
+	"data":
+	{
+		"id": 8,
+		"server_id": 2
+	},
+	"name": "emoji_deleted"
 }
 ```
 

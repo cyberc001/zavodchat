@@ -123,6 +123,16 @@ nlohmann::json json_utils::message_from_row(const pqxx::row& msg_row, const pqxx
 	return message_from_row(msg_row, attachment_rows);
 }
 
+nlohmann::json json_utils::emoji_from_row(const pqxx::row& r)
+{
+	return {
+		{"id", r["emoji_id"].as<int>()},
+		{"name", r["name"].as<std::string>()},
+		{"image", r["image"].as<std::string>()}
+	};
+}
+
+
 nlohmann::json json_utils::invite_from_row(const pqxx::row& r)
 {
 	return {

@@ -62,7 +62,7 @@ std::shared_ptr<http_response> server_resource::render_POST(const http_request& 
 	auto args = req.get_args();
 	if(args.find(std::string_view("avatar")) != args.end()){
 		std::string fname;
-		err = file_utils::parse_avatar(req, "avatar", server_id, cfg.server_avatar_path, fname);
+		err = file_utils::parse_image(req, "avatar", server_id, cfg.server_avatar_path, fname);
 		if(err)
 			return err;
 		tx.exec("UPDATE servers SET avatar = $1 WHERE server_id = $2", pqxx::params(fname, server_id));
@@ -151,7 +151,7 @@ std::shared_ptr<http_response> server_id_resource::render_PUT(const http_request
 	}
 	if(args.find(std::string_view("avatar")) != args.end()){
 		std::string fname;
-		err = file_utils::parse_avatar(req, "avatar", server_id, cfg.server_avatar_path, fname);
+		err = file_utils::parse_image(req, "avatar", server_id, cfg.server_avatar_path, fname);
 		if(err)
 			return err;
 		tx.exec("UPDATE servers SET avatar = $1 WHERE server_id = $2", pqxx::params(fname, server_id));
@@ -196,7 +196,7 @@ std::shared_ptr<http_response> server_id_resource::render_DELETE(const http_requ
 	if(!r[0]["avatar"].is_null()){
 		std::string avatar_fpath = r[0]["avatar"].as<std::string>();
 		std::string ext = avatar_fpath.substr(avatar_fpath.rfind('.') + 1);
-		file_utils::delete_file_aliased(cfg.server_avatar_path, server_id, ext);
+		file_utils::delete_file_aliased(cfg.server_avatar_path, std::to_string(server_id), ext);
 	}
 
 	return create_response::string(req, "Deleted", 200);

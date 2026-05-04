@@ -88,6 +88,12 @@ public:
 	static std::shared_ptr<http_response> parse_message_id(const http_request&, int user_id, pqxx::work&, int& server_id, int& channel_id, int& message_id);
 	static std::shared_ptr<http_response> parse_message_id(const http_request&, pqxx::work&, int& user_id, int& server_id, int& channel_id,  int& message_id);
 
+	static std::shared_ptr<http_response> parse_emoji_id(const http_request&,
+								int user_id, int server_id,
+								pqxx::work&, int& emoji_id);
+	static std::shared_ptr<http_response> parse_emoji_id(const http_request&, pqxx::work&,
+								int& user_id, int& server_id, int& emoji_id);
+
 	static std::shared_ptr<http_response> parse_server_user_id(const http_request&, int server_id, pqxx::work&, int& server_user_id);
 	static std::shared_ptr<http_response> parse_server_ban_id(const http_request&, int server_id, pqxx::work&, int& server_ban_id);
 

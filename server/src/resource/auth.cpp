@@ -162,7 +162,7 @@ std::shared_ptr<http_response> register_resource::render_PUT(const http_request&
 	}
 	if(args.find(std::string_view("avatar")) != args.end()){
 		std::string fname;
-		err = file_utils::parse_avatar(req, "avatar", user_id, cfg.user_avatar_path, fname);
+		err = file_utils::parse_image(req, "avatar", user_id, cfg.user_avatar_path, fname);
 		if(err)
 			return err;
 		tx.exec("UPDATE users SET avatar = $1 WHERE user_id = $2", pqxx::params(fname, user_id));

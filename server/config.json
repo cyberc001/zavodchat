@@ -14,7 +14,8 @@
 
 	"user_avatar_path": "/data/avatar/user/",
 	"server_avatar_path": "/data/avatar/server/",
-	"file_storage_path": "/data/upload",
+	"emoji_path": "/data/emoji/",
+	"file_storage_path": "/data/upload/",
 
 	"db_host": "zavodchat-db-1",
 	"db_port": 5432,
@@ -37,6 +38,7 @@
 	"max_channels_per_server": 50,
 	"max_roles_per_server": 50,
 	"max_invites_per_server": 50,
+	"max_emojis_per_server": 100,
 	"max_wl_users_per_channel": 50,
 
 	"file_storage_size": 10737418240,

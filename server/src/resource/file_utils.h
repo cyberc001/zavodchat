@@ -12,15 +12,15 @@ public:
 	static std::filesystem::path file_storage_path;
 
 	// Return an error if the file is bigger than the file size limit, cannot be parsed, or is not an image
-	static std::shared_ptr<http_response> parse_avatar(const http_request&, std::string arg_name,
+	static std::shared_ptr<http_response> parse_image(const http_request&, std::string arg_name,
 								int user_id, std::filesystem::path storage_path,
 								std::string& out_fname);
 
 	static std::string generate_fname(size_t sz = 32);
 	static void save_file(const std::string_view& fraw, std::string fpath);
 	static void save_file_aliased(const std::string_view& fraw, std::filesystem::path path, std::string ext,
-							int id, std::string& out_fname);
-	static void delete_file_aliased(std::filesystem::path path, int id, std::string ext);
+							std::string alias, std::string& out_fname);
+	static void delete_file_aliased(std::filesystem::path path, std::string alias, std::string ext);
 
 	static void fs_add_busy(pqxx::work& tx, int user_id, size_t bytes);
 	static void fs_sub_busy(pqxx::work& tx, int user_id, size_t bytes);

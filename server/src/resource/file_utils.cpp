@@ -33,12 +33,12 @@ void file_utils::save_file(const std::string_view& fraw, std::string fpath)
 	fd.write(fraw.data(), fraw.size());
 }
 void file_utils::save_file_aliased(const std::string_view& fraw, std::filesystem::path path, std::string ext,
-					int id, std::string& out_fname)
+					std::string alias, std::string& out_fname)
 {
-	std::string alias_fname = std::to_string(id) + "." + ext;
+	std::string alias_fname = alias + "." + ext;
 	std::filesystem::path alias_fpath = path / alias_fname;
 	if(std::filesystem::exists(alias_fpath)){
-		std::filesystem::remove(std::filesystem::read_symlink(alias_fpath));
+		std::filesystem::remove(path / std::filesystem::read_symlink(alias_fpath));
 		std::filesystem::remove(alias_fpath);
 	}
 
@@ -46,9 +46,9 @@ void file_utils::save_file_aliased(const std::string_view& fraw, std::filesystem
 	save_file(fraw, path / out_fname);
 	std::filesystem::create_symlink(out_fname, alias_fpath);
 }
-void file_utils::delete_file_aliased(std::filesystem::path path, int id, std::string ext)
+void file_utils::delete_file_aliased(std::filesystem::path path, std::string alias, std::string ext)
 {
-	std::string alias_fname = std::to_string(id) + "." + ext;
+	std::string alias_fname = alias + "." + ext;
 	std::filesystem::path alias_fpath = path / alias_fname;
 	if(std::filesystem::exists(alias_fpath)){
 		std::filesystem::remove(path / std::filesystem::read_symlink(alias_fpath));
@@ -70,7 +70,7 @@ std::string file_utils::generate_fname(size_t sz)
 }
 
 
-std::shared_ptr<http_response> file_utils::parse_avatar(const http_request& req, std::string arg_name,
+std::shared_ptr<http_response> file_utils::parse_image(const http_request& req, std::string arg_name,
 								int id, std::filesystem::path storage_path,
 								std::string& out_fname)
 {
@@ -78,7 +78,7 @@ std::shared_ptr<http_response> file_utils::parse_avatar(const http_request& req,
 	std::string ext = get_image_ext(fraw);
 	if(!ext.size())
 		return create_response::string(req, "Image has invalid format", 400);
-	save_file_aliased(fraw, storage_path, ext, id, out_fname);
+	save_file_aliased(fraw, storage_path, ext, std::to_string(id), out_fname);
 	return nullptr;
 }
 

@@ -88,6 +88,7 @@ config::config(std::ifstream& fd)
 
 	GET_PATH(user_avatar_path)
 	GET_PATH(server_avatar_path)
+	GET_PATH(emoji_path)
 	GET_PATH(file_storage_path)
 
 	GET_STRING(rtc_addr)
@@ -118,6 +119,7 @@ config::config(std::ifstream& fd)
 	GET_UNSIGNED(max_channels_per_server)
 	GET_UNSIGNED(max_roles_per_server)
 	GET_UNSIGNED(max_invites_per_server)
+	GET_UNSIGNED(max_emojis_per_server)
 	GET_UNSIGNED(max_wl_users_per_channel)
 
 	GET_UNSIGNED(max_user_preference_keys)

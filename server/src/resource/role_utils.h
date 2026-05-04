@@ -20,8 +20,9 @@ using namespace httpserver;
 #define PERM1_JOIN_VC				7
 #define PERM1_MANAGE_ROLES			8
 #define PERM1_MANAGE_VC				9
+#define PERM1_MANAGE_EMOJIS			10
 
-#define PERM1_COUNT				10
+#define PERM1_COUNT				11
 #define PERM1_DEFAULT				0b10100110101010101001
 
 /* Don't forget to tx.commit(), utils do not commit automatically to avoid closing a transaction. */

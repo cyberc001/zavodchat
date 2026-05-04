@@ -19,6 +19,7 @@
 #include "resource/role.h"
 #include "resource/notifications.h"
 #include "resource/user_status.h"
+#include "resource/emoji.h"
 #include "resource/params.h"
 #include "resource/preferences.h"
 
@@ -105,10 +106,14 @@ int main()
 
 	file_resource user_avatars(ws, "/files/avatar/user/{fname}", pool, cfg, cfg.user_avatar_path);
 	file_resource server_avatars(ws, "/files/avatar/server/{fname}", pool, cfg, cfg.server_avatar_path);
+	file_resource emojis(ws, "/files/emoji/{fname}", pool, cfg, cfg.emoji_path);
 
 	server_file_put_resource server_file_put(ws, pool, cfg);
 	server_file_manage_resource server_file_manage(ws, pool, cfg);
 	server_user_file_resource server_user_file(ws, pool, cfg);
+
+	server_emojis_resource server_emojis(ws, pool, cfg, sserv);
+	emoji_id_resource emoji_id(ws, pool, cfg, sserv);
 
 	preferences_resource preferences(ws, pool, cfg);
 

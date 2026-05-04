@@ -27,6 +27,7 @@ public:
 
 	std::filesystem::path user_avatar_path = "/data/avatar/user/",
 				server_avatar_path = "/data/avatar/server/",
+				emoji_path = "/data/emoji/",
 				file_storage_path = "/data/upload/";
 
 	unsigned min_username_length = 2;
@@ -50,6 +51,7 @@ public:
 
 	unsigned max_channels_per_server = 50;
 	unsigned max_roles_per_server = 50;
+	unsigned max_emojis_per_server = 100;
 	unsigned max_invites_per_server = 50;
 	unsigned max_wl_users_per_channel = 50;
 

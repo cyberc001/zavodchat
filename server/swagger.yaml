@@ -956,6 +956,74 @@ paths:
           description: Роль успешно отобрана
         '400':
           description: Попытка отобрать роль по умолчанию
+  
+  /servers/$server_id/emojis:
+    get:
+      summary: Список эмодзи сервера
+      parameters:
+        - $ref: "#/parameters/zavodchat_token"
+      responses:
+        '200':
+          description: Список эмодзи
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Emoji'
+    post:
+      summary: Добавить эмодзи на сервер
+      parameters:
+        - $ref: "#/parameters/zavodchat_token"
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              properties:
+                name:
+                  type: string
+                  example: sensei
+                avatar:
+                  type: string
+                  format: binary
+                  example: (Любой поддерживаемый формат изображений)
+      responses:
+        '200':
+          description: Эмодзи добавлен
+        '400':
+          description: Слишком длинное имя / пустое имя / неправильный формат изображения
+        '403':
+          description: Слишком много эмодзи на сервере
+  
+  /servers/$server_id/emojis/$emoji_id:
+    put:
+      summary: Изменить эмодзи
+      parameters:
+        - $ref: "#/parameters/zavodchat_token"
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              properties:
+                name:
+                  type: string
+                  example: sensei
+                avatar:
+                  type: string
+                  format: binary
+                  example: (Любой поддерживаемый формат изображений)
+      responses:
+        '200':
+          description: Эмодзи изменён
+        '400':
+          description: Слишком длинное имя / пустое имя / неправильный формат изображения
+    delete:
+      summary: Удалить эмодзи
+      parameters:
+        - $ref: "#/parameters/zavodchat_token"
+      responses:
+        '200':
+          description: Эмодзи удалён
 
   /notifications:
     get:
@@ -995,6 +1063,17 @@ paths:
       responses:
         '200':
           description: Файл с аватаром
+          content:
+            file:
+              example: (Любой файл поддерживаемого формата изображений)
+        '404':
+          description: Файла не существует
+  /files/emoji/$filename:
+    get:
+      summary: Эмодзи сервера
+      responses:
+        '200':
+          description: Файл эмодзи
           content:
             file:
               example: (Любой файл поддерживаемого формата изображений)
@@ -1331,6 +1410,19 @@ components:
           type: integer
           example: 7
     
+    Emoji:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 11
+        name:
+          type: string
+          example: sensei
+        image:
+          type: string
+          example: 8BeFHwNmkd4Fp2ExL9ShmHoMw7R7QtTP.png
+    
     Config:
       type: object
       properties:
@@ -1350,6 +1442,14 @@ components:
           type: integer
           description: Максимальное количество ролей, которые можно создать на одном сервере
           example: 50
+        max_invites_per_server:
+          type: integer
+          description: Максимальное количество приглашений на одном сервере
+          example: 50
+        max_emojis_per_server:
+          type: integer
+          description: Максимальное количество эмодзи на одном сервере
+          example: 100
         max_video_bitrate:
           type: integer
           description: Максимальный битрейт видео, который можно запросить при его включении в голосовом канале

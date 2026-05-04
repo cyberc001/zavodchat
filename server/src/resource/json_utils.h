@@ -38,17 +38,19 @@ public:
 
 	static void set_ids(nlohmann::json& data, int server_id, int channel_id = -1);
 
-	static nlohmann::json user_from_row(const pqxx::row& r);
-	static nlohmann::json server_from_row(const pqxx::row& r, bool notifications = true);
+	static nlohmann::json user_from_row(const pqxx::row&);
+	static nlohmann::json server_from_row(const pqxx::row&, bool notifications = true);
 	// user_id > -1 -> could be a private channel (in that case, attempt to write to other_user_id field)
-	static nlohmann::json channel_from_row(const pqxx::row& r, const pqxx::result* role_rows = nullptr,
+	static nlohmann::json channel_from_row(const pqxx::row&, const pqxx::result* role_rows = nullptr,
 						bool has_notifications = false, int user_id = -1);
 
 	static nlohmann::json message_from_row(const pqxx::row& msg_row, const std::vector<pqxx::row>& attachment_rows);
 	static nlohmann::json message_from_row(const pqxx::row& msg_row, const pqxx::result& attachment_rows);
 
-	static nlohmann::json invite_from_row(const pqxx::row& r);
-	static nlohmann::json ban_from_row(const pqxx::row& r);
+	static nlohmann::json emoji_from_row(const pqxx::row&);
+
+	static nlohmann::json invite_from_row(const pqxx::row&);
+	static nlohmann::json ban_from_row(const pqxx::row&);
 };
 
 #endif
