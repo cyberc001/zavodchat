@@ -22,8 +22,8 @@ export default class Notifications {
 	static __remove_channel_intv = setInterval(() => {
 		for(const _ids of Object.keys(Notifications.channels_todelete)){
 			const ids = _ids.split("_");
-			const server_id = parseInt(ids[0]);
-			const channel_id = parseInt(ids[1]);
+			const channel_id = parseInt(ids[0]);
+			const server_id = ids.length > 0 ? parseInt(ids[1]) : undefined;
 
 			Rest.delete("", "notifications/channels/" + channel_id,
 			() => {
@@ -45,7 +45,7 @@ export default class Notifications {
 					del_amt = ch.notifications;
 					delete ch.nofitications;
 				}
-				if(Channel.channel_list_cache.has_state(server_id)){
+				if(typeof(server_id) !== "undefined" && Channel.channel_list_cache.has_state(server_id)){
 					const channels = Channel.channel_list_cache.get_state(server_id).data;
 					const ch = channels.find((x) => x.id === channel_id);
 					if(ch){
@@ -60,7 +60,7 @@ export default class Notifications {
 					}
 				}
 
-				if(del_amt){
+				if(typeof(server_id) !== "undefined" && del_amt){
 					if(Server.server_cache.has_state(server_id))
 						Server.server_cache.get_state(server_id).data.notifications -= del_amt;
 					if(Server.server_list_cache.has_state(0)){
@@ -74,8 +74,11 @@ export default class Notifications {
 		Notifications.channels_todelete = {};
 	}, 1000);
 
-	static remove_channel(server_id, channel_id){
-		Notifications.channels_todelete[`${server_id}_${channel_id}`] = true;
+	static remove_channel(channel_id, server_id){
+		Notifications.channels_todelete[typeof(server_id) === "undefined" ?
+						`${channel_id}` :
+						`${channel_id}_${server_id}`
+						] = true;
 	}
 
 

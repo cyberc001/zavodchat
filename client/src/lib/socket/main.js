@@ -89,14 +89,14 @@ export default class MainSocket {
 				if(add_notif)
 					Util.inc_or_set(ch, "notifications");
 				else if(!by_me)
-					Notifications.remove_channel(-1, data.channel_id);
+					Notifications.remove_channel(data.channel_id);
 				ch.last_message = data;
 				DM.channel_range_cache.insert(0, ch);
 
 				if(add_notif && Channel.channel_cache.has_state(data.channel_id))
 					Util.inc_or_set(Channel.channel_cache.get_state(data.channel_id).data, "notifications");
 				else if(!add_notif && !by_me)
-					Notifications.remove_channel(-1, data.channel_id);
+					Notifications.remove_channel(data.channel_id);
 			} else if(typeof(data.server_id) === "undefined"){ 
 				// TODO add ping
 				// Potentially new DM channel
