@@ -1,20 +1,20 @@
 <script>
 	let {tabs} = $props();
 
-	let sel_tab = $state(tabs[0]);
+	let sel_i = $state(0);
 </script>
 
 <div class="panel tab_panel">
 	<div class="tab_button_panel">
-		{#each tabs as tab}
-			<button class="transparent_button hoverable tab_name"
-			onclick={() => sel_tab = tab}>
+		{#each tabs as tab, i}
+			<button class={"transparent_button hoverable tab_name" + (sel_i === i ? " selected" : "")}
+			onclick={() => sel_i = i}>
 				{tab.name}
 			</button>
 		{/each}
 	</div>
 	<div class="tab_content">
-		{@render sel_tab.render(sel_tab.args)}
+		{@render tabs[sel_i].render(tabs[sel_i].args)}
 	</div>
 </div>
 
