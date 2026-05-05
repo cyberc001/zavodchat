@@ -10,6 +10,7 @@
 	import Role from '$lib/rest/role.js';
 	import User from '$lib/rest/user.svelte.js';
 	import File from '$lib/rest/file.js';
+	import Emoji from '$lib/rest/emoji.js';
 
 	import UserDisplay from '$lib/display/user.svelte';
 	import MediaDisplay from '$lib/display/media.svelte';
@@ -38,12 +39,15 @@
 
 	let self = $state();
 	let server_roles = $state();
+	let server_emojis = $state();
 	$effect(() => {
-		if(server?.loaded)
+		if(server?.loaded){
 			server_roles = Role.get_list(server.data.id);
+			server_emojis = Emoji.get_list(server.data.id);
+		}
 	});
 
-	let html = $derived(Markdown.parse(data, server_roles?.data));
+	let html = $derived(Markdown.parse(data, server_roles?.data, server_emojis?.data));
 	// Set onclick events for mentions after message was parsed and HTML-rendered
 	$effect(() => {
 		html;

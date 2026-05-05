@@ -74,7 +74,7 @@ const __md_emoji = {
 	tokenizer(src, tokens){
 		let match = src.match(/^:([^:\s]*):/);
 		if(match && Markdown.check_exclude_range(tokens, match.index) &&
-			Emoji.get(match[1]))
+			Emoji.get(match[1], Markdown.__server_emojis))
 			return {
 				type: "emoji",
 				raw: match[0],
@@ -87,7 +87,7 @@ const __md_emoji = {
 		return false;
 	},
 	renderer(token){
-		return `<img src='${Emoji.get(token.text).img_path}' class="emoji" data-raw-text="${token.raw}"/>`;
+		return `<img src='${Emoji.get(token.text, Markdown.__server_emojis).image}' class="emoji" data-raw-text="${token.raw}"/>`;
 	}
 }
 
@@ -140,7 +140,8 @@ export default class Markdown {
 		extensions: [__md_mention, __md_emoji]
 	});
 
-	static parse(message, server_roles){
+	static parse(message, server_roles, server_emojis){
+		Markdown.__server_emojis = server_emojis;
 		let html = Markdown.marked.parse(message.text);
 
 		// Add mentions from the message
@@ -197,10 +198,11 @@ export default class Markdown {
 		return i < Markdown.__exclude_range[0] || i > Markdown.__exclude_range[1];
 	}
 	static parse_overlay(text, reload,
-				server_id, server_roles,
+				server_id, server_roles, server_emojis,
 				exclude_range){
 		Markdown.__server_id = server_id;
 		Markdown.__server_roles = server_roles;
+		Markdown.__server_emojis = server_emojis;
 		Markdown.__reload = reload;
 		Markdown.__exclude_range = exclude_range; // inclusive, denies ping and emoji matches
 

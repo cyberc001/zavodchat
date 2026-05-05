@@ -1,4 +1,5 @@
 import Util from '$lib/util.js';
+import RestEmoji from '$lib/rest/emoji.js';
 
 function __cmp_emojis(a, b){
 	if(a.name < b.name)
@@ -11,18 +12,42 @@ export default class Emoji {
 	static __emoji_array = [];
 	static __emoji_groups = {};
 
-	name; img_path;
-	constructor(name, img_path)
+	name; image;
+	constructor(name, image)
 	{
 		this.name = name;
-		this.img_path = img_path;
+		this.image = image;
 	}
 
-	static get(name)
+
+	static convert_rest_emoji(e)
 	{
+		return {name: e.name, image: RestEmoji.get_image_path(e)};
+	}
+
+
+	static get(name, server_emojis)
+	{
+		if(server_emojis){
+			const e = server_emojis.find((x) => x.name === name);
+			if(e)
+				return Emoji.convert_rest_emoji(e);
+		}
 		return Emoji.__emoji_dict[name];
 	}
-	static search(str_begin)
+
+	static search(str_begin, server_emojis)
+	{
+		let res = Emoji.__search(str_begin);
+		if(server_emojis){
+			for(const e of server_emojis)
+				if(e.name.startsWith(str_begin))
+					res.push(Emoji.convert_rest_emoji(e));
+			res.sort(__cmp_emojis);
+		}
+		return res;
+	}
+	static __search(str_begin)
 	{
 		if(str_begin.length === 0)
 			return Emoji.__emoji_array;

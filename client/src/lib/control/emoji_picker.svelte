@@ -1,14 +1,16 @@
 <script>
+	import {asset} from '$app/paths';
+	import Emoji from '$lib/emoji.js';
+
 	import FocusManager from '$lib/focus_manager.svelte';
 
 	import Textbox from '$lib/control/textbox.svelte';
 
-	import Emoji from '$lib/emoji.js';
-
-
 	let {
 		hide_picker = () => {},
-		on_picked = (emoji) => {}
+		on_picked = (emoji) => {},
+
+		server_emojis
 	} = $props();
 
 	let self = $state();
@@ -23,7 +25,7 @@
 
 
 <FocusManager element={self}
-	onblur={() => {}/*hide_picker*/}
+	onblur={hide_picker}
 />
 
 {#snippet emoji_button(emoji)}
@@ -31,7 +33,7 @@
 		on_picked(emoji);
 		hide_picker();
 	}}>
-		<img src={emoji.img_path} class="emoji_picker_emoji"/>
+		<img src={emoji.image} class="emoji_picker_emoji"/>
 	</button>
 {/snippet}
 
@@ -41,10 +43,21 @@
 	--margin-bottom="6px"/>
 	<div class="emoji_picker_list">
 		{#if emoji_search_value.length > 0}
-			{#each Emoji.search(emoji_search_value) as e}
+			{#each Emoji.search(emoji_search_value, server_emojis?.data) as e}
 				{@render emoji_button(e)}
 			{/each}		
 		{:else}
+			{#if server_emojis}
+				<div class="emoji_group_title">Server emojis</div>
+				{#if server_emojis.loading}
+					<img src={asset("icons/loading.svg")} alt="loading" class="filter_icon_main" style="width: 24px"/>
+				{:else}
+					{#each server_emojis.data as e}
+						{@render emoji_button(Emoji.convert_rest_emoji(e))}
+					{/each}
+				{/if}
+			{/if}
+
 			{#each Object.entries(Emoji.__emoji_groups) as group}
 				<div class="emoji_group_title">{group[0]}</div>
 				{#each group[1] as e}

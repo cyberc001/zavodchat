@@ -18,6 +18,7 @@
 	import File from '$lib/rest/file.js';
 	import Role from '$lib/rest/role.js';
 	import User from '$lib/rest/user.svelte.js';
+	import RestEmoji from '$lib/rest/emoji.js';
 
 	let {value = $bindable(), attachments = $bindable([]), links = $bindable([]),
 		override_send_perms,
@@ -27,11 +28,14 @@
 	} = $props();
 
 	let server_roles = $state();
-	let user_self = $state();
+	let server_emojis = $state();
 	$effect(() => {
-		if(server?.loaded)
+		if(server?.loaded){
 			server_roles = Role.get_list(server.data.id);
+			server_emojis = RestEmoji.get_list(server.data.id);
+		}
 	});
+	let user_self = $state();
 	User.get_self_server(server, (user) => user_self = user);
 	let can_send_messages = $derived.by(() => {
 		if(typeof(override_send_perms) !== "undefined")
@@ -70,7 +74,7 @@
 		value_changed;
 		update_ac();
 
-		[input_div.innerHTML, link_candidates, cur_emojis] = Markdown.parse_overlay(value, div_oninput, server?.data.id, server_roles?.data,
+		[input_div.innerHTML, link_candidates, cur_emojis] = Markdown.parse_overlay(value, div_oninput, server?.data.id, server_roles?.data, server_emojis?.data,
 										typeof(untrack(() => ac_params.top)) === "undefined" ? undefined : [untrack(() => ac_text_start_i), prev_sel_i]);
 		console.log("NEW innerHTML\n", input_div.innerHTML);
 		link_candidates_ts = new Date();
@@ -260,7 +264,7 @@
 
 {#snippet render_emoji(i, emoji)}
 <div style="display: flex; align-items: center; padding: 0 2px 0 2px">
-	<img src={emoji.img_path} style="height: 16px; margin-right: 4px"/>
+	<img src={emoji.image} style="height: 16px; margin-right: 4px"/>
 	:{emoji.name}:
 </div>
 {/snippet}
@@ -311,7 +315,7 @@
 				}
 				prepended_data={ac_params.type === "mention" ?
 							(server_roles?.data ? server_roles.data.concat([{id: -1, name: "everyone", perms1: 0}]) : []) :
-							(value_name) => value_name.length > 0 ? Emoji.search(value_name).slice(0, 20) : []
+							(value_name) => value_name.length > 0 ? Emoji.search(value_name, server_emojis?.data).slice(0, 20) : []
 				}
 				on_picked={paste_autocomplete}
 				fixed_text_color={true}
@@ -323,7 +327,8 @@
 
 		{#if show_emoji_picker}
 		<div style="position: absolute; right: 0; top: 0; transform: translate(0, -100%)">
-			<EmojiPicker hide_picker={() => {show_emoji_picker = false;}}
+			<EmojiPicker server_emojis={server_emojis}
+			hide_picker={() => {show_emoji_picker = false;}}
 			on_picked={(emoji) => {
 				const paste = `:${emoji.name}:`;
 				value = value.substring(value, last_valid_sel_i) + paste + value.substring(last_valid_sel_i);
