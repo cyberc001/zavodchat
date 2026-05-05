@@ -71,7 +71,6 @@ export default class MainSocket {
 			});
 		},
 		message_created: function(data, _this) {
-			console.log("message_created", data);
 			Message.message_range_cache.insert(data.channel_id, data);
 
 			const by_me = _this.self_user.data.id === data.author_id;
@@ -158,9 +157,7 @@ export default class MainSocket {
 		},
 		server_deleted: function(data) {
 			Server.server_cache.remove_state(data.id);
-			let idx = Server.server_list_cache.get_state(0).data.findIndex((x) => x.id === data.id);
-			if(typeof idx !== "undefined" && idx !== -1)
-				Server.server_list_cache.get_state(0).data.splice(idx, 1);
+			Server.server_list_cache.remove_from_list(0, data.id);
 		},
 
 		channel_created: function(data) {
@@ -171,10 +168,7 @@ export default class MainSocket {
 		},
 		channel_deleted: function(data) {
 			Channel.channel_cache.remove_state(data.id);
-			let st = Channel.channel_list_cache.get_state(data.server_id);
-			let idx = st?.data.findIndex((x) => x.id === data.id);
-			if(typeof idx !== "undefined" && idx !== -1)
-				st.data.splice(idx, 1);
+			Channel.channel_list_cache.remove_from_list(data.server_id, data.id);
 		},
 
 		user_joined: function(data) {
@@ -230,8 +224,7 @@ export default class MainSocket {
 		},
 
 		emoji_created: function(data) {
-			if(Emoji.server_list_cache.has_state(data.server_id))
-				Emoji.server_list_cache.get_state(data.server_id).data.push({id: data.id, name: data.name, image: data.image});
+			Emoji.server_list_cache.add_to_list(data.server_id, {id: data.id, name: data.name, image: data.image});
 		},
 		emoji_changed: function(data) {
 			if(Emoji.server_list_cache.has_state(data.server_id)){
@@ -245,11 +238,7 @@ export default class MainSocket {
 			}
 		},
 		emoji_deleted: function(data) {
-			if(Emoji.server_list_cache.has_state(data.server_id)){
-				const idx = Emoji.server_list_cache.get_state(data.server_id).data.findIndex((x) => x.id === data.id);
-				if(idx > -1)
-					Emoji.server_list_cache.get_state(data.server_id).data.splice(idx, 1);
-			}
+			Emoji.server_list_cache.remove_from_list(data.server_id, data.id);
 		},
 
 		user_joined_vc: function(data) {
