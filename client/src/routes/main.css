@@ -194,7 +194,6 @@ h1, h2, h3 {
 }
 blockquote {
 	margin: 0;
-	display: inline-table;
 	padding: 2px 4px 2px 4px;
 
 	background: var(--clr_bg_item);

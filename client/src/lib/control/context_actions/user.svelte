@@ -6,7 +6,7 @@
 	import ContextMenuAction from '$lib/control/context_menu_action.svelte';
 	import {asset} from '$app/paths';
 
-	let {show_ban} = $props();
+	let {show_ban, insert_message_text} = $props();
 
 	let server = $state();
 	let other_user_id = $state();
@@ -28,6 +28,9 @@
 				other_user_id = _other_user_id;
 
 				let actions = [action_block_user];
+				if(insert_message_text)
+					actions.push(action_mention_user);
+
 				if(server && Role.check_lower_user(user.data, other_user.data, _server.data, server_roles.data)){
 					if(Role.check_perms(user.data, _server.data, server_roles.data, 1, 3))
 						actions.push(action_kick_user);
@@ -59,5 +62,12 @@
 		hide_ctx_menu={hide_ctx_menu}
 		onclick={() => BlockedUsers.block_user(other_user_id,
 							() => {}, () => {})}
+	/>
+{/snippet}
+<!-- FIXME remove space after -->
+{#snippet action_mention_user(hide_ctx_menu)}
+	<ContextMenuAction icon={asset("icons/mention.svg")} text="Mention"
+		hide_ctx_menu={hide_ctx_menu}
+		onclick={() => insert_message_text(`@u${other_user_id} `)}
 	/>
 {/snippet}

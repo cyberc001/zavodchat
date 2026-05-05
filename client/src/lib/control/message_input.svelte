@@ -27,6 +27,12 @@
 		onsend
 	} = $props();
 
+	const try_send = () => {
+		if(!status && (value.length > 0 || attachments.length > 0))
+			onsend();
+	};
+
+
 	let server_roles = $state();
 	let server_emojis = $state();
 	$effect(() => {
@@ -86,8 +92,7 @@
 	const div_onkeyup = (e) => {
 		if(e.code === "Enter"){
 			if(e.ctrlKey){
-				if(!status && (value.length > 0 || attachments.length > 0))
-					onsend();
+				try_send();
 			} else if(!e.shiftKey){
 				if(ac){
 					const res = ac.get_first_result();
@@ -206,11 +211,12 @@
 		const new_ac_text_start_i = get_sel_autocomplete_start(sel_i);
 		if(new_ac_text_start_i > -1){
 			const coords = Select.get_coords(input_panel);
-			ac_params = {
-				left: coords[0],
-				top: coords[1],
-				type: value[new_ac_text_start_i] === '@' ? "mention" : "emoji"
-			};
+			if(coords)
+				ac_params = {
+					left: coords[0],
+					top: coords[1],
+					type: value[new_ac_text_start_i] === '@' ? "mention" : "emoji"
+				};
 		} else
 			ac_params = {};
 		untrack(() => {ac_text_start_i = new_ac_text_start_i;});
@@ -247,6 +253,12 @@
 		clearInterval(link_intv);
 		document.removeEventListener("selectionchange", onselectionchange);
 	});
+
+
+	export function insertText(text){
+		value = value.substring(value, last_valid_sel_i) + text + value.substring(last_valid_sel_i);
+		sel_i = last_valid_sel_i + text.length;
+	}
 </script>
 
 
@@ -291,15 +303,21 @@
 			<button class="hoverable transparent_button" onclick={onattach} disabled={!can_send_messages}>
 				<img class="filter_icon_main" src={asset("icons/attachment.svg")}/>
 			</button>
+
 			<div class="item {can_send_messages ? "" : "disabled_item"} message_input_div" bind:this={input_div}
 				contenteditable={can_send_messages.toString()}
 				oninput={div_oninput}
 				onkeyup={div_onkeyup}
 			>
 			</div>
+
 			<button class="hoverable transparent_button" disabled={!can_send_messages}
 				onclick={() => {show_emoji_picker = !show_emoji_picker;}}>
 				<img style="height: 24px" src={asset("icons/emoji.svg")}/>
+			</button>
+			<button class="hoverable transparent_button" disabled={!can_send_messages}
+				onclick={try_send}>
+				<img class="filter_icon_main" src={asset("icons/send.svg")}/>
 			</button>
 
 			{#if typeof(ac_params.top) !== "undefined"}
@@ -329,11 +347,7 @@
 		<div style="position: absolute; right: 0; top: 0; transform: translate(0, -100%)">
 			<EmojiPicker server_emojis={server_emojis}
 			hide_picker={() => {show_emoji_picker = false;}}
-			on_picked={(emoji) => {
-				const paste = `:${emoji.name}:`;
-				value = value.substring(value, last_valid_sel_i) + paste + value.substring(last_valid_sel_i);
-				sel_i = last_valid_sel_i + paste.length;
-			}}
+			on_picked={(emoji) => insertText(`:${emoji.name}:`)}
 			/>
 		</div>
 		{/if}
@@ -434,6 +448,8 @@
 	border-style: solid;
 	border-width: 2px;
 	border-radius: 4px;
+
+	margin: 0 2px 0 6px;
 
 	color: var(--clr_text);
 	font-size: 16px;

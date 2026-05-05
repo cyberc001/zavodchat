@@ -38,7 +38,6 @@
 	let sel = $state({
 		message_edit: -1,
 		ctx_message: -1,
-		ctx_user_idx: -1,
 		highlight_message: -1
 	});
 
@@ -175,6 +174,20 @@
 		}}
 	/>
 {/snippet}
+
+{#snippet action_reply_to_message(hide_ctx_menu)}
+	<ContextMenuAction icon={asset("icons/reply.svg")} text="Reply"
+		hide_ctx_menu={hide_ctx_menu}
+		onclick={() => {
+			let msg = message_list.getItem(sel.ctx_message);
+			let reply_text = `@u${msg.author_id}\n`;
+			for(const l of msg.text.split('\n'))
+				reply_text += `>${l}\n`;
+			message_text = reply_text + "\n" + message_text;
+		}}
+	/>
+{/snippet}
+
 {#snippet action_goto_message(hide_ctx_menu)}
 	<ContextMenuAction icon={asset("icons/kick.svg")} text="Go to"
 		hide_ctx_menu={hide_ctx_menu}
@@ -188,7 +201,10 @@
 	/>
 {/snippet}
 
-<UserActions show_ban={show_ban} bind:this={user_actions}/>
+<UserActions bind:this={user_actions}
+show_ban={show_ban}
+insert_message_text={(text) => message_input?.insertText(text)}
+/>
 
 <div class="panel sidebar_message">
 	{#if channel_id > -1}
@@ -210,7 +226,6 @@
 			{#snippet render_message(i, item)}
 				<MessageDisplay data={item} server={server}
 				show_ctx_menu={(anchor, e, for_message) => {
-					sel.ctx_user_id = item.author_id;
 					sel.ctx_message = i;
 					_show_user(-1);
 					
@@ -219,6 +234,10 @@
 						if(is_search)
 							actions.push(action_goto_message);
 						else {
+							actions = [];
+							if(typeof(server) !== "undefined")
+								actions.push(action_reply_to_message);
+
 							if(item.author_id === user_self.data.id)
 								actions.push(action_edit_message);
 							if(item.author_id === user_self.data.id ||
@@ -245,6 +264,7 @@
 			load_items={(start_id, range, asc) => Message.get_search_range(channel_id, start_id, range, asc, message_search_params)}
 			/>
 			<MessageInput
+				bind:this={message_input}
 				bind:value={message_text} bind:attachments={message_attachments} bind:links={message_links}
 				server={server} channel={channel}
 				override_send_perms={sel.message_edit > -1 ? true : undefined}
