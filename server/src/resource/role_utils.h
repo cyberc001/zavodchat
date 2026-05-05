@@ -23,7 +23,7 @@ using namespace httpserver;
 #define PERM1_MANAGE_EMOJIS			10
 
 #define PERM1_COUNT				11
-#define PERM1_DEFAULT				0b10100110101010101001
+#define PERM1_DEFAULT				0b1010100110101010101001
 
 /* Don't forget to tx.commit(), utils do not commit automatically to avoid closing a transaction. */
 

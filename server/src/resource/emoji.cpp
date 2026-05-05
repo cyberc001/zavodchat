@@ -3,6 +3,21 @@
 #include "resource/file_utils.h"
 #include "resource/role_utils.h"
 
+#include <cctype>
+
+std::shared_ptr<http_response> check_emoji_name(const http_request& req, const std::string& name)
+{
+	if(!name.size())
+		return create_response::string(req, "Empty emoji name", 400);
+	for(size_t i = 0; i < name.size(); ++i)
+		if(std::isspace(name[i]))
+			return create_response::string(req, "Emoji contains whitespaces", 400);
+		else if(name[i] == ':')
+			return create_response::string(req, "Emoji contains a colon", 400);
+	return nullptr;
+}
+
+
 server_emojis_resource::server_emojis_resource(webserver& ws, db_connection_pool& pool, const config& cfg,
 						socket_main_server& sserv):
 	base_resource(ws, "/servers/{server_id}/emojis", pool, cfg),
@@ -46,8 +61,8 @@ std::shared_ptr<http_response> server_emojis_resource::render_POST(const http_re
 
 
 	std::string name = req.get_arg("name");
-	if(!name.size())
-		return create_response::string(req, "Empty emoji name", 400);
+	err = check_emoji_name(req, name);
+	if(err) return err;
 
 	// Check emoji count and unique name
 	pqxx::result r = tx.exec("SELECT * FROM emojis "
@@ -119,8 +134,8 @@ std::shared_ptr<http_response> emoji_id_resource::render_PUT(const http_request&
 	if(args.find(std::string_view("name")) != args.end()){
 		changed = true;
 		std::string name = args["name"];
-		if(!name.size())
-			return create_response::string(req, "Empty emoji name", 400);
+		err = check_emoji_name(req, name);
+		if(err) return err;
 
 		try {
 			tx.exec("UPDATE emojis SET name = $1 "

@@ -254,6 +254,10 @@
 			return "";
 		if(emoji_list_selected.name.length === 0)
 			return "Empty emoji name";
+		if(emoji_list_selected.name.indexOf(':') !== -1)
+			return "Emoji name contains ':'";
+		if(emoji_list_selected.name.match(/\s/g) !== null)
+			return "Emoji name contains whitespaces";
 
 		let same_name_emojis = 0;
 		for(const e of state_emojis.state.list)

@@ -316,7 +316,7 @@
 						setSettingsParams({server_id: server.id});
 						showCtxMenu(self, e);
 
-						Role.load_check_perms(Server.get(server.id), [1, 1, 1, 1], [2, 4, 6, 8], (allowed) =>
+						Role.load_check_perms(Server.get(server.id), [1, 1, 1, 1, 1], [2, 4, 6, 8, 10], (allowed) =>
 							showCtxMenu(self, e, allowed ? [action_settings_server] : [])
 						);
 					}}
