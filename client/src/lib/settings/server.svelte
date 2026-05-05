@@ -26,6 +26,7 @@
 	import Role from '$lib/rest/role.js';
 	import Ban from '$lib/rest/ban.js';
 	import Invite from '$lib/rest/invite.js';
+	import Emoji from '$lib/rest/emoji.js';
 
 	let {server_id,
 		tabs = $bindable()} = $props();
@@ -180,6 +181,7 @@
 		});
 
 		apply_changes(){
+			invite_list_selected_idx = -1;
 			this.execute_list_changes("list",
 				(inv, _then, _catch) => Invite.create(server_id, inv.expires, _then, _catch),
 				(inv, _then, _catch) => Invite.change(server_id, inv.id, inv.expires, _then, _catch),
@@ -210,6 +212,64 @@
 	});
 	let invite_list_selected_idx = $state(-1);
 
+	
+	// Emojis
+	class EmojisTabState extends SettingsTabState {
+		changes_override = $derived.by(() => {
+			if(!server_emojis.loaded)
+				return SettingsTabState.ChangesState.Loading;
+			if(emoji_name_error.length > 0)
+				return SettingsTabState.ChangesState.Invalid;
+		});
+
+		apply_changes(){
+			emoji_list_selected_idx = -1;
+			this.execute_list_changes("list",
+				(e, _then, _catch) => Emoji.create(server_id, {name: e.name, image: emoji_image_picker.getFile(e.image)}, _then, _catch),
+				(e, _then, _catch) => {
+					let data = {name: e.name};
+					if(e.image.startsWith("data:image"))
+						data.image = emoji_image_picker.getFile(e.image);
+					Emoji.change(server_id, e.id, data, _then, _catch);
+				},
+				(e, _then, _catch) => Emoji.delete(server_id, e.id, _then, _catch),
+				() => super.apply_changes(),
+				() => super.discard_changes()
+			);
+		}
+		discard_changes(){
+			emoji_list_selected_idx = -1;
+			super.discard_changes();
+		}
+	};
+	let state_emojis = new EmojisTabState({list: []});
+
+	let emoji_image_picker = $state();
+	let emoji_list_selected_idx = $state(-1);
+	let emoji_list_selected = $derived(state_emojis.state.list[emoji_list_selected_idx]);
+	let emoji_list_selected_image = $derived(Emoji.get_image_path(emoji_list_selected));
+
+	let emoji_name_error = $derived.by(() => {
+		if(!emoji_list_selected)
+			return "";
+		if(emoji_list_selected.name.length === 0)
+			return "Empty emoji name";
+
+		let same_name_emojis = 0;
+		for(const e of state_emojis.state.list)
+			if(e.name === emoji_list_selected.name)
+				++same_name_emojis;
+		if(same_name_emojis > 1)
+			return "Duplicate emoji name";
+		return "";
+	});
+
+	let server_emojis = Emoji.get_list(server_id);
+	$effect(() => {
+		if(server_emojis.loaded)
+			state_emojis.set_default_state("list", server_emojis.data);
+	});
+
 	$effect(() => {
 		untrack(() => tabs = undefined);
 
@@ -224,6 +284,8 @@
 				new_tabs.push({name: "Bans", render: bans, state: state_bans});
 			if(Role.check_perms(user_self.data, server.data, server_roles.data, 1, 6))
 				new_tabs.push({name: "Invites", render: invites, state: state_invites});
+			if(Role.check_perms(user_self.data, server.data, server_roles.data, 1, 10))
+				new_tabs.push({name: "Emojis", render: emojis, state: state_emojis});
 
 			untrack(() => tabs = new_tabs);
 		}
@@ -339,6 +401,14 @@ This cannot be reversed.
 		bind:value={() => Role.perm_toggle_get(role_list_selected, 1, 8, role_is_default),
 			    (x) => Role.perm_toggle_set(x, role_list_selected, 1, 8, role_is_default)}
 	/>
+	<Toggle label_text="Manage voice channels" states={role_states} forbid_states={forbid_states(perm1_bits, 1, 9)}
+		bind:value={() => Role.perm_toggle_get(role_list_selected, 1, 9, role_is_default),
+			    (x) => Role.perm_toggle_set(x, role_list_selected, 1, 9, role_is_default)}
+	/>
+	<Toggle label_text="Manage emojis" states={role_states} forbid_states={forbid_states(perm1_bits, 1, 10)}
+		bind:value={() => Role.perm_toggle_get(role_list_selected, 1, 10, role_is_default),
+			    (x) => Role.perm_toggle_set(x, role_list_selected, 1, 10, role_is_default)}
+	/>
 {/if}
 </Group>
 {/snippet}
@@ -414,22 +484,72 @@ This cannot be reversed.
 />
 </Group>
 <Group name="Invite settings">
-	{#if invite_list_selected_idx > -1}
-		<Button text="Get link"
-			onclick={() => {
-				navigator.clipboard.writeText(page.url + "server_invites/" + state_invites.state.list[invite_list_selected_idx].id)
-								.then(() => Notifs.add_notif("Copied invite link to buffer", Notifs.Types.Normal)
-				);
-			}}
-		/>
-		<Button text="Remove invite"
-			onclick={() => {
-				state_invites.state.list.splice(invite_list_selected_idx, 1);
-				invite_list_selected_idx = -1;
-			}}
-		/>
-		<DurationPicker label_text="Invite duration"
-			bind:expires={state_invites.state.list[invite_list_selected_idx].expires}/>
-	{/if}
+{#if invite_list_selected_idx > -1}
+	<Button text="Get link"
+		onclick={() => {
+			navigator.clipboard.writeText(page.url + "server_invites/" + state_invites.state.list[invite_list_selected_idx].id)
+							.then(() => Notifs.add_notif("Copied invite link to buffer", Notifs.Types.Normal)
+			);
+		}}
+	/>
+	<Button text="Remove"
+		onclick={() => {
+			state_invites.state.list.splice(invite_list_selected_idx, 1);
+			invite_list_selected_idx = -1;
+		}}
+	/>
+	<DurationPicker label_text="Invite duration"
+		bind:expires={state_invites.state.list[invite_list_selected_idx].expires}/>
+{/if}
+</Group>
+{/snippet}
+
+
+{#snippet render_emoji(i, item)}
+	<div style="font-size: 18px">
+		<img class="emoji" src={Emoji.get_image_path(item)}/>
+		{item.name}
+	</div>
+{/snippet}
+
+{#snippet emojis()}
+<Group name="Emoji list">
+<List items={state_emojis.state.list}
+	render_item={render_emoji}
+	bind:selected_idx={emoji_list_selected_idx}
+/>
+<AvatarPicker
+	button_text="Add emoji"
+	display_avatar={false}
+	on_avatar_picked={(display_url) => {
+		state_emojis.state.list.push({name: "", image: display_url});
+		emoji_list_selected_idx = state_emojis.state.list.length - 1;
+	}}
+	--margin-top="12px"
+/>
+</Group>
+<Group name="Emoji settings">
+{#if emoji_list_selected_idx > -1}
+	<Textbox label_text="Emoji name"
+	bind:value={state_emojis.state.list[emoji_list_selected_idx].name}
+	error={emoji_name_error}
+	--width="400px"/>
+
+	<AvatarPicker
+	bind:this={emoji_image_picker}
+	bind:display_url={
+		() => emoji_list_selected_image,
+		(x) => emoji_list_selected.image = x
+	}/>
+
+	<Button text="Remove"
+		onclick={() => {
+			state_emojis.state.list.splice(emoji_list_selected_idx, 1);
+			emoji_list_selected_idx = -1;
+		}}
+		--margin-top="8px"
+		--margin-bottom="0px"
+	/>
+{/if}
 </Group>
 {/snippet}

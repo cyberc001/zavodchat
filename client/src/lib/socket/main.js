@@ -10,6 +10,7 @@ import Role from '$lib/rest/role.js';
 import Ban from '$lib/rest/ban.js';
 import DM from '$lib/rest/dm.js';
 import Notifications from '$lib/rest/notifications.js';
+import Emoji from '$lib/rest/emoji.js';
 
 import {asset} from '$app/paths';
 import Sound from '$lib/sound.js';
@@ -225,6 +226,29 @@ export default class MainSocket {
 					new_roles.splice(i, 1);
 					User.update_cache_server(data.server_id, {id: data.user_id, roles: new_roles});
 				}
+			}
+		},
+
+		emoji_created: function(data) {
+			if(Emoji.server_list_cache.has_state(data.server_id))
+				Emoji.server_list_cache.get_state(data.server_id).data.push({id: data.id, name: data.name, image: data.image});
+		},
+		emoji_changed: function(data) {
+			if(Emoji.server_list_cache.has_state(data.server_id)){
+				const e = Emoji.server_list_cache.get_state(data.server_id).data.find((x) => x.id === data.id);
+				if(e){
+					if(typeof(data.name !== "undefined"))
+						e.name = data.name;
+					if(typeof(data.image !== "undefined"))
+						e.image = data.image;
+				}
+			}
+		},
+		emoji_deleted: function(data) {
+			if(Emoji.server_list_cache.has_state(data.server_id)){
+				const idx = Emoji.server_list_cache.get_state(data.server_id).data.findIndex((x) => x.id === data.id);
+				if(idx > -1)
+					Emoji.server_list_cache.get_state(data.server_id).data.splice(idx, 1);
 			}
 		},
 

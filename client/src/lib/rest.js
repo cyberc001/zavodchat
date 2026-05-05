@@ -17,10 +17,7 @@ export default class Rest {
 
 	static get_route_sur(server_id, user_id, role_id)
 	{
-		let route = "";
-		if(typeof server_id === "undefined")
-			return route;
-		route += "servers/" + server_id;
+		let route = "servers/" + server_id;
 		if(typeof user_id === "undefined")
 			return route;
 		route += "/users/" + user_id;
@@ -31,10 +28,7 @@ export default class Rest {
 	}
 	static get_route_sr(server_id, role_id)
 	{
-		let route = "";
-		if(typeof server_id === "undefined")
-			return route;
-		route += "servers/" + server_id;
+		let route = "servers/" + server_id;
 		if(typeof role_id === "undefined")
 			return route;
 		route += "/roles/" + role_id;
@@ -42,10 +36,7 @@ export default class Rest {
 	}
 	static get_route_sb(server_id, ban_id)
 	{
-		let route = "";
-		if(typeof server_id === "undefined")
-			return route;
-		route += "servers/" + server_id;
+		let route = "servers/" + server_id;
 		if(typeof ban_id === "undefined")
 			return route;
 		route += "/bans/" + ban_id;
@@ -53,13 +44,18 @@ export default class Rest {
 	}
 	static get_route_si(server_id, invite_id)
 	{
-		let route = "";
-		if(typeof server_id === "undefined")
-			return route;
-		route += "servers/" + server_id;
+		let route = "servers/" + server_id;
 		if(typeof invite_id === "undefined")
 			return route;
 		route += "/invites/" + invite_id;
+		return route;
+	}
+	static get_route_se(server_id, emoji_id)
+	{
+		let route = "servers/" + server_id;
+		if(typeof(emoji_id) === "undefined")
+			return route;
+		route += "/emojis/" + emoji_id;
 		return route;
 	}
 

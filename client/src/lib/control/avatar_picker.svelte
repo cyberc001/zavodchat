@@ -1,5 +1,11 @@
 <script>
-	let {display_url = $bindable("")} = $props();
+	let {
+		display_url = $bindable(""),
+		on_avatar_picked = () => {},
+
+		button_text = "Choose file",
+		display_avatar = true,
+	} = $props();
 
 	import Button from "$lib/control/button.svelte";
 
@@ -12,6 +18,7 @@
 			const reader = new FileReader();
 			reader.onload = (e) => {
 				display_url = e.target.result;
+				on_avatar_picked(display_url);
 			};
 			reader.readAsDataURL(file);
 		}
@@ -28,9 +35,12 @@
 		prev_display_url = display_url;
 	});
 
-	export function getFile(){
+	export function getFile(url){
+		if(typeof(url) === "undefined")
+			url = display_url;
+
 		// https://gist.github.com/ibreathebsb/a104a9297d5df4c8ae944a4ed149bcf1
-		const arr = display_url.split(',');
+		const arr = url.split(',');
 		const mime = arr[0].match(/:(.*?);/)[1];
 		const bstr = atob(arr[1]);
 		let n = bstr.length;
@@ -42,10 +52,12 @@
 </script>
 
 <div class="avatar_picker_frame">
-	<img src={display_url} class="avatar_picker_img"/>
+	{#if display_avatar}
+		<img src={display_url} class="avatar_picker_img"/>
+	{/if}
 	<input style="display: none" type="file" accept=".png,.jpg,.bmp"
 		bind:this={file_picker} bind:files bind:value/>
-	<Button text="Choose file" onclick={() => file_picker.click()}
+	<Button text={button_text} onclick={() => file_picker.click()}
 	--margin-bottom="0px"
 	/>
 </div>
