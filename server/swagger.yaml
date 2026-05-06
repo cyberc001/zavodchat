@@ -454,6 +454,26 @@ paths:
                 type:
                   type: integer
                   example: 0
+                wl_users:
+                  description: id пользователей в белом списке. Если wl_users = wl_roles = [], то канал публичный.
+                  type: array
+                  items:
+                    type: integer
+                  example:
+                  - 1
+                  - 2
+                wl_roles:
+                  description: id ролей в белом списке. Если wl_users = wl_roles = [], то канал публичный.
+                  type: array
+                  items:
+                    type: integer
+                  example:
+                  - 6
+                  - 7
+                prev_channel_id:
+                  description: ID канала, перед которым должен находиться созданный канал. Если отсутствует, то канал создаётся в конце списка.
+                  type: integer
+                  example: 2
       responses:
         '200':
           description: channel_id созданного канала
@@ -489,6 +509,26 @@ paths:
                 type:
                   type: integer
                   example: 1
+                wl_users:
+                  description: id пользователей в белом списке. Если wl_users = wl_roles = [], то канал публичный.
+                  type: array
+                  items:
+                    type: integer
+                  example:
+                  - 1
+                  - 2
+                wl_roles:
+                  description: id ролей в белом списке. Если wl_users = wl_roles = [], то канал публичный.
+                  type: array
+                  items:
+                    type: integer
+                  example:
+                  - 6
+                  - 7
+                prev_channel_id:
+                  description: ID канала, перед которым должен находиться канал.
+                  type: integer
+                  example: 2
       responses:
         '200':
           description: Параметры успешно изменены

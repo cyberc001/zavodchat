@@ -190,6 +190,8 @@ wscat -nc 'wss://localhost:445?channel=2'
 
 На сервере, в котором состоит пользователь, был создан канал.
 
+Если `prev_channel_id` присутствует, то канал находится ПЕРЕД `prev_channel_id`; иначе, канал находится в конце списка.
+
 Пример:
 
 ```js
@@ -199,7 +201,8 @@ wscat -nc 'wss://localhost:445?channel=2'
 		"id": 7,
 		"name": "political_discussion",
 		"server_id": 1,
-		"type": 0
+		"type": 0,
+		"prev_channel_id": 2
 	},
 	"name": "channel_created"
 }
@@ -208,6 +211,8 @@ wscat -nc 'wss://localhost:445?channel=2'
 ### channel_edited
 
 На сервере, в котором состоит пользователь, был изменён канал.
+
+Если `prev_channel_id` присутствует, то изменился порядок канала: теперь он находится ПЕРЕД `prev_channel_id` (или в конце, если `prev_channel_id` == -1).
 
 Пример:
 
@@ -218,7 +223,8 @@ wscat -nc 'wss://localhost:445?channel=2'
 		"id": 7,
 		"name": "shared_photos",
 		"server_id": 1,
-		"type": 1
+		"type": 1,
+		"prev_channel_id": 2
 	},
 	"name": "channel_edited"
 }
