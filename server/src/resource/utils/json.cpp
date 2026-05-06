@@ -1,5 +1,5 @@
-#include "resource/json_utils.h"
-#include "resource/notification_utils.h"
+#include "json.h"
+#include "resource/utils/notification.h"
 
 std::shared_ptr<http_response> json_utils::from_content(const http_request& req, nlohmann::json& data)
 {

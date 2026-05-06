@@ -1,7 +1,7 @@
 #include "resource/emoji.h"
-#include "resource/json_utils.h"
-#include "resource/file_utils.h"
-#include "resource/role_utils.h"
+#include "resource/utils/json.h"
+#include "resource/utils/file.h"
+#include "resource/utils/role.h"
 
 #include <cctype>
 

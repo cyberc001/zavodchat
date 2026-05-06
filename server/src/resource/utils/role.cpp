@@ -1,4 +1,4 @@
-#include "resource/role_utils.h"
+#include "role.h"
 #include <unordered_map>
 #include <unordered_set>
 #include "resource/utils.h"
@@ -27,42 +27,35 @@ std::shared_ptr<http_response> role_utils::check_server_role(const http_request&
 	return nullptr;
 }
 
-int role_utils::find_head_role(pqxx::work& tx, int server_id)
+int role_utils::find_head(pqxx::work& tx, int server_id)
 {
 	pqxx::result r = tx.exec("SELECT head_role_id FROM servers WHERE server_id = $1", pqxx::params(server_id));
 	if(!r.size())
 		return -1;
 	return r[0]["head_role_id"].as<int>();
 }
-int role_utils::find_lowest_role(pqxx::work& tx, int server_id)
+int role_utils::find_default(pqxx::work& tx, int server_id)
 {
 	pqxx::result r = tx.exec("SELECT role_id FROM roles WHERE server_id = $1 AND prev_role_id = -1", pqxx::params(server_id));
 	if(!r.size())
 		return -1;
 	return r[0]["role_id"].as<int>();
 }
-int role_utils::find_default_role(pqxx::work& tx, int server_id)
-{
-	pqxx::result r = tx.exec("SELECT default_role_id FROM servers WHERE server_id = $1", pqxx::params(server_id));
-	if(!r.size())
-		return -1;
-	return r[0]["default_role_id"].as<int>();
-}
 
-std::vector<pqxx::row> role_utils::get_role_list(pqxx::work& tx, int server_id)
+std::vector<pqxx::row> role_utils::get_list(pqxx::work& tx, int server_id)
 {
-	int head = find_head_role(tx, server_id);
 	pqxx::result r = tx.exec("SELECT * FROM roles WHERE server_id = $1", pqxx::params(server_id));
 	std::unordered_map<int, pqxx::row> rm;
 	for(size_t i = 0; i < r.size(); ++i)
 		rm[r[i]["role_id"].as<int>()] = r[i];
 
 	std::vector<pqxx::row> res;
-	for(int cur = head; cur != -1; cur = rm[cur]["prev_role_id"].as<int>())
+	int cur = find_head(tx, server_id);
+	for(; cur != -1; cur = rm[cur]["prev_role_id"].as<int>())
 		res.push_back(rm[cur]);
 	return res;
 }
-std::vector<pqxx::row> role_utils::get_user_role_list(pqxx::work& tx, int server_id, int user_id)
+std::vector<pqxx::row> role_utils::get_user_list(pqxx::work& tx, int server_id, int user_id)
 {
 	// get all user roles
 	pqxx::result r = tx.exec("SELECT role_id FROM user_x_server WHERE user_id = $1 AND server_id = $2", pqxx::params(user_id, server_id));
@@ -71,7 +64,7 @@ std::vector<pqxx::row> role_utils::get_user_role_list(pqxx::work& tx, int server
 		user_role_ids.insert(r[i]["role_id"].as<int>());
 
 	// get all server roles
-	int head = find_head_role(tx, server_id);
+	int head = find_head(tx, server_id);
 	r = tx.exec("SELECT * FROM roles WHERE server_id = $1", pqxx::params(server_id));
 	std::unordered_map<int, pqxx::row> rm;
 	for(size_t i = 0; i < r.size(); ++i)
@@ -86,7 +79,7 @@ std::vector<pqxx::row> role_utils::get_user_role_list(pqxx::work& tx, int server
 
 bool role_utils::is_role_higher(pqxx::work& tx, int server_id, int role_id, int other_role_id)
 {
-	int head = find_head_role(tx, server_id);
+	int head = find_head(tx, server_id);
 	pqxx::result r = tx.exec("SELECT role_id, prev_role_id FROM roles WHERE server_id = $1", pqxx::params(server_id));
 	std::unordered_map<int, pqxx::row> rm;
 	for(size_t i = 0; i < r.size(); ++i)
@@ -103,7 +96,7 @@ std::shared_ptr<http_response> role_utils::check_role_not_default(const http_req
 {
 	if(role_id == -1)
 		return nullptr;
-	if(find_default_role(tx, server_id) == role_id)
+	if(find_default(tx, server_id) == role_id)
 		return create_response::string(req, "The role is default", 400);
 	return nullptr;
 }
@@ -121,7 +114,7 @@ std::shared_ptr<http_response> role_utils::check_role_lower_than_user(const http
 		user_role_ids.insert(r[i]["role_id"].as<int>());
 
 	// get all server roles
-	int head = find_head_role(tx, server_id);
+	int head = find_head(tx, server_id);
 	r = tx.exec("SELECT * FROM roles WHERE server_id = $1", pqxx::params(server_id));
 	std::unordered_map<int, pqxx::row> rm;
 	for(size_t i = 0; i < r.size(); ++i)
@@ -164,7 +157,7 @@ std::shared_ptr<http_response> role_utils::check_user_lower_than_other(const htt
 		lower_user_role_ids.insert(r[i]["role_id"].as<int>());
 
 	// get all server roles
-	int head = find_head_role(tx, server_id);
+	int head = find_head(tx, server_id);
 	r = tx.exec("SELECT * FROM roles WHERE server_id = $1", pqxx::params(server_id));
 	std::unordered_map<int, pqxx::row> rm;
 	for(size_t i = 0; i < r.size(); ++i)
@@ -204,7 +197,7 @@ long long role_utils::get_permission_bits(pqxx::work& tx,
 		user_role_ids.insert(r[i]["role_id"].as<int>());
 
 	// get all server roles (to parse them in order)
-	int head = find_head_role(tx, server_id);
+	int head = find_head(tx, server_id);
 	r = tx.exec("SELECT role_id, prev_role_id, " + perm.column + " FROM roles WHERE server_id = $1", pqxx::params(server_id));
 	std::unordered_map<int, pqxx::row> rm;
 	for(size_t i = 0; i < r.size(); ++i)
@@ -254,7 +247,7 @@ bool role_utils::check_permission(pqxx::work& tx,
 	}
 
 	// get all server roles (to parse them in order)
-	int head = find_head_role(tx, server_id);
+	int head = find_head(tx, server_id);
 	r = tx.exec("SELECT role_id, prev_role_id, " + perm.column + " FROM roles WHERE server_id = $1", pqxx::params(server_id));
 	std::unordered_map<int, pqxx::row> rm;
 	for(size_t i = 0; i < r.size(); ++i)
@@ -317,7 +310,7 @@ std::shared_ptr<http_response> role_utils::check_permission_validity(const http_
 	return nullptr;
 }
 
-int role_utils::insert_role(pqxx::work& tx, int server_id,
+int role_utils::insert(pqxx::work& tx, int server_id,
 					int next_role_id, std::string name, int color, long long perms1)
 {
 	pqxx::result r;
@@ -352,25 +345,19 @@ int role_utils::insert_role(pqxx::work& tx, int server_id,
 }
 int role_utils::create_default_role_if_absent(pqxx::work& tx, int server_id)
 {
-	pqxx::result r = tx.exec("SELECT default_role_id FROM servers WHERE server_id = $1", pqxx::params(server_id));
-	if(!r.size())
+	if(find_default(tx, server_id) != -1)
 		return -1;
-	if(r[0]["default_role_id"].as<int>() != -1)
-		return -1;
-
-	int id = insert_role(tx, server_id, find_lowest_role(tx, server_id), "default", 0x999999);
-	tx.exec("UPDATE servers SET default_role_id = $1 WHERE server_id = $2", pqxx::params(id, server_id));
-	return id;
+	return insert(tx, server_id, -1, "default", 0x999999);
 }
 
-void role_utils::move_role(pqxx::work& tx, int server_id,
+void role_utils::move(pqxx::work& tx, int server_id,
 			int role_id, int next_role_id)
 {
 	pqxx::result r = tx.exec("SELECT prev_role_id FROM roles WHERE role_id = $1", pqxx::params(role_id));
 	int old_prev_role_id = r[0]["prev_role_id"].as<int>();
 	tx.exec("UPDATE roles SET prev_role_id = $1 WHERE prev_role_id = $2", pqxx::params(old_prev_role_id, role_id)); // update prev_role_id on role next to role_id
 
-	int head_role_id = find_head_role(tx, server_id);
+	int head_role_id = find_head(tx, server_id);
 	int new_prev_role_id = -1;
 	if(next_role_id == -1){ // update head role_id, since now it's role_id
 		new_prev_role_id = head_role_id;
@@ -388,18 +375,19 @@ void role_utils::move_role(pqxx::work& tx, int server_id,
 	tx.exec("UPDATE roles SET prev_role_id = $1 WHERE role_id = $2", pqxx::params(new_prev_role_id, role_id));
 }
 
-void role_utils::delete_role(pqxx::work& tx, int server_id, int role_id)
+void role_utils::remove(pqxx::work& tx, int server_id, int role_id)
 {
 	pqxx::result r = tx.exec("SELECT prev_role_id FROM roles WHERE role_id = $1", pqxx::params(role_id));
-	int old_prev_role_id = r[0]["prev_role_id"].as<int>();
+	int prev_role_id = r[0]["prev_role_id"].as<int>();
+	if(r.size())
+		tx.exec("UPDATE roles SET prev_role_id = $1 "
+			"WHERE prev_role_id = $2",
+			pqxx::params(prev_role_id, role_id));
+	else
+		tx.exec("UPDATE servers SET head_role_id = $1 "
+			"WHERE server_id = $2",
+			pqxx::params(prev_role_id, server_id));
 
-	r = tx.exec("SELECT role_id FROM roles WHERE prev_role_id = $1", pqxx::params(role_id));
-	if(r.size()){ // update next role's prev role
-		int old_next_role_id = r[0]["role_id"].as<int>();	
-		tx.exec("UPDATE roles SET prev_role_id = $1 WHERE role_id = $2", pqxx::params(old_prev_role_id, old_next_role_id));
-	} else{ // deleting the head role
-		tx.exec("UPDATE servers SET head_role_id = $1 WHERE server_id = $2", pqxx::params(old_prev_role_id, server_id));
-	}
 	tx.exec("DELETE FROM roles WHERE role_id = $1", role_id);
 }
 

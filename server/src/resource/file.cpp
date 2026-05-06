@@ -1,6 +1,6 @@
 #include "resource/file.h"
 #include "resource/utils.h"
-#include "resource/file_utils.h"
+#include "resource/utils/file.h"
 
 file_resource::file_resource(webserver& ws, std::string ws_route, db_connection_pool& pool, const config& cfg,
 		std::filesystem::path storage_path):

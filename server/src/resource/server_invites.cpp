@@ -1,7 +1,7 @@
 #include "resource/server_invites.h"
 #include "resource/utils.h"
-#include "resource/role_utils.h"
-#include "resource/json_utils.h"
+#include "resource/utils/json.h"
+#include "resource/utils/role.h"
 
 server_invites_resource::server_invites_resource(webserver& ws, db_connection_pool& pool, const config& cfg,
 				socket_main_server& sserv):
@@ -60,7 +60,7 @@ std::shared_ptr<http_response> server_invites_resource::render_POST(const http_r
 	if(r.size())
 		return create_response::string(req, "User is banned", 403);
 
-	tx.exec("INSERT INTO user_x_server(user_id, server_id, role_id) VALUES($1, $2, $3)", pqxx::params(user_id, server_id, role_utils::find_default_role(tx, server_id)));
+	tx.exec("INSERT INTO user_x_server(user_id, server_id, role_id) VALUES($1, $2, $3)", pqxx::params(user_id, server_id, role_utils::find_default(tx, server_id)));
 	tx.commit();
 
 	socket_event ev;

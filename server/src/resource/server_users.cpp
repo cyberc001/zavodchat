@@ -1,7 +1,7 @@
 #include "resource/server_users.h"
 #include "resource/utils.h"
-#include "resource/role_utils.h"
-#include "resource/json_utils.h"
+#include "resource/utils/json.h"
+#include "resource/utils/role.h"
 #include <unordered_map>
 
 server_users_resource::server_users_resource(webserver& ws, db_connection_pool& pool, const config& cfg):

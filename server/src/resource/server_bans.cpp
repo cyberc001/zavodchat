@@ -1,7 +1,7 @@
 #include "resource/server_bans.h"
 #include "resource/utils.h"
-#include "resource/role_utils.h"
-#include "resource/json_utils.h"
+#include "resource/utils/json.h"
+#include "resource/utils/role.h"
 
 server_bans_resource::server_bans_resource(webserver& ws, db_connection_pool& pool, const config& cfg):
 	base_resource(ws, "/servers/{server_id}/bans", pool, cfg)

@@ -9,7 +9,7 @@
 #include "resource/user.h"
 #include "resource/dm.h"
 #include "resource/file.h"
-#include "resource/file_utils.h"
+#include "resource/utils/file.h"
 #include "resource/friend.h"
 #include "resource/server_users.h"
 #include "resource/channel.h"

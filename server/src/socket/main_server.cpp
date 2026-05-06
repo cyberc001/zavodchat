@@ -1,4 +1,5 @@
 #include "socket/main_server.h"
+#include "resource/utils/channel.h"
 #include <resource/user_status.h>
 #include <resource/utils.h>
 
@@ -117,7 +118,7 @@ void socket_main_server::send_to_server(int server_id, pqxx::work& tx, socket_ev
 void socket_main_server::send_to_channel(int channel_id, pqxx::work& tx, socket_event event, int user_id)
 {
 	std::string dumped = event.dump();
-	std::vector<int> user_ids = resource_utils::get_channel_users(channel_id, tx, user_id);
+	std::vector<int> user_ids = channel_utils::get_users(channel_id, tx, user_id);
 	for(auto i = user_ids.begin(); i != user_ids.end(); ++i)
 		try_send_to_conn(*i, dumped);
 }

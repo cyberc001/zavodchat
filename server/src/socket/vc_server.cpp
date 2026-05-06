@@ -1,8 +1,9 @@
 #include "socket/vc_server.h"
 #include "resource/channel.h"
 #include "resource/utils.h"
-#include "resource/json_utils.h"
-#include "resource/role_utils.h"
+#include "resource/utils/channel.h"
+#include "resource/utils/json.h"
+#include "resource/utils/role.h"
 
 #include <iostream>
 
@@ -535,7 +536,7 @@ socket_vc_server::socket_vc_server(const config& cfg, db_connection_pool& pool, 
 					} else {
 						conn->server_id = r[0]["server_id"].as<int>();
 						if(!resource_utils::check_server_member(conn->user_id, conn->server_id, tx) ||
-						   !resource_utils::check_channel_member(conn->user_id, conn->channel_id, conn->server_id, tx)){
+						   !channel_utils::check_member(conn->user_id, conn->channel_id, conn->server_id, tx)){
 							conn->close(ix::WebSocketCloseConstants::kNormalClosureCode, "Channel does not exist");
 							return;
 						}

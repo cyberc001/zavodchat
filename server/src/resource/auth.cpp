@@ -1,7 +1,7 @@
 #include "auth.h"
 #include "resource/utils.h"
-#include "resource/file_utils.h"
-#include "resource/json_utils.h"
+#include "resource/utils/file.h"
+#include "resource/utils/json.h"
 
 auth_resource::auth_resource(webserver& ws, db_connection_pool& pool, const config& cfg):
 	base_resource(ws, "/auth", pool, cfg)

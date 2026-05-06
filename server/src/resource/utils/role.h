@@ -1,5 +1,5 @@
-#ifndef ROLE_UTILS_H
-#define ROLE_UTILS_H
+#ifndef UTILS_ROLE_H
+#define UTILS_ROLE_H
 
 #include <pqxx/pqxx>
 #include <nlohmann/json.hpp>
@@ -42,12 +42,11 @@ public:
 	// Checks if server has the role
 	static std::shared_ptr<http_response> check_server_role(const http_request&, int role_id, int server_id, pqxx::work&);
 
-	static int find_head_role(pqxx::work&, int server_id);
-	static int find_lowest_role(pqxx::work&, int server_id);
-	static int find_default_role(pqxx::work&, int server_id);
+	static int find_head(pqxx::work&, int server_id);
+	static int find_default(pqxx::work&, int server_id);
 
-	static std::vector<pqxx::row> get_role_list(pqxx::work&, int server_id);
-	static std::vector<pqxx::row> get_user_role_list(pqxx::work&, int server_id, int user_id);
+	static std::vector<pqxx::row> get_list(pqxx::work&, int server_id);
+	static std::vector<pqxx::row> get_user_list(pqxx::work&, int server_id, int user_id);
 	static bool is_role_higher(pqxx::work&, int server_id, int role_id, int other_role_id);
 
 	static std::shared_ptr<http_response> check_role_not_default(const http_request&, pqxx::work&, int server_id, int role_id);
@@ -86,15 +85,15 @@ public:
 
 	// -1 = next_role_id does not exist
 	// -2 = name is too long
-	static int insert_role(pqxx::work&, int server_id,
+	static int insert(pqxx::work&, int server_id,
 					int next_role_id, std::string name, int color, long long perms1 = PERM1_DEFAULT); // insert at the head if next_role_id = -1
 	static int create_default_role_if_absent(pqxx::work&, int server_id);
 
 	// moves roles to be before next_role_id, or at the head if next_role_id = -1
-	static void move_role(pqxx::work&, int server_id,
-					int role_id, int next_role_id);
+	static void move(pqxx::work&, int server_id,
+				int role_id, int next_role_id);
 
-	static void delete_role(pqxx::work&, int server_id, int role_id);
+	static void remove(pqxx::work&, int server_id, int role_id);
 
 	/* JSON */
 	static std::shared_ptr<http_response> check_role_json(const http_request&, const nlohmann::json&);

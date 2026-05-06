@@ -97,12 +97,8 @@ public:
 	static std::shared_ptr<http_response> parse_server_user_id(const http_request&, int server_id, pqxx::work&, int& server_user_id);
 	static std::shared_ptr<http_response> parse_server_ban_id(const http_request&, int server_id, pqxx::work&, int& server_ban_id);
 
-	// Get users that have access to this channel. If user_id != -1, don't add blocked users
-	static std::vector<int> get_channel_users(int channel_id, pqxx::work&, int user_id = -1);
 	// Get users that have this role.
 	static std::vector<int> get_role_users(int role_id, pqxx::work&);
-
-	static int get_channel_other_user_id(int channel_id, int user_id, pqxx::work&);
 
 	// Check if user_to_id has user_from_id unblocked.
 	static std::shared_ptr<http_response> check_user_unblocked(const http_request&, int user_from_id, int user_to_id, pqxx::work&);
@@ -114,7 +110,6 @@ public:
 	// Separate check for user being a member of a server. Used when user is not the one that puts a request.
 	static bool check_server_member(int user_id, int server_id, pqxx::work&);
 	static std::shared_ptr<http_response> check_server_member(const http_request&, int user_id, int server_id, pqxx::work&);
-	static bool check_channel_member(int user_id, int channel_id, int server_id, pqxx::work&);
 
 	static std::shared_ptr<http_response> parse_invite_id(const http_request&, int server_id, pqxx::work&, std::string& invite_id);
 	// Same as above, but also checks if server has the invite

@@ -1,7 +1,7 @@
 #include "resource/role.h"
 #include "resource/utils.h"
-#include "resource/role_utils.h"
-#include "resource/json_utils.h"
+#include "resource/utils/json.h"
+#include "resource/utils/role.h"
 
 #include <iostream>
 
@@ -25,7 +25,7 @@ std::shared_ptr<http_response> server_roles_resource::render_GET(const http_requ
 	if(err) return err;
 
 	nlohmann::json res = nlohmann::json::array();
-	std::vector<pqxx::row> r = role_utils::get_role_list(tx, server_id);
+	std::vector<pqxx::row> r = role_utils::get_list(tx, server_id);
 	for(size_t i = 0; i < r.size(); ++i)
 		res += role_utils::role_json_from_row(r[i]);
 
@@ -68,7 +68,7 @@ std::shared_ptr<http_response> server_roles_resource::render_PUT(const http_requ
 		if(err) return err;
 	}
 
-	std::vector<pqxx::row> r = role_utils::get_role_list(tx, server_id);	
+	std::vector<pqxx::row> r = role_utils::get_list(tx, server_id);	
 	std::vector<nlohmann::json> roles;
 	for(size_t i = 0; i < r.size(); ++i){
 		nlohmann::json j = role_utils::role_json_from_row(r[i]);
@@ -86,7 +86,7 @@ std::shared_ptr<http_response> server_roles_resource::render_PUT(const http_requ
 			err = role_utils::check_role_not_default(req, tx, server_id, roles[j]["id"]);
 			if(err) return err;
 
-			role_utils::delete_role(tx, server_id, roles[j]["id"]);
+			role_utils::remove(tx, server_id, roles[j]["id"]);
 			roles.erase(roles.begin() + j--);
 		}
 	}
@@ -121,7 +121,7 @@ std::shared_ptr<http_response> server_roles_resource::render_PUT(const http_requ
 										role_utils::perms1,
 										prev_perms1, perms1,
 										server_id, user_id,
-										role_utils::find_default_role(tx, server_id) == id);
+										role_utils::find_default(tx, server_id) == id);
 				if(err) return err;
 		
 				int color;
@@ -158,7 +158,7 @@ std::shared_ptr<http_response> server_roles_resource::render_PUT(const http_requ
 					roles.insert(roles.begin() + k + 1, rol);
 				}
 				
-				role_utils::move_role(tx, server_id, list[i]["id"], list_role_next_id);
+				role_utils::move(tx, server_id, list[i]["id"], list_role_next_id);
 			}
 		}
 	}
@@ -184,7 +184,7 @@ std::shared_ptr<http_response> server_roles_resource::render_PUT(const http_requ
 			err = resource_utils::string_to_color(req, list[i]["color"].get<std::string>(), color);
 			if(err) return err;
 
-			int inserted_id = role_utils::insert_role(tx, server_id, list_role_next_id, name, color, perms1);
+			int inserted_id = role_utils::insert(tx, server_id, list_role_next_id, name, color, perms1);
 			if(inserted_id == -1)
 				std::cerr << "INTERNAL ERROR: next_role_id " << list_role_next_id << " does not exist" << std::endl;
 			if(inserted_id == -2)
@@ -192,7 +192,7 @@ std::shared_ptr<http_response> server_roles_resource::render_PUT(const http_requ
 		}
 
 	socket_event ev;
-	r = role_utils::get_role_list(tx, server_id);
+	r = role_utils::get_list(tx, server_id);
 	ev.data["roles"] = nlohmann::json::array();
 	for(size_t i = 0; i < r.size(); ++i)
 		ev.data["roles"] += role_utils::role_json_from_row(r[i]);

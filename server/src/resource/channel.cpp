@@ -1,7 +1,8 @@
 #include "resource/channel.h"
 #include "resource/utils.h"
-#include "resource/role_utils.h"
-#include "resource/json_utils.h"
+#include "resource/utils/channel.h"
+#include "resource/utils/json.h"
+#include "resource/utils/role.h"
 
 server_channel_resource::server_channel_resource(webserver& ws, db_connection_pool& pool, const config& cfg,
 					socket_main_server& sserv, socket_vc_server& vcserv):
@@ -28,18 +29,21 @@ std::shared_ptr<http_response> server_channel_resource::render_GET(const http_re
 	if(no_ch_manage_perms)
 	       	wl_check = " AND ((array_length(wl_users, 1) IS NULL AND array_length(wl_roles, 1) IS NULL) OR array_position(wl_users, $2) IS NOT NULL OR EXISTS(SELECT role_id FROM user_x_server WHERE user_id = $2 AND array_position(wl_roles, role_id) IS NOT NULL))";
 
-	nlohmann::json res = nlohmann::json::array();
-	pqxx::result r = tx.exec("SELECT channels.channel_id, name, type, notification_count, wl_users, wl_roles FROM channels "
+	pqxx::result r = tx.exec("SELECT channels.channel_id, name, type, notification_count, wl_users, wl_roles, prev_channel_id FROM channels "
 				 "LEFT JOIN notifications ON notifications.channel_id = channels.channel_id "
 				 "AND notifications.user_id = $2 "
-				 "WHERE channels.server_id = $1" + wl_check + " ORDER BY channels.channel_id"
-				, pqxx::params(server_id, user_id));
+				 "WHERE channels.server_id = $1" + wl_check + " ORDER BY channels.channel_id",
+				 pqxx::params(server_id, user_id));
+	std::unordered_map<int, pqxx::row> chans;
+	for(size_t i = 0; i < r.size(); ++i)
+		chans[r[i]["channel_id"].as<int>()] = r[i];
 
-	for(size_t i = 0; i < r.size(); ++i){
+	nlohmann::json res = nlohmann::json::array();
+	for(int cur = channel_utils::find_head(tx, server_id); cur != -1; cur = chans[cur]["prev_channel_id"].as<int>()){
 		pqxx::result role_rows = tx.exec("SELECT role_id, perms1 FROM channel_x_role "
 						 "WHERE channel_id = $1",
-						 pqxx::params(r[i]["channel_id"].as<int>()));
-		nlohmann::json channel_json = json_utils::channel_from_row(r[i], &role_rows, true);
+						 pqxx::params(chans[cur]["channel_id"].as<int>()));
+		nlohmann::json channel_json = json_utils::channel_from_row(chans[cur], &role_rows, true);
 		if(channel_json["type"] == CHANNEL_VOICE)
 			channel_json["vc_users"] = vcserv.get_channel_users(channel_json["id"], tx, user_id);
 		res += channel_json;
@@ -91,38 +95,27 @@ std::shared_ptr<http_response> server_channel_resource::render_POST(const http_r
 	if(r.size() >= cfg.max_channels_per_server)
 		return create_response::string(req, "Server has more than " + std::to_string(cfg.max_channels_per_server) + " channels", 403);
 
-	int channel_id;
-	socket_event ev;
-	try{
-		std::string wl_columns, wl_params;
-		pqxx::params pr(server_id, name, type);
-		if(wl_users.size()){
-			pr.append(wl_users);
-			wl_columns += ", wl_users";
-			wl_params += ", $" + std::to_string(pr.size());
-		}
-		if(wl_roles.size()){
-			pr.append(wl_roles);
-			wl_columns += ", wl_roles";
-			wl_params += ", $" + std::to_string(pr.size());
-		}
-
-		r = tx.exec("INSERT INTO channels(server_id, name, type" + wl_columns + ") VALUES($1, $2, $3" + wl_params +
-			    ") RETURNING channel_id, name, type, wl_users, wl_roles",
-			    pr);
-		channel_id = r[0]["channel_id"].as<int>();
-		ev.data = json_utils::channel_from_row(r[0]);
-	} catch(pqxx::data_exception& e){
-		return create_response::string(req, "Channel name is too long", 400);
-	}
+	pqxx::row ch_row;
+	int prev_channel_id = body["prev_channel_id"].is_number_integer() ? body["prev_channel_id"].get<int>() : -1;
+	err = channel_utils::insert(req, tx, server_id,
+					name, type,
+					prev_channel_id,
+					wl_users, wl_roles,
+					&ch_row);
+	if(err)
+		return err;
 	tx.commit();
 
+	socket_event ev;
+	ev.data = json_utils::channel_from_row(ch_row);
+	if(prev_channel_id > -1)
+		ev.data["prev_channel_id"] = prev_channel_id;
 	json_utils::set_ids(ev.data, server_id);
 	ev.name = "channel_created";
 	sserv.send_to_server(server_id, tx, ev, -1,
 				wl_users, wl_roles);
 
-	return create_response::string(req, std::to_string(channel_id), 200);
+	return create_response::string(req, std::to_string(ch_row["channel_id"].as<int>()), 200);
 }
 
 channel_resource::channel_resource(webserver& ws, db_connection_pool& pool, const config& cfg,
@@ -238,6 +231,14 @@ std::shared_ptr<http_response> channel_resource::render_PUT(const http_request& 
 		tx.exec("UPDATE channels SET type = $1 WHERE channel_id = $2", pqxx::params(type, channel_id));
 		updated = true;
 	}
+	int prev_channel_id = -2;
+	if(body["prev_channel_id"].is_number_integer()){
+		prev_channel_id = body["prev_channel_id"].get<int>();
+		err = channel_utils::move(req, tx, server_id, channel_id, prev_channel_id);
+		if(err)
+			return err;
+		updated = true;
+	}
 	if(body["wl_users"].is_array()){
 		new_wl_users = std::make_unique<std::vector<int>>();
 		err = json_utils::get_array(req, body, nlohmann::json::value_t::number_unsigned, "wl_users", *new_wl_users);
@@ -268,12 +269,14 @@ std::shared_ptr<http_response> channel_resource::render_PUT(const http_request& 
 						 pqxx::params(channel_id));
 		socket_event ev;
 		ev.data = json_utils::channel_from_row(ch_row[0], &role_rows);
+		if(prev_channel_id > -2)
+			ev.data["prev_channel_id"] = prev_channel_id;
 		json_utils::set_ids(ev.data, server_id);
 
 		if(new_wl_users || new_wl_roles){ // whitelist changed
 			// Get server roles that have PERM1_MANAGE_CHANNELS
 			std::vector<int> ch_manage_roles;
-			std::vector<pqxx::row> server_roles = role_utils::get_role_list(tx, server_id);
+			std::vector<pqxx::row> server_roles = role_utils::get_list(tx, server_id);
 			int cur_ch_manage_bits = 0;
 			for(auto i = server_roles.rbegin(); i != server_roles.rend(); ++i){
 				int ch_manage_bits = GET_PERM_BIT((*i)["perms1"].as<long long>(), PERM1_MANAGE_CHANNELS);
@@ -376,12 +379,25 @@ std::shared_ptr<http_response> channel_resource::render_DELETE(const http_reques
 						role_utils::perms1, PERM1_MANAGE_CHANNELS);
 	if(err) return err;
 
-	pqxx::result r = tx.exec("DELETE FROM channels WHERE channel_id = $1 RETURNING wl_users, wl_roles",
+	pqxx::result r = tx.exec("DELETE FROM channels WHERE channel_id = $1 "
+				 "RETURNING wl_users, wl_roles, prev_channel_id",
 				 pqxx::params(channel_id));
-	tx.commit();
-
 	std::vector<int> wl_users = resource_utils::parse_psql_int_array(r[0]["wl_users"]),
 			 wl_roles = resource_utils::parse_psql_int_array(r[0]["wl_roles"]);
+	int prev_channel_id = r[0]["prev_channel_id"].as<int>();
+
+	// Re-arrange other channels
+	if(channel_id == channel_utils::find_head(tx, server_id))
+		tx.exec("UPDATE servers SET head_channel_id = $1 "
+			"WHERE server_id = $2",
+			pqxx::params(prev_channel_id, server_id));
+	else 
+		tx.exec("UPDATE channels SET prev_channel_id = $1 "
+			"WHERE prev_channel_id = $2",
+			pqxx::params(prev_channel_id, channel_id));
+
+	tx.commit();
+
 	socket_event ev;
 	ev.data["id"] = channel_id;
 	json_utils::set_ids(ev.data, server_id);
@@ -541,5 +557,4 @@ std::shared_ptr<http_response> channel_roles_resource::render_DELETE(const http_
 	sserv.send_to_channel(channel_id, tx, ev);
 
 	return create_response::string(req, "Changed", 200);
-
 }

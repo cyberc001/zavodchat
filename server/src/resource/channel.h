@@ -5,11 +5,6 @@
 #include "socket/vc_server.h"
 #include <resource/base.h>
 
-enum channel_type {
-	CHANNEL_TEXT = 0,
-	CHANNEL_VOICE
-};
-
 class server_channel_resource : public base_resource
 {
 public:

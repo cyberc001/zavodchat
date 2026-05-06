@@ -6,6 +6,7 @@
 	import ServerHead from '$lib/display/sidebar/server_head.svelte';
 
 	import MediaDisplay from '$lib/display/media.svelte';
+	import OrderedList from '$lib/control/ordered_list.svelte';
 	import PaginatedList from '$lib/display/paginated_list.svelte';
 
 	import Channel from '$lib/rest/channel.js';
@@ -41,6 +42,15 @@
 	});
 </script>
 
+
+{#snippet render_channel(i, ch)}
+<SidebarChannelElement channel={ch} server={server} socket_vc={socket_vc}
+	selected={selected_channel === ch.id} last={i == channels.data.length - 1}
+	show_channel={(ch) => show_channel(ch)}
+	ctx_channel={ctx_channel} ctx_vc_user={ctx_vc_user}
+/>
+{/snippet}
+
 <div style="display: flex; flex-direction: column">
 	<div class="panel sidebar_channels">
 		{#if channels}
@@ -51,13 +61,14 @@
 					<img src={asset("icons/loading.svg")} alt="loading" class="filter_icon_main" style="width: 48px"/>
 				</div>
 			{:else}
-				{#each channels.data as ch, i}
-					<SidebarChannelElement channel={ch} server={server} socket_vc={socket_vc}
-						selected={selected_channel === ch.id} last={i == channels.data.length - 1}
-						show_channel={(ch) => show_channel(ch)}
-						ctx_channel={ctx_channel} ctx_vc_user={ctx_vc_user}
-					/>
-				{/each}
+				<OrderedList items={channels.data}
+				on_drag={(dragged, dragged_idx, hovered, hovered_idx) => {
+					Channel.change(dragged.id, {prev_channel_id: (typeof(hovered) === "undefined" ? -1 : hovered.id)},
+							() => {});
+					return false;
+				}}
+				render_item={render_channel}
+				/>
 			{/if}
 		{:else if !server}
 			{#snippet render_dm_channel(i, item)}

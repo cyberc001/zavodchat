@@ -1,6 +1,6 @@
 #include "resource/dm.h"
 #include "resource/utils.h"
-#include "resource/json_utils.h"
+#include "resource/utils/json.h"
 #include "resource/channel.h"
 
 dm_resource::dm_resource(webserver& ws, db_connection_pool& pool, const config& cfg,

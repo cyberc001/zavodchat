@@ -9,8 +9,14 @@ export default class Channel {
 	static channel_list_cache = new ListCache();
 
 	static add_channel_to_cache(server_id, data){
-		if(Channel.channel_list_cache.has_state(server_id))
-			Channel.channel_list_cache.get_state(server_id).data.push(data);
+		if(Channel.channel_list_cache.has_state(server_id)){
+			let channel_list = Channel.channel_list_cache.get_state(server_id).data;
+			let idx = channel_list.findIndex((x) => x.id === data.prev_channel_id);
+			if(idx === -1)
+				channel_list.push(data);
+			else
+				channel_list.splice(idx, 0, data);
+		}
 	}
 	static update_cache(server_id, channel_id, data){
 		if(Channel.channel_cache.has_state(channel_id)){
@@ -19,10 +25,23 @@ export default class Channel {
 				channel_data.data[f] = data[f];
 		}
 		if(Channel.channel_list_cache.has_state(server_id)){
-			let channel_list_data = Channel.channel_list_cache.get_state(server_id).data.find((x) => x.id === channel_id);
-			if(channel_list_data)
+			let channel_list = Channel.channel_list_cache.get_state(server_id).data;
+			let idx = channel_list.findIndex((x) => x.id === channel_id);
+			if(idx > -1){
 				for(const f in data)
-					channel_list_data[f] = data[f];
+					channel_list[idx][f] = data[f];
+
+				if(typeof(data.prev_channel_id) !== "undefined"){ // Change channel order by re-inserting
+					let prev_data = channel_list.splice(idx, 1)[0];
+					if(data.prev_channel_id === -1)
+						channel_list.push(prev_data);
+					else {
+						let prev_idx = channel_list.findIndex((x) => x.id === data.prev_channel_id);
+						if(prev_idx > -1)
+							channel_list.splice(prev_idx, 0, prev_data);
+					}
+				}
+			}
 		}
 	}
 	static remove_server(server_id){

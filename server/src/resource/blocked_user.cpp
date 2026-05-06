@@ -1,6 +1,6 @@
 #include "resource/blocked_user.h"
 #include "resource/utils.h"
-#include "resource/json_utils.h"
+#include "resource/utils/json.h"
 
 blocked_users_resource::blocked_users_resource(webserver& ws, db_connection_pool& pool, const config& cfg):
 	base_resource(ws, "/blocked_users", pool, cfg)

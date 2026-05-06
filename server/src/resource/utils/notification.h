@@ -1,5 +1,5 @@
-#ifndef NOTIFICATION_UTILS_H
-#define NOTIFICATION_UTILS_H
+#ifndef UTILS_NOTIFICATION_H
+#define UTILS_NOTIFICATION_H
 
 #include "db/conn_pool.h"
 #include <vector>

@@ -1,6 +1,6 @@
 #include "preferences.h"
 #include "resource/utils.h"
-#include "resource/json_utils.h"
+#include "resource/utils/json.h"
 #include <unordered_set>
 
 preferences_resource::preferences_resource(webserver& ws, db_connection_pool& pool, const config& cfg):

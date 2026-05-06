@@ -1,6 +1,6 @@
 #include "resource/user.h"
 #include "resource/utils.h"
-#include "resource/json_utils.h"
+#include "resource/utils/json.h"
 
 user_resource::user_resource(webserver& ws, db_connection_pool& pool, const config& cfg):
 	base_resource(ws, "/users", pool, cfg)

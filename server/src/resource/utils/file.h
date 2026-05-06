@@ -1,5 +1,5 @@
-#ifndef FILE_UTILS_H
-#define FILE_UTILS_H
+#ifndef UTILS_FILE_H
+#define UTILS_FILE_H
 
 #include "resource/utils.h"
 #include <httpserver.hpp>

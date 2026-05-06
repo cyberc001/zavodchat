@@ -1,4 +1,5 @@
-#include "resource/notification_utils.h"
+#include "resource/utils/notification.h"
+#include "resource/utils/channel.h"
 #include "resource/utils.h"
 #include <unordered_set>
 
@@ -74,7 +75,7 @@ void notification_utils::inc_notification(int server_id, int channel_id, int use
 			case mention_types::EVERYONE:
 				if(!mentioned_everyone){
 					mentioned_everyone = true;
-					std::vector<int> user_ids = resource_utils::get_channel_users(channel_id, tx);
+					std::vector<int> user_ids = channel_utils::get_users(channel_id, tx);
 					inc_notification(server_id, channel_id, user_id, user_ids,
 								conn, tx);
 				}

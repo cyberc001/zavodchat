@@ -333,20 +333,20 @@ This cannot be reversed.
 <Group name="Role priority">
 	<OrderedList bind:items={state_roles.state.list} bind:selected_idx={role_list_selected_idx}
 	check_select={(selected, selected_idx) => {
-		return Role.check_lower_role(user_self.data, state_roles.state.list[selected_idx].id, server.data, server_roles.data);
+		return Role.check_lower_role(user_self.data, selected.id, server.data, server_roles.data);
 	}}
 	check_drag={(dragged, dragged_idx) => {
-		if(!Role.check_lower_role(user_self.data, state_roles.state.list[dragged_idx].id, server.data, server_roles.data))
+		if(!Role.check_lower_role(user_self.data, dragged.id, server.data, server_roles.data))
 			return false;
 		return dragged_idx !== state_roles.state.list.length - 1;
 	}}
 	check_insert={(dragged, dragged_idx, hovered, hovered_idx) => {
-		if(hovered_idx === -1 && server.data.owner_id !== user_self.data.id)
+		if(hovered_idx === 0 && server.data.owner_id !== user_self.data.id)
 			return false;
-		if(hovered_idx === state_roles.state.list.length - 1)
+		if(hovered_idx === state_roles.state.list.length)
 			return false;
 
-		return Role.check_lower_role(user_self.data, state_roles.state.list[hovered_idx + 1].id, server.data, server_roles.data);
+		return Role.check_lower_role(user_self.data, hovered.id, server.data, server_roles.data);
 	}}
 	
 	render_item={role_item}

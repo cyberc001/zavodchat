@@ -1,8 +1,9 @@
 #include "resource/message.h"
 #include "resource/utils.h"
-#include "resource/role_utils.h"
-#include "resource/notification_utils.h"
-#include "resource/json_utils.h"
+#include "resource/utils/channel.h"
+#include "resource/utils/json.h"
+#include "resource/utils/notification.h"
+#include "resource/utils/role.h"
 
 #include <iostream>
 
@@ -75,7 +76,7 @@ std::shared_ptr<http_response> channel_messages_resource::render_POST(const http
 	// Create notifications
 	std::vector<std::vector<int>> mentions;
 	if(server_id < 0)
-		notification_utils::inc_notification(-1, channel_id, resource_utils::get_channel_other_user_id(channel_id, user_id, tx), tx);
+		notification_utils::inc_notification(-1, channel_id, channel_utils::get_other_user_id(channel_id, user_id, tx), tx);
 	else {
 		std::vector<mention> _mentions = notification_utils::parse_mentions(text, server_id, channel_id, tx);
 		mentions = mention::to_array(_mentions);
@@ -84,7 +85,7 @@ std::shared_ptr<http_response> channel_messages_resource::render_POST(const http
 		notification_utils::inc_notification(server_id, channel_id, user_id, _mentions,
 							conn, tx);
 		// Create unread message notifications
-		std::vector<int> user_ids = resource_utils::get_channel_users(channel_id, tx);
+		std::vector<int> user_ids = channel_utils::get_users(channel_id, tx);
 		notification_utils::ensure_notification(server_id, channel_id, user_id, user_ids,
 							conn, tx);
 	}
