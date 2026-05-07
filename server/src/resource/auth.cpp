@@ -94,7 +94,7 @@ std::shared_ptr<http_response> register_resource::render_POST(const http_request
 
 	pqxx::result r;
 	try{
-		r = tx.exec("INSERT INTO users(name, status) VALUES($1, 0) RETURNING user_id", pqxx::params(displayname));
+		r = tx.exec("INSERT INTO users(name) VALUES($1) RETURNING user_id", pqxx::params(displayname));
 	} catch(pqxx::data_exception& e){
 		return create_response::string(req, "Displayname is too long", 400);
 	} catch(const pqxx::unique_violation& e){

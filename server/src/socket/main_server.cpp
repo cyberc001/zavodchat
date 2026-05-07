@@ -31,7 +31,8 @@ socket_main_server::socket_main_server(std::string https_key, std::string https_
 				conn->user_id = r[0]["user_id"].as<int>();
 
 				// set status
-				int status = STATUS_ONLINE;
+				r = tx.exec("SELECT last_status FROM users WHERE user_id = $1", pqxx::params(conn->user_id));
+				int status = r[0]["last_status"].as<int>();
 				if(query.find("status") != query.end()){
 					try{
 						status = std::stoi(query["status"]);
@@ -68,7 +69,7 @@ socket_main_server::socket_main_server(std::string https_key, std::string https_
 				ev.name = "user_changed";
 				send_to_user_observers(conn->user_id, tx, ev);
 
-				tx.exec("UPDATE users SET status = 0 WHERE user_id = $1", pqxx::params(conn->user_id));
+				tx.exec("UPDATE users SET last_status = status, status = 0 WHERE user_id = $1", pqxx::params(conn->user_id));
 				tx.commit();
 			}
 		});

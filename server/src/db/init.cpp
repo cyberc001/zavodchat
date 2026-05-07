@@ -36,7 +36,8 @@ void db_init(std::string conn_str)
 		pqxx::work tx{conn};
 		tx.exec("CREATE EXTENSION IF NOT EXISTS pgcrypto");
 
-		tx.exec("CREATE TABLE IF NOT EXISTS users(user_id SERIAL PRIMARY KEY, name VARCHAR(64) NOT NULL, avatar VARCHAR(128), status INTEGER NOT NULL, fs_busy BIGINT NOT NULL DEFAULT 0)");
+		// last_status = last valid status before user disconnected on websocket
+		tx.exec("CREATE TABLE IF NOT EXISTS users(user_id SERIAL PRIMARY KEY, name VARCHAR(64) NOT NULL, avatar VARCHAR(128), status INTEGER NOT NULL DEFAULT 0, last_status INTEGER NOT NULL DEFAULT 1, fs_busy BIGINT NOT NULL DEFAULT 0)");
 		tx.exec("CREATE TABLE IF NOT EXISTS auth(auth_id SERIAL PRIMARY KEY, username VARCHAR(64) UNIQUE NOT NULL, password TEXT NOT NULL, user_id INTEGER REFERENCES users NOT NULL)");
 		tx.exec("CREATE TABLE IF NOT EXISTS sessions(token UUID PRIMARY KEY, user_id INTEGER REFERENCES users ON DELETE CASCADE NOT NULL, expiration_time TIMESTAMP WITH TIME ZONE)");
 
@@ -144,21 +145,21 @@ void db_create_test(std::string conn_str)
 	{
 		try{
 			pqxx::work tx{conn};
-			pqxx::result r = tx.exec("INSERT INTO users(name, status) VALUES('test', 0) RETURNING user_id");
+			pqxx::result r = tx.exec("INSERT INTO users(name) VALUES('test') RETURNING user_id");
 			tx.exec("INSERT INTO auth(username, password, user_id) VALUES('test', crypt('qwe123', gen_salt('bf')), $1)", pqxx::params(r[0]["user_id"].as<int>()));
 			tx.commit();
 			created_any_users = true;
 		} catch(const pqxx::unique_violation& e){}
 		try{
 			pqxx::work tx{conn};
-			pqxx::result r = tx.exec("INSERT INTO users(name, status) VALUES('test2', 0) RETURNING user_id");
+			pqxx::result r = tx.exec("INSERT INTO users(name) VALUES('test2') RETURNING user_id");
 			tx.exec("INSERT INTO auth(username, password, user_id) VALUES('test2', crypt('qwe123', gen_salt('bf')), $1)", pqxx::params(r[0]["user_id"].as<int>()));
 			tx.commit();
 			created_any_users = true;
 		} catch(const pqxx::unique_violation& e){}
 		try{
 			pqxx::work tx{conn};
-			pqxx::result r = tx.exec("INSERT INTO users(name, status) VALUES('test3', 0) RETURNING user_id");
+			pqxx::result r = tx.exec("INSERT INTO users(name) VALUES('test3') RETURNING user_id");
 			tx.exec("INSERT INTO auth(username, password, user_id) VALUES('test3', crypt('qwe123', gen_salt('bf')), $1)", pqxx::params(r[0]["user_id"].as<int>()));
 			tx.commit();
 			created_any_users = true;
