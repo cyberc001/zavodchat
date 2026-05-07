@@ -1,4 +1,6 @@
 <script>
+	import {untrack} from 'svelte';
+
 	import {asset} from '$app/paths';
 	import SidebarChannelElement from '$lib/display/sidebar/channel_element.svelte';
 	import SidebarChannelAction from '$lib/display/sidebar/channel_action.svelte';
@@ -10,6 +12,8 @@
 	import PaginatedList from '$lib/display/paginated_list.svelte';
 
 	import Channel from '$lib/rest/channel.js';
+	import Role from '$lib/rest/role.js';
+	import User from '$lib/rest/user.svelte.js';
 	import DM from '$lib/rest/dm.js';
 	import Notifications from '$lib/rest/notifications.js';
 
@@ -18,7 +22,23 @@
 		show_channel, ctx_channel, ctx_vc_user,
 		create_channel} = $props();
 
-	let channels = $derived(server?.loaded ? Channel.get_list(server.data.id) : undefined);
+	let channels = $state();
+	let server_roles = $state();
+	let user_self = $state();
+	$effect(() => {
+		if(server?.loaded){
+			channels = Channel.get_list(server.data.id);
+			user_self = undefined;
+			server_roles = Role.get_list(server.data.id);
+			User.get_self_server(server, (user) => user_self = user);
+		} else {
+			channels = typeof(server) === "undefined" ? undefined : {loaded: false};
+			server_roles = undefined;
+		}
+	});
+
+	let can_manage_channels = $derived(user_self?.loaded && server_roles?.loaded &&
+						Role.check_perms(user_self.data, server.data, server_roles.data, 1, 2));
 
 	let vc_video_elem = $state();
 	$effect(() => {
@@ -53,15 +73,17 @@
 
 <div style="display: flex; flex-direction: column">
 	<div class="panel sidebar_channels">
-		{#if channels}
-			<ServerHead server={server} />
+		{#if server}
+			<ServerHead server={server}/>
 	
-			{#if !channels.loaded}
+			{#if typeof(channels) === "undefined"}
+			{:else if !channels.loaded}
 				<div style="text-align: center; margin-top: 6px">
-					<img src={asset("icons/loading.svg")} alt="loading" class="filter_icon_main" style="width: 48px"/>
+					<img src={asset("icons/loading.svg")} alt="loading" class="filter_icon_main" style="width: 36px"/>
 				</div>
 			{:else}
 				<OrderedList items={channels.data}
+				check_select={() => can_manage_channels}
 				on_drag={(dragged, dragged_idx, hovered, hovered_idx) => {
 					Channel.change(dragged.id, {prev_channel_id: (typeof(hovered) === "undefined" ? -1 : hovered.id)},
 							() => {});
@@ -82,7 +104,7 @@
 			/>
 		{/if}
 	</div>
-	{#if channels?.loaded}
+	{#if channels?.loaded && can_manage_channels}
 		<div class="panel sidebar_channels sidebar_channel_actions">
 			<SidebarChannelAction
 				icon={asset("icons/add.svg")} text="Add channel"

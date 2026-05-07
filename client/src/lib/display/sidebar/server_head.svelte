@@ -1,9 +1,17 @@
 <script>
+	import {asset} from '$app/paths';
+
 	const {server} = $props();
 </script>
 
 <div class="server_head">
-{server.data.name}
+{#if server?.loaded}
+	{server.data.name}
+{:else if typeof(server) !== "undefine"}
+	<div style="text-align: center;">
+		<img src={asset("icons/loading.svg")} alt="loading" class="filter_icon_main" style="width: 36px"/>
+	</div>
+{/if}
 </div>
 
 <style>

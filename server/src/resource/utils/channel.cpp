@@ -80,20 +80,22 @@ std::string channel_utils::move(pqxx::work& tx, int server_id, int channel_id,
 
 	pqxx::result r = tx.exec("SELECT * FROM channels WHERE channel_id = $1", channel_id);
 
-	int head_channel_id = channel_utils::find_head(tx, server_id);
 	int old_prev_channel_id = r[0]["prev_channel_id"].as<int>();
+	if(old_prev_channel_id == prev_channel_id)
+		return "";
+	int head_channel_id = channel_utils::find_head(tx, server_id);
 
 	// Remove channel from linked list
 	tx.exec("UPDATE channels SET prev_channel_id = $1 "
-		"WHERE prev_channel_id = $2",
-		pqxx::params(old_prev_channel_id, channel_id));
+		"WHERE prev_channel_id = $2 AND server_id = $3",
+		pqxx::params(old_prev_channel_id, channel_id, server_id));
 
 	// Insert channel back into the linked list
 	if(prev_channel_id == -1 && !check_member(-1, channel_id, server_id, tx))
 		return "prev_channel_id does not exist";
 	tx.exec("UPDATE channels SET prev_channel_id = $1 "
-		"WHERE prev_channel_id = $2",
-		pqxx::params(channel_id, prev_channel_id));
+		"WHERE prev_channel_id = $2 AND server_id = $3",
+		pqxx::params(channel_id, prev_channel_id, server_id));
 	if(head_channel_id == prev_channel_id)
 		tx.exec("UPDATE servers SET head_channel_id = $1 "
 			"WHERE server_id = $2",

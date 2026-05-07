@@ -113,8 +113,7 @@ export default class Role {
 				return p === 1;
 		}
 
-		console.error(`Default role has a non-default permission, set ${set_i}, index ${perm_i}:\n`,
-				server_roles);
+		console.error(`Default role has a non-default permission, set ${set_i}, index ${perm_i}, last user role id ${user.roles[user.roles.length - 1]}`);
 	}
 	static load_check_perms(server, set_i, perm_i,
 					_then){

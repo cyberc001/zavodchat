@@ -15,11 +15,17 @@
 	let vc_user_divs = $state({});
 
 	let user_self = $state();
-	User.get_self_server(server, (user) => user_self = user);
 	let server_roles = $state();
 	$effect(() => {
-		if(server?.loaded)
+		if(server?.loaded){
 			server_roles = Role.get_list(server.data.id);
+			user_self = undefined;
+			User.get_self_server(server, (user) => user_self = user);
+		}
+		else {
+			server_roles = undefined;
+			user_self = undefined;
+		}
 	});
 
 	let can_join_vc = $derived(user_self?.loaded && server_roles?.loaded &&
