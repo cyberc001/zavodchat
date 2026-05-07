@@ -59,7 +59,7 @@
 	$effect(() => {
 		html;
 		for(const m of self.getElementsByClassName("user_mention")){
-			m.onclick = (e) => show_user(parseInt(e.target.id.substring("user_mention_".length)), e.target);
+			m.onclick = (e) => show_user(parseInt(e.target.id.substring("user_mention_".length)), e, e.target);
 		}
 	});
 

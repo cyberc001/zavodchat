@@ -43,9 +43,9 @@
 		highlight_message: -1
 	});
 
-	const _show_user = (user_id, anchor, anchor_side_x) => {
+	const _show_user = (user_id, e, anchor, anchor_side_x) => {
 		sel.highlight_message = -1;
-		show_user(user_id, anchor, anchor_side_x);
+		show_user(user_id, e, anchor, anchor_side_x);
 	};
 
 	let highlight_expire_tout;
@@ -145,7 +145,6 @@
 
 	// Reset scroll when changing channels
 	$effect(() => {
-		$inspect.trace();
 		channel_id;
 		if(channel_id > -1)
 			untrack(() => message_list?.reset());

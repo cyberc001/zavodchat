@@ -4,6 +4,7 @@
 	import Role from '$lib/rest/role.js';
 
 	let {user, server,
+		id,
 		selected = false,
 		show_user = () => {}, show_ctx_menu = () => {},
 		display_status = true,
@@ -11,7 +12,9 @@
 		message_id = -1} = $props();
 
 	let self = $state();
-	let name = $derived(user?.loaded ? "user_display_" + user.data.id + (message_id > -1 ? "_" + message_id : "") : "");
+	let name = $derived(typeof(id) === "undefined" ? 
+				(user?.loaded ? "user_display_" + user.data.id + (message_id > -1 ? "_" + message_id : "") : "")
+				: id);
 
 	let server_roles = $state();
 	$effect(() => {
@@ -23,9 +26,9 @@
 
 <button class={"user_display hoverable " + (selected ? "selected " : "") + (message_id > -1 ? "" : " sidebar_user_display")}
 	style="anchor-name: --{name}; {style}"
-	id={name}
+	id={typeof(id) === "undefined" ? name : id}
 	bind:this={self}
-	onclick={() => show_user(user?.data.id, self)}
+	onclick={(e) => show_user(user?.data.id, e, self)}
 	oncontextmenu={(e) => {
 		event.preventDefault();
 		show_ctx_menu(self, e);

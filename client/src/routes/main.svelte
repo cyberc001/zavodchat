@@ -49,11 +49,10 @@
 	import UserActions from '$lib/control/context_actions/user.svelte';
 	let user_actions = $state();
 
-	import IconButton from '$lib/control/icon_button.svelte';
-
 	import UserDisplay from '$lib/display/user.svelte';
 	import UserProfileDisplay from '$lib/display/user_profile.svelte';
 	import VCPanel from '$lib/control/vc_panel.svelte';
+	import ProfilePanel from '$lib/control/profile_panel.svelte';
 
 	import ContextMenu from '$lib/control/context_menu.svelte';
 	import ContextMenuAction from '$lib/control/context_menu_action.svelte';
@@ -105,10 +104,10 @@
 		visible: false,
 		off: [0, 0]
 	});
-	const showCtxMenu = (anchor, e, items) => {
+	const showCtxMenu = (anchor, e, items, offset) => {
 		ctx_menu_params.anchor = anchor;
 		const rect = anchor.getBoundingClientRect();
-		ctx_menu_params.off = [e.clientX - rect.left, e.clientY - rect.top];
+		ctx_menu_params.off = typeof(offset) === "undefined" ? [e.clientX - rect.left, e.clientY - rect.top] : offset;
 
 		ctx_menu_params.items = items;
 		ctx_menu_params.visible = true;
@@ -191,7 +190,6 @@
 	});
 
 	const showUser = (id, anchor, anchor_side_x) => {
-		console.log("showUser", id, anchor, anchor_side_x);
 		sel.user.id = id;
 		if(id > -1){
 			profile_display_params.user = User.get_server(sel.server, id);
@@ -223,19 +221,6 @@
 }
 .sidebar_user_display {
 	padding: 3px 6px 3px 6px;
-}
-
-.profile_panel {
-	border-style: solid;
-
-	box-sizing: border-box;
-	height: auto;
-
-	width: 100%;
-	padding: 8px;
-
-	font-size: 18px;
-	overflow-wrap: anywhere;
 }
 </style>
 
@@ -355,29 +340,14 @@
 		{#if socket_vc?.is_in_call()}
 			<VCPanel socket_vc={socket_vc} end_call={endCall}/>
 		{/if}
-		<div class="panel profile_panel">
-			{#if !user_self.loaded}
-				<img src={asset("icons/loading.svg")} alt="loading" class="filter_icon_main" style="width: 24px"/>
-			{:else}
-				<div style="display: flex; align-items: center; margin-bottom: 6px">
-					<img src={User.get_avatar_path(user_self.data)} style="width: 32px; height: 32px; margin-right: 8px" alt="avatar"/>
-					{user_self.data.name}
-					<div style="margin-left:auto">
-						<IconButton icon={asset("icons/settings.svg")}
-							onclick={() => sel.settings_tabs = settings_user_tabs}
-							--height="32px"
-						/>
-					</div>
-				</div>
-			{/if}
-		</div>
+		<ProfilePanel show_ctx_menu={showCtxMenu}/>
 	</div>
 
 	{#if sel.channel > -1}
 		<SidebarMessage server={server} channel_id={sel.channel}
 			sel_message_id={sel.user.message_id} sel_user_id={sel.user.id}
 			socket_vc={socket_vc}
-			show_ctx_menu={showCtxMenu} ctx_vc_user={showVCCtxMenu} show_user={showUser}
+			show_ctx_menu={showCtxMenu} ctx_vc_user={showVCCtxMenu} show_user={(id, e, anchor, anchor_side_x) => showUser(id, anchor, anchor_side_x)}
 			show_ban={showBan}
 			show_channel={showChannel} end_call={endCall}
 		/>
@@ -394,7 +364,7 @@
 				<UserDisplay
 				user={{data: user, loaded: true}} server={server}
 				selected={sel.user.message_id == -1 && user.id == sel.user.id}
-				show_user={(id, anchor) => showUser(id, anchor, "right")}
+				show_user={(id, e, anchor) => showUser(id, anchor, "right")}
 				show_ctx_menu={(anchor, e) => {
 					sel.ctx_user_id = user.id;
 					showCtxMenu(anchor, e);
