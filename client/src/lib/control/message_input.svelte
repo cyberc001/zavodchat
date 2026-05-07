@@ -7,6 +7,7 @@
 	import Markdown from '$lib/display/markdown.js';
 	import Select from '$lib/select.js';
 	import UserDisplay from '$lib/display/user.svelte';
+	import IconButton from '$lib/control/icon_button.svelte';
 	import Autocomplete from '$lib/control/autocomplete.svelte';
 	import EmojiPicker from '$lib/control/emoji_picker.svelte';
 
@@ -300,9 +301,7 @@
 		</div>
 
 		<div style="display: flex; align-items: center; position: relative" bind:this={input_panel}>
-			<button class="hoverable transparent_button" onclick={onattach} disabled={!can_send_messages}>
-				<img class="filter_icon_main" src={asset("icons/attachment.svg")}/>
-			</button>
+			<IconButton icon={asset("icons/attachment.svg")} onclick={onattach} disabled={!can_send_messages}/>
 
 			<div class="item {can_send_messages ? "" : "disabled_item"} message_input_div" bind:this={input_div}
 				contenteditable={can_send_messages.toString()}
@@ -311,14 +310,9 @@
 			>
 			</div>
 
-			<button class="hoverable transparent_button" disabled={!can_send_messages}
-				onclick={() => {show_emoji_picker = !show_emoji_picker;}}>
-				<img style="height: 24px" src={asset("icons/emoji.svg")}/>
-			</button>
-			<button class="hoverable transparent_button" disabled={!can_send_messages}
-				onclick={try_send}>
-				<img class="filter_icon_main" src={asset("icons/send.svg")}/>
-			</button>
+			<IconButton icon={asset("icons/emoji.svg")} filter_class=""
+			onclick={() => show_emoji_picker = !show_emoji_picker} disabled={!can_send_messages}/>
+			<IconButton icon={asset("icons/send.svg")} onclick={try_send} disabled={!can_send_messages}/>
 
 			{#if typeof(ac_params.top) !== "undefined"}
 			<div style="position: absolute; left: {ac_params.left}px; top: {ac_params.top}px;"

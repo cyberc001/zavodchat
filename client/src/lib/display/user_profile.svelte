@@ -4,6 +4,7 @@
 	import User from '$lib/rest/user.svelte.js';
 	import Role from '$lib/rest/role.js';
 
+	import IconButton from '$lib/control/icon_button.svelte';
 	import ContextMenu from '$lib/control/context_menu.svelte';
 	import ContextMenuAction from '$lib/control/context_menu_action.svelte';
 	import MediaDisplay from '$lib/display/media.svelte';

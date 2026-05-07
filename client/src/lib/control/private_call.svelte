@@ -6,6 +6,7 @@
 	import {VideoState} from '$lib/socket/vc_utils.svelte.js';
 
 	import Button from '$lib/control/button.svelte';
+	import IconButton from '$lib/control/icon_button.svelte';
 
 	import User from '$lib/rest/user.svelte.js';
 
@@ -17,7 +18,6 @@
 	let self_user = User.get(-1);
 
 	let vc_users = $derived.by(() => {
-		console.log("CHECK", socket_vc?.get_channel());
 		if(!socket_vc?.get_channel()?.data.vc_users)
 			return [];
 		let users = Object.values(socket_vc.get_channel().data.vc_users);
@@ -27,7 +27,6 @@
 				user: User.get(socket_vc.get_channel().data.other_user_id)
 			});
 		}
-		console.log("USERS", users, "\n", $state.snapshot(socket_vc.get_channel().data));
 		return users;
 	});
 </script>
@@ -64,13 +63,11 @@
 						</div>
 					{/if}
 					{#if socket_vc?.get_video(vc_state.user.data.id)}
-					<button class="hoverable transparent_button"
+						<IconButton icon={asset("icons/watch.svg")}	
 							onclick={() => {
 								socket_vc.watch_video(vc_state.user.data.id);
 							}}
-					>
-						<img src={asset("icons/watch.svg")} alt="watch" class="filter_icon_main vc_state_icon"/>
-					</button>
+						/>
 					{/if}
 
 					{#if vc_state.mute}

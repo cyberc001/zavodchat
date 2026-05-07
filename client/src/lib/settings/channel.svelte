@@ -4,6 +4,7 @@
 	import Group from '$lib/control/group.svelte';
 	import Textbox from '$lib/control/textbox.svelte';
 	import Button from '$lib/control/button.svelte';
+	import IconButton from '$lib/control/icon_button.svelte';
 	import Select from '$lib/control/select.svelte';
 	import List from '$lib/control/list.svelte';
 	import Toggle from '$lib/control/toggle.svelte';
@@ -142,13 +143,13 @@
 {/if}
 
 <div style="margin-left: auto">
-	<button class="transparent_button hoverable"
-	onclick={() => i < state_access.state.wl_roles.length ?
-			state_access.state.wl_roles.splice(i, 1) :
-			state_access.state.wl_users.splice(i - state_access.state.wl_roles.length, 1)
-		}>
-		<img src={asset("icons/close.svg")} alt="remove from whitelist" class="filter_icon_main" style="width: 32px"/>
-	</button>
+	<IconButton icon={asset("icons/close.svg")}
+		onclick={() => i < state_access.state.wl_roles.length ?
+				state_access.state.wl_roles.splice(i, 1) :
+				state_access.state.wl_users.splice(i - state_access.state.wl_roles.length, 1)
+			}
+		--height="32px"
+	/>
 </div>
 </div>
 {/snippet}
@@ -224,10 +225,10 @@
 </div>
 
 <div style="margin-left: auto">
-	<button class="transparent_button hoverable"
-	onclick={() => state_permissions.state.roles.splice(i, 1)}>
-		<img src={asset("icons/close.svg")} alt="remove role permissions" class="filter_icon_main" style="width: 32px"/>
-	</button>
+	<IconButton icon={asset("icons/close.svg")}
+		onclick={() => state_permissions.state.roles.splice(i, 1)}
+		--height="32px"
+	/>
 </div>
 </div>
 {/snippet}
@@ -247,9 +248,8 @@
 		--margin-right="6px"
 		/>
 		<Button text="Add"
+		disabled={typeof(perms_role_to_add) === "undefined"}
 		onclick={() => {
-			if(typeof(perms_role_to_add) === "undefined")
-				return;
 			state_permissions.state.roles.push({id: perms_role_to_add.id, perms1: 0});
 			perms_role_picker.reset();
 		}}

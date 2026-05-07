@@ -49,6 +49,8 @@
 	import UserActions from '$lib/control/context_actions/user.svelte';
 	let user_actions = $state();
 
+	import IconButton from '$lib/control/icon_button.svelte';
+
 	import UserDisplay from '$lib/display/user.svelte';
 	import UserProfileDisplay from '$lib/display/user_profile.svelte';
 	import VCPanel from '$lib/control/vc_panel.svelte';
@@ -360,12 +362,12 @@
 				<div style="display: flex; align-items: center; margin-bottom: 6px">
 					<img src={User.get_avatar_path(user_self.data)} style="width: 32px; height: 32px; margin-right: 8px" alt="avatar"/>
 					{user_self.data.name}
-					<button class="hoverable transparent_button"
-						style="margin-left:auto"
-						onclick={() => sel.settings_tabs = settings_user_tabs}
-					>
-						<img src={asset("icons/settings.svg")} alt="profile settings" class="filter_icon_main" style="width: 32px"/>
-					</button>
+					<div style="margin-left:auto">
+						<IconButton icon={asset("icons/settings.svg")}
+							onclick={() => sel.settings_tabs = settings_user_tabs}
+							--height="32px"
+						/>
+					</div>
 				</div>
 			{/if}
 		</div>

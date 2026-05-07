@@ -4,6 +4,7 @@
 	import Tabs from '$lib/control/tabs.svelte';
 	import UserDisplay from '$lib/display/user.svelte';
 	import Button from '$lib/control/button.svelte';
+	import IconButton from '$lib/control/icon_button.svelte';
 	import Autocomplete from '$lib/control/autocomplete.svelte';
 	import Dialog from '$lib/control/dialog.svelte';
 
@@ -65,23 +66,21 @@ buttons={[{text: "Remove", action: () => Friends.remove_friend(user_to_remove.da
 
 				<div class="friend_actions">
 					{#if friend.user.loaded}
-					<button class="transparent_button hoverable"
-					onclick={() => showDMChannel(friend.user.data.id, 0)}>
-						<img src={asset("icons/channel_text.svg")} alt="text friend" class="filter_icon_main" style="width: 32px"/>
-					</button>
-
-					<button class="transparent_button hoverable"
-					onclick={() => showDMChannel(friend.user.data.id, 1)}>
-						<img src={asset("icons/call.svg")} alt="call friend" class="filter_icon_main" style="width: 32px"/>
-					</button>
-
-					<button class="transparent_button hoverable"
-					onclick={() => {
-						user_to_remove = friend.user;
-						friend_remove_confirm.show();
-					}}>
-						<img src={asset("icons/close.svg")} alt="remove friend" class="filter_icon_main" style="width: 32px"/>
-					</button>
+					<IconButton icon={asset("icons/channel_text.svg")}
+						onclick={() => showDMChannel(friend.user.data.id, 0)}
+						--height="32px"
+					/>
+					<IconButton icon={asset("icons/call.svg")}
+						onclick={() => showDMChannel(friend.user.data.id, 1)}
+						--height="32px"
+					/>
+					<IconButton icon={asset("icons/close.svg")}
+						onclick={() => {
+							user_to_remove = friend.user;
+							friend_remove_confirm.show();
+						}}
+						--height="32px"
+					/>
 					{/if}
 				</div>
 			</div>
@@ -100,23 +99,23 @@ buttons={[{text: "Remove", action: () => Friends.remove_friend(user_to_remove.da
 				<div class="friend_actions">
 				{#if req.loaded}
 				{#if args.requests === in_requests}
-					<button class="transparent_button hoverable"
-					onclick={() => Friends.accept_or_create_request(req.data.id)}>
-						<img src={asset("icons/add.svg")} alt="accept friend request" class="filter_icon_main" style="width: 32px"/>
-					</button>
-					<button class="transparent_button hoverable"
-					onclick={() => Friends.deny_request(req.data.id)}>
-						<img src={asset("icons/close.svg")} alt="deny friend request" class="filter_icon_main" style="width: 32px"/>
-					</button>
-					<button class="transparent_button hoverable"
-					onclick={() => BlockedUsers.block_user(req.data.id)}>
-						<img src={asset("icons/block.svg")} alt="block user" class="filter_icon_main" style="width: 32px"/>
-					</button>
+					<IconButton icon={asset("icons/add.svg")}
+						onclick={() => Friends.accept_or_create_request(req.data.id)}
+						--height="32px"
+					/>
+					<IconButton icon={asset("icons/close.svg")}
+						onclick={() => Friends.deny_request(req.data.id)}
+						--height="32px"
+					/>
+					<IconButton icon={asset("icons/block.svg")}
+						onclick={() => BlockedUsers.block_user(req.data.id)}
+						--height="32px"
+					/>
 				{:else}
-					<button class="transparent_button hoverable"
-					onclick={() => Friends.deny_request(req.data.id)}>
-						<img src={asset("icons/close.svg")} alt="cancel friend request" class="filter_icon_main" style="width: 32px"/>
-					</button>
+					<IconButton icon={asset("icons/close.svg")}
+						onclick={() => Friends.deny_request(req.data.id)}
+						--height="32px"
+					/>
 				{/if}
 				{/if}
 				</div>

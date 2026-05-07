@@ -2,6 +2,7 @@
 	import {asset} from '$app/paths';
 	import SettingsTabState from "$lib/control/settings_tab_state.svelte.js";
 	import Button from "$lib/control/button.svelte";
+	import IconButton from '$lib/control/icon_button.svelte';
 
 	let {tabs, close_settings} = $props();
 
@@ -58,15 +59,13 @@
 		</div>
 	</div>
 	<div style="z-index: 200">
-		<button
-		class="hoverable transparent_button"
-		onclick={() => {
-			tabs[sel_tab].state.discard_changes();
-			close_settings();
-		}}
-		>
-			<img src={asset("icons/close.svg")} alt="close settings" class="filter_icon_main" style="width: 32px"/>
-		</button>
+		<IconButton icon={asset("icons/close.svg")}	
+			onclick={() => {
+				tabs[sel_tab].state.discard_changes();
+				close_settings();
+			}}
+			--height="32px"
+		/>
 	</div>
 	{#if loading || tabs[sel_tab].state.changes === SettingsTabState.ChangesState.Loading}
 		<div class="tabbed_settings_inner_tab_overlay">

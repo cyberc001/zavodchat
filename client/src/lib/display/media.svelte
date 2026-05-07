@@ -2,6 +2,8 @@
 	import {asset} from '$app/paths';
 	import {onDestroy} from 'svelte';
 
+	import IconButton from '$lib/control/icon_button.svelte';
+
 	let {close_media = () => {}} = $props();
 
 	const onkeyup = (e) => {
@@ -16,12 +18,10 @@
 
 <div class="media_display">
 	<slot></slot>
-	<button
-		class="hoverable transparent_button media_close_button"
-		onclick={close_media}
-	>
-		<img src={asset("icons/close.svg")} alt="close media" class="filter_icon_main" style="width: 32px"/>
-	</button>
+	<div class="media_close_button">
+		<IconButton icon={asset("icons/close.svg")} onclick={close_media}
+		--height="32px" />
+	</div>
 </div>
 
 <div class="media_bg">

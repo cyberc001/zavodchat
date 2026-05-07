@@ -4,6 +4,7 @@
 
 	import {VideoState} from '$lib/socket/vc_utils.svelte.js';
 
+	import IconButton from '$lib/control/icon_button.svelte';
 	import Sound from '$lib/sound.js';
 
 	import User from '$lib/rest/user.svelte.js';
@@ -41,37 +42,19 @@
 		{name}
 
 		<div style="margin-left: auto; display: flex">
-			<button class="hoverable transparent_button"
-				onclick={() => {
-					socket_vc.set_video_state(socket_vc.get_video_state() === VideoState.Disabled ?
-									VideoState.Screen : VideoState.Disabled);
-				}}
-			>
-				<img src={asset("icons/screen_share" + (socket_vc.get_video_state() === VideoState.Screen ? "_stop" : "") + ".svg")}
-					alt={socket_vc.get_video_state() === VideoState.Screen ? "stop sharing screen" : "share screen"} class="filter_icon_main" style="width: 24px">
-			</button>
-
-			<button class="hoverable transparent_button"
-				onclick={() => {
-					socket_vc.toggle_mute();
-				}}
-			>
-				<img src={asset("/icons/" + (socket_vc.is_mute() ? "" : "not_") + "muted.svg")}
-					alt={(socket_vc.is_mute() ? "un" : "") + "mute"} class="filter_icon_main" style="width: 24px">
-			</button>
-			<button class="hoverable transparent_button"
-				onclick={() => {
-					socket_vc.toggle_deaf();
-				}}
-			>
-				<img src={asset("icons/" + (socket_vc.is_deaf() ? "" : "not_") + "deaf.svg")}
-					alt={(socket_vc.is_deaf() ? "un" : "") + "deafen"} class="filter_icon_main" style="width: 24px">
-			</button>
-			<button class="hoverable transparent_button"
+			<IconButton icon={asset("icons/screen_share" + (socket_vc.get_video_state() === VideoState.Screen ? "_stop" : "") + ".svg")}
+				onclick={() => socket_vc.set_video_state(socket_vc.get_video_state() === VideoState.Disabled ?
+										VideoState.Screen : VideoState.Disabled)}
+			/>
+			<IconButton icon={asset("/icons/" + (socket_vc.is_mute() ? "" : "not_") + "muted.svg")}
+				onclick={() => socket_vc.toggle_mute()}
+			/>
+			<IconButton icon={asset("icons/" + (socket_vc.is_deaf() ? "" : "not_") + "deaf.svg")}
+				onclick={() => socket_vc.toggle_deaf()}
+			/>
+			<IconButton icon={asset("icons/hang.svg")}
 				onclick={end_call}
-			>
-				<img src={asset("icons/hang.svg")} alt="end call" class="filter_icon_main" style="width: 24px">
-			</button>
+			/>
 		</div>
 	</div>
 	<div style="color: {socket_vc.get_state().color}">

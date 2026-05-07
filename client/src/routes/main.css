@@ -89,10 +89,6 @@ button {
 .transparent_button:not(.selected):not(:hover) {
 	background: transparent;
 }
-.transparent_button:disabled > img {
-	filter: brightness(0) saturate(100%) invert(47%) sepia(6%) saturate(243%) hue-rotate(212deg) brightness(98%) contrast(88%);
-}
-
 
 .attachment_square {
 	border-radius: 4px;

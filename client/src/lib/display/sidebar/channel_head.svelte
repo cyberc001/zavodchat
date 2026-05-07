@@ -2,6 +2,7 @@
 	import {asset} from '$app/paths';
 
 	import SearchBar from '$lib/control/search_bar.svelte';
+	import IconButton from '$lib/control/icon_button.svelte';
 
 	import User from '$lib/rest/user.svelte.js';
 	import Channel from '$lib/rest/channel.js';
@@ -36,19 +37,18 @@
 
 <div style="margin-left: auto; display: flex">
 	{#if other_user}
-		<button class="transparent_button hoverable"
-		style="margin-right: 4px"
-		onclick={() => {
-			let dm = DM.open(other_user.data.id);
-			dm.notify_on_load(() => {
-				const ch = Channel.get(dm.data[1]);
-				ch.notify_on_load(() => {
-					show_channel(ch.data);
+		<IconButton icon={asset("icons/call.svg")}
+			onclick={() => {
+				let dm = DM.open(other_user.data.id);
+				dm.notify_on_load(() => {
+					const ch = Channel.get(dm.data[1]);
+					ch.notify_on_load(() => {
+						show_channel(ch.data);
+					});
 				});
-			});
-		}}>
-			<img src={asset("icons/call.svg")} alt="call friend" class="filter_icon_main" style="width: 32px"/>
-		</button>
+			}}
+			--height="32px"
+		/>
 	{/if}
 	<SearchBar server={server} bind:this={search_bar}
 		elements={[

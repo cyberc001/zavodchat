@@ -4,6 +4,7 @@
 
 	import FocusManager from '$lib/focus_manager.svelte';
 
+	import IconButton from '$lib/control/icon_button.svelte';
 	import Textbox from '$lib/control/textbox.svelte';
 
 	let {
@@ -29,12 +30,11 @@
 />
 
 {#snippet emoji_button(emoji)}
-	<button class="transparent_button" onclick={() => {
+	<IconButton icon={emoji.image} filter_class=""
+	onclick={() => {
 		on_picked(emoji);
 		hide_picker();
-	}}>
-		<img src={emoji.image} class="emoji_picker_emoji"/>
-	</button>
+	}}/>
 {/snippet}
 
 <div class="item emoji_picker_panel" bind:this={self}>

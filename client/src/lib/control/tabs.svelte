@@ -1,4 +1,6 @@
 <script>
+	import IconButton from '$lib/control/icon_button.svelte';
+
 	let {tabs} = $props();
 
 	let sel_i = $state(0);
