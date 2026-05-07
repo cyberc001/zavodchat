@@ -64,6 +64,11 @@ export default class Util {
 			ln = 2;
 		return Math.round(num).toString(16).padStart(ln, "0");
 	}
+
+	static formatTimeHHMM(date){
+		return `${Util.padded(date.getHours(), 2)}:${Util.padded(date.getMinutes(), 2)}`;
+	}
+
 	
 	// Algorithms
 	static bin_search(arr, cmp_func, reverse){

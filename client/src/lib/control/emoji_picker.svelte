@@ -31,10 +31,12 @@
 
 {#snippet emoji_button(emoji)}
 	<IconButton icon={emoji.image} filter_class=""
-	onclick={() => {
-		on_picked(emoji);
-		hide_picker();
-	}}/>
+		onclick={() => {
+			on_picked(emoji);
+			hide_picker();
+		}}
+		--padding="1px 2px 1px 2px"
+	/>
 {/snippet}
 
 <div class="item emoji_picker_panel" bind:this={self}>
@@ -81,10 +83,6 @@
 }
 .emoji_picker_list {
 	overflow-y: scroll;
-}
-.emoji_picker_emoji {
-	height: 24px;
-	padding: 1px 2px 1px 2px;
 }
 .emoji_group_title {
 	font-size: 16px;

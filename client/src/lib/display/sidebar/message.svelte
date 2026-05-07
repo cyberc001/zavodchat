@@ -19,6 +19,8 @@
 	import Role from '$lib/rest/role.js';
 	import File from '$lib/rest/file.js';
 
+	import Notifs from '$lib/notifs.svelte.js';
+
 	let {server, channel_id,
 		sel_message_id, sel_user_id,
 		socket_vc,
@@ -151,6 +153,21 @@
 </script>
 
 
+{#snippet action_copy_message(hide_ctx_menu)}
+	<ContextMenuAction icon={asset("icons/copy.svg")} text="Copy"
+		hide_ctx_menu={hide_ctx_menu}
+		onclick={() => {
+			const msg = message_list.getItem(sel.ctx_message);
+			const author = User.get(msg.author_id);
+			author.notify_on_load(() => {
+				const text = `[${new Date(msg.sent).toLocaleString()}] ${author.data.name}:\n` + msg.text;
+				navigator.clipboard.writeText(text)
+					.then(() => Notifs.add_notif("Copied message to buffer", Notifs.Types.Normal));
+			});
+		}}
+	/>
+{/snippet}
+
 {#snippet action_edit_message(hide_ctx_menu)}
 	<ContextMenuAction icon={asset("icons/edit.svg")} text="Edit"
 		hide_ctx_menu={hide_ctx_menu}
@@ -230,11 +247,10 @@ insert_message_text={(text) => message_input?.insertText(text)}
 					_show_user(-1);
 					
 					if(for_message){
-						let actions = [];
+						let actions = [action_copy_message];
 						if(is_search)
 							actions.push(action_goto_message);
 						else {
-							actions = [];
 							if(typeof(server) !== "undefined")
 								actions.push(action_reply_to_message);
 

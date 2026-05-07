@@ -102,7 +102,13 @@
 				}
 			}
 		}
-	}	
+	};
+
+	const div_oncopy = () => {
+		event.clipboardData.setData("text/plain", value);
+		event.preventDefault();
+	};
+
 
 	let files = $state();
 	let file_input = $state();
@@ -304,6 +310,7 @@
 			<IconButton icon={asset("icons/attachment.svg")} onclick={onattach} disabled={!can_send_messages}/>
 
 			<div class="item {can_send_messages ? "" : "disabled_item"} message_input_div" bind:this={input_div}
+				oncopy={div_oncopy}
 				contenteditable={can_send_messages.toString()}
 				oninput={div_oninput}
 				onkeyup={div_onkeyup}

@@ -492,8 +492,7 @@ This cannot be reversed.
 	<Button text="Get link"
 		onclick={() => {
 			navigator.clipboard.writeText(page.url + "server_invites/" + state_invites.state.list[invite_list_selected_idx].id)
-							.then(() => Notifs.add_notif("Copied invite link to buffer", Notifs.Types.Normal)
-			);
+				.then(() => Notifs.add_notif("Copied invite link to buffer", Notifs.Types.Normal));
 		}}
 	/>
 	<Button text="Remove"

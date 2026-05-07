@@ -6,6 +6,7 @@
 </script>
 
 <button class="settings_icon_button hoverable"
+style="padding:var(--padding, inherit)"
 onclick={onclick} {disabled}
 >
 	<img src={icon} class={filter_class} style="height: var(--height, 24px)"/>

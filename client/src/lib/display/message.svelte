@@ -37,6 +37,13 @@
 		return status;
 	});
 
+
+	const text_oncopy = (e) => {
+		event.clipboardData.setData("text/plain", data.text);
+		event.preventDefault();
+	};
+
+
 	let self = $state();
 	let server_roles = $state();
 	let server_emojis = $state();
@@ -55,9 +62,6 @@
 			m.onclick = (e) => show_user(parseInt(e.target.id.substring("user_mention_".length)), e.target);
 		}
 	});
-
-	const padnum = (x, n) => x.toString().padStart(n, '0');
-	const formatTimeHHMM = (date) => `${padnum(date.getHours(), 2)}:${padnum(date.getMinutes(), 2)}`;
 
 	const img_attachments = $derived(data.attachments.filter((x) => x.type === Message.AttachmentType.Image));
 	const file_attachments = $derived(data.attachments.filter((x) => x.type === Message.AttachmentType.File));
@@ -115,21 +119,21 @@
 	<div class={"message_content_panel hoverable" + (highlighted ? " highlighted" : (selected ? " selected" : ""))}
 	style="anchor-name: --{"message_display_" + data.id}"
 	role="listitem"
-	title={`Sent: ${new Date(data.sent)}\nLast edited: ${is_edited ? new Date(data.edited) : "never"}`}
 	bind:this={self}
 	oncontextmenu={(e) => {
 		event.preventDefault();
 		show_ctx_menu(self, e, true);
 	}}
 	>
-		<div>
-			<div class="message_time">{formatTimeHHMM(new Date(data.sent))}</div>
+		<div title={`Sent: ${new Date(data.sent)}\nLast edited: ${is_edited ? new Date(data.edited) : "never"}`}>
+			<div class="message_time">{Util.formatTimeHHMM(new Date(data.sent))}</div>
 			{#if is_edited}
 				<div class="message_time">edited</div>
 			{/if}
 		</div>
 		<div>
-			<div style={data.attachments.length > 0 ? "margin-bottom: 4px" : ""} class="message_text">
+			<div style={data.attachments.length > 0 ? "margin-bottom: 4px" : ""} class="message_text"
+				oncopy={text_oncopy}>
 				{@html html}
 			</div>
 
@@ -208,6 +212,14 @@
 	font-size: 14px;
 	font-family: ui-monospace;
 	color: var(--clr_text_secondary);
+
+	-webkit-touch-callout: none;
+	-webkit-user-select: none;
+	-khtml-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	-o-user-select: none;
+	user-select: none;
 }
 
 .attachment_file {
