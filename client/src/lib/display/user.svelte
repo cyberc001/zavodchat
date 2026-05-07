@@ -54,7 +54,7 @@
 	display: flex;
 	align-items: center;
 	height: auto;
-	max-width: 100%;
+	max-width: var(--max-width, 100%);
 
 	margin-bottom: 6px;
 

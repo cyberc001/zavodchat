@@ -8,7 +8,7 @@
 	import Status from '$lib/rest/status.js';
 
 
-	let {show_ctx_menu} = $props();
+	let {open_settings, show_ctx_menu} = $props();
 
 	let user_self = User.get(-1);
 </script>
@@ -51,7 +51,15 @@
 						[status_online, status_away, status_donotdisturb, status_offline],
 						[rect.width + 10, 0]);
 			}}
+			--max-width="85%"
 		/>
+
+		<div style="margin-left:auto">
+			<IconButton icon={asset("icons/settings.svg")}
+				onclick={open_settings}
+				--height="32px"
+			/>
+		</div>
 	{/if}
 </div>
 
@@ -65,8 +73,7 @@
 	width: 100%;
 	padding: 8px;
 
-	font-size: 18px;
-	overflow-wrap: anywhere;
+	display: flex;
 }
 
 .status_button {

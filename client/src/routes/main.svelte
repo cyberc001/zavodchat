@@ -340,7 +340,7 @@
 		{#if socket_vc?.is_in_call()}
 			<VCPanel socket_vc={socket_vc} end_call={endCall}/>
 		{/if}
-		<ProfilePanel show_ctx_menu={showCtxMenu}/>
+		<ProfilePanel show_ctx_menu={showCtxMenu} open_settings={() => sel.settings_tabs = settings_user_tabs}/>
 	</div>
 
 	{#if sel.channel > -1}
