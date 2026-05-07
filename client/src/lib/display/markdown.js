@@ -127,6 +127,12 @@ export default class Markdown {
 			},
 			codespan(token){
 				return `<code>${token.raw}</code>`;
+			},
+
+			text(token){
+				if(token.type === "escape")
+					return token.raw.replace('\\', '<p style="color: #888888">\\</p>');
+				return false;
 			}
 		},
 
