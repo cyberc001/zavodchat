@@ -335,17 +335,16 @@ export default class MainSocket {
 	sel; self_user;
 	ws_ping_intv;
 
-	constructor(sel, onclose, onerror, onmessage){
+	constructor(sel, onopen, onclose, onmessage){
 		this.sel = sel;
 		this.self_user = User.get(-1);
 
 		this.ws = new WebSocket(PUBLIC_BASE_SOCKET);
+		this.ws.onopen = onopen;
 		this.ws.onclose = (e) => {
-			console.log(e);
 			clearInterval(this.ws_ping_intv);
 			onclose(e);
 		};
-		this.ws.onerror = onerror;
 
 		this.ws.onmessage = (e) => {
 			const _data = JSON.parse(e.data);

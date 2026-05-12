@@ -53,6 +53,7 @@
 	import UserProfileDisplay from '$lib/display/user_profile.svelte';
 	import VCPanel from '$lib/control/vc_panel.svelte';
 	import ProfilePanel from '$lib/control/profile_panel.svelte';
+	import LoadingPage from '$lib/display/loading_page.svelte';
 
 	import ContextMenu from '$lib/control/context_menu.svelte';
 	import ContextMenuAction from '$lib/control/context_menu_action.svelte';
@@ -129,9 +130,17 @@
 		settings_params = {};
 	}
 
-	// Sockets
+	// Automatically reload page on main socket being closed
+	// Block off page before main socket has loaded
+	let socket_main_state = $state("loading");
 	let socket_main = new MainSocket(sel,
-					setError, setError,
+					() => socket_main_state = "loaded",
+					() => {
+						socket_main_state = "closed";
+						setTimeout(() => {
+							location.reload();
+						}, 3000);
+					},
 					(name, data) => {
 						socket_vc?.on_main_message(name, data);
 
@@ -273,6 +282,13 @@
 {/snippet}
 
 
+{#if socket_main_state === "loading"}
+<LoadingPage message="Trying to establish connection to websocket..."/>
+{:else if socket_main_state === "closed"}
+<LoadingPage message="Websocket connection lost. Reloading page..."/>
+{:else}
+
+<!-- PAGE STATE -->
 
 <VCSocket bind:this={socket_vc}/>
 
@@ -293,6 +309,7 @@
 		<TabbedSettings tabs={sel.settings_tabs} close_settings={closeSettings}/>
 	</div>
 {:else}
+	<!-- PAGE CONTENT -->
 	<div class="main">
 		<div style="height: 100%; width: 322px; margin-left: 16px; display: flex; flex-direction: column">
 			<div style="display: flex; height: 100%">
@@ -335,64 +352,64 @@
 						sel.settings_tabs = create_channel_tabs;
 					}}
 				/>
+			</div>
+
+			{#if socket_vc?.is_in_call()}
+				<VCPanel socket_vc={socket_vc} end_call={endCall}/>
+			{/if}
+			<ProfilePanel show_ctx_menu={showCtxMenu} open_settings={() => sel.settings_tabs = settings_user_tabs}/>
 		</div>
 
-		{#if socket_vc?.is_in_call()}
-			<VCPanel socket_vc={socket_vc} end_call={endCall}/>
+		{#if sel.channel > -1}
+			<SidebarMessage server={server} channel_id={sel.channel}
+				sel_message_id={sel.user.message_id} sel_user_id={sel.user.id}
+				socket_vc={socket_vc}
+				show_ctx_menu={showCtxMenu} ctx_vc_user={showVCCtxMenu} show_user={(id, e, anchor, anchor_side_x) => showUser(id, anchor, anchor_side_x)}
+				show_ban={showBan}
+				show_channel={showChannel} end_call={endCall}
+			/>
+		{:else if sel.server === -1}
+			<SidebarFriends show_channel={showChannel}/>
+		{:else}
+			<div class="panel" style="width: 100%; height: 100%">
+			</div>
 		{/if}
-		<ProfilePanel show_ctx_menu={showCtxMenu} open_settings={() => sel.settings_tabs = settings_user_tabs}/>
+
+		{#if sel.server > -1}
+			<div class="panel sidebar_users">
+				{#snippet render_user(i, user)}
+					<UserDisplay
+					user={{data: user, loaded: true}} server={server}
+					selected={sel.user.message_id == -1 && user.id == sel.user.id}
+					show_user={(id, e, anchor) => showUser(id, anchor, "right")}
+					show_ctx_menu={(anchor, e) => {
+						sel.ctx_user_id = user.id;
+						showCtxMenu(anchor, e);
+						user_actions.get(user_self.data.id, user.id, server, server_roles,
+									(actions) => showCtxMenu(anchor, e, actions));
+					}}
+					/>
+				{/snippet}
+				<PaginatedList bind:this={server_user_list}
+				render_item={render_user}
+				load_items={(start_id, range, asc) => User.get_server_range(sel.server, start_id, range, asc)}
+				to_latest_text="Up"/>
+			</div>
+		{/if}
 	</div>
 
-	{#if sel.channel > -1}
-		<SidebarMessage server={server} channel_id={sel.channel}
-			sel_message_id={sel.user.message_id} sel_user_id={sel.user.id}
-			socket_vc={socket_vc}
-			show_ctx_menu={showCtxMenu} ctx_vc_user={showVCCtxMenu} show_user={(id, e, anchor, anchor_side_x) => showUser(id, anchor, anchor_side_x)}
-			show_ban={showBan}
-			show_channel={showChannel} end_call={endCall}
+	{#if profile_display_params.user}
+		<UserProfileDisplay
+			anchor={profile_display_params.anchor} anchor_side_x={profile_display_params.anchor_side_x}
+			user={profile_display_params.user.data} server={server}
+			hide_profile={() => showUser(-1)}
+			assign_role={(role_id) => User.assign_role(sel.server, profile_display_params.user.data.id, role_id,
+										() => {})}
+			disallow_role={(role_id) => User.disallow_role(sel.server, profile_display_params.user.data.id, role_id,
+										() => {})}
 		/>
-	{:else if sel.server === -1}
-		<SidebarFriends show_channel={showChannel}/>
-	{:else}
-		<div class="panel" style="width: 100%; height: 100%">
-		</div>
 	{/if}
-
-	{#if sel.server > -1}
-		<div class="panel sidebar_users">
-			{#snippet render_user(i, user)}
-				<UserDisplay
-				user={{data: user, loaded: true}} server={server}
-				selected={sel.user.message_id == -1 && user.id == sel.user.id}
-				show_user={(id, e, anchor) => showUser(id, anchor, "right")}
-				show_ctx_menu={(anchor, e) => {
-					sel.ctx_user_id = user.id;
-					showCtxMenu(anchor, e);
-					user_actions.get(user_self.data.id, user.id, server, server_roles,
-								(actions) => showCtxMenu(anchor, e, actions));
-				}}
-				/>
-			{/snippet}
-			<PaginatedList bind:this={server_user_list}
-			render_item={render_user}
-			load_items={(start_id, range, asc) => User.get_server_range(sel.server, start_id, range, asc)}
-			to_latest_text="Up"/>
-		</div>
-	{/if}
-</div>
-
-{#if profile_display_params.user}
-	<UserProfileDisplay
-		anchor={profile_display_params.anchor} anchor_side_x={profile_display_params.anchor_side_x}
-		user={profile_display_params.user.data} server={server}
-		hide_profile={() => showUser(-1)}
-		assign_role={(role_id) => User.assign_role(sel.server, profile_display_params.user.data.id, role_id,
-									() => {})}
-		disallow_role={(role_id) => User.disallow_role(sel.server, profile_display_params.user.data.id, role_id,
-									() => {})}
-	/>
-{/if}
-
+	<!-- PAGE CONTENT END -->
 {/if}
 
 <IncomingCall socket_vc={socket_vc} show_channel={showChannel}/>
@@ -418,3 +435,6 @@
 		bind:expires={ban.expires} bind:error={ban.error}
 	/>
 </Dialog>
+
+<!-- PAGE STATE END -->
+{/if}
