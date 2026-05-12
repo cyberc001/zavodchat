@@ -37,7 +37,7 @@
 		}
 	});
 
-	let can_manage_channels = $derived(user_self?.loaded && server_roles?.loaded &&
+	let can_manage_channels = $derived(server && user_self?.loaded && server_roles?.loaded &&
 						Role.check_perms(user_self.data, server.data, server_roles.data, 1, 2));
 
 	let vc_video_elem = $state();
@@ -83,7 +83,9 @@
 				</div>
 			{:else}
 				<OrderedList items={channels.data}
-				check_select={() => can_manage_channels}
+				hoverable={false}
+				check_select={() => false}
+				check_drag={() => can_manage_channels}
 				on_drag={(dragged, dragged_idx, hovered, hovered_idx) => {
 					Channel.change(dragged.id, {prev_channel_id: (typeof(hovered) === "undefined" ? -1 : hovered.id)},
 							() => {});

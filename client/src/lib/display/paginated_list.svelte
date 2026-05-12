@@ -181,6 +181,7 @@
 		const max_scroll = list_div.scrollHeight - list_div.clientHeight;
 		if(next_scroll_top >= max_scroll || next_scroll_top < 0){
 			let dir = Math.sign(e.deltaY) * reverse_sign;
+			console.log("trying to load more items\n", dir, items.is_full, can_scroll_before);
 
 			if(next_scroll_top >= max_scroll)
 				list_div.scrollTop = max_scroll;
@@ -275,8 +276,7 @@
 	align-items: center;
 	justify-content: center;
 
-	padding: 0 8px 0 8px;
-	height: 28px;
+	padding: 2px 4px 2px 4px;
 
 	position: absolute;
 	top: 0%;
@@ -289,7 +289,7 @@
 	border-style: none;
 }
 .paginated_list_overlay_text {
-	font-size: 20px;
+	font-size: 16px;
 	color: var(--clr_text);
 }
 </style>

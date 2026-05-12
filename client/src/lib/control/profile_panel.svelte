@@ -65,7 +65,7 @@
 
 <style>
 .profile_panel {
-	border-style: solid;
+	border-style: solid solid solid none;
 
 	box-sizing: border-box;
 	height: auto;

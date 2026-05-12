@@ -56,7 +56,7 @@ buttons={[{text: "Remove", action: () => Friends.remove_friend(user_to_remove.da
 			render_data={render_user}
 			get_data={(index, range, asc, list_value_name) => User.get_range(index, range, asc, list_value_name)}
 			--width="min(40vw, 350px)"/>
-			<Button text="Add friend" --margin-left="10px"
+			<Button text="Add friend" --margin-left="6px"
 			disabled={typeof user_to_add === "undefined"}
 			onclick={() => Friends.accept_or_create_request(user_to_add.id, user_ac.reset)}/>
 		</div>
@@ -68,18 +68,15 @@ buttons={[{text: "Remove", action: () => Friends.remove_friend(user_to_remove.da
 					{#if friend.user.loaded}
 					<IconButton icon={asset("icons/channel_text.svg")}
 						onclick={() => showDMChannel(friend.user.data.id, 0)}
-						--height="32px"
 					/>
 					<IconButton icon={asset("icons/call.svg")}
 						onclick={() => showDMChannel(friend.user.data.id, 1)}
-						--height="32px"
 					/>
 					<IconButton icon={asset("icons/close.svg")}
 						onclick={() => {
 							user_to_remove = friend.user;
 							friend_remove_confirm.show();
 						}}
-						--height="32px"
 					/>
 					{/if}
 				</div>
@@ -101,20 +98,16 @@ buttons={[{text: "Remove", action: () => Friends.remove_friend(user_to_remove.da
 				{#if args.requests === in_requests}
 					<IconButton icon={asset("icons/add.svg")}
 						onclick={() => Friends.accept_or_create_request(req.data.id)}
-						--height="32px"
 					/>
 					<IconButton icon={asset("icons/close.svg")}
 						onclick={() => Friends.deny_request(req.data.id)}
-						--height="32px"
 					/>
 					<IconButton icon={asset("icons/block.svg")}
 						onclick={() => BlockedUsers.block_user(req.data.id)}
-						--height="32px"
 					/>
 				{:else}
 					<IconButton icon={asset("icons/close.svg")}
 						onclick={() => Friends.deny_request(req.data.id)}
-						--height="32px"
 					/>
 				{/if}
 				{/if}
@@ -141,6 +134,7 @@ buttons={[{text: "Remove", action: () => Friends.remove_friend(user_to_remove.da
 }
 
 .friend_actions {
+	display: flex;
 	margin-left: auto;
 	padding: 0 8px 0 8px;
 }

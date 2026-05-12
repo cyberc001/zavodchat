@@ -109,6 +109,8 @@
 	display_status={false}
 	selected={selected_user}
 	show_user={show_user} show_ctx_menu={show_ctx_menu}
+	--margin-bottom="1px"
+	--padding-left="0"
 	/>
 	{#if status_msg !== ""}
 		<div class="message_status_panel">
@@ -192,7 +194,7 @@
 .message_panel {
 	width: fit-content;
 	padding: 3px;
-	margin: 3px 3px 9px 3px;
+	margin: 3px 3px 0px 3px;
 }
 .message_status_panel {
 	display: inline-flex;
@@ -203,13 +205,13 @@
 .message_content_panel {
 	display: flex;
 
-	font-size: 18px;
+	font-size: 14px;
 	white-space: pre-line;
 }
 .message_time {
 	margin-right: 8px;
 
-	font-size: 14px;
+	font-size: 12px;
 	font-family: ui-monospace;
 	color: var(--clr_text_secondary);
 

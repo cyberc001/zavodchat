@@ -1,5 +1,5 @@
 .settings_control {
-	font-size: var(--font-size, 20px);
+	font-size: var(--font-size, 16px);
 	color: var(--color, var(--clr_text));
 
 	box-sizing: border-box;
@@ -30,5 +30,5 @@
 .settings_control_label {
 	text-align: left;
 	margin: 0;
-	font-size: 16px;
+	font-size: 14px;
 }

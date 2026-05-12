@@ -25,6 +25,6 @@
 .settings_date_picker_frame {
 	display: flex;
 	flex-direction: column;
-	margin-bottom: 12px;
+	margin-bottom: var(--margin-bottom, 12px);
 }
 </style>

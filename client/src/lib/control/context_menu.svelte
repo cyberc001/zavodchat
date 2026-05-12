@@ -64,13 +64,10 @@
 	align-items: center;
 
 	border: none;
-
-	font-size: 18px;
-	color: var(--clr_text);
 }
 .context_menu_item + .context_menu_item {
-	border-width: 2px;
-	border-color: var(--clr_bg_selected);
+	border-width: 1px;
+	border-color: var(--clr_border_item);
 	border-style: solid none none none;
 }
 </style>

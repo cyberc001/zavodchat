@@ -58,16 +58,17 @@
 
 				<div class="vc_state">
 					{#if vc_state.video > VideoState.Disabled}
-						<div style="background: red; height: 24px; border-radius: 4px; font-size: 18px; padding: 0 3px 0 3px; margin-right: 3px; display: inline-block">
-							STREAM
-						</div>
-					{/if}
-					{#if socket_vc?.get_video(vc_state.user.data.id)}
-						<IconButton icon={asset("icons/watch.svg")}	
+						{#if socket_vc && socket_vc.get_video(vc_state.user.data.id)}
+						<button class="hoverable transparent_button" style="display: flex"
 							onclick={() => {
 								socket_vc.watch_video(vc_state.user.data.id);
 							}}
-						/>
+						>
+							<img src={asset("icons/screen_share.svg")} alt="watch screen share" class="filter_icon_highlight vc_state_icon"/>
+						</button>
+						{:else}
+							<img src={asset("icons/screen_share.svg")} alt="sharing screen" class="filter_icon_main vc_state_icon"/>
+						{/if}
 					{/if}
 
 					{#if vc_state.mute}
@@ -86,26 +87,30 @@
 
 	<div class="actions">
 		<Button icon={asset("icons/screen_share" + (socket_vc.get_video_state() === VideoState.Screen ? "_stop" : "") + ".svg")}
-			--padding-bottom="0px"
+			--padding-bottom="0"
+			--margin-bottom="0"
 			onclick={() => {
 				socket_vc.set_video_state(socket_vc.get_video_state() === VideoState.Disabled ?
 								VideoState.Screen : VideoState.Disabled);
 			}}
 		/>
 		<Button icon={asset("/icons/" + (socket_vc.is_mute() ? "" : "not_") + "muted.svg")}
-			--padding-bottom="0px"
+			--padding-bottom="0"
+			--margin-bottom="0"
 			onclick={() => {
 				socket_vc.toggle_mute();
 			}}
 		/>
 		<Button icon={asset("icons/" + (socket_vc.is_deaf() ? "" : "not_") + "deaf.svg")}
-			--padding-bottom="0px"
+			--padding-bottom="0"
+			--margin-bottom="0"
 			onclick={() => {
 				socket_vc.toggle_deaf();
 			}}
 		/>
 		<Button icon={asset("icons/hang.svg")}
-			--padding-bottom="0px"
+			--padding-bottom="0"
+			--margin-bottom="0"
 			onclick={end_call}
 		/>
 	</div>
@@ -125,10 +130,10 @@
 }
 .private_call_user {
 	font-size: 18px;
-	align-text: center;
 
-	margin: 10px 0 10px 0;
+	margin: 8px 0 4px 0;
 
+	align-items: center;
 	display: flex;
 	flex-direction: column;
 }
@@ -141,7 +146,8 @@
 	aspect-ratio: 1;
 
 	border-style: solid;
-	border-size: 4px;
+	border-width: 4px;
+	border-radius: 10px;
 }
 .vc_state {
 	display: flex;
@@ -154,5 +160,6 @@
 }
 
 .actions {
+	margin-bottom: 4px;
 }
 </style>

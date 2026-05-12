@@ -60,7 +60,8 @@ display_status={false}
 			{#each elements as e}
 				{#if e.type === "date"}
 					<DatePicker label_text={e.label} bind:value={params[e.param]}
-						--margin-bottom="6px"
+						--margin-bottom="4px"
+						--width="100%"
 					/>
 				{:else if e.type === "server_user" || e.type === "user"}
 					<Autocomplete render_data={render_user}
@@ -71,6 +72,8 @@ display_status={false}
 						() => params[e.param],
 						(x) => {if(x) params[e.param] = x.id; else delete params[e.param];}
 					}
+						--margin-bottom="4px"
+						--width="100%"
 					/>
 				{/if}
 			{/each}
@@ -88,7 +91,7 @@ display_status={false}
 	left: 0;
 	right: 0;
 
-	padding: 6px 0 0 6px;
+	padding: 6px;
 	border-style: solid;
 	border-radius: 4px;
 }

@@ -10,7 +10,7 @@ onclick={onclick} {disabled}
 >
 	{text}
 	{#if icon}
-		<img src={icon} class="filter_icon_main" style="height: var(--icon_height, 32px)"/>
+		<img src={icon} class="filter_icon_main" style="height: var(--icon_height, 24px)"/>
 	{/if}
 </button>
 

@@ -39,7 +39,9 @@
 
 <div class="panel vc_panel" style="border-bottom: none">
 	<div style="display: flex; align-items: center; margin-bottom: 6px">
-		{name}
+		<div class="channel_name">
+			{name}
+		</div>
 
 		<div style="margin-left: auto; display: flex">
 			<IconButton icon={asset("icons/screen_share" + (socket_vc.get_video_state() === VideoState.Screen ? "_stop" : "") + ".svg")}
@@ -74,5 +76,13 @@
 
 	font-size: 18px;
 	overflow-wrap: anywhere;
+}
+
+.channel_name {
+	margin-right: 4px;
+
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 </style>

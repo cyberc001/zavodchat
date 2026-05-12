@@ -8,9 +8,9 @@
 		hide_ctx_menu();
 }}>
 	{#if typeof icon !== "undefined"}
-		<img src={icon} class="filter_icon_main" alt={text}/>
+		<img src={icon} class="context_menu_icon filter_icon_main" alt={text}/>
 	{/if}
-	<div style="margin-left: 4px">{text}</div>
+	<div style="margin-left: 2px">{text}</div>
 </button>
 
 <style>
@@ -18,12 +18,16 @@
 	display: flex;
 	width: 100%;
 	align-items: center;
-	padding: 2px;
+	padding: 2px 4px 2px 2px;
 
-	font-size: 18px;
-	color: var(--text_clr);
+	font-size: 16px;
+	color: var(--clr_text);
 }
 .context_menu_action:hover {
 	background: none;
+}
+
+.context_menu_icon {
+	height: 16px;
 }
 </style>

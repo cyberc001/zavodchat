@@ -316,7 +316,8 @@ This cannot be reversed.
 </Group>
 {#if server.data.owner_id === user_self?.data.id}
 <Group name="Management">
-	<Button text="Delete server" onclick={() => delete_confirm.show()}/>
+	<Button text="Delete server" onclick={() => delete_confirm.show()}
+		--margin-bottom="0"/>
 </Group>
 {/if}
 {/snippet}

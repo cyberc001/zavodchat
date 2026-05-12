@@ -370,7 +370,7 @@ export class RangeCache extends IDCache {
 	intv = setInterval(() => {
 		for(const id in this.cache)
 			this.cache[id].trim();
-	}, 15000/*60000*/);
+	}, 120000);
 
 	get_tree(_id){
 		const id = this.state_refs_id(_id);

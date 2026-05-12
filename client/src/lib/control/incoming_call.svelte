@@ -55,19 +55,22 @@
 		<div class="incall_name">{incoming_call.user.data.name}</div>
 		<div>Incoming call</div>
 		<div class="incall_actions">
-			<Button text="Decline" --margin-bottom="0"
+			<Button icon={asset("icons/hang.svg")}
 			onclick={() => {
 				Channel.kick_user(incoming_call.channel_id, incoming_call.user.data.id,
 						() => {});
 			}}
+			--margin-bottom="0"
 			/>
-			<Button text="Accept" --margin-bottom="0"
+			<Button icon={asset("icons/call.svg")}
 			onclick={() => {
 				const ch = Channel.get(incoming_call.channel_id);
 				ch.notify_on_load(() => {
 					show_channel(ch.data);
 				});
 			}}
+			--margin-bottom="0"
+			--margin-left="6px"
 			/>
 		</div>
 	</div>
@@ -79,10 +82,11 @@
 	left: 50%;
 	top: 50%;
 	transform: translate(-50%, -50%);
-	height: min(300px, 60%);
-	width: min(300px, 60%);
 
-	padding: auto;
+	height: min(250px, 60%);
+	width: min(250px, 60%);
+	padding: 10px;
+
 	align-content: center;
 	text-align: center;
 

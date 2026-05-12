@@ -5,11 +5,15 @@
 
 	let {user, server,
 		id,
-		selected = false,
 		show_user = () => {}, show_ctx_menu = () => {},
+
+		selected = false,
 		display_status = true,
 		style = "",
-		message_id = -1} = $props();
+		avatar_style = "",
+
+		message_id = -1,
+	} = $props();
 
 	let self = $state();
 	let name = $derived(typeof(id) === "undefined" ? 
@@ -41,7 +45,7 @@
 			{#if display_status}
 				<div class="user_status" style={User.Status.get_style(user.data.status)}></div>
 			{/if}
-			<img class="user_avatar" src={User.get_avatar_path(user.data)} alt="avatar"/>
+			<img class="user_avatar" src={User.get_avatar_path(user.data)} style={avatar_style} alt="avatar"/>
 		</div>
 		<b class="user_name_text" style={username_style}>{user.data.name}</b>
 	{/if}
@@ -53,15 +57,19 @@
 	position: relative;
 	display: flex;
 	align-items: center;
+
 	height: auto;
+	width: var(--width, unset);
 	max-width: var(--max-width, 100%);
 
-	margin-bottom: 6px;
+	margin-bottom: var(--margin-bottom, 3px);
+	padding: 1px 4px 1px 4px;
+	padding-left: var(--padding-left, 4px);
 
 	border-style: none;
 	background: transparent;
 	color: var(--clr_text);
-	font-size: 22px;
+	font-size: 18px;
 }
 .user_name_text {
 	white-space: nowrap;
@@ -75,7 +83,6 @@
 	min-width: 32px;
 	height: 32px;
 
-	border-radius: 4px;
 	margin-right: 8px;
 }
 .user_avatar {
@@ -83,6 +90,7 @@
 	height: 100%;
 
 	border-radius: 4px;
+	box-sizing: border-box;
 }
 .user_status {
 	position: absolute;

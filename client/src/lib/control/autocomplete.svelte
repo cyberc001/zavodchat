@@ -36,9 +36,8 @@
 
 	let show_list = $state(false);
 	let list_style = $derived.by(() => {
-		let style = "";
-		if(list_on_top)
-			style += "bottom: 100%;";
+		let style = list_on_top ? "bottom: 100%;" : "top: calc(100% - var(--margin-bottom, 12px));";
+
 		// If paginated items are loading, or both lists are empty, hide the panel
 		if(paginated_list?.isLoaded() === false
 			|| ((!paginated_list || paginated_list.getItemCount() === 0) &&
@@ -97,7 +96,7 @@
 <FocusManager element={self}
 	blur_on_mousedown=true 
 	onblur={() => {
-		//show_list = false;
+		show_list = false;
 	}}
 />
 
@@ -109,7 +108,7 @@ onclick={() => pick_value(item)}
 </button>
 {/snippet}
 
-<div style="position: relative; z-index: 10" bind:this={self}>
+<div bind:this={self} class="autocomplete_frame">
 	{#if typeof(override_value_name) === "undefined"}
 	<input autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
 		class="settings_control"
@@ -159,9 +158,15 @@ onclick={() => pick_value(item)}
 <style>
 @import "style.css";
 
+.autocomplete_frame {
+	position: relative;
+	z-index: 10;
+}
+
 .paginated_list_panel {
 	z-index: 1000;
 	position: absolute;
+
 	border-style: solid;
 	border-radius: 4px;
 }
@@ -173,6 +178,6 @@ onclick={() => pick_value(item)}
 	border-style: none;
 	background: transparent;
 	color: var(--clr_text);
-	font-size: 20px;
+	font-size: 16px;
 }
 </style>

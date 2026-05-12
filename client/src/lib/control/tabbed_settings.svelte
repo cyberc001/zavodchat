@@ -25,7 +25,7 @@
 		{/each}
 	</div>
 	<div class="tabbed_settings_tab">
-	<div style="width: 100%">
+	<div class="tabbed_settings_main_panel">
 		<div class="tabbed_settings_inner_tab">
 			<div>
 				{@render tabs[sel_tab].render(() => {
@@ -109,7 +109,7 @@
 	display: flex;
 
 	width: 85%;
-	padding: 16px;
+	padding: 0 16px 0 16px;
 }
 .tabbed_settings_inner_tab {
 	overflow: auto;
@@ -139,6 +139,10 @@
 	border-width: 2px;
 
 	width: 15%;
+}
+.tabbed_settings_main_panel {
+	width: 100%;
+	margin-right: 10px;
 }
 
 .tabbed_settings_actions {

@@ -264,10 +264,10 @@
 <UserActions show_ban={showBan} bind:this={user_actions}/>
 
 {#snippet user_volume()}
-	{#if socket_vc.is_connected() && socket_vc.audio[sel.ctx_user_id]}
+	{#if socket_vc.is_connected() && socket_vc.get_audio(sel.ctx_user_id)}
 	<div style="padding: 4px">
-		<Slider text="User volume" bind:value={() => Math.floor(socket_vc.audio[sel.ctx_user_id].volume * 100),
-						(x) => socket_vc.audio[sel.ctx_user_id].set_volume(x / 100)}
+		<Slider text="User volume" bind:value={() => Math.floor(socket_vc.get_audio(sel.ctx_user_id).volume * 100),
+						(x) => socket_vc.get_audio(sel.ctx_user_id).set_volume(x / 100)}
 			display_value={(value) => value + "%"}/>
 	</div>
 	{/if}

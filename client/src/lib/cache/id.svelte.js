@@ -36,7 +36,7 @@ export class IDCache {
 	_cache_refs = {};
 	intv = setInterval(() => {
 		this._cache_refs = {};
-	}, 60000);
+	}, 120000);
 
 	// ID: [int1, int2, ..., intN]
 	state_refs_id(id){

@@ -42,9 +42,9 @@
 }
 
 .tab_name {
-	font-size: 18px;
+	font-size: 16px;
 
-	padding: 2px;
+	padding: 3px 6px 3px 6px;
 	margin-left: 10px;
 }
 

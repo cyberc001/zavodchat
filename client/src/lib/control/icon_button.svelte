@@ -2,18 +2,22 @@
 	const {icon,
 		filter_class = "filter_icon_main",
 		disabled = false,
-		onclick} = $props();
+		onclick
+	} = $props();
 </script>
 
 <button class="settings_icon_button hoverable"
-style="padding:var(--padding, inherit)"
-onclick={onclick} {disabled}
+	style="padding: var(--padding, unset); margin-right: var(--margin-right, 0);"
+	onclick={onclick} {disabled}
 >
 	<img src={icon} class={filter_class} style="height: var(--height, 24px)"/>
 </button>
 
 <style>
 .settings_icon_button {
+	display: flex;
+	align-items: center;
+
 	border-style: none;
 	padding: 0;
 }

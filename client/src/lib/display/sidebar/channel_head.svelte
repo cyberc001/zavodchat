@@ -47,7 +47,7 @@
 					});
 				});
 			}}
-			--height="32px"
+			--margin-right="4px"
 		/>
 	{/if}
 	<SearchBar server={server} bind:this={search_bar}

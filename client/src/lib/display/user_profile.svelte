@@ -77,15 +77,16 @@
 	{#if !user}
 		<img src={asset("icons/loading.svg")} alt="loading" class="filter_icon_main" style="width: 48px"/>
 	{:else}
-		<div class="user_profile_name">
+		<div class="user_profile_head">
 			<div class="user_avatar_frame">
-				<div class="user_status" style={username_style}></div>
+				<!--!!!!!-->
+				<div class="user_status"></div>
 				<button class="transparent_button unhoverable" style="cursor: pointer"
 				onclick={() => shown_avatar = User.get_avatar_path(user)}>
 					<img class="user_avatar" src={User.get_avatar_path(user)} alt="avatar"/>
 				</button>
 			</div>
-			<b style={username_style}>{user.name}</b>
+			<b class="user_name_text" style={username_style}>{user.name}</b>
 		</div>
 		<div class="user_role_list">
 			{#each user_roles as rol, i}
@@ -137,13 +138,13 @@
 	position: absolute;
 	z-index: 10;
 
-	padding: 4px 6px 4px 6px;
+	padding: 4px 6px 0px 6px;
 
 	min-width: 160px;
 	max-width: 320px;
 	width: max-content;
 }
-.user_profile_name {
+.user_profile_head {
 	display: flex;
 	align-items: center;
 
@@ -151,11 +152,15 @@
 
 	border-style: none;
 	color: var(--clr_text);
-	font-size: 24px;
 
 	overflow-wrap: anywhere;
 }
-
+.user_name_text {
+	font-size: 18px;
+	text-overflow: elipsis;
+	overflow: hidden;
+	white-space: nowrap;
+}
 .user_avatar_frame {
 	position: relative;
 	min-width: 32px;
@@ -191,7 +196,7 @@
 	border-style: solid;
 	border-radius: 6px;
 	border-color: var(--clr_border_item);
-	border-width: 3px;
+	border-width: 2px;
 
 	display: flex;
 	align-items: center;
@@ -200,7 +205,10 @@
 
 	padding: 2px 4px 2px 4px;
 	margin: 3px 6px 3px 0px;
+
+	font-size: 12px;
 }
+
 .user_role_disallow:hover {
 	text-decoration: line-through;
 }

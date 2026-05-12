@@ -57,7 +57,7 @@
 <style>
 .notif_display {
 	position: fixed;
-	top: 64px;
+	top: 80px;
 	left: 50%;
 	transform: translate(-50%, 0%);
 

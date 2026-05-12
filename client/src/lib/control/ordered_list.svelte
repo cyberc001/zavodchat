@@ -2,6 +2,8 @@
 
 	let {items = $bindable([]), selected_idx = $bindable(-1),
 
+		hoverable = true,
+
 		check_select = (selected, selected_idx) => true,
 		check_drag = (dragged, dragged_idx) => true,
 		check_insert = (dragged, dragged_idx, hovered, hovered_idx) => true,
@@ -83,11 +85,12 @@
 </script>
 
 {#each items as item, i}
-	<div draggable="true" class={"hoverable" + (i === selected_idx ? " selected" : "")}
+	<div draggable="true" class={"ordered_list_item" + (hoverable ? " hoverable " : "") + (i === selected_idx ? " selected" : "")}
 		onclick={() => onClick(i)}
 		ondragstart={onDragStart} ondragend={onDragEnd}
 		ondragover={onDrag}
 		bind:this={div_items[i]}
+
 		style={(i === hovered_idx ? "border-style: solid none none none"
 			: i === items.length - 1 && hovered_idx === items.length ? "border-style: none none solid none"
 			: "")}
@@ -95,3 +98,10 @@
 		{@render render_item(i, item)}
 	</div>
 {/each}
+
+<style>
+.ordered_list_item {
+	border-color: var(--clr_border_focus);
+	border-width: 3px;
+}
+</style>

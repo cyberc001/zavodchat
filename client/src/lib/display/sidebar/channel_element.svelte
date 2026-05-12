@@ -1,9 +1,12 @@
 <script>
 	import {asset} from '$app/paths';
 	import Util from '$lib/util.js';
+
 	import Channel from '$lib/rest/channel.js';
 	import User from '$lib/rest/user.svelte.js';
 	import Role from '$lib/rest/role.js';
+
+	import UserDisplay from '$lib/display/user.svelte';
 
 	import {VideoState} from '$lib/socket/vc_utils.svelte.js';
 
@@ -12,7 +15,6 @@
 		show_channel, ctx_channel, ctx_vc_user} = $props();
 
 	let self = $state();
-	let vc_user_divs = $state({});
 
 	let user_self = $state();
 	let server_roles = $state();
@@ -34,6 +36,11 @@
 	let is_text_secondary = $derived(channel.type === Channel.Type.Text ?
 						typeof(channel.notifications) === "undefined" :
 						!can_join_vc);
+
+	const get_talk_border = (vc_state) => "border-style: solid; border-width: 2px; border-color: " +
+						(socket_vc && socket_vc.get_audio(vc_state.user.data.id) ?
+						"#00FF00" + Util.padded_hex(Math.min(socket_vc.get_audio(vc_state.user.data.id).amplitude / 10, 1) * 255) :
+						"#00000000");
 </script>
 
 <div>
@@ -63,38 +70,30 @@
 	</button>
 	{#if channel.type === Channel.Type.Voice && typeof channel.vc_users === "object"}
 		{#each Object.values(channel.vc_users) as vc_state}
-			<div
-				style="display: flex; align-items: center; margin: 3px 0 3px 6px; font-size: 22px; anchor-name: --{"vc_user_" + vc_state.id}"
+			<div class="vc_user_panel">
+				<UserDisplay user={vc_state.user} server={server}
+					id={"vc_user_display_" + vc_state.user.data.id}
+					display_status={false}
+					show_ctx_menu={(anchor, e) => ctx_vc_user(anchor, e, channel.id, vc_state)}
 
-				bind:this={vc_user_divs[vc_state.id]}
-				oncontextmenu={(e) => {
-					event.preventDefault();
-					ctx_vc_user(self, e, channel.id, vc_state);
-				}}
-			>
-				<img src={User.get_avatar_path(vc_state.user.data)}
-					alt="avatar"
-					style={"width: 32px; height: 32px; margin-right: 8px; border-style: solid; border-size: 2px; border-color: #00FF00"
-						+ (socket_vc && socket_vc.get_audio(vc_state.user.data.id) ?
-							Util.padded_hex(Math.min(socket_vc.get_audio(vc_state.user.data.id).amplitude / 10, 1) * 255)
-							: "00")
-					}
+					avatar_style={get_talk_border(vc_state)}
+					--margin-left="0"
+					--width="calc(100% - 80px)"
 				/>
-				{vc_state.user.data.name}
+
 				<div style="margin-left: auto; margin-right: 4px; display: flex; align-items: center">
 					{#if vc_state.video > VideoState.Disabled}
-						<div style="background: red; border-radius: 4px; font-size: 18px; padding: 0 3px 0 3px; margin-right: 3px; display: inline-block">
-							STREAM
-						</div>
-					{/if}
-					{#if socket_vc && socket_vc.get_video(vc_state.user.data.id)}
-					<button class="hoverable transparent_button"
+						{#if socket_vc && socket_vc.get_video(vc_state.user.data.id)}
+						<button class="hoverable transparent_button" style="display: flex"
 							onclick={() => {
 								socket_vc.watch_video(vc_state.user.data.id);
 							}}
-					>
-						<img src={asset("icons/watch.svg")} alt="watch" class="filter_icon_main vc_state_icon"/>
-					</button>
+						>
+							<img src={asset("icons/screen_share.svg")} alt="watch screen share" class="filter_icon_highlight vc_state_icon"/>
+						</button>
+						{:else}
+							<img src={asset("icons/screen_share.svg")} alt="sharing screen" class="filter_icon_main vc_state_icon"/>
+						{/if}
 					{/if}
 
 					{#if vc_state.mute}
@@ -124,5 +123,11 @@
 	margin-right: 5px;
 
 	font-size: 18px;
+}
+
+.vc_user_panel {
+	display: flex;
+	align-items: center;
+	margin: 3px 0 3px 0;
 }
 </style>
