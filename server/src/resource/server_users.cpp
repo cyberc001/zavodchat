@@ -33,8 +33,9 @@ std::shared_ptr<http_response> server_users_resource::render_GET(const http_requ
 	}
 
 	pqxx::result r = tx.exec("SELECT user_id, name, avatar, status, role_id FROM user_x_server "
-				 "NATURAL JOIN users WHERE " + resource_utils::no_blocked_users_query(2) + " " +
-				 "AND user_id IN (SELECT DISTINCT ON(user_id) user_id FROM user_x_server WHERE server_id = $1" + pg_query + ") AND server_id = $1 " + where_displayname + " " + pg_order,
+				 "NATURAL JOIN users WHERE user_id IN "
+				 "(SELECT DISTINCT ON(user_id) user_id FROM user_x_server WHERE server_id = $1 AND " + resource_utils::no_blocked_users_query(2) + pg_query + ") AND "
+				 " server_id = $1 " + where_displayname + " " + pg_order,
 				 pr); // select first distinct 'count' users, then get all user_id-role_id entries for those selected users
 	std::unordered_map<int, size_t> r_users; // for O(1) access to users already inserted in res to append role_ids to them
 	nlohmann::json res = nlohmann::json::array();
