@@ -94,6 +94,7 @@
 		style={(i === hovered_idx ? "border-style: solid none none none"
 			: i === items.length - 1 && hovered_idx === items.length ? "border-style: none none solid none"
 			: "")}
+		role="menuitem"
 	>
 		{@render render_item(i, item)}
 	</div>

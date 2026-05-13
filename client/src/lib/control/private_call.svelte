@@ -45,6 +45,7 @@
 						return;
 					ctx_vc_user(self, e, socket_vc.get_channel().data.id, vc_state);
 				}}
+				role="figure"
 			>
 			{#if vc_state?.user?.loaded}
 				<img class="user_avatar" src={User.get_avatar_path(vc_state.user.data)}
@@ -54,6 +55,7 @@
 							: "00")
 						+ (typeof(vc_state.id) === "undefined" ? ";filter: brightness(40%)" : "")
 					}
+					alt="avatar"
 				/>
 				<b class="user_name text_ellipsis">{vc_state.user.data.name}</b>
 

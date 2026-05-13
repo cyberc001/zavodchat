@@ -53,7 +53,7 @@
 
 <div class="avatar_picker_frame">
 	{#if display_avatar}
-		<img src={display_url} class="avatar_picker_img"/>
+		<img src={display_url} class="avatar_picker_img" alt="picked avatar"/>
 	{/if}
 	<input style="display: none" type="file" accept=".png,.jpg,.bmp"
 		bind:this={file_picker} bind:files bind:value/>

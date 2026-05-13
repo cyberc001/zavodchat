@@ -15,6 +15,7 @@
 {#each items as item, i}
 	<div class={"hoverable" + (i === selected_idx ? " selected" : "")}
 		onclick={() => onClick(i)}
+		role="menuitem"
 	>
 		{@render render_item(i, item)}
 	</div>

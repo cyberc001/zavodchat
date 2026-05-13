@@ -156,15 +156,19 @@
 			</div>
 
 			{#if img_attachments.length === 1}
-			<button onclick={() => shown_attachment = img_attachments[0]} class="transparent_button unhoverable">
-				<img src={File.get_attachment_url(img_attachments[0].content)} class="single_attachment_img"/>
+			<button onclick={() => shown_attachment = img_attachments[0]} class="transparent_button unhoverable"
+				title="Attachment"
+			>
+				<img src={File.get_attachment_url(img_attachments[0].content)} class="single_attachment_img" alt="Attachment image"/>
 			</button>
 			{:else}
 			<div>
-				{#each img_attachments as att}
+				{#each img_attachments as att, i}
 				<button onclick={() => shown_attachment = att} class="transparent_button unhoverable"
-				style="margin-right: 6px; cursor: pointer">
-					<img src={File.get_attachment_url(att.content)} class="attachment_square"/>
+					style="margin-right: 6px; cursor: pointer"
+					title={`Attachment #${i + 1}`}
+				>
+					<img src={File.get_attachment_url(att.content)} class="attachment_square" alt="Attachment image"/>
 				</button>
 				{/each}
 			</div>
@@ -184,7 +188,7 @@
 
 {#if shown_attachment}
 	<MediaDisplay close_media={() => shown_attachment = undefined}>
-		<img class="fullscreen_media" src={File.get_attachment_url(shown_attachment.content)}/>
+		<img class="fullscreen_media" src={File.get_attachment_url(shown_attachment.content)} alt="Fullscreen attachment"/>
 	</MediaDisplay>
 {/if}
 

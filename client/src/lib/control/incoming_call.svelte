@@ -51,7 +51,7 @@
 
 {#if incoming_call && incoming_call.user.loaded}
 	<div class="incall_display panel">
-		<img class="incall_avatar" src={User.get_avatar_path(incoming_call.user.data)} />
+		<img class="incall_avatar" src={User.get_avatar_path(incoming_call.user.data)} alt="user avatar"/>
 		<div class="incall_name text_ellipsis">{incoming_call.user.data.name}</div>
 		<div>Incoming call</div>
 		<div class="incall_actions">

@@ -118,7 +118,8 @@
 
 {#if socket_vc?.get_watched_video()}
 	<MediaDisplay close_media={() => socket_vc.unwatch_video()}>
-		<video class="fullscreen_media" bind:this={vc_video_elem}/>
+		<video class="fullscreen_media" bind:this={vc_video_elem}>
+		</video>
 	</MediaDisplay>
 {/if}
 

@@ -221,15 +221,11 @@
 
 <style>
 @import "main.css";
-
 .sidebar_users {
 	border-style: none none none solid;
 
 	width: 256px;
 	min-width: 256px;
-}
-.sidebar_user_display {
-	padding: 3px 6px 3px 6px;
 }
 </style>
 

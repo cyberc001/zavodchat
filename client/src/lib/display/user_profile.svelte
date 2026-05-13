@@ -112,7 +112,7 @@
 					}}
 					style="anchor-name: --add_role_button"
 				>
-					<img class="filter_icon_main role_add_icon" src={asset("icons/add.svg")}> add role
+					<img class="filter_icon_main role_add_icon" src={asset("icons/add.svg")} alt="add role"> add role
 				</button>
 			{/if}
 		</div>
@@ -127,7 +127,7 @@
 
 	{#if shown_avatar}
 		<MediaDisplay close_media={() => shown_avatar = undefined}>
-			<img class="fullscreen_media" src={shown_avatar}/>
+			<img class="fullscreen_media" src={shown_avatar} alt="user avatar"/>
 		</MediaDisplay>
 	{/if}
 </div>

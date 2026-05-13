@@ -176,14 +176,4 @@ onclick={() => pick_value(item)}
 	border-style: solid;
 	border-radius: 4px;
 }
-.role_panel {
-	width: 100%;
-	margin-bottom: 6px;
-
-	text-align: left;
-	border-style: none;
-	background: transparent;
-	color: var(--clr_text);
-	font-size: 16px;
-}
 </style>

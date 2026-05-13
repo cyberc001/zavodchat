@@ -538,7 +538,7 @@ This cannot be reversed.
 
 {#snippet render_emoji(i, item)}
 	<div style="font-size: 18px">
-		<img class="emoji" src={Emoji.get_image_path(item)}/>
+		<img class="emoji" src={Emoji.get_image_path(item)} alt={`Emoji '${item.name}`}/>
 		{item.name}
 	</div>
 {/snippet}

@@ -282,7 +282,7 @@
 
 {#snippet render_emoji(i, emoji)}
 <div style="display: flex; align-items: center; padding: 0 2px 0 2px">
-	<img src={emoji.image} style="height: 16px; margin-right: 4px"/>
+	<img src={emoji.image} style="height: 16px; margin-right: 4px" alt={emoji.name}/>
 	:{emoji.name}:
 </div>
 {/snippet}
@@ -313,6 +313,7 @@
 				contenteditable={can_send_messages.toString()}
 				oninput={div_oninput}
 				onkeyup={div_onkeyup}
+				role="textbox"
 			>
 			</div>
 
@@ -362,11 +363,15 @@
 						<img src={asset("icons/close.svg")} alt="remove attachment" class="filter_icon_main" style="width: 32px"/>
 					</button>
 					{#if att.type === Message.AttachmentType.Image}
-						<img src={typeof att.content === "string" ? File.get_attachment_url(att.content) : URL.createObjectURL(att.content)} class="attachment_square"/>
+						<img src={typeof att.content === "string" ? File.get_attachment_url(att.content) : URL.createObjectURL(att.content)} class="attachment_square"
+							alt="Attachment image"
+						/>
 					{:else}
 						<div class="attachment_square">
-							<img src={asset("icons/file.svg")} alt="file" class="filter_icon_main"
-							style="width: 24px; margin-bottom: 4px"/>
+							<img src={asset("icons/file.svg")} class="filter_icon_main"
+								style="width: 24px; margin-bottom: 4px"
+								alt="Attachment file"
+							/>
 							{typeof att.content === "string" ? Util.get_file_name(att.content) : att.content.name}
 						</div>
 					{/if}

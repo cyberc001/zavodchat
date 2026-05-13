@@ -303,10 +303,4 @@ insert_message_text={(text) => message_input?.insertText(text)}
 	display: flex;
 	flex-direction: column;
 }
-.sidebar_message_search {
-	top: 10px;
-	right: 10px;
-
-	position: absolute;
-}
 </style>
