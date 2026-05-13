@@ -45,26 +45,32 @@
 	--margin-bottom="6px"/>
 	<div class="emoji_picker_list">
 		{#if emoji_search_value.length > 0}
-			{#each Emoji.search(emoji_search_value, server_emojis?.data) as e}
-				{@render emoji_button(e)}
-			{/each}		
+			<div class="emoji_group">
+				{#each Emoji.search(emoji_search_value, server_emojis?.data) as e}
+					{@render emoji_button(e)}
+				{/each}
+			</div>
 		{:else}
-			{#if server_emojis}
+			{#if server_emojis.loading || server_emojis.data.length > 0}
 				<div class="emoji_group_title">Server emojis</div>
 				{#if server_emojis.loading}
 					<img src={asset("icons/loading.svg")} alt="loading" class="filter_icon_main" style="width: 24px"/>
 				{:else}
-					{#each server_emojis.data as e}
-						{@render emoji_button(Emoji.convert_rest_emoji(e))}
-					{/each}
+					<div class="emoji_group">
+						{#each server_emojis.data as e}
+							{@render emoji_button(Emoji.convert_rest_emoji(e))}
+						{/each}
+					</div>
 				{/if}
 			{/if}
 
 			{#each Object.entries(Emoji.__emoji_groups) as group}
 				<div class="emoji_group_title">{group[0]}</div>
-				{#each group[1] as e}
-					{@render emoji_button(e)}
-				{/each}
+				<div class="emoji_group">
+					{#each group[1] as e}
+						{@render emoji_button(e)}
+					{/each}
+				</div>
 			{/each}
 		{/if}
 	</div>
@@ -84,8 +90,13 @@
 .emoji_picker_list {
 	overflow-y: scroll;
 }
+
 .emoji_group_title {
 	font-size: 16px;
 	margin-bottom: 4px;
+}
+.emoji_group {
+	display: flex;
+	flex-wrap: wrap;
 }
 </style>
