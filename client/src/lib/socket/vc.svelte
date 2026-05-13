@@ -40,47 +40,53 @@
 	}, 60000);
 
 
-	export function call(channel_id,
-				onclose, onerror){
-		channel = Channel.get(channel_id);
+	export function call(channel_id){
+		const callf = () => {
+			channel = Channel.get(channel_id);
 	
-		ws = new WebSocket(PUBLIC_BASE_SOCKET_VC + "?channel=" + channel_id);
-		in_call = true;
+			ws = new WebSocket(PUBLIC_BASE_SOCKET_VC + "?channel=" + channel_id);
+			console.log("created ws", ws);
+			in_call = true;
 
-		ws.onclose = (e) => {
-			clearInterval(ws_ping_intv);
-			console.log("closing ws with rtc\n", rtc, "\n", e);
-			if(rtc)
-				rtc.close();
-			// close all streams to make socket GC properly and prevent audio duplication
-			if(video_send_track)
-				video_send_track.stop();
-			for(const track of Object.values(tracks))
-				track.destroy();
+			ws.onclose = (e) => {
+				clearInterval(ws_ping_intv);
+				console.log("closing ws with rtc\n", rtc, "\n", e);
+				if(rtc)
+					rtc.close();
+				// close all streams to make socket GC properly and prevent audio duplication
+				if(video_send_track)
+					video_send_track.stop();
+				for(const track of Object.values(tracks))
+					track.destroy();
+	
+				set_state(e.reason ? e.reason : "Disconnected", "--clr_text_error");
+				Sound.play(asset("sounds/vc_leave.ogg"));
+	
+				rtc = undefined;
+				tracks = {};
+				audio = {}; video = {};
+				ws = undefined;
 
-			if(onclose)
-				onclose(e);
-
-			set_state(e.reason ? e.reason : "Disconnected", "--clr_text_error");
-			Sound.play(asset("sounds/vc_leave.ogg"));
-
-			rtc = undefined;
-			tracks = {};
-			audio = {}; video = {};
-			ws = undefined;
+				if(this.onclose){
+					this.onclose(e);
+					this.onclose = undefined;
+				}
+			};
+			ws.onmessage = (e) => {
+				const _data = JSON.parse(e.data);
+				switch(_data.name){
+					case "offer":
+						handle_offer(_data.data);
+						break;
+				}
+			};
 		};
-		ws.onerror = (e) => {
-			if(onerror)
-				onerrror(e);
-		};
-		ws.onmessage = (e) => {
-			const _data = JSON.parse(e.data);
-			switch(_data.name){
-				case "offer":
-					handle_offer(_data.data);
-					break;
-			}
-		};
+
+		if(in_call){
+			this.onclose = callf;
+			end_call();
+		} else
+			callf();
 	}
 	
 	export function end_call(){
@@ -294,7 +300,8 @@
 
 			// Handle local RTC being ready to send counteroffer
 			rtc.onsignalingstatechange = (state) => {
-				if(rtc.signalingState === "stable"){
+				console.log("signaling state change", rtc.signalingState, ws);
+				if(rtc.signalingState === "stable" && ws){
 					ws.send(JSON.stringify({"name": "offer", "data": rtc.localDescription}));
 					console.log("sent counteroffer");
 				}

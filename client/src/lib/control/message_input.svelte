@@ -241,7 +241,6 @@
 			last_valid_sel_i = sel_i;
 		prev_sel_i = sel_i;
 
-		console.log("selection changed");
 		update_ac();
 	};
 
