@@ -27,16 +27,18 @@
 	let state_general = new ChannelTabState({name: "", type: Channel.Type.Text});
 
 	tabs = [
-			{name: "General", render: general, state: state_general}
+		{name: "General", render: general, state: state_general}
 	];
 </script>
 
 {#snippet general()}
 <Group name="Channel settings">
-	<Textbox label_text="Channel name" bind:value={state_general.state.name}/>
+	<Textbox label_text="Channel name" bind:value={state_general.state.name}
+		--margin="0 0 6px 0"
+	/>
 	<Select label_text="Channel type" bind:value={state_general.state.type}
-	options={[0, 1]}
-	option_labels={["Text", "Voice"]}
+		options={[0, 1]}
+		option_labels={["Text", "Voice"]}
 	/>
 </Group>
 {/snippet}

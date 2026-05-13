@@ -41,8 +41,10 @@
 
 <div class="item emoji_picker_panel" bind:this={self}>
 	<Textbox label_text="Emoji search" bind:value={emoji_search_value}
-	bind:this={emoji_search_textbox}
-	--margin-bottom="6px"/>
+		bind:this={emoji_search_textbox}
+		--width="100%"
+		--margin="0 0 6px 0"
+	/>
 	<div class="emoji_picker_list">
 		{#if emoji_search_value.length > 0}
 			<div class="emoji_group">

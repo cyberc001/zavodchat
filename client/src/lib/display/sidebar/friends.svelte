@@ -45,21 +45,27 @@
 
 {#snippet tab_friends()}
 <Dialog bind:this={friend_remove_confirm}
-question={`Remove ${user_to_remove?.data?.name} from friends?`}
-buttons={[{text: "Remove", action: () => Friends.remove_friend(user_to_remove.data.id)},
-	  {text: "Cancel"}]}
+	question={`Remove ${user_to_remove?.data?.name} from friends?`}
+	buttons={[
+		{text: "Remove", style: "negative", action: () => Friends.remove_friend(user_to_remove.data.id)},
+		{text: "Cancel"}
+	]}
 >
 </Dialog>
 	{#if friends.loaded}
-		<div style="display: flex; width: 100%">
+		<div class="friend_add_panel">
 			<Autocomplete bind:value={user_to_add} bind:this={user_ac}
-			render_data={render_user}
-			get_data={(index, range, asc, list_value_name) => User.get_range(index, range, asc, list_value_name)}
-			--width="min(40vw, 350px)"/>
-			<Button text="Add friend" --margin-left="6px"
-			disabled={typeof user_to_add === "undefined"}
-			onclick={() => Friends.accept_or_create_request(user_to_add.id, user_ac.reset)}/>
+				render_data={render_user}
+				get_data={(index, range, asc, list_value_name) => User.get_range(index, range, asc, list_value_name)}
+				--width="min(40vw, 350px)"
+			/>
+			<Button text="Add friend"
+				disabled={typeof user_to_add === "undefined"}
+				onclick={() => Friends.accept_or_create_request(user_to_add.id, user_ac.reset)}
+				--margin="0 0 0 6px"
+			/>
 		</div>
+
 		{#each friends.data as friend}
 			<div class="friend_entry">
 				<UserDisplay user={friend.user}/>
@@ -127,9 +133,14 @@ buttons={[{text: "Remove", action: () => Friends.remove_friend(user_to_remove.da
 ]}/>
 
 <style>
+.friend_add_panel {
+	display: flex;
+	width: 100%;
+	margin-bottom: 8px;
+}
+
 .friend_entry {
 	display: flex;
-
 	width: 100%;
 }
 

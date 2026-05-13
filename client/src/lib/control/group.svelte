@@ -1,5 +1,7 @@
 <script>
-	let { name = "Group" } = $props();
+	let {
+		name = "Group"
+	} = $props();
 </script>
 
 <div style="margin: 0px 0px 18px 0px">

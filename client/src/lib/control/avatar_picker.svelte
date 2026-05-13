@@ -58,7 +58,6 @@
 	<input style="display: none" type="file" accept=".png,.jpg,.bmp"
 		bind:this={file_picker} bind:files bind:value/>
 	<Button text={button_text} onclick={() => file_picker.click()}
-	--margin-bottom="0px"
 	/>
 </div>
 

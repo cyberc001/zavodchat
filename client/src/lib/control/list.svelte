@@ -1,7 +1,9 @@
 <script>
-	let {items = $bindable([]), selected_idx = $bindable(-1),
+	let {
+		items = $bindable([]), selected_idx = $bindable(-1),
 		selectable = true,
-		render_item} = $props();
+		render_item
+	} = $props();
 
 	const onClick = (i) => {
 		if(selectable)

@@ -7,7 +7,6 @@
 </script>
 
 <button class="settings_icon_button hoverable"
-	style="padding: var(--padding, unset); margin-right: var(--margin-right, 0);"
 	onclick={onclick} {disabled}
 >
 	<img src={icon} class={filter_class} style="height: var(--height, 24px)"/>
@@ -19,7 +18,8 @@
 	align-items: center;
 
 	border-style: none;
-	padding: 0;
+	margin: var(--margin, 0);
+	padding: var(--padding, 0);
 }
 .settings_icon_button:not(.selected):not(:hover) {
 	background: transparent;

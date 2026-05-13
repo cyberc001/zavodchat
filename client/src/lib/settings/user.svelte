@@ -2,7 +2,7 @@
 	import Group from '$lib/control/group.svelte';
 	import List from '$lib/control/list.svelte';
 	import Textbox from '$lib/control/textbox.svelte';
-	import RadioBox from '$lib/control/radiobox.svelte';
+	import RadioGroup from '$lib/control/radio_group.svelte';
 	import Button from '$lib/control/button.svelte';
 	import AvatarPicker from '$lib/control/avatar_picker.svelte';
 	import UserDisplay from '$lib/display/user.svelte';
@@ -116,22 +116,38 @@
 		bind:display_url={state_profile.state.avatar}
 		/>
 		<div style="margin-left: 16px"></div>
-	<Textbox label_text="Displayed name" bind:value={state_profile.state.displayname} --width="363px"/>
+	<Textbox
+		label_text="Displayed name" bind:value={state_profile.state.displayname}
+		--width="363px"
+	/>
 	</div>
 </Group>
 <Group name="Account settings">
-	<Textbox label_text="Change username" bind:value={state_profile.state.username}/>
-	<Textbox label_text="Change password" is_password=true bind:value={state_profile.state.password}/>
-	<Textbox label_text="Repeat password" is_password=true bind:value={state_profile.state.password_repeat}
-		error={profile_passwords_match ? "" : "Passwords do not match"}/>
+	<Textbox label_text="Change username"
+		bind:value={state_profile.state.username}
+		--margin="0 0 6px 0"
+	/>
+	<Textbox label_text="Change password"
+		is_password=true bind:value={state_profile.state.password}
+		--margin="0 0 6px 0"
+	/>
+	<Textbox label_text="Repeat password" is_password=true
+		bind:value={state_profile.state.password_repeat}
+		error={profile_passwords_match ? "" : "Passwords do not match"}
+		--margin="0 0 6px 0"
+	/>
 </Group>
 {/snippet}
 
 {#snippet audio()}
 <Group name="Noise supression">
-	<RadioBox text="Off" value="off" bind:group={state_audio.state.noise_supression}/>
-	<RadioBox text="Browser" value="browser" bind:group={state_audio.state.noise_supression}/>
-	<RadioBox text="RNNoise" value="rnnoise" bind:group={state_audio.state.noise_supression}/>
+	<RadioGroup bind:value={state_audio.state.noise_supression}
+		entries={[
+			{label: "Off", value: "off"},
+			{label: "Browser", value: "browser"},
+			{label: "RNNoise", value: "rnnoise"}
+		]}
+	/>
 </Group>
 {/snippet}
 
@@ -151,7 +167,9 @@
 	onclick={() => {
 			state_other_users.state.blocked_users.splice(blocked_users_list_selected_idx, 1);
 			blocked_users_list_selected_idx = -1;
-	}}/>
+	}}
+	--margin="6px 0 0 0"
+/>
 
 </Group>
 {/snippet}

@@ -425,11 +425,13 @@
 
 <Dialog bind:this={ban.dialog}
 	question="Ban user?"
-	buttons={[{text: ban.expires === "never" ? "Ban forever" : "Ban", disabled: ban.error,
+	buttons={[
+		{text: ban.expires === "never" ? "Ban forever" : "Ban", style: "negative", disabled: ban.error,
 			action: () => {
 				Ban.ban(sel.server, ban.user_id, ban.expires, () => {}, () => {})
 			}},
-		  {text: "Cancel"}]}
+		{text: "Cancel"}
+	]}
 >
 	<DurationPicker label_text="Ban duration"
 		bind:expires={ban.expires} bind:error={ban.error}

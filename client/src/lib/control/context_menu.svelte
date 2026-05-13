@@ -2,18 +2,18 @@
 	import {asset} from '$app/paths';
 	import FocusManager from '$lib/focus_manager.svelte';
 
-	const { anchor, off = [0, 0],
+	const {
+		anchor, off = [0, 0],
 		hide_ctx_menu,
-		items } = $props();
+		items
+	} = $props();
 
 	let self = $state();
 </script>
 
 
 <FocusManager element={self}
-	onblur={() => {
-		hide_ctx_menu();
-	}}
+	onblur={hide_ctx_menu}
 />
 
 
@@ -23,7 +23,10 @@
 	bind:this={self}
 >
 {#if typeof(items) === "undefined"}
-	<img src={asset("icons/loading.svg")} alt="loading" class="filter_icon_main" style="width: 20px; margin-right: 8px"/>
+	<div class="loading_message">
+		<img src={asset("icons/loading.svg")} alt="loading" class="filter_icon_main" style="height: 20px; margin-right: 6px"/>
+		Loading...
+	</div>
 {:else}
 	{#each items as item, i}
 		<div class="item context_menu_item hoverable">
@@ -38,7 +41,12 @@
 	position: fixed;
 	position-visibility: no-overflow;
 	width: fit-content;
+	height: fit-content;
 	z-index: 20;
+
+	border-width: 1px;
+	border-color: var(--clr_border_item);
+	border-style: solid;
 
 	position-try-fallbacks: --fallback_right, --fallback_left, --fallback_top, --fallback_bottom;
 }
@@ -57,6 +65,12 @@
 	bottom: anchor(bottom);
 }
 
+
+.loading_message {
+	display: flex;
+	align-items: center;
+	padding: 2px;
+}
 
 .context_menu_item {
 	width: 100%;

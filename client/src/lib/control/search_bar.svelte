@@ -39,7 +39,7 @@ display_status={false}
 
 <div style="position: relative" bind:this={self}>
 	<input autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
-		class="settings_control" style="width:var(--width, 240px); margin-bottom:var(--margin-bottom, 12px)"
+		class="settings_control" style="width:var(--width, 240px);"
 		bind:value={content}
 		onkeyup={(e) => {
 			if(e.code === "Enter"){
@@ -59,20 +59,22 @@ display_status={false}
 		<div class="item search_bar_params">
 			{#each elements as e}
 				{#if e.type === "date"}
-					<DatePicker label_text={e.label} bind:value={params[e.param]}
-						--margin-bottom="4px"
+					<DatePicker label_text={e.label}
+						bind:value={params[e.param]}
+						--margin="0 0 4px 0"
 						--width="100%"
 					/>
 				{:else if e.type === "server_user" || e.type === "user"}
-					<Autocomplete render_data={render_user}
-					get_data={(index, range, asc, list_value_name) => e.type === "server_user" ? 
-												User.get_server_range(server.data.id, index, range, asc, list_value_name) :
-												User.get_range(index, range, asc, list_value_name)}
-					bind:value={
-						() => params[e.param],
-						(x) => {if(x) params[e.param] = x.id; else delete params[e.param];}
-					}
-						--margin-bottom="4px"
+					<Autocomplete label_text={e.label}
+						render_data={render_user}
+						get_data={(index, range, asc, list_value_name) => e.type === "server_user" ? 
+													User.get_server_range(server.data.id, index, range, asc, list_value_name) :
+													User.get_range(index, range, asc, list_value_name)}
+						bind:value={
+							() => params[e.param],
+							(x) => {if(x) params[e.param] = x.id; else delete params[e.param];}
+						}
+						--margin="0 0 4px 0"
 						--width="100%"
 					/>
 				{/if}

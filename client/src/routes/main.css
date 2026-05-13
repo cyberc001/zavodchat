@@ -7,6 +7,9 @@
 
 	--clr_bg_panel: #27262b;
 	--clr_bg_item: #1d1d1f;
+	--clr_bg_item_positive: #636382;
+	--clr_bg_item_negative: #6c070b;
+
 	--clr_bg_hover: #5e5e69;
 	--clr_bg_selected: #484852;
 	--clr_bg_highlighted: #636382;
@@ -14,6 +17,8 @@
 
 	--clr_border: #1d1d1f;
 	--clr_border_item: #3d3d46;
+	--clr_border_item_positive: #889bbb;
+	--clr_border_item_negative: #885157;
 	--clr_border_focus: #c8c8dc;
 
 	--clr_offline: #6C6C6C;
@@ -81,6 +86,12 @@ button {
 }
 .highlighted {
 	background: var(--clr_bg_highlighted);
+}
+
+.text_ellipsis {
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
 
 .transparent_button {

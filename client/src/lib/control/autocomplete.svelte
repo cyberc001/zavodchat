@@ -7,6 +7,8 @@
 	import PaginatedList from '$lib/display/paginated_list.svelte';
 
 	let {
+		label_text = "",
+
 		render_data, get_data, prepended_data,
 		get_data_name = (x) => x.name,
 
@@ -36,7 +38,7 @@
 
 	let show_list = $state(false);
 	let list_style = $derived.by(() => {
-		let style = list_on_top ? "bottom: 100%;" : "top: calc(100% - var(--margin-bottom, 12px));";
+		let style = list_on_top ? "bottom: 100%;" : `top: calc(100% - ${getComputedStyle(input).marginBottom});`;
 
 		// If paginated items are loading, or both lists are empty, hide the panel
 		if(paginated_list?.isLoaded() === false
@@ -110,9 +112,10 @@ onclick={() => pick_value(item)}
 
 <div bind:this={self} class="autocomplete_frame">
 	{#if typeof(override_value_name) === "undefined"}
+	<p class="settings_control_label">{label_text}</p>
 	<input autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
 		class="settings_control"
-		style={"width:var(--width, 200px); margin-bottom: var(--margin-bottom, 12px); margin-right: var(--margin-right, 0)" +
+		style={"width:var(--width, 200px);" +
 			(typeof value === "undefined" && !fixed_text_color ? "; color: var(--clr_text_secondary)" : "")
 		}
 		bind:value={_value_name} bind:this={input}
@@ -159,6 +162,9 @@ onclick={() => pick_value(item)}
 @import "style.css";
 
 .autocomplete_frame {
+	display: flex;
+	flex-direction: column;
+
 	position: relative;
 	z-index: 10;
 }

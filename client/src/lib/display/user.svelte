@@ -47,7 +47,7 @@
 			{/if}
 			<img class="user_avatar" src={User.get_avatar_path(user.data)} style={avatar_style} alt="avatar"/>
 		</div>
-		<b class="user_name_text" style={username_style}>{user.data.name}</b>
+		<b class="text_ellipsis" style={username_style}>{user.data.name}</b>
 	{/if}
 </button>
 
@@ -70,11 +70,6 @@
 	background: transparent;
 	color: var(--clr_text);
 	font-size: 18px;
-}
-.user_name_text {
-	white-space: nowrap;
-	overflow-x: hidden;
-	text-overflow: ellipsis;
 }
 
 .user_avatar_frame {

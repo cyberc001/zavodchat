@@ -13,7 +13,7 @@
 	<p class="settings_control_label">{label_text}</p>
 	<div style="display: flex">
 		<input autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" type={is_password ? "password" : "input"}
-			class="settings_control" style="width:var(--width, 512px)"
+			class="settings_control" style="width:var(--width, 300px)"
 			bind:value={value} bind:this={input}
 		/>
 		{#if render_after}
@@ -28,6 +28,5 @@
 .settings_textbox_frame {
 	display: flex;
 	flex-direction: column;
-	margin-bottom: 12px;
 }
 </style>

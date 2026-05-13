@@ -79,14 +79,13 @@
 	{:else}
 		<div class="user_profile_head">
 			<div class="user_avatar_frame">
-				<!--!!!!!-->
-				<div class="user_status"></div>
+				<div class="user_status" style={User.Status.get_style(user.status)}></div>
 				<button class="transparent_button unhoverable" style="cursor: pointer"
 				onclick={() => shown_avatar = User.get_avatar_path(user)}>
 					<img class="user_avatar" src={User.get_avatar_path(user)} alt="avatar"/>
 				</button>
 			</div>
-			<b class="user_name_text" style={username_style}>{user.name}</b>
+			<b class="user_name_text text_ellipsis" style={username_style}>{user.name}</b>
 		</div>
 		<div class="user_role_list">
 			{#each user_roles as rol, i}
@@ -157,9 +156,6 @@
 }
 .user_name_text {
 	font-size: 18px;
-	text-overflow: elipsis;
-	overflow: hidden;
-	white-space: nowrap;
 }
 .user_avatar_frame {
 	position: relative;

@@ -39,7 +39,7 @@
 
 <div class="panel vc_panel" style="border-bottom: none">
 	<div style="display: flex; align-items: center; margin-bottom: 6px">
-		<div class="channel_name">
+		<div class="channel_name text_ellipsis">
 			{name}
 		</div>
 
@@ -80,9 +80,5 @@
 
 .channel_name {
 	margin-right: 4px;
-
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
 }
 </style>

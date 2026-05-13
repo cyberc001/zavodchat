@@ -35,7 +35,7 @@
 	&nbsp;
 {/if}
 
-<div style="margin-left: auto; display: flex">
+<div class="channel_actions">
 	{#if other_user}
 		<IconButton icon={asset("icons/call.svg")}
 			onclick={() => {
@@ -47,7 +47,7 @@
 					});
 				});
 			}}
-			--margin-right="4px"
+			--margin="0 4px 0 0"
 		/>
 	{/if}
 	<SearchBar server={server} bind:this={search_bar}
@@ -74,5 +74,10 @@
 	border-color: var(--clr_border);
 
 	font-size: 24px;
+}
+.channel_actions {
+	margin-left: auto;
+	display: flex;
+	align-items: end;
 }
 </style>

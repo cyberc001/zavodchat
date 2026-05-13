@@ -298,9 +298,11 @@
 
 {#snippet general(close_settings)}
 <Dialog bind:this={delete_confirm}
-question="Delete the server?"
-buttons={[{text: "Delete", action: () => {Server.delete(server_id, () => {}, () => {}); close_settings();}},
-	  {text: "Cancel"}]}
+	question="Delete the server?"
+	buttons={[
+		{text: "Delete", style: "negative", action: () => {Server.delete(server_id, () => {}, () => {}); close_settings();}},
+		{text: "Cancel"}
+	]}
 >
 This cannot be reversed.
 </Dialog>
@@ -317,7 +319,9 @@ This cannot be reversed.
 {#if server.data.owner_id === user_self?.data.id}
 <Group name="Management">
 	<Button text="Delete server" onclick={() => delete_confirm.show()}
-		--margin-bottom="0"/>
+		--background="var(--clr_bg_item_negative)"
+		--border-color="var(--clr_border_item_negative)"
+	/>
 </Group>
 {/if}
 {/snippet}
@@ -352,63 +356,83 @@ This cannot be reversed.
 	
 	render_item={role_item}
 	/>
-	<Button text="Create role" onclick={() => {
-		state_roles.state.list.splice(state_roles.state.list.length - 1, 0, Role.get_dummy_role());
-		role_list_selected_idx = state_roles.state.list.length - 2;
-	}}
-	--margin-bottom="0px" --margin-top="14px"
+	<Button text="Create role"
+		onclick={() => {
+			state_roles.state.list.splice(state_roles.state.list.length - 1, 0, Role.get_dummy_role());
+			role_list_selected_idx = state_roles.state.list.length - 2;
+		}}
+		--margin="14px 0 0 0"
 	/>
 	{#if role_list_selected_idx > -1 && role_list_selected_idx < state_roles.state.list.length - 1}
-		<Button text="Delete role" onclick={() => {
-			state_roles.state.list.splice(role_list_selected_idx, 1);
-			role_list_selected_idx = -1;
-		}}/>
+		<Button text="Delete role"
+			onclick={() => {
+				state_roles.state.list.splice(role_list_selected_idx, 1);
+				role_list_selected_idx = -1;
+			}}
+		/>
 	{/if}
 </Group>
 <Group name="Role settings">
 {#if role_list_selected_idx > -1}
-	<Textbox label_text="Name" bind:value={state_roles.state.list[role_list_selected_idx].name} --width="363px"/>
-	<ColorPicker label_text="Color" bind:value={state_roles.state.list[role_list_selected_idx].color}/>
-	Permissions
+	<Textbox label_text="Name"
+		bind:value={state_roles.state.list[role_list_selected_idx].name}
+		--width="363px"
+		--margin="0 0 6px 0"
+	/>
+	<ColorPicker label_text="Color"
+		bind:value={state_roles.state.list[role_list_selected_idx].color}
+		--margin="0 0 6px 0"
+	/>
+	<div style="font-size: 14px">Permissions</div>
 	<Toggle label_text="Send messages" states={role_states} forbid_states={forbid_states(perm1_bits, 1, 0)}
 		bind:value={() => Role.perm_toggle_get(role_list_selected, 1, 0, role_is_default),
 			    (x) => Role.perm_toggle_set(x, role_list_selected, 1, 0, role_is_default)}
+		--margin="0 0 4px 0"
 	/>
 	<Toggle label_text="Delete messages of other users" states={role_states} forbid_states={forbid_states(perm1_bits, 1, 1)}
 		bind:value={() => Role.perm_toggle_get(role_list_selected, 1, 1, role_is_default),
 			    (x) => Role.perm_toggle_set(x, role_list_selected, 1, 1, role_is_default)}
+		--margin="0 0 4px 0"
 	/>
 	<Toggle label_text="Manage server" states={role_states} forbid_states={forbid_states(perm1_bits, 1, 2)}
 		bind:value={() => Role.perm_toggle_get(role_list_selected, 1, 2, role_is_default),
 			    (x) => Role.perm_toggle_set(x, role_list_selected, 1, 2, role_is_default)}
+		--margin="0 0 4px 0"
 	/>
 	<Toggle label_text="Kick users" states={role_states} forbid_states={forbid_states(perm1_bits, 1, 3)}
 		bind:value={() => Role.perm_toggle_get(role_list_selected, 1, 3, role_is_default),
 			    (x) => Role.perm_toggle_set(x, role_list_selected, 1, 3, role_is_default)}
+		--margin="0 0 4px 0"
 	/>
 	<Toggle label_text="Manage bans" states={role_states} forbid_states={forbid_states(perm1_bits, 1, 4)}
 		bind:value={() => Role.perm_toggle_get(role_list_selected, 1, 4, role_is_default),
 			    (x) => Role.perm_toggle_set(x, role_list_selected, 1, 4, role_is_default)}
+		--margin="0 0 4px 0"
 	/>
 	<Toggle label_text="Manage channels" states={role_states} forbid_states={forbid_states(perm1_bits, 1, 5)}
 		bind:value={() => Role.perm_toggle_get(role_list_selected, 1, 5, role_is_default),
 			    (x) => Role.perm_toggle_set(x, role_list_selected, 1, 5, role_is_default)}
+		--margin="0 0 4px 0"
 	/>
 	<Toggle label_text="Manage invites" states={role_states} forbid_states={forbid_states(perm1_bits, 1, 6)}
 		bind:value={() => Role.perm_toggle_get(role_list_selected, 1, 6, role_is_default),
 			    (x) => Role.perm_toggle_set(x, role_list_selected, 1, 6, role_is_default)}
+		--margin="0 0 4px 0"
 	/>
 	<Toggle label_text="Speak in voice channels" states={role_states} forbid_states={forbid_states(perm1_bits, 1, 7)}
 		bind:value={() => Role.perm_toggle_get(role_list_selected, 1, 7, role_is_default),
 			    (x) => Role.perm_toggle_set(x, role_list_selected, 1, 7, role_is_default)}
+		--margin="0 0 4px 0"
 	/>
 	<Toggle label_text="Manage roles" states={role_states} forbid_states={forbid_states(perm1_bits, 1, 8)}
 		bind:value={() => Role.perm_toggle_get(role_list_selected, 1, 8, role_is_default),
 			    (x) => Role.perm_toggle_set(x, role_list_selected, 1, 8, role_is_default)}
+		--margin="0 0 4px 0"
 	/>
 	<Toggle label_text="Manage voice channels" states={role_states} forbid_states={forbid_states(perm1_bits, 1, 9)}
 		bind:value={() => Role.perm_toggle_get(role_list_selected, 1, 9, role_is_default),
 			    (x) => Role.perm_toggle_set(x, role_list_selected, 1, 9, role_is_default)}
+		--margin="0 0 4px 0"
 	/>
 	<Toggle label_text="Manage emojis" states={role_states} forbid_states={forbid_states(perm1_bits, 1, 10)}
 		bind:value={() => Role.perm_toggle_get(role_list_selected, 1, 10, role_is_default),
@@ -482,26 +506,29 @@ This cannot be reversed.
 	bind:selected_idx={invite_list_selected_idx}
 />
 <Button text="Create invite"
-	--margin-bottom="0px" --margin-top="14px"
 	onclick={() => {
 		state_invites.state.list.push(Invite.get_dummy_invite());
 	}}
+	--margin="14px 0 0 0"
 />
 </Group>
 <Group name="Invite settings">
 {#if invite_list_selected_idx > -1}
-	<Button text="Get link"
-		onclick={() => {
-			navigator.clipboard.writeText(page.url + "server_invites/" + state_invites.state.list[invite_list_selected_idx].id)
-				.then(() => Notifs.add_notif("Copied invite link to buffer", Notifs.Types.Normal));
-		}}
-	/>
-	<Button text="Remove"
-		onclick={() => {
-			state_invites.state.list.splice(invite_list_selected_idx, 1);
-			invite_list_selected_idx = -1;
-		}}
-	/>
+	<div style="margin-bottom: 6px">
+		<Button text="Get link"
+			onclick={() => {
+				navigator.clipboard.writeText(page.url + "server_invites/" + state_invites.state.list[invite_list_selected_idx].id)
+					.then(() => Notifs.add_notif("Copied invite link to buffer", Notifs.Types.Normal));
+			}}
+		/>
+		<Button text="Remove"
+			onclick={() => {
+				state_invites.state.list.splice(invite_list_selected_idx, 1);
+				invite_list_selected_idx = -1;
+			}}
+		/>
+	</div>
+
 	<DurationPicker label_text="Invite duration"
 		bind:expires={state_invites.state.list[invite_list_selected_idx].expires}/>
 {/if}
@@ -529,15 +556,17 @@ This cannot be reversed.
 		state_emojis.state.list.push({name: "", image: display_url});
 		emoji_list_selected_idx = state_emojis.state.list.length - 1;
 	}}
-	--margin-top="12px"
+	--margin="14px 0 0 0"
 />
 </Group>
 <Group name="Emoji settings">
 {#if emoji_list_selected_idx > -1}
 	<Textbox label_text="Emoji name"
-	bind:value={state_emojis.state.list[emoji_list_selected_idx].name}
-	error={emoji_name_error}
-	--width="400px"/>
+		bind:value={state_emojis.state.list[emoji_list_selected_idx].name}
+		error={emoji_name_error}
+		--width="250px"
+		--margin="0 0 12px 0"
+	/>
 
 	<AvatarPicker
 	bind:this={emoji_image_picker}
@@ -551,8 +580,7 @@ This cannot be reversed.
 			state_emojis.state.list.splice(emoji_list_selected_idx, 1);
 			emoji_list_selected_idx = -1;
 		}}
-		--margin-top="8px"
-		--margin-bottom="0px"
+		--margin="8px 0 0 0"
 	/>
 {/if}
 </Group>

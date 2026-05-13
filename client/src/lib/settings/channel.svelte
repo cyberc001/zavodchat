@@ -114,18 +114,20 @@
 
 
 	tabs = [
-			{name: "General", render: general, state: state_general},
-			{name: "Access", render: access, state: state_access},
-			{name: "Permissions", render: permissions, state: state_permissions}
+		{name: "General", render: general, state: state_general},
+		{name: "Access", render: access, state: state_access},
+		{name: "Permissions", render: permissions, state: state_permissions}
 	];
 </script>
 
 {#snippet general()}
 <Group name="General settings">
-	<Textbox label_text="Channel name" bind:value={state_general.state.name}/>
+	<Textbox label_text="Channel name" bind:value={state_general.state.name}
+		--margin="0 0 6px 0"
+	/>
 	<Select label_text="Channel type" bind:value={state_general.state.type}
-	options={[Channel.Type.Text, Channel.Type.Voice]}
-	option_labels={["Text", "Voice"]}
+		options={[Channel.Type.Text, Channel.Type.Voice]}
+		option_labels={["Text", "Voice"]}
 	/>
 </Group>
 {/snippet}
@@ -175,32 +177,30 @@
 	/>
 	<div style="display: flex; margin-top: 16px">
 		<Autocomplete render_data={render_user_or_role}
-		get_data={(index, range, asc, list_value_name) => User.get_server_range(server.data.id, index, range, asc, list_value_name)}
-		prepended_data={server_roles.data.filter((x) => state_access.state.wl_roles.findIndex((y) => y === x.id) === -1)}
-		bind:this={wl_picker} bind:value={wl_to_add} 
-		--width="min(400px, 50vw)"
-		--margin-bottom="0"
-		--margin-right="6px"
+			bind:this={wl_picker} bind:value={wl_to_add} 
+			get_data={(index, range, asc, list_value_name) => User.get_server_range(server.data.id, index, range, asc, list_value_name)}
+			prepended_data={server_roles.data.filter((x) => state_access.state.wl_roles.findIndex((y) => y === x.id) === -1)}
+			--width="min(300px, 50vw)"
 		/>
 		<Button text="Add"
-		disabled={typeof(wl_to_add) === "undefined" || 
-			  (typeof(wl_to_add.perms1) === "undefined" &&
-				state_access.state.wl_users.findIndex((x) => x === wl_to_add.id) !== -1)}
-		onclick={() => {
-			if(typeof(wl_to_add) === "undefined")
-				return;
-
-			if(typeof(wl_to_add.perms1) !== "undefined")
-				state_access.state.wl_roles.push(wl_to_add.id);
-			else {
-				state_access.state.wl_users.push(wl_to_add.id);
-				if(!wl_users[wl_to_add.id])
-					wl_users[wl_to_add.id] = User.get_server(server_id, wl_to_add.id);
-			}
-
-			wl_picker.reset();
-		}}
-		--margin-bottom="0"
+			disabled={typeof(wl_to_add) === "undefined" || 
+				  (typeof(wl_to_add.perms1) === "undefined" &&
+					state_access.state.wl_users.findIndex((x) => x === wl_to_add.id) !== -1)}
+			onclick={() => {
+				if(typeof(wl_to_add) === "undefined")
+					return;
+	
+				if(typeof(wl_to_add.perms1) !== "undefined")
+					state_access.state.wl_roles.push(wl_to_add.id);
+				else {
+					state_access.state.wl_users.push(wl_to_add.id);
+					if(!wl_users[wl_to_add.id])
+						wl_users[wl_to_add.id] = User.get_server(server_id, wl_to_add.id);
+				}
+	
+				wl_picker.reset();
+			}}
+			--margin="0 0 0 6px"
 		/>
 
 		<div style="margin-left: auto">
@@ -243,17 +243,17 @@
 		<Autocomplete render_data={render_user_or_role}
 		prepended_data={server_roles.data.filter((x) => state_permissions.state.roles.findIndex((y) => y.id === x.id) === -1)}
 		bind:this={perms_role_picker} bind:value={perms_role_to_add}
-		--width="min(400px, 50vw)"
+		--width="min(300px, 50vw)"
 		--margin-bottom="0"
 		--margin-right="6px"
 		/>
 		<Button text="Add"
-		disabled={typeof(perms_role_to_add) === "undefined"}
-		onclick={() => {
-			state_permissions.state.roles.push({id: perms_role_to_add.id, perms1: 0});
-			perms_role_picker.reset();
-		}}
-		--margin-bottom="0"
+			disabled={typeof(perms_role_to_add) === "undefined"}
+			onclick={() => {
+				state_permissions.state.roles.push({id: perms_role_to_add.id, perms1: 0});
+				perms_role_picker.reset();
+			}}
+			--margin="0 0 0 6px"
 		/>
 	</div>
 </Group>

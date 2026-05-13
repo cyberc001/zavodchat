@@ -1,12 +1,13 @@
 <script>
-	const {text, icon,
+	const {
+		text, icon,
 		disabled = false,
-		onclick} = $props();
+		onclick
+	} = $props();
 </script>
 
 <button class="settings_control" 
-style="width: var(--width, auto); margin-bottom: var(--margin-bottom, 12px); margin-top: var(--margin-top, 0px); margin-left: var(--margin-left, 0px); padding-bottom: var(--padding-bottom, revert)"
-onclick={onclick} {disabled}
+	onclick={onclick} {disabled}
 >
 	{text}
 	{#if icon}

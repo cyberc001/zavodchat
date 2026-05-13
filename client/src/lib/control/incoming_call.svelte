@@ -52,25 +52,31 @@
 {#if incoming_call && incoming_call.user.loaded}
 	<div class="incall_display panel">
 		<img class="incall_avatar" src={User.get_avatar_path(incoming_call.user.data)} />
-		<div class="incall_name">{incoming_call.user.data.name}</div>
+		<div class="incall_name text_ellipsis">{incoming_call.user.data.name}</div>
 		<div>Incoming call</div>
 		<div class="incall_actions">
 			<Button icon={asset("icons/hang.svg")}
-			onclick={() => {
-				Channel.kick_user(incoming_call.channel_id, incoming_call.user.data.id,
-						() => {});
-			}}
-			--margin-bottom="0"
+				onclick={() => {
+					Channel.kick_user(incoming_call.channel_id, incoming_call.user.data.id,
+							() => {});
+				}}
+				--padding="0 12px 0 12px"
+				--display="flex"
+				--background="var(--clr_bg_item_negative)"
+				--border-color="var(--clr_border_item_negative)"
 			/>
 			<Button icon={asset("icons/call.svg")}
-			onclick={() => {
-				const ch = Channel.get(incoming_call.channel_id);
-				ch.notify_on_load(() => {
-					show_channel(ch.data);
-				});
-			}}
-			--margin-bottom="0"
-			--margin-left="6px"
+				onclick={() => {
+					const ch = Channel.get(incoming_call.channel_id);
+					ch.notify_on_load(() => {
+						show_channel(ch.data);
+					});
+				}}
+				--padding="0 12px 0 12px"
+				--margin="0 0 0 6px"
+				--display="flex"
+				--background="var(--clr_bg_item_positive)"
+				--border-color="var(--clr_border_item_positive)"
 			/>
 		</div>
 	</div>
@@ -85,7 +91,7 @@
 
 	height: min(250px, 60%);
 	width: min(250px, 60%);
-	padding: 10px;
+	padding: 8px;
 
 	align-content: center;
 	text-align: center;

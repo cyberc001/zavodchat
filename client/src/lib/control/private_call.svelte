@@ -6,12 +6,13 @@
 	import {VideoState} from '$lib/socket/vc_utils.svelte.js';
 
 	import Button from '$lib/control/button.svelte';
-	import IconButton from '$lib/control/icon_button.svelte';
 
 	import User from '$lib/rest/user.svelte.js';
 
-	const {socket_vc,
-		end_call, ctx_vc_user} = $props();
+	const {
+		socket_vc,
+		end_call, ctx_vc_user
+	} = $props();
 
 	let self = $state();
 
@@ -54,7 +55,7 @@
 						+ (typeof(vc_state.id) === "undefined" ? ";filter: brightness(40%)" : "")
 					}
 				/>
-				<b style="text-align: center">{vc_state.user.data.name}</b>
+				<b class="user_name text_ellipsis">{vc_state.user.data.name}</b>
 
 				<div class="vc_state">
 					{#if vc_state.video > VideoState.Disabled}
@@ -87,31 +88,36 @@
 
 	<div class="actions">
 		<Button icon={asset("icons/screen_share" + (socket_vc.get_video_state() === VideoState.Screen ? "_stop" : "") + ".svg")}
-			--padding-bottom="0"
-			--margin-bottom="0"
 			onclick={() => {
 				socket_vc.set_video_state(socket_vc.get_video_state() === VideoState.Disabled ?
 								VideoState.Screen : VideoState.Disabled);
 			}}
+			--margin="0 4px 0 0"
+			--padding="2px"
+			--display="flex"
 		/>
 		<Button icon={asset("/icons/" + (socket_vc.is_mute() ? "" : "not_") + "muted.svg")}
-			--padding-bottom="0"
-			--margin-bottom="0"
 			onclick={() => {
 				socket_vc.toggle_mute();
 			}}
+			--margin="0 4px 0 0"
+			--padding="2px"
+			--display="flex"
 		/>
 		<Button icon={asset("icons/" + (socket_vc.is_deaf() ? "" : "not_") + "deaf.svg")}
-			--padding-bottom="0"
-			--margin-bottom="0"
 			onclick={() => {
 				socket_vc.toggle_deaf();
 			}}
+			--margin="0 4px 0 0"
+			--padding="2px"
+			--display="flex"
 		/>
 		<Button icon={asset("icons/hang.svg")}
-			--padding-bottom="0"
-			--margin-bottom="0"
 			onclick={end_call}
+			--padding="2px"
+			--display="flex"
+			--background="var(--clr_bg_item_negative)"
+			--border-color="var(--clr_border_item_negative)"
 		/>
 	</div>
 </div>
@@ -119,7 +125,9 @@
 
 <style>
 .private_call_container {
-	text-align: center;
+	display: grid;
+	flex-direction: column;
+	justify-items: center;
 
 	anchor-name: --private_call_container;
 }
@@ -129,8 +137,7 @@
 	justify-content: center;
 }
 .private_call_user {
-	font-size: 18px;
-
+	width: min(150px, 25vw);
 	margin: 8px 0 4px 0;
 
 	align-items: center;
@@ -138,28 +145,36 @@
 	flex-direction: column;
 }
 .private_call_user:not(:last-child) {
-	max-width: 30%;
 	margin-right: min(20%, 50px);
 }
+
+.user_name {
+	width: 100%;
+	font-size: 18px;
+	text-align: center;
+}
 .user_avatar {
-	width: 150px;
+	width: min(150px, 25vw);
 	aspect-ratio: 1;
 
 	border-style: solid;
 	border-width: 4px;
 	border-radius: 10px;
 }
+
 .vc_state {
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	min-height: 32px;
+	min-height: 20px;
 }
 .vc_state_icon {
-	width: 24px;
+	height: 18px;
 }
 
 .actions {
+	width: fit-content;
+	display: flex;
 	margin-bottom: 4px;
 }
 </style>

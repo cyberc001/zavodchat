@@ -14,14 +14,12 @@
 <div class="panel tabbed_settings">
 	<div class="tabbed_settings_sidebar">
 		{#each tabs as tab, i}
-			<div>
-				<button
-					class={"item hoverable transparent_button tabbed_settings_el" + (sel_tab == i ? " selected" : "")}
-					onclick={() => sel_tab = i}
-				>
-					{tab.name}
-				</button>
-			</div>
+			<button
+				class={"item hoverable transparent_button tabbed_settings_el" + (sel_tab == i ? " selected" : "")}
+				onclick={() => sel_tab = i}
+			>
+				{tab.name}
+			</button>
 		{/each}
 	</div>
 	<div class="tabbed_settings_tab">
@@ -51,8 +49,16 @@
 				{#if tabs[sel_tab].state.changes === SettingsTabState.ChangesState.HasChanges
 					|| tabs[sel_tab].state.changes === SettingsTabState.ChangesState.Invalid}
 					<div class="tabbed_settings_actions">
-						<Button text="Apply changes" onclick={() => tabs[sel_tab].state.apply_changes()} disabled={tabs[sel_tab].state.changes === SettingsTabState.ChangesState.Invalid}/>
-						<Button text="Discard changes" onclick={() => tabs[sel_tab].state.discard_changes()}/>
+						<Button text="Apply changes"
+							onclick={() => tabs[sel_tab].state.apply_changes()} disabled={tabs[sel_tab].state.changes === SettingsTabState.ChangesState.Invalid}
+							--background="var(--clr_bg_item_positive)"
+							--border-color="var(--clr_border_item_positive)"
+						/>
+						<Button text="Discard changes"
+							onclick={() => tabs[sel_tab].state.discard_changes()}
+							--background="var(--clr_bg_item_negative)"
+							--border-color="var(--clr_border_item_negative)"
+						/>
 					</div>
 				{/if}
 			{/if}
@@ -86,9 +92,10 @@
 
 .tabbed_settings_el {
 	border-style: solid none none none;
+	border-color: var(--clr_border);
+	padding: 4px 0px 4px 4px;
 
 	width: 100%;
-	padding: 4px 0px 4px 4px;
 
 	color: var(--clr_text);
 	font-size: 18px;
@@ -102,6 +109,9 @@
 	cursor: pointer;
 
 	user-select: none;
+}
+.tabbed_settings_el:last-child {
+	border-style: solid none solid none;
 }
 
 .tabbed_settings_tab {

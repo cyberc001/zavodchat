@@ -5,7 +5,7 @@
 
 <div class="settings_select_frame">
 	<p class="settings_control_label">{label_text}</p>
-	<select class="settings_control" style="width:var(--width, 512px); margin-bottom:var(--margin-bottom, 12px)"
+	<select class="settings_control" style="width:var(--width, 300px);"
 	bind:value={value}>
 		{#if typeof option_labels === "undefined"}
 			{#each options as o}
