@@ -5,7 +5,7 @@
 	color: var(--color, var(--clr_text));
 
 	box-sizing: border-box;
-	width: var(--width, -fit-content);
+	width: var(--width, fit-content);
 	margin: var(--margin, 0 0 0 0);
 	padding: var(--padding, 0 4px 0 4px);
 

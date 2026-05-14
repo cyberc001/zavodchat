@@ -1,4 +1,7 @@
 .center_frame {
+	display: flex;
+	flex-direction: column;
+
 	position: absolute;
 	top: 0;
 	bottom: 0;
@@ -20,15 +23,21 @@
 	text-align: center;
 }
 .suggestion_text {
+	width: 100%;
+
 	font-size: 16px;
 	text-align: left;
+
+	margin: 0 0 6px 0;
 }
 .suggestion_button_link {
 	background: none;
 	padding: 0;
 	border: none;
 
-	color: #ff4848;
+	font-size: 16px;
+
+	color: var(--clr_text_link);
 	text-decoration-line: underline;
 	cursor: pointer;
 }

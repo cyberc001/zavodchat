@@ -14,21 +14,29 @@
 </script>
 
 <div class="center_frame">
-<p style="margin: 0; margin-bottom: 20px;">Log in</p>
-<Textbox label_text="username" bind:value={username} error={error}/>
-<p style="margin: 0; margin-bottom: 6px;"></p>
-<Textbox label_text="password" bind:value={password} is_password=true/>
-<p class="suggestion_text"><button class="suggestion_button_link" onclick={() => goto("/register")}>Click here</button> to set up an account.</p>
-
-<Button text="Log in" --margin-bottom="0px"
-	onclick={() => {
-			error = "";
-			Auth.login(username, password,
-				() => goto("/"),
-				(res) => error = Rest.err_to_str(res));
-			}}
-/>
-
+	<p style="margin: 0; margin-bottom: 12px;">Log in</p>
+	<Textbox label_text="username" bind:value={username} error={error}
+		autocomplete="username"
+		--margin="0 0 6px 0"
+	/>
+	<Textbox label_text="password" bind:value={password} is_password=true
+		autocomplete="on"
+		--margin="0 0 6px 0"
+	/>
+	<p class="suggestion_text">
+		<button class="suggestion_button_link" onclick={() => goto("/register")}>Click here</button> to set up an account.
+	</p>
+	
+	<div>
+		<Button text="Log in" --margin-bottom="0px"
+			onclick={() => {
+					error = "";
+					Auth.login(username, password,
+						() => goto("/"),
+						(res) => error = Rest.err_to_str(res));
+					}}
+		/>
+	</div>
 </div>
 
 <NotifDisplay/>

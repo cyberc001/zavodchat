@@ -1,6 +1,11 @@
 :root {
 	--clr_text: #F6F5F5;
 	--clr_text_secondary: #988888;
+
+	--clr_text_link: #aeaeee;
+	--clr_text_link_hover: #aedeee;
+	--clr_text_link_visited: #9a7aee;
+
 	--clr_text_error: #FF5A5A;
 	--clr_text_warning: #E2E383;
 	--clr_text_success: #76F774;
@@ -46,6 +51,17 @@ body {
 button {
 	font-family: sans-serif;
 }
+
+a {
+	color: var(--clr_text_link);
+}
+a:visited {
+	color: var(--clr_text_link_visited);
+}
+a:hover {
+	color: var(--clr_text_link_hover);
+}
+
 ::selection {
 	background: var(--clr_bg_text_selection);
 }
@@ -119,8 +135,6 @@ button {
 	object-fit: cover;
 }
 .link_attachment {
-	position: relative;
-	
 	border-radius: 4px;
 	margin-top: 4px;
 	padding: 6px;

@@ -380,15 +380,18 @@
 		</div>
 		<div style="display: flex; flex-direction: column">
 			{#each links as link, i}
-				<div class="item link_attachment">
+				<div class="item link_attachment"
+					style="display: flex;">
+					<div>
+						<a href={link.content} class="link_attachment_line_limit"><b>{link.title}</b><br></a>
+						<div class="link_attachment_line_limit">{link.desc}</div>
+					</div>
 					<button class="attachment_remove_button hoverable item"
-					onclick={() => links.splice(i, 1)}
-					style="left: inherit; right: 0px"
+						onclick={() => links.splice(i, 1)}
+						style="position: static; display: flex"
 					>
-						<img src={asset("icons/close.svg")} alt="remove link attachment" class="filter_icon_main" style="height: 28px"/>
+						<img src={asset("icons/close.svg")} alt="remove link attachment" class="filter_icon_main" style="height: 22px"/>
 					</button>
-					<a href={link.content} class="link_attachment_line_limit"><b>{link.title}</b><br></a>
-					<div class="line_limit">{link.desc}</div>
 				</div>
 			{/each}
 		</div>

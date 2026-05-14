@@ -128,10 +128,12 @@
 		--margin="0 0 6px 0"
 	/>
 	<Textbox label_text="Change password"
-		is_password=true bind:value={state_profile.state.password}
+		autocomplete="new-password" is_password=true
+		bind:value={state_profile.state.password}
 		--margin="0 0 6px 0"
 	/>
-	<Textbox label_text="Repeat password" is_password=true
+	<Textbox label_text="Repeat password"
+		autocomplete="new-password" is_password=true
 		bind:value={state_profile.state.password_repeat}
 		error={profile_passwords_match ? "" : "Passwords do not match"}
 		--margin="0 0 6px 0"
