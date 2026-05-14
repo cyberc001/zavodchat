@@ -235,8 +235,11 @@ insert_message_text={(text) => message_input?.insertText(text)}
 		show_channel={show_channel}
 		/>
 
-		<PrivateCall socket_vc={socket_vc}
-				end_call={end_call} ctx_vc_user={ctx_vc_user}/>
+		{#if !server}
+			<PrivateCall socket_vc={socket_vc}
+					end_call={end_call} ctx_vc_user={ctx_vc_user}
+			/>
+		{/if}
 
 		<div class="sidebar_message_content">
 			{#snippet render_message(i, item)}
