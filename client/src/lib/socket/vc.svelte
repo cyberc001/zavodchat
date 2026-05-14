@@ -63,9 +63,12 @@
 				Sound.play(asset("sounds/vc_leave.ogg"));
 	
 				rtc = undefined;
+				ws = undefined;
 				tracks = {};
 				audio = {}; video = {};
-				ws = undefined;
+				mute = AudioState.None;
+				deaf = AudioState.None;
+				video_State = VideoState.Disabled;
 
 				if(this.onclose){
 					this.onclose(e);
