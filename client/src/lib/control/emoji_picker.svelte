@@ -53,7 +53,7 @@
 				{/each}
 			</div>
 		{:else}
-			{#if server_emojis.loading || server_emojis.data.length > 0}
+			{#if server_emojis && (server_emojis.loading || server_emojis.data.length > 0)}
 				<div class="emoji_group_title">Server emojis</div>
 				{#if server_emojis.loading}
 					<img src={asset("icons/loading.svg")} alt="loading" class="filter_icon_main" style="width: 24px"/>
