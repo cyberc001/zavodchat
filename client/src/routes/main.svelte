@@ -232,8 +232,8 @@
 .sidebar_users {
 	border-style: none none none solid;
 
-	width: 256px;
-	min-width: 256px;
+	width: min(256px, 20%);
+	min-width: min(256px, 20%);
 }
 </style>
 
@@ -383,15 +383,16 @@
 			<div class="panel sidebar_users">
 				{#snippet render_user(i, user)}
 					<UserDisplay
-					user={{data: user, loaded: true}} server={server}
-					selected={sel.user.message_id == -1 && user.id == sel.user.id}
-					show_user={(id, e, anchor) => showUser(id, anchor, "right")}
-					show_ctx_menu={(anchor, e) => {
-						sel.ctx_user_id = user.id;
-						showCtxMenu(anchor, e);
-						user_actions.get(user_self.data.id, user.id, server, server_roles,
-									(actions) => showCtxMenu(anchor, e, actions));
-					}}
+						user={{data: user, loaded: true}} server={server}
+						selected={sel.user.message_id == -1 && user.id == sel.user.id}
+						show_user={(id, e, anchor) => showUser(id, anchor, "right")}
+						show_ctx_menu={(anchor, e) => {
+							sel.ctx_user_id = user.id;
+							showCtxMenu(anchor, e);
+							user_actions.get(user_self.data.id, user.id, server, server_roles,
+										(actions) => showCtxMenu(anchor, e, actions));
+						}}
+						--width="100%"
 					/>
 				{/snippet}
 				<PaginatedList bind:this={server_user_list}

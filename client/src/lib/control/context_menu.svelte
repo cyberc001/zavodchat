@@ -27,7 +27,7 @@
 		<img src={asset("icons/loading.svg")} alt="loading" class="filter_icon_main" style="height: 20px; margin-right: 6px"/>
 		Loading...
 	</div>
-{:else}
+{:else if items.length > 0}
 	{#each items as item, i}
 		<div class="item context_menu_item hoverable">
 			{@render item(hide_ctx_menu, i)}
