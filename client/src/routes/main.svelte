@@ -221,6 +221,14 @@
 
 <style>
 @import "main.css";
+.main {
+	display: flex;
+
+	height: 100%;
+	box-sizing: border-box;
+	padding: 14px 0 14px 0;
+}
+
 .sidebar_users {
 	border-style: none none none solid;
 

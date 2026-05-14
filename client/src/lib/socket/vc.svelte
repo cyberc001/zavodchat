@@ -61,14 +61,19 @@
 	
 				set_state(e.reason ? e.reason : "Disconnected", "--clr_text_error");
 				Sound.play(asset("sounds/vc_leave.ogg"));
-	
+
+				// Reset state	
 				rtc = undefined;
 				ws = undefined;
+
 				tracks = {};
 				audio = {}; video = {};
+
 				mute = AudioState.None;
 				deaf = AudioState.None;
-				video_State = VideoState.Disabled;
+				video_state = VideoState.Disabled;
+				unwatch_video();
+
 
 				if(this.onclose){
 					this.onclose(e);

@@ -47,6 +47,7 @@ body {
 	background: var(--clr_bg_panel);
 	color: var(--clr_text);
 	font-family: sans-serif;
+	overflow: hidden;
 }
 button {
 	font-family: sans-serif;
@@ -67,13 +68,6 @@ a:hover {
 }
 
 /* Generic classes */
-.main {
-	display: flex;
-
-	height: 100%;
-	box-sizing: border-box;
-	padding: 14px 0 14px 0;
-}
 .panel {
 	background: var(--clr_bg_panel);
 	border-width: 2px;

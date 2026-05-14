@@ -448,7 +448,7 @@
 
 	max-height: 5lh;
 	overflow-wrap: anywhere;
-	overflow-y: scroll;
+	overflow-y: auto;
 
 	text-align: left;
 

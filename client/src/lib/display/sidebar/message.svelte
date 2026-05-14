@@ -295,6 +295,7 @@ insert_message_text={(text) => message_input?.insertText(text)}
 <style>
 .sidebar_message {
 	width: 100%;
+	flex-grow: 1;
 }
 .sidebar_message_content {
 	flex-grow: 1;
