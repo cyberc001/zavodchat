@@ -36,8 +36,9 @@ export default class MainSocket {
 			Friends.in_requests_cache.add_user_id_to_list(0, data.id);
 		},
 		friend_request_accepted: function(data) {
-			Friends.friend_cache.add_user_id_to_list(0, data.id);
 			Friends.out_requests_cache.remove_from_list(0, data.id);
+			data.user = User.get(data.id);
+			Friends.friend_cache.add_to_list(0, data);
 		},
 		friend_request_denied: function(data) {
 			Friends.out_requests_cache.remove_from_list(0, data.id);
@@ -101,6 +102,7 @@ export default class MainSocket {
 				// TODO add ping
 				// Potentially new DM channel
 				DM.channel_range_cache.reload(0);
+				Notifications.notification_cache.reset();
 			} else {
 				// Server channel message
 				if(add_notif){

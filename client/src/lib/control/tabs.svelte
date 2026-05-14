@@ -11,7 +11,11 @@
 		{#each tabs as tab, i}
 			<button class={"transparent_button hoverable tab_name" + (sel_i === i ? " selected" : "")}
 			onclick={() => sel_i = i}>
-				{tab.name}
+				{#if tab.render_name}
+					{@render tab.render_name(tab)}
+				{:else}
+					{tab.name}
+				{/if}
 			</button>
 		{/each}
 	</div>

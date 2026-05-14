@@ -3,6 +3,8 @@ export class IDObserver {
 	loaded = $state(false);
 	loading = $state(false);
 
+	id; load_func;
+
 	set_data(data){
 		for(const key in data)
 			this.data[key] = data[key];
@@ -47,26 +49,36 @@ export class IDCache {
 
 	get_state(_id, load_func){
 		const id = this.state_refs_id(_id);
-		let obj = this.cache[id];
-		if(typeof obj === "undefined" || typeof obj.deref() === "undefined"){
-			obj = this._default_state_constructor();
-			this.cache[id] = new WeakRef(obj);
-			this._cache_refs[id] = obj;
-			if(load_func)
+		let obs = this.cache[id];
+		if(typeof obs === "undefined" || typeof obs.deref() === "undefined"){
+			obs = this._default_state_constructor();
+			obs.id = id;
+
+			this.cache[id] = new WeakRef(obs);
+			this._cache_refs[id] = obs;
+
+			if(load_func){
 				load_func(this, id);
-			return obj;
+				obs.load_func = load_func;
+			}
+			return obs;
 		}
-		obj = obj.deref();
-		if(!obj.loaded && !obj.loading && load_func){
-			obj.loading = true;
+		obs = obs.deref();
+		if(!obs.loaded && !obs.loading && load_func){
+			obs.loading = true;
+			obs.load_func = load_func;
 			load_func(this, id);
 		}
-		return obj;
+		return obs;
 	}
 
 	reset(){
-		this.cache = {};
 		this._cache_refs = {};
+		for(const ref of Object.values(this.cache)){
+			const obs = ref?.deref();
+			if(obs)
+				obs.load_func(this, obs.id);
+		}
 	}
 
 	// Should be called from get_state(, load_func), therefore id is not parsed twice

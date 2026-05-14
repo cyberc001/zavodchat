@@ -115,15 +115,6 @@
 	width: 100%;
 	display: flex;
 }
-.channel_notif_circle {
-	position: relative;
-	right: unset;
-	bottom: unset;
-	margin-left: auto;
-	margin-right: 5px;
-
-	font-size: 18px;
-}
 
 .vc_user_panel {
 	display: flex;

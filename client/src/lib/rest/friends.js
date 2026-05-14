@@ -44,7 +44,7 @@ export default class Friends {
 							Friends.out_requests_cache.add_user_id_to_list(0, user_id);
 						else {
 							Friends.in_requests_cache.remove_from_list(0, user_id);
-							Friends.friend_cache.add_user_id_to_list(0, user_id);
+							Friends.friend_cache.reset();
 						}
 					}
 					if(_then)

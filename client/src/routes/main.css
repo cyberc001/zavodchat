@@ -182,6 +182,16 @@ a:hover {
 	background: var(--clr_donotdisturb);
 	border-radius: 50%;
 }
+.channel_notif_circle {
+	position: relative;
+	right: unset;
+	bottom: unset;
+	margin-left: auto;
+	margin-right: 5px;
+
+	font-size: 18px;
+}
+
 .user_role_circle_big {
 	display: inline-block;
 	width: 16px;

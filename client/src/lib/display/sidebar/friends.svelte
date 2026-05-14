@@ -72,18 +72,18 @@
 
 				<div class="friend_actions">
 					{#if friend.user.loaded}
-					<IconButton icon={asset("icons/channel_text.svg")}
-						onclick={() => showDMChannel(friend.user.data.id, 0)}
-					/>
-					<IconButton icon={asset("icons/call.svg")}
-						onclick={() => showDMChannel(friend.user.data.id, 1)}
-					/>
-					<IconButton icon={asset("icons/close.svg")}
-						onclick={() => {
-							user_to_remove = friend.user;
-							friend_remove_confirm.show();
-						}}
-					/>
+						<IconButton icon={asset("icons/channel_text.svg")}
+							onclick={() => showDMChannel(friend.user.data.id, 0)}
+						/>
+						<IconButton icon={asset("icons/call.svg")}
+							onclick={() => showDMChannel(friend.user.data.id, 1)}
+						/>
+						<IconButton icon={asset("icons/close.svg")}
+							onclick={() => {
+								user_to_remove = friend.user;
+								friend_remove_confirm.show();
+							}}
+						/>
 					{/if}
 				</div>
 			</div>
@@ -126,10 +126,24 @@
 {/snippet}
 
 
+{#snippet render_friend_tab_name(tab)}
+	<div style="position: relative">
+		{tab.name}
+		{#if tab.args.requests.loaded && tab.args.requests.data.length > 0}
+			<div class="notif_circle channel_notif_circle" style="margin: 0">
+				{tab.args.requests.data.length}
+			</div>
+		{/if}
+	</div>
+{/snippet}
 <Tabs tabs={[
 	{name: "Friends", render: tab_friends},
-	{name: "Incoming requests", render: tab_friend_requests, args: {requests: in_requests}},
-	{name: "Outgoing requests", render: tab_friend_requests, args: {requests: out_requests}}
+	{name: "Incoming requests",
+		render: tab_friend_requests, render_name: render_friend_tab_name,
+		args: {requests: in_requests}},
+	{name: "Outgoing requests",
+		render: tab_friend_requests, 
+		args: {requests: out_requests}}
 ]}/>
 
 <style>
