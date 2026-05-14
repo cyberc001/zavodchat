@@ -13,6 +13,11 @@
 	let error = $state("");
 </script>
 
+
+<svelte:head>
+	<title>Zavodchat login</title>
+</svelte:head>
+
 <div class="center_frame">
 	<p style="margin: 0; margin-bottom: 12px;">Log in</p>
 	<Textbox label_text="username" bind:value={username} error={error}

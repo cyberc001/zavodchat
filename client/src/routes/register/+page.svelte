@@ -24,6 +24,10 @@
 	}
 </script>
 
+<svelte:head>
+	<title>Zavodchat registration</title>
+</svelte:head>
+
 <div class="center_frame">
 	<p style="margin: 0; margin-bottom: 12px;">Register</p>
 	<Textbox label_text="username" bind:value={username}
