@@ -63,6 +63,14 @@ a:hover {
 	color: var(--clr_text_link_hover);
 }
 
+img {
+	color: var(--clr_text_secondary);
+	display: inline-block;
+	overflow-wrap: anywhere;
+	text-align: center;
+	font-size: 12px;
+}
+
 ::selection {
 	background: var(--clr_bg_text_selection);
 }
