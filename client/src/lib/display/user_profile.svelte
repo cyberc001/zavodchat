@@ -80,7 +80,7 @@
 		<div class="user_profile_head">
 			<div class="user_avatar_frame">
 				<div class="user_status" style={User.Status.get_style(user.status)}></div>
-				<button class="transparent_button unhoverable" style="cursor: pointer"
+				<button class="transparent_button unhoverable" style="width: 100%; height: 100%; cursor: pointer"
 				onclick={() => shown_avatar = User.get_avatar_path(user)}>
 					<img class="user_avatar" src={User.get_avatar_path(user)} alt="avatar"/>
 				</button>
