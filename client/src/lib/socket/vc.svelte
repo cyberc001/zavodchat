@@ -2,6 +2,7 @@
 	import {PUBLIC_BASE_SOCKET_VC} from '$env/static/public';
 	import {VCTrack, VCAudioTrack, VCVideoTrack, AudioState, VideoState} from '$lib/socket/vc_utils.svelte.js';
 	import {asset} from '$app/paths';
+	import {onDestroy} from 'svelte';
 
 	import Sound from '$lib/sound.js';
 
@@ -16,7 +17,7 @@
 	$effect(() => {
 		if(blocked_users.loaded)
 			for(const user_id of Object.keys(audio))
-				audio[user_id].set_blocked(blocked_users.data.findIndex((x) => x.id === parseInt(user_id)) !== -1);
+				audio[user_id]?.set_blocked(blocked_users.data.findIndex((x) => x.id === parseInt(user_id)) !== -1);
 	});
 
 	let ws, rtc;
@@ -38,6 +39,9 @@
 		if(ws)
 			ws.send(JSON.stringify({name: "ping", data: ""}));
 	}, 60000);
+	onDestroy(() => {
+		clearInterval(ws_ping_intv);
+	});
 
 
 	export function call(channel_id){
@@ -49,7 +53,6 @@
 			in_call = true;
 
 			ws.onclose = (e) => {
-				clearInterval(ws_ping_intv);
 				console.log("closing ws with rtc\n", rtc, "\n", e);
 				if(rtc)
 					rtc.close();
