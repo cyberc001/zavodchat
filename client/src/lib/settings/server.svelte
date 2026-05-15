@@ -203,7 +203,7 @@
 	let state_invites = new InvitesTabState({list: []});
 
 	$effect(() => {
-		if(user_self?.loaded && Role.check_perms(user_self.data, server.data, server_roles.data, 1, 6))
+		if(user_self?.loaded && Role.check_perms(user_self.data, server.data, server_roles.data, 1, Role.Perms1.ManageInvites))
 			Invite.get_list_nocache(server_id,
 						(list) => {
 							state_invites.set_all_states("list", list);
@@ -280,15 +280,15 @@
 		if(server?.loaded && user_self?.loaded){
 			let new_tabs = [];
 
-			if(Role.check_perms(user_self.data, server.data, server_roles.data, 1, 2))
+			if(Role.check_perms(user_self.data, server.data, server_roles.data, 1, Role.Perms1.ManageServer))
 				new_tabs.push({name: "General", render: general, state: state_general});
-			if(Role.check_perms(user_self.data, server.data, server_roles.data, 1, 8))
+			if(Role.check_perms(user_self.data, server.data, server_roles.data, 1, Role.Perms1.ManageRoles))
 				new_tabs.push({name: "Roles", render: roles, state: state_roles});
-			if(Role.check_perms(user_self.data, server.data, server_roles.data, 1, 4))
+			if(Role.check_perms(user_self.data, server.data, server_roles.data, 1, Role.Perms1.ManageBans))
 				new_tabs.push({name: "Bans", render: bans, state: state_bans});
-			if(Role.check_perms(user_self.data, server.data, server_roles.data, 1, 6))
+			if(Role.check_perms(user_self.data, server.data, server_roles.data, 1, Role.Perms1.ManageInvites))
 				new_tabs.push({name: "Invites", render: invites, state: state_invites});
-			if(Role.check_perms(user_self.data, server.data, server_roles.data, 1, 10))
+			if(Role.check_perms(user_self.data, server.data, server_roles.data, 1, Role.Perms1.ManageEmoji))
 				new_tabs.push({name: "Emojis", render: emojis, state: state_emojis});
 
 			untrack(() => tabs = new_tabs);

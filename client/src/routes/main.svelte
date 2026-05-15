@@ -324,8 +324,9 @@
 						setSettingsParams({server_id: server.id});
 						showCtxMenu(self, e);
 
-						Role.load_check_perms(Server.get(server.id), [1, 1, 1, 1, 1], [2, 4, 6, 8, 10], (allowed) =>
-							showCtxMenu(self, e, allowed ? [action_settings_server] : [])
+						Role.load_check_perms(Server.get(server.id),
+									[1, 1, 1, 1, 1], [Role.Perms1.ManageServer, Role.Perms1.ManageRoles, Role.Perms1.ManageBans, Role.Perms1.ManageInvites, Role.Perms1.ManageEmoji],
+									(allowed) => showCtxMenu(self, e, allowed ? [action_settings_server] : [])
 						);
 					}}
 					create_server={() => sel.settings_tabs = create_server_tabs}
@@ -337,7 +338,7 @@
 					ctx_channel={(self, e, channel) => {
 						setSettingsParams({channel_id: channel.id});
 						showCtxMenu(self, e);
-						Role.load_check_perms(server, 1, 5, (allowed) =>
+						Role.load_check_perms(server, 1, Role.Perms1.ManageChannels, (allowed) =>
 							showCtxMenu(self, e, allowed ? [action_settings_channel, action_delete_channel] : [])
 						);
 					}}
@@ -348,7 +349,7 @@
 						sel.ctx_user_id = vc_state.id;
 						showCtxMenu(self, e);
 
-						Role.load_check_perms(server, 1, 9, (allowed) =>
+						Role.load_check_perms(server, 1, Role.Perms1.ManageVC, (allowed) =>
 							showCtxMenu(self, e, allowed ? [user_volume, action_kick_channel_user] : [user_volume])
 						);
 					}}

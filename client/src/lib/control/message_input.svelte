@@ -47,7 +47,7 @@
 	let can_send_messages = $derived.by(() => {
 		if(typeof(override_send_perms) !== "undefined")
 			return override_send_perms;
-		return !(server?.loaded && channel?.loaded && !Role.check_perms(user_self.data, server.data, server_roles.data, 1, 0, channel.data));
+		return !(server?.loaded && channel?.loaded && !Role.check_perms(user_self.data, server.data, server_roles.data, 1, Role.Perms1.SendMessages, channel.data));
 	});
 
 	let input_panel = $state();
@@ -446,6 +446,7 @@
 	width: 100%;
 	resize: none;
 
+	min-height: 1lh;
 	max-height: 5lh;
 	overflow-wrap: anywhere;
 	overflow-y: auto;

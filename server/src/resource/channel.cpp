@@ -4,6 +4,8 @@
 #include "resource/utils/json.h"
 #include "resource/utils/role.h"
 
+#include <iostream>
+
 server_channel_resource::server_channel_resource(webserver& ws, db_connection_pool& pool, const config& cfg,
 					socket_main_server& sserv, socket_vc_server& vcserv):
 	base_resource(ws, "/servers/{server_id}/channels", pool, cfg),
@@ -23,27 +25,40 @@ std::shared_ptr<http_response> server_channel_resource::render_GET(const http_re
 	auto err = resource_utils::parse_server_id(req, tx, user_id, server_id);
 	if(err) return err;
 
-	std::string wl_check;
-	auto no_ch_manage_perms = role_utils::check_permission(req, tx, server_id, user_id,
-								role_utils::perms1, PERM1_MANAGE_CHANNELS);
-	if(no_ch_manage_perms)
-	       	wl_check = " AND ((array_length(wl_users, 1) IS NULL AND array_length(wl_roles, 1) IS NULL) OR array_position(wl_users, $2) IS NOT NULL OR EXISTS(SELECT role_id FROM user_x_server WHERE user_id = $2 AND array_position(wl_roles, role_id) IS NOT NULL))";
-
 	pqxx::result r = tx.exec("SELECT channels.channel_id, name, type, notification_count, wl_users, wl_roles, prev_channel_id FROM channels "
 				 "LEFT JOIN notifications ON notifications.channel_id = channels.channel_id "
 				 "AND notifications.user_id = $2 "
-				 "WHERE channels.server_id = $1" + wl_check + " ORDER BY channels.channel_id",
+				 "WHERE channels.server_id = $1 ORDER BY channels.channel_id",
 				 pqxx::params(server_id, user_id));
 	std::unordered_map<int, pqxx::row> chans;
 	for(size_t i = 0; i < r.size(); ++i)
 		chans[r[i]["channel_id"].as<int>()] = r[i];
 
+
+	auto no_ch_manage_perms = role_utils::check_permission(req, tx, server_id, user_id,
+								role_utils::perms1, PERM1_MANAGE_CHANNELS);
 	nlohmann::json res = nlohmann::json::array();
 	for(int cur = channel_utils::find_head(tx, server_id); cur != -1; cur = chans[cur]["prev_channel_id"].as<int>()){
+		pqxx::row& ch = chans[cur];
+
+		// Check whitelist
+		if(no_ch_manage_perms){
+			std::vector<int> wl_users = resource_utils::parse_psql_int_array(ch["wl_users"]);
+			std::vector<int> wl_roles = resource_utils::parse_psql_int_array(ch["wl_roles"]);
+			bool in_wl_users = !wl_users.size() ||
+						std::find(wl_users.begin(), wl_users.end(), user_id) != wl_users.end();
+			bool in_wl_roles = !wl_roles.size() ||
+						tx.exec("SELECT role_id FROM user_x_server "
+							"WHERE server_id = $1 AND user_id = $2 AND role_id IN (" + resource_utils::int_array_to_string(wl_roles) + ")",
+							pqxx::params(server_id, user_id)).size();
+			if(!in_wl_users || !in_wl_roles)
+				continue;
+		}
+
 		pqxx::result role_rows = tx.exec("SELECT role_id, perms1 FROM channel_x_role "
 						 "WHERE channel_id = $1",
-						 pqxx::params(chans[cur]["channel_id"].as<int>()));
-		nlohmann::json channel_json = json_utils::channel_from_row(chans[cur], &role_rows, true);
+						 pqxx::params(ch["channel_id"].as<int>()));
+		nlohmann::json channel_json = json_utils::channel_from_row(ch, &role_rows, true);
 		if(channel_json["type"] == CHANNEL_VOICE)
 			channel_json["vc_users"] = vcserv.get_channel_users(channel_json["id"], tx, user_id);
 		res += channel_json;

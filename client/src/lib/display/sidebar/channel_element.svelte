@@ -31,7 +31,7 @@
 	});
 
 	let can_join_vc = $derived(user_self?.loaded && server_roles?.loaded &&
-					Role.check_perms(user_self.data, server.data, server_roles.data, 1, 7));
+					Role.check_perms(user_self.data, server.data, server_roles.data, 1, Role.Perms1.JoinVC));
 	let private_suffix = $derived(channel.wl_users.length > 0 || channel.wl_roles.length > 0 ? "_private" : "");
 	let is_text_secondary = $derived(channel.type === Channel.Type.Text ?
 						typeof(channel.notifications) === "undefined" :

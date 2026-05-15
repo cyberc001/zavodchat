@@ -23,7 +23,7 @@
 	});
 
 	let can_change_roles = $derived(user_self?.loaded && server_roles?.loaded && user?.roles &&
-						Role.check_perms(user_self.data, server.data, server_roles.data, 1, 8) &&
+						Role.check_perms(user_self.data, server.data, server_roles.data, 1, Role.Perms1.ManageRoles) &&
 						(user_self.data.id === user.id || Role.check_lower_user(user_self.data, user, server.data, server_roles.data)));
 	let user_roles = $derived(server_roles?.loaded ? Role.get_user_roles(user, server_roles.data) : undefined);
 	let username_style = $derived(user_roles ? Role.get_username_style(user_roles) : "");

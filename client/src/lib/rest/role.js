@@ -76,6 +76,20 @@ export default class Role {
 	}
 
 
+	static Perms1 = {
+		SendMessages: 0,
+		DeleteMessages: 1,
+		ManageServer: 2,
+		KickUsers: 3,
+		ManageBans: 4,
+		ManageChannels: 5,
+		ManageInvites: 6,
+		JoinVC: 7,
+		ManageRoles: 8,
+		ManageVC: 9,
+		ManageEmoji: 10
+	};
+
 	static get_perm_bits(user, server, server_roles,
 				set_i){
 		if(server.owner_id === user.id)
@@ -99,6 +113,7 @@ export default class Role {
 	static check_perms(user, server, server_roles,
 				set_i, perm_i,
 				channel){
+		console.log("Check perms", set_i, perm_i);
 		if(server.owner_id === user.id)
 			return true;
 		for(const role of server_roles){
@@ -107,6 +122,7 @@ export default class Role {
 			const channel_role_i = channel?.roles ? channel.roles.findIndex((x) => x.id === role.id) : -1;
 			const chp = (channel_role_i > -1 ? channel.roles[channel_role_i].perms1 : 0) >> (perm_i * 2) & 0x3;
 			const p = role["perms" + set_i] >> (perm_i * 2) & 0x3;
+			console.log("role id", role.id, "perms", role.perms1, "chp", chp, "p", p);
 			if(chp !== 0)
 				return chp === 1;
 			if(p !== 0)

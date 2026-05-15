@@ -72,10 +72,16 @@ export class IDCache {
 		return obs;
 	}
 
-	reset(){
-		this._cache_refs = {};
-		for(const ref of Object.values(this.cache)){
-			const obs = ref?.deref();
+	reset(_id){
+		if(typeof(_id) === "undefined"){
+			this._cache_refs = {};
+			for(const ref of Object.values(this.cache)){
+				const obs = ref?.deref();
+				if(obs)
+					obs.load_func(this, obs.id);
+			}
+		} else {
+			const obs = this.cache[this.state_refs_id(_id)]?.deref();
 			if(obs)
 				obs.load_func(this, obs.id);
 		}

@@ -201,12 +201,28 @@ export default class MainSocket {
 			Ban.ban_range_cache.update(data.server_id, data);
 		},
 
-		roles_updated: function(data) {
+		roles_updated: function(data, _this) {	
 			let list = Role.role_list_cache.get_state(data.server_id);
 			if(list && !list.loading){
+				let reload_channels = false;
+				if(User.user_server_cache.has_state([data.server_id, _this.self_user.data.id]) &&
+					Server.server_cache.has_state(data.server_id)){
+					const user = User.user_server_cache.get_state([data.server_id, _this.self_user.data.id]);
+					const server = Server.server_cache.get_state(data.server_id);
+
+					const old_ch_perms = Role.check_perms(user.data, server, list.data, 1, Role.Perms1.ManageChannels);
+					const new_ch_perms = Role.check_perms(user.data, server, data.roles, 1, Role.Perms1.ManageChannels);
+					console.log("OLD PERMS", old_ch_perms, "NEW PERMS", new_ch_perms);
+					if(old_ch_perms !== new_ch_perms)
+						reload_channels = true;
+				}
+
 				list.data.splice(0, list.data.length);
 				for(const rol of data.roles)
 					list.data.push(rol);
+
+				if(reload_channels)
+					Channel.channel_list_cache.reset(data.server_id);
 			}
 		},
 

@@ -27,7 +27,10 @@
 		show_ctx_menu, ctx_vc_user, show_user, show_ban,
 		show_channel, end_call} = $props();
 
-	let channel = Channel.get(channel_id);
+	let channel = $state();
+	$effect(() => {
+		channel = Channel.get(channel_id);
+	});
 
 	let server_roles = $state();
 	let user_self = $state();

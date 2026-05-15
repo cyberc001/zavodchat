@@ -38,7 +38,7 @@
 	});
 
 	let can_manage_channels = $derived(server && user_self?.loaded && server_roles?.loaded &&
-						Role.check_perms(user_self.data, server.data, server_roles.data, 1, 2));
+						Role.check_perms(user_self.data, server.data, server_roles.data, 1, Role.Perms1.ManageChannels));
 
 	let vc_video_elem = $state();
 	$effect(() => {

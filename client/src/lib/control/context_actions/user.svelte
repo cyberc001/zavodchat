@@ -32,9 +32,9 @@
 					actions.push(action_mention_user);
 
 				if(server && Role.check_lower_user(user.data, other_user.data, _server.data, server_roles.data)){
-					if(Role.check_perms(user.data, _server.data, server_roles.data, 1, 3))
+					if(Role.check_perms(user.data, _server.data, server_roles.data, 1, Role.Perms1.KickUsers))
 						actions.push(action_kick_user);
-					if(Role.check_perms(user.data, _server.data, server_roles.data, 1, 4))
+					if(Role.check_perms(user.data, _server.data, server_roles.data, 1, Role.Perms1.ManageBans))
 						actions.push(action_ban_user);
 				}
 				_then(actions);
