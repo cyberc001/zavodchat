@@ -25,7 +25,7 @@ std::shared_ptr<http_response> server_invites_resource::render_GET(const http_re
 	auto err = resource_utils::parse_invite_id(req, tx, invite_id);
 	if(err) return err;
 
-	pqxx::result r = tx.exec("SELECT server_id, name, avatar FROM server_invites "
+	pqxx::result r = tx.exec("SELECT server_id, owner_id, name, avatar FROM server_invites "
 				 "NATURAL JOIN servers WHERE invite_id = $1 AND expiration_time IS NULL OR expiration_time > now()",
 				 pqxx::params(invite_id));
 	if(!r.size())

@@ -17,6 +17,11 @@
 	let error = $state("");
 </script>
 
+
+<svelte:head>
+	<title>Zavodchat invite</title>
+</svelte:head>
+
 <div class="main">
 	<div class="center_frame">
 		{#if server === null}
@@ -29,13 +34,13 @@
 			{/if}
 			{server.name}
 			<Button text="Accept invite"
-				--margin-top="16px" --margin-bottom="0px"
 				onclick={() => {
 					error = "";
 					Invite.accept(page.params.slug,
 							(res) => goto("/"),
 							(err) => error = err.data);
 				}}
+				--margin="16px 0 0 0"
 			/>
 			<div style="color: var(--clr_text_error); font-size: 18px">
 				{error}
@@ -47,6 +52,11 @@
 <style>
 @import "../../main.css";
 
+.main {
+	width: 100%;
+	height: 100%;
+	display: flex;
+}
 .center_frame {
 	margin: auto;
 	
